@@ -1,0 +1,17 @@
+{
+  "name": "animate-engine-mcp",
+  "version": "1.0.0",
+  "description": "MCP server that drives a live animateEngine browser session so an AI can build and export 3D animations autonomously.",
+  "type": "module",
+  "bin": {
+    "animate-engine-mcp": "server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  }
+}

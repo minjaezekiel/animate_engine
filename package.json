@@ -1,0 +1,29 @@
+{
+  "name": "animate-engine",
+  "version": "1.1.0",
+  "description": "Browser-based 3D animation and modeling engine (Three.js) with WebM/GIF/image-sequence export, undo/save state management, and an MCP interface for AI-driven animation.",
+  "author": "Ezekiel Minja",
+  "license": "MIT",
+  "main": "animateEngine.js",
+  "unpkg": "animateEngine.min.js",
+  "jsdelivr": "animateEngine.min.js",
+  "files": [
+    "animateEngine.js",
+    "animateEngine.min.js",
+    "styles.css",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "terser animateEngine.js -c -m -o animateEngine.min.js",
+    "test": "node --test"
+  },
+  "keywords": ["three.js", "animation", "3d", "webgl", "gif", "webm", "mcp", "editor"],
+  "peerDependencies": {
+    "three": "^0.128.0"
+  },
+  "devDependencies": {
+    "omggif": "^1.0.10",
+    "terser": "^5.0.0"
+  }
+}

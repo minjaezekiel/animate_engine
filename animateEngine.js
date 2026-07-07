@@ -25,7 +25,12 @@
                 this.editManager = new EditManager(this.sceneManager, this.uiManager);
                 this.mediaManager = new MediaManager(this.sceneManager, this.animationManager);
                 this.recordingManager = new RecordingManager(this.sceneManager, this.animationManager, this.mediaManager);
-                
+                this.history = new HistoryManager(this);
+
+                // Route scene/animation mutations into undo history + autosave.
+                this.sceneManager.onChange = () => this.pushHistory();
+                this.animationManager.onChange = () => this.pushHistory();
+
                 // Initialize the engine
                 this.init();
             }
@@ -46,11 +51,238 @@
                 // Set up the recording manager
                 this.recordingManager.init();
                 
+                // Wire project save/load UI, undo/redo shortcuts and MCP bridge.
+                this.setupProjectUI();
+                this.setupShortcuts();
+                this.connectMcpBridge();
+
+                // Restore the last autosaved project, then seed the history baseline.
+                this.restoreAutosave();
+                this.history.push();
+
                 // Start the render loop
                 this.animate();
-                
+
                 // Hide loading overlay
                 document.getElementById('loadingOverlay').style.display = 'none';
+            }
+
+            // ---- Project state: serialize / restore / persist ----
+
+            serializeProject() {
+                return {
+                    scene: JSON.parse(this.sceneManager.exportScene()),
+                    animations: this.animationManager.getAllAnimations()
+                        .map(a => JSON.parse(this.animationManager.exportAnimation(a.name))),
+                    meta: { version: '1.0', savedAt: new Date().toISOString() }
+                };
+            }
+
+            applyProject(project) {
+                if (!project) return;
+                this.sceneManager._suspendChange = true;
+                this.animationManager._suspendChange = true;
+
+                if (project.scene) this.sceneManager.importScene(JSON.stringify(project.scene));
+
+                // Replace all animations with the saved set.
+                this.animationManager.getAllAnimations().slice()
+                    .forEach(a => this.animationManager.deleteAnimation(a.name));
+                (project.animations || [])
+                    .forEach(a => this.animationManager.importAnimation(JSON.stringify(a)));
+
+                this.sceneManager._suspendChange = false;
+                this.animationManager._suspendChange = false;
+                if (this.uiManager.updateHierarchy) this.uiManager.updateHierarchy();
+            }
+
+            saveProject() {
+                const blob = new Blob([JSON.stringify(this.serializeProject(), null, 2)],
+                    { type: 'application/json' });
+                downloadBlob(blob, 'project.json');
+            }
+
+            loadProject(json, record = true) {
+                const project = typeof json === 'string' ? JSON.parse(json) : json;
+                this.applyProject(project);
+                if (record) this.history.push();
+            }
+
+            autosave() {
+                try {
+                    localStorage.setItem('animateEngine.project',
+                        JSON.stringify(this.serializeProject()));
+                } catch (e) { /* storage full or unavailable — ignore */ }
+            }
+
+            restoreAutosave() {
+                try {
+                    const saved = localStorage.getItem('animateEngine.project');
+                    if (saved) this.applyProject(JSON.parse(saved));
+                } catch (e) { /* corrupt autosave — ignore */ }
+            }
+
+            pushHistory() { this.history.push(); }
+            undo() { this.history.undo(); }
+            redo() { this.history.redo(); }
+
+            setupProjectUI() {
+                const on = (id, ev, fn) => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener(ev, fn);
+                };
+                on('saveProject', 'click', () => this.saveProject());
+                on('loadProject', 'click', () => document.getElementById('loadProjectFile').click());
+                on('loadProjectFile', 'change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => this.loadProject(ev.target.result);
+                    reader.readAsText(file);
+                    e.target.value = '';
+                });
+            }
+
+            setupShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+                    e.preventDefault();
+                    e.shiftKey ? this.redo() : this.undo();
+                });
+            }
+
+            // ---- Programmatic API (single choke point for scripts / AI / MCP bridge) ----
+
+            getSceneJSON() {
+                return this.serializeProject();
+            }
+
+            // Run a batch of {op, args} commands; returns one {ok, value|error} per command.
+            async runCommands(commands) {
+                const results = [];
+                for (const cmd of (commands || [])) {
+                    try {
+                        results.push({ ok: true, value: await this.runCommand(cmd) });
+                    } catch (err) {
+                        results.push({ ok: false, error: err.message });
+                    }
+                }
+                return results;
+            }
+
+            async runCommand(cmd) {
+                const a = cmd.args || {};
+                const sm = this.sceneManager, am = this.animationManager;
+                const applyTransform = (obj) => {
+                    if (a.position) obj.position.set(...a.position);
+                    if (a.rotation) obj.rotation.set(...a.rotation);
+                    if (a.scale) obj.scale.set(...a.scale);
+                    if (a.color != null && obj.material) obj.material.color.set(a.color);
+                };
+
+                switch (cmd.op) {
+                    case 'createObject': {
+                        const makers = {
+                            cube: 'createCube', sphere: 'createSphere', cylinder: 'createCylinder',
+                            cone: 'createCone', torus: 'createTorus', tetrahedron: 'createTetrahedron'
+                        };
+                        const fn = makers[a.kind || 'cube'];
+                        if (!fn) throw new Error('Unknown kind: ' + a.kind);
+                        const obj = sm[fn](a.name);
+                        applyTransform(obj);
+                        return { uuid: obj.uuid, name: obj.name };
+                    }
+                    case 'createLight': {
+                        const light = sm.createLight(a.type || 'point', a.name);
+                        if (a.position) light.position.set(...a.position);
+                        if (a.intensity != null) light.intensity = a.intensity;
+                        if (a.color != null) light.color.set(a.color);
+                        return { uuid: light.uuid };
+                    }
+                    case 'setMaterial': {
+                        const obj = sm.getObjectByUUID(a.uuid);
+                        if (obj && obj.material && a.color != null) obj.material.color.set(a.color);
+                        return { uuid: a.uuid };
+                    }
+                    case 'transform': {
+                        const obj = sm.getObjectByUUID(a.uuid);
+                        if (!obj) throw new Error('No object: ' + a.uuid);
+                        applyTransform(obj);
+                        sm.markChanged();
+                        return { uuid: a.uuid };
+                    }
+                    case 'subdivide': {
+                        const obj = sm.getObjectByUUID(a.uuid);
+                        if (!obj) throw new Error('No object: ' + a.uuid);
+                        sm.subdivide(obj);
+                        return { uuid: a.uuid, vertices: obj.geometry.attributes.position.count };
+                    }
+                    case 'createAnimation':
+                        am.createAnimation(a.name, a.duration || 5, a.loop || 'once');
+                        am.selectAnimation(a.name);
+                        return { name: a.name };
+                    case 'selectAnimation':
+                        am.selectAnimation(a.name);
+                        return { name: a.name };
+                    case 'addKeyframe': {
+                        const obj = sm.getObjectByUUID(a.uuid);
+                        if (!obj) throw new Error('No object: ' + a.uuid);
+                        const props = {};
+                        if (a.position) props.position = a.position;
+                        if (a.rotation) props.rotation = a.rotation;
+                        if (a.scale) props.scale = a.scale;
+                        am.addKeyframe(obj, a.time || 0, props);
+                        return { uuid: a.uuid, time: a.time || 0 };
+                    }
+                    case 'play': am.play(); return {};
+                    case 'pause': am.pause(); return {};
+                    case 'stop': am.stop(); return {};
+                    case 'setTime': am.setCurrentTime(a.time || 0); return {};
+                    case 'getScene': return this.getSceneJSON();
+                    case 'loadScene':
+                        this.loadProject(a.project || {});
+                        return {};
+                    case 'clear':
+                        this.applyProject({ scene: { objects: [], lights: [], groups: [] }, animations: [] });
+                        this.pushHistory();
+                        return {};
+                    case 'exportVideo': {
+                        const blob = await this.recordingManager.recordSelectedAnimation();
+                        return { dataUrl: await blobToDataUrl(blob), size: blob.size };
+                    }
+                    case 'exportGif': {
+                        const cap = this.recordingManager.captureFrames(a.fps || 10, a.maxWidth || 480);
+                        if (!cap) throw new Error('No animation selected');
+                        const bytes = encodeGIF(cap.frames, cap.width, cap.height, cap.delayMs);
+                        const dataUrl = await blobToDataUrl(new Blob([bytes], { type: 'image/gif' }));
+                        return { dataUrl, size: bytes.length };
+                    }
+                    default:
+                        throw new Error('Unknown op: ' + cmd.op);
+                }
+            }
+
+            // Opt-in WebSocket bridge (enable with ?mcp=ws://host:port) so an MCP
+            // server can drive this live browser session and receive results.
+            connectMcpBridge() {
+                if (typeof location === 'undefined' || typeof WebSocket === 'undefined') return;
+                const url = new URLSearchParams(location.search).get('mcp');
+                if (!url) return;
+                try {
+                    const ws = new WebSocket(url);
+                    ws.onopen = () => ws.send(JSON.stringify({ type: 'hello', role: 'engine' }));
+                    ws.onmessage = async (event) => {
+                        let msg;
+                        try { msg = JSON.parse(event.data); } catch (e) { return; }
+                        if (msg.type !== 'commands') return;
+                        const results = await this.runCommands(msg.commands);
+                        ws.send(JSON.stringify({ type: 'result', id: msg.id, results }));
+                    };
+                    ws.onerror = () => console.warn('MCP bridge failed to connect:', url);
+                    this.mcpSocket = ws;
+                } catch (e) {
+                    console.warn('MCP bridge error:', e);
+                }
             }
 
             animate() {
@@ -98,6 +330,13 @@
                 this.objectProperties = new Map(); // Map of object UUID to custom properties
                 this.raycaster = new THREE.Raycaster();
                 this.mouse = new THREE.Vector2();
+                this.onChange = null;        // set by AnimationEngine for undo/autosave
+                this._suspendChange = false; // true while importing a project
+            }
+
+            // Notify listeners that the scene mutated (drives undo history / autosave).
+            markChanged() {
+                if (!this._suspendChange && this.onChange) this.onChange();
             }
 
             init(container) {
@@ -114,7 +353,8 @@
                 // Create the renderer
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
                 this.renderer.setSize(container.clientWidth, container.clientHeight);
-                this.renderer.setPixelRatio(window.devicePixelRatio);
+                // Cap pixel ratio at 2 — beyond that costs GPU with little visible gain.
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
                 this.renderer.shadowMap.enabled = true;
                 this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 container.appendChild(this.renderer.domElement);
@@ -281,7 +521,8 @@
                     isStatic: false,
                     ...properties
                 });
-                
+
+                this.markChanged();
                 return object;
             }
 
@@ -306,6 +547,8 @@
                 if (this.selectedObject === object) {
                     this.selectedObject = null;
                 }
+
+                this.markChanged();
             }
 
             selectObject(object) {
@@ -335,6 +578,37 @@
                         ...properties
                     });
                 }
+            }
+
+            // Subdivide a mesh: split every triangle into four (denser geometry
+            // for smoother sculpting / higher detail). Reuses subdivideGeometry().
+            subdivide(object) {
+                if (!object || !object.isMesh) return false;
+                let geo = object.geometry;
+                if (geo.index) geo = geo.toNonIndexed();
+                const positions = Array.from(geo.attributes.position.array);
+                const newGeo = new THREE.BufferGeometry();
+                newGeo.setAttribute('position',
+                    new THREE.Float32BufferAttribute(subdivideGeometry(positions), 3));
+                newGeo.computeVertexNormals();
+                object.geometry.dispose();
+                object.geometry = newGeo;
+                this.markChanged();
+                return true;
+            }
+
+            // Restore an object's original uuid and re-key it in every map so that
+            // animation keyframes (keyed by uuid) still resolve after import.
+            reassignUUID(object, newUuid) {
+                const old = object.uuid;
+                if (!newUuid || newUuid === old) return;
+                [this.objects, this.objectProperties, this.lights, this.groups].forEach(map => {
+                    if (map.has(old)) {
+                        map.set(newUuid, map.get(old));
+                        map.delete(old);
+                    }
+                });
+                object.uuid = newUuid;
             }
 
             createCube(name, properties = {}) {
@@ -469,7 +743,8 @@
                     locked: false,
                     ...properties
                 });
-                
+
+                this.markChanged();
                 return light;
             }
 
@@ -486,7 +761,8 @@
                     locked: false,
                     ...properties
                 });
-                
+
+                this.markChanged();
                 return group;
             }
 
@@ -600,6 +876,7 @@
                             group.position.set(...groupData.position);
                             group.rotation.set(...groupData.rotation);
                             group.scale.set(...groupData.scale);
+                            this.reassignUUID(group, groupData.uuid);
                         });
                     }
                     
@@ -646,9 +923,11 @@
                                     this.addToGroup(object, parent);
                                 }
                             }
+
+                            this.reassignUUID(object, objectData.uuid);
                         });
                     }
-                    
+
                     // Import lights
                     if (data.lights) {
                         data.lights.forEach(lightData => {
@@ -656,6 +935,7 @@
                             light.position.set(...lightData.position);
                             light.color.setHex(lightData.color);
                             light.intensity = lightData.intensity;
+                            this.reassignUUID(light, lightData.uuid);
                         });
                     }
                     
@@ -741,6 +1021,12 @@
                 this.mixers = new Map(); // Map of object UUID to mixer
                 this.tweens = new Map(); // Map of object UUID to tween
                 this.animationClips = new Map(); // Map of animation name to clip
+                this.onChange = null;        // set by AnimationEngine for undo/autosave
+                this._suspendChange = false; // true while importing a project
+            }
+
+            markChanged() {
+                if (!this._suspendChange && this.onChange) this.onChange();
             }
 
             update() {
@@ -834,22 +1120,27 @@
                 return Array.from(this.animations.values());
             }
 
+            // Build and start clip actions for the selected animation without
+            // starting playback, so poses can be sampled via setCurrentTime().
+            prepareActions() {
+                if (!this.selectedAnimation) return;
+                this.mixers.forEach((mixer, uuid) => {
+                    const object = this.sceneManager.getObjectByUUID(uuid);
+                    if (object && this.selectedAnimation.keyframes.has(uuid)) {
+                        const clip = this.createAnimationClip(object, this.selectedAnimation);
+                        const action = mixer.clipAction(clip);
+                        action.reset();
+                        action.play();
+                    }
+                });
+            }
+
             play() {
                 if (this.selectedAnimation) {
                     this.isPlaying = true;
                     this.clock.start();
-                    
-                    // Update all mixers to play the selected animation
-                    this.mixers.forEach((mixer, uuid) => {
-                        const object = this.sceneManager.getObjectByUUID(uuid);
-                        if (object && this.selectedAnimation.keyframes.has(uuid)) {
-                            const clip = this.createAnimationClip(object, this.selectedAnimation);
-                            const action = mixer.clipAction(clip);
-                            action.reset();
-                            action.play();
-                        }
-                    });
-                    
+                    this.prepareActions();
+
                     // Start all tweens
                     this.tweens.forEach(tween => {
                         tween.start();
@@ -932,7 +1223,8 @@
                 if (!this.mixers.has(uuid)) {
                     this.mixers.set(uuid, new THREE.AnimationMixer(object));
                 }
-                
+
+                this.markChanged();
                 return true;
             }
 
@@ -957,7 +1249,8 @@
                     if (keyframes.length === 0) {
                         this.mixers.delete(uuid);
                     }
-                    
+
+                    this.markChanged();
                     return true;
                 }
                 
@@ -999,12 +1292,19 @@
                     }
                 });
                 
+                // 'smooth' easing => cubic interpolation on position/scale (curve editor).
+                const smooth = animation.easing === 'smooth';
+                const applyEasing = (track) => {
+                    if (smooth && track.setInterpolation) track.setInterpolation(THREE.InterpolateSmooth);
+                    return track;
+                };
+
                 if (positionTimes.length > 0) {
-                    tracks.push(new THREE.VectorKeyframeTrack(
+                    tracks.push(applyEasing(new THREE.VectorKeyframeTrack(
                         `${object.uuid}.position`,
                         positionTimes,
                         positionValues
-                    ));
+                    )));
                 }
                 
                 // Process rotation keyframes
@@ -1045,11 +1345,11 @@
                 });
                 
                 if (scaleTimes.length > 0) {
-                    tracks.push(new THREE.VectorKeyframeTrack(
+                    tracks.push(applyEasing(new THREE.VectorKeyframeTrack(
                         `${object.uuid}.scale`,
                         scaleTimes,
                         scaleValues
-                    ));
+                    )));
                 }
                 
                 return new THREE.AnimationClip(animation.name, animation.duration, tracks);
@@ -1550,6 +1850,11 @@
 
             setupEventListeners() {
                 // Tool buttons
+                const subdivideBtn = document.getElementById('subdivideTool');
+                if (subdivideBtn) subdivideBtn.addEventListener('click', () => {
+                    const obj = this.sceneManager.getSelectedObject();
+                    if (obj && obj.isMesh) this.sceneManager.subdivide(obj);
+                });
                 document.getElementById('selectTool').addEventListener('click', () => this.setTool('select'));
                 document.getElementById('moveTool').addEventListener('click', () => this.setTool('move'));
                 document.getElementById('rotateTool').addEventListener('click', () => this.setTool('rotate'));
@@ -1967,11 +2272,12 @@
                     
                     // Re-enable orbit controls
                     this.sceneManager.controls.enabled = true;
-                    
+
                     // Update properties panel
                     this.uiManager.updateProperties();
+                    this.sceneManager.markChanged();
                 }
-                
+
                 // Handle sculpting
                 if (this.isSculpting) {
                     this.isSculpting = false;
@@ -2184,6 +2490,7 @@
                 this.originalVertices = null;
                 this.modifiedVertices = null;
                 this.originalNormals = null;
+                this.sceneManager.markChanged();
             }
             
             update() {
@@ -3198,6 +3505,24 @@
                 }
             }
 
+            // Play any loaded audio into both speakers and a capture stream,
+            // returning an audio track to mix into a video recording (or null).
+            startAudioForRecording() {
+                if (!this.audioContext || (!this.backgroundMusic && !this.voiceOver)) return null;
+                const dest = this.audioContext.createMediaStreamDestination();
+                const play = (buffer) => {
+                    if (!buffer) return;
+                    const source = this.audioContext.createBufferSource();
+                    source.buffer = buffer;
+                    source.connect(this.audioContext.destination);
+                    source.connect(dest);
+                    source.start();
+                };
+                play(this.backgroundMusic);
+                play(this.voiceOver);
+                return dest.stream.getAudioTracks()[0] || null;
+            }
+
             startRecording() {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                     console.error('MediaDevices API is not supported in this browser');
@@ -3358,7 +3683,227 @@
         }
 
         /**
-         * Recording Manager - Handles recording and exporting animations
+         * Download a Blob as a named file (shared helper).
+         */
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        /**
+         * Read a Blob as a base64 data URL (used to ship recordings over the MCP bridge).
+         */
+        function blobToDataUrl(blob) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // ---- Pure, dependency-free utilities (also exported for unit testing) ----
+
+        // Decode a base64 data URL (e.g. canvas.toDataURL) into raw bytes.
+        function dataURLToBytes(dataURL) {
+            const bin = atob(dataURL.split(',')[1]);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return bytes;
+        }
+
+        // GIF LZW compressor. `indices` are 8-bit palette indices; returns a byte array.
+        function lzwEncode(minCodeSize, indices) {
+            const clearCode = 1 << minCodeSize;
+            const eoiCode = clearCode + 1;
+            let codeSize = minCodeSize + 1;
+            let dict, dictSize;
+            const initDict = () => {
+                dict = new Map();
+                for (let i = 0; i < clearCode; i++) dict.set(String.fromCharCode(i), i);
+                dictSize = eoiCode + 1;
+            };
+            initDict();
+
+            const bytes = [];
+            let cur = 0, curBits = 0;
+            const write = (code) => {
+                cur |= code << curBits;
+                curBits += codeSize;
+                while (curBits >= 8) { bytes.push(cur & 0xff); cur >>= 8; curBits -= 8; }
+            };
+
+            write(clearCode);
+            let w = String.fromCharCode(indices[0]);
+            for (let i = 1; i < indices.length; i++) {
+                const c = String.fromCharCode(indices[i]);
+                if (dict.has(w + c)) {
+                    w += c;
+                } else {
+                    write(dict.get(w));
+                    dict.set(w + c, dictSize++);
+                    if (dictSize > (1 << codeSize) && codeSize < 12) codeSize++;
+                    if (dictSize > 4096) { write(clearCode); initDict(); codeSize = minCodeSize + 1; }
+                    w = c;
+                }
+            }
+            write(dict.get(w));
+            write(eoiCode);
+            if (curBits > 0) bytes.push(cur & 0xff);
+            return bytes;
+        }
+
+        // Encode RGBA frames to an animated GIF89a (256-colour 3-3-2 palette). No deps.
+        function encodeGIF(frames, width, height, delayMs = 100) {
+            const out = [];
+            const short = (v) => out.push(v & 0xff, (v >> 8) & 0xff);
+            const str = (s) => { for (let i = 0; i < s.length; i++) out.push(s.charCodeAt(i)); };
+
+            str('GIF89a');
+            short(width); short(height);
+            out.push(0xF7, 0, 0); // global colour table, 256 entries, 8 bits/pixel
+            for (let i = 0; i < 256; i++) {
+                out.push(
+                    Math.round(((i >> 5) & 7) * 255 / 7),
+                    Math.round(((i >> 2) & 7) * 255 / 7),
+                    Math.round((i & 3) * 255 / 3)
+                );
+            }
+            out.push(0x21, 0xFF, 11); str('NETSCAPE2.0'); out.push(3, 1, 0, 0, 0); // loop forever
+
+            const delay = Math.round(delayMs / 10); // centiseconds
+            for (const rgba of frames) {
+                out.push(0x21, 0xF9, 4, 0, delay & 0xff, (delay >> 8) & 0xff, 0, 0);
+                out.push(0x2C); short(0); short(0); short(width); short(height); out.push(0);
+
+                const indices = new Uint8Array(width * height);
+                for (let p = 0; p < indices.length; p++) {
+                    const r = rgba[p * 4], g = rgba[p * 4 + 1], b = rgba[p * 4 + 2];
+                    indices[p] = ((r >> 5) << 5) | ((g >> 5) << 2) | (b >> 6);
+                }
+                const data = lzwEncode(8, indices);
+                out.push(8); // LZW minimum code size
+                for (let i = 0; i < data.length; i += 255) {
+                    const chunk = data.slice(i, i + 255);
+                    out.push(chunk.length, ...chunk);
+                }
+                out.push(0); // block terminator
+            }
+            out.push(0x3B); // trailer
+            return new Uint8Array(out);
+        }
+
+        const CRC_TABLE = (() => {
+            const t = new Uint32Array(256);
+            for (let n = 0; n < 256; n++) {
+                let c = n;
+                for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+                t[n] = c >>> 0;
+            }
+            return t;
+        })();
+        function crc32(bytes) {
+            let c = 0xFFFFFFFF;
+            for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+            return (c ^ 0xFFFFFFFF) >>> 0;
+        }
+
+        // Build a ZIP archive (STORE / no compression) from [{name, data:Uint8Array}]. No deps.
+        function buildZip(files) {
+            const chunks = [];
+            const central = [];
+            let offset = 0;
+            const u16 = (v) => [v & 0xff, (v >> 8) & 0xff];
+            const u32 = (v) => [v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff, (v >>> 24) & 0xff];
+
+            for (const file of files) {
+                const nameBytes = Array.from(new TextEncoder().encode(file.name));
+                const data = file.data;
+                const crc = crc32(data);
+                const local = [
+                    ...u32(0x04034b50), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+                    ...u32(crc), ...u32(data.length), ...u32(data.length),
+                    ...u16(nameBytes.length), ...u16(0), ...nameBytes,
+                ];
+                chunks.push(new Uint8Array(local), data);
+                central.push(...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0), ...u16(0),
+                    ...u16(0), ...u16(0), ...u32(crc), ...u32(data.length), ...u32(data.length),
+                    ...u16(nameBytes.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+                    ...u32(0), ...u32(offset), ...nameBytes);
+                offset += local.length + data.length;
+            }
+            const centralBytes = new Uint8Array(central);
+            const eocd = new Uint8Array([
+                ...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length),
+                ...u32(centralBytes.length), ...u32(offset), ...u16(0),
+            ]);
+            chunks.push(centralBytes, eocd);
+
+            const total = chunks.reduce((n, c) => n + c.length, 0);
+            const result = new Uint8Array(total);
+            let pos = 0;
+            for (const c of chunks) { result.set(c, pos); pos += c.length; }
+            return result;
+        }
+
+        // Loop-subdivide a triangle-soup position array (each tri -> 4 tris). Returns Array.
+        function subdivideGeometry(positions) {
+            const out = [];
+            const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+            const tri = (a, b, c) => out.push(...a, ...b, ...c);
+            for (let i = 0; i < positions.length; i += 9) {
+                const a = [positions[i], positions[i + 1], positions[i + 2]];
+                const b = [positions[i + 3], positions[i + 4], positions[i + 5]];
+                const c = [positions[i + 6], positions[i + 7], positions[i + 8]];
+                const ab = mid(a, b), bc = mid(b, c), ca = mid(c, a);
+                tri(a, ab, ca); tri(ab, b, bc); tri(ca, bc, c); tri(ab, bc, ca);
+            }
+            return out;
+        }
+
+        /**
+         * History Manager - Snapshot-based undo/redo. A snapshot is a full project
+         * object produced by engine.serializeProject() and restored via applyProject().
+         */
+        class HistoryManager {
+            constructor(engine, limit = 30) {
+                this.engine = engine;
+                this.limit = limit;
+                this.stack = [];
+                this.index = -1;
+                this.suspended = false; // true while restoring, so restores aren't recorded
+            }
+
+            push() {
+                if (this.suspended) return;
+                this.stack = this.stack.slice(0, this.index + 1);
+                this.stack.push(this.engine.serializeProject());
+                if (this.stack.length > this.limit) this.stack.shift();
+                this.index = this.stack.length - 1;
+                this.engine.autosave();
+            }
+
+            _restore(snapshot) {
+                this.suspended = true;
+                this.engine.applyProject(snapshot);
+                this.suspended = false;
+            }
+
+            undo() {
+                if (this.index > 0) this._restore(this.stack[--this.index]);
+            }
+
+            redo() {
+                if (this.index < this.stack.length - 1) this._restore(this.stack[++this.index]);
+            }
+        }
+
+        /**
+         * Recording Manager - Records the viewport to a downloadable WebM video
+         * using the native MediaRecorder + canvas.captureStream (no dependencies).
          */
         class RecordingManager {
             constructor(sceneManager, animationManager, mediaManager) {
@@ -3366,192 +3911,207 @@
                 this.animationManager = animationManager;
                 this.mediaManager = mediaManager;
                 this.isRecording = false;
-                this.isPaused = false;
-                this.recordedFrames = [];
-                this.startTime = 0;
-                this.pausedTime = 0;
-                this.mediaRecorder = null;
-                this.recordedChunks = [];
+                this.recorder = null;
+                this.chunks = [];
+                this.lastRecording = null;
+                this.autoStopTimer = null;
             }
 
             init() {
-                // Set up event listeners for recording controls
                 this.setupEventListeners();
             }
 
             setupEventListeners() {
-                document.getElementById('startRecording').addEventListener('click', () => {
-                    this.startRecording();
-                });
-                
-                document.getElementById('stopRecording').addEventListener('click', () => {
-                    this.stopRecording();
-                });
-                
-                document.getElementById('pauseRecording').addEventListener('click', () => {
-                    this.pauseRecording();
-                });
-                
-                document.getElementById('resumeRecording').addEventListener('click', () => {
-                    this.resumeRecording();
-                });
-                
-                document.getElementById('exportVideo').addEventListener('click', () => {
-                    this.exportAsVideo();
-                });
-                
-                document.getElementById('exportGIF').addEventListener('click', () => {
-                    this.exportAsGIF();
-                });
-                
-                document.getElementById('exportSequence').addEventListener('click', () => {
-                    this.exportAsImageSequence();
-                });
-                
-                document.getElementById('exportData').addEventListener('click', () => {
-                    this.exportAnimationData();
-                });
+                const on = (id, fn) => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('click', fn);
+                };
+                on('startRecording', () => this.startRecording());
+                on('stopRecording', () => this.stopRecording());
+                on('pauseRecording', () => this.pauseRecording());
+                on('resumeRecording', () => this.resumeRecording());
+                on('exportVideo', () => this.exportAsVideo());
+                on('exportGIF', () => this.exportAsGIF());
+                on('exportSequence', () => this.exportAsImageSequence());
+                on('exportData', () => this.exportAnimationData());
             }
 
-            startRecording() {
+            // Deterministically sample the selected animation into downscaled frames
+            // by stepping time and rendering offline (no realtime playback needed).
+            captureFrames(fps = 10, maxWidth = 480) {
+                const anim = this.animationManager.getSelectedAnimation();
+                if (!anim) { this.showNotification('No animation selected', 'info'); return null; }
+                this.animationManager.prepareActions();
+
+                const gl = this.sceneManager.renderer.domElement;
+                const scale = Math.min(1, maxWidth / gl.width);
+                const w = Math.max(1, Math.round(gl.width * scale));
+                const h = Math.max(1, Math.round(gl.height * scale));
+                const c2d = document.createElement('canvas');
+                c2d.width = w; c2d.height = h;
+                const ctx = c2d.getContext('2d');
+
+                const count = Math.max(1, Math.round(anim.duration * fps));
+                const frames = [], pngs = [];
+                for (let i = 0; i < count; i++) {
+                    this.animationManager.setCurrentTime((i / count) * anim.duration);
+                    this.sceneManager.render();
+                    ctx.drawImage(gl, 0, 0, w, h);
+                    frames.push(ctx.getImageData(0, 0, w, h).data);
+                    pngs.push(dataURLToBytes(c2d.toDataURL('image/png')));
+                }
+                this.animationManager.setCurrentTime(0);
+                return { width: w, height: h, delayMs: 1000 / fps, frames, pngs };
+            }
+
+            exportAsGIF() {
+                const cap = this.captureFrames(10, 480);
+                if (!cap) return;
+                const bytes = encodeGIF(cap.frames, cap.width, cap.height, cap.delayMs);
+                downloadBlob(new Blob([bytes], { type: 'image/gif' }), 'animation.gif');
+                this.showNotification('GIF exported', 'success');
+            }
+
+            exportAsImageSequence() {
+                const cap = this.captureFrames(15, 1920);
+                if (!cap) return;
+                const files = cap.pngs.map((data, i) => ({
+                    name: `frame_${String(i).padStart(4, '0')}.png`, data
+                }));
+                downloadBlob(new Blob([buildZip(files)], { type: 'application/zip' }), 'frames.zip');
+                this.showNotification('Image sequence exported', 'success');
+            }
+
+            // Toggle the four control-button indicators; true = stopped (dim).
+            setIndicators(start, stop, pause, resume) {
+                const set = (id, stopped) => {
+                    const el = document.getElementById(id);
+                    const ind = el && el.querySelector('.recording-indicator');
+                    if (ind) ind.classList.toggle('stopped', stopped);
+                };
+                set('startRecording', start);
+                set('stopRecording', stop);
+                set('pauseRecording', pause);
+                set('resumeRecording', resume);
+            }
+
+            startRecording(autoPlay = true) {
                 if (this.isRecording) return;
-                
+                const canvas = this.sceneManager.renderer.domElement;
+                if (!canvas.captureStream || typeof MediaRecorder === 'undefined') {
+                    this.showNotification('Video recording is not supported in this browser', 'error');
+                    return;
+                }
+
+                const stream = canvas.captureStream(30);
+                const audioTrack = this.mediaManager && this.mediaManager.startAudioForRecording
+                    ? this.mediaManager.startAudioForRecording() : null;
+                if (audioTrack) stream.addTrack(audioTrack);
+
+                const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+                    .find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+
+                this.chunks = [];
+                this.recorder = new MediaRecorder(stream, { mimeType: mime });
+                this.recorder.ondataavailable = (e) => { if (e.data.size > 0) this.chunks.push(e.data); };
+                this.recorder.onstop = () => {
+                    this.lastRecording = new Blob(this.chunks, { type: 'video/webm' });
+                    const btn = document.getElementById('exportVideo');
+                    if (btn) btn.disabled = false;
+                    this.showNotification('Recording ready — click "Export as Video" to download', 'success');
+                    if (this._resolveRecording) {
+                        const resolve = this._resolveRecording;
+                        this._resolveRecording = null;
+                        resolve(this.lastRecording);
+                    }
+                };
+                this.recorder.start();
                 this.isRecording = true;
-                this.isPaused = false;
-                this.recordedFrames = [];
-                this.startTime = Date.now();
-                this.pausedTime = 0;
-                
-                // Update UI
-                document.getElementById('startRecording').querySelector('.recording-indicator').classList.remove('stopped');
-                document.getElementById('stopRecording').querySelector('.recording-indicator').classList.add('stopped');
-                document.getElementById('pauseRecording').querySelector('.recording-indicator').classList.add('stopped');
-                document.getElementById('resumeRecording').querySelector('.recording-indicator').classList.add('stopped');
-                
-                // Start capturing frames
-                this.captureFrame();
+                this.setIndicators(false, true, true, true);
+
+                // Auto-play the selected animation from the start and stop when it ends.
+                const anim = this.animationManager.getSelectedAnimation();
+                if (autoPlay && anim) {
+                    this.animationManager.setCurrentTime(0);
+                    this.animationManager.play();
+                    this.autoStopTimer = setTimeout(() => this.stopRecording(), anim.duration * 1000 + 200);
+                }
             }
 
             stopRecording() {
                 if (!this.isRecording) return;
-                
+                clearTimeout(this.autoStopTimer);
+                if (this.recorder && this.recorder.state !== 'inactive') this.recorder.stop();
                 this.isRecording = false;
-                this.isPaused = false;
-                
-                // Update UI
-                document.getElementById('startRecording').querySelector('.recording-indicator').classList.add('stopped');
-                document.getElementById('stopRecording').querySelector('.recording-indicator').classList.add('stopped');
-                document.getElementById('pauseRecording').querySelector('.recording-indicator').classList.add('stopped');
-                document.getElementById('resumeRecording').querySelector('.recording-indicator').classList.add('stopped');
+                this.setIndicators(true, true, true, true);
             }
 
             pauseRecording() {
-                if (!this.isRecording || this.isPaused) return;
-                
-                this.isPaused = true;
-                this.pausedTime = Date.now();
-                
-                // Update UI
-                document.getElementById('pauseRecording').querySelector('.recording-indicator').classList.remove('stopped');
-                document.getElementById('resumeRecording').querySelector('.recording-indicator').classList.add('stopped');
+                if (this.recorder && this.recorder.state === 'recording') {
+                    this.recorder.pause();
+                    this.animationManager.pause();
+                    this.setIndicators(false, true, false, true);
+                }
             }
 
             resumeRecording() {
-                if (!this.isRecording || !this.isPaused) return;
-                
-                this.isPaused = false;
-                this.startTime += Date.now() - this.pausedTime;
-                
-                // Update UI
-                document.getElementById('pauseRecording').querySelector('.recording-indicator').classList.add('stopped');
-                document.getElementById('resumeRecording').querySelector('.recording-indicator').classList.remove('stopped');
-            }
-
-            captureFrame() {
-                if (!this.isRecording) return;
-                
-                if (!this.isPaused) {
-                    // Capture the current frame
-                    const canvas = this.sceneManager.renderer.domElement;
-                    const imageData = canvas.toDataURL('image/png');
-                    const timestamp = Date.now() - this.startTime;
-                    
-                    this.recordedFrames.push({
-                        imageData,
-                        timestamp
-                    });
+                if (this.recorder && this.recorder.state === 'paused') {
+                    this.recorder.resume();
+                    this.animationManager.play();
+                    this.setIndicators(false, true, true, false);
                 }
-                
-                // Schedule next frame capture
-                requestAnimationFrame(() => this.captureFrame());
             }
 
             exportAsVideo() {
-                if (this.recordedFrames.length === 0) return;
-                
-                // This would require a video encoding library
-                // For now, we'll just show a notification
-                this.showNotification('Video export would require a video encoding library', 'info');
+                if (!this.lastRecording) {
+                    this.showNotification('Record an animation first', 'info');
+                    return;
+                }
+                downloadBlob(this.lastRecording, 'animation.webm');
             }
 
-            exportAsGIF() {
-                if (this.recordedFrames.length === 0) return;
-                
-                // This would require a GIF encoding library
-                // For now, we'll just show a notification
-                this.showNotification('GIF export would require a GIF encoding library', 'info');
-            }
-
-            exportAsImageSequence() {
-                if (this.recordedFrames.length === 0) return;
-                
-                // Create a zip file of all frames
-                // This would require a zip library
-                // For now, we'll just show a notification
-                this.showNotification('Image sequence export would require a zip library', 'info');
-            }
-
-            exportAnimationData() {
-                if (this.recordedFrames.length === 0) return;
-                
-                // Create a JSON file with animation data
-                const animationData = {
-                    frames: this.recordedFrames,
-                    metadata: {
-                        frameCount: this.recordedFrames.length,
-                        duration: this.recordedFrames[this.recordedFrames.length - 1].timestamp,
-                        fps: 1000 / (this.recordedFrames[1].timestamp - this.recordedFrames[0].timestamp)
+            // Record the selected animation and resolve with the resulting WebM Blob.
+            recordSelectedAnimation() {
+                return new Promise((resolve, reject) => {
+                    if (!this.animationManager.getSelectedAnimation()) {
+                        reject(new Error('No animation selected'));
+                        return;
                     }
-                };
-                
-                const blob = new Blob([JSON.stringify(animationData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'animation_data.json';
-                a.click();
-                URL.revokeObjectURL(url);
+                    this._resolveRecording = resolve;
+                    this.startRecording(true);
+                });
+            }
+
+            // Export the selected animation's keyframe data as JSON.
+            exportAnimationData() {
+                const anim = this.animationManager.getSelectedAnimation();
+                const json = anim && this.animationManager.exportAnimation(anim.name);
+                if (!json) {
+                    this.showNotification('No animation selected', 'info');
+                    return;
+                }
+                downloadBlob(new Blob([json], { type: 'application/json' }), `${anim.name}.json`);
             }
 
             showNotification(message, type = 'info') {
                 const notification = document.getElementById('notification');
+                if (!notification) return;
                 notification.textContent = message;
                 notification.className = `notification ${type}`;
                 notification.classList.add('show');
-                
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                }, 3000);
+                setTimeout(() => notification.classList.remove('show'), 3000);
             }
 
-            update() {
-                // Update recording-related operations
-            }
+            update() {}
         }
 
-        // Initialize the application
-        const animationEngine = new AnimationEngine('viewport');
-                   
+        // Auto-initialize only in a browser page that provides the #viewport host.
+        // When imported in Node (no DOM) this is skipped, so the module can be
+        // required for testing/tooling and used as an npm package.
+        const animationEngine = (typeof document !== 'undefined' && document.getElementById('viewport'))
+            ? new AnimationEngine('viewport')
+            : null;
+
     return {AnimationEngine,
             SceneManager,
             AnimationManager,
@@ -3560,8 +4120,11 @@
             UIManager,
             RecordingManager,
             MediaManager,
-            animationEngine
-        }           
+            HistoryManager,
+            animationEngine,
+            // pure utilities (exposed for reuse and unit testing)
+            utils: { encodeGIF, lzwEncode, buildZip, crc32, subdivideGeometry, dataURLToBytes, downloadBlob, blobToDataUrl }
+        }
     }
     )
 )

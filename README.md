@@ -47,13 +47,19 @@ The Three.js Animation Engine is a web-based 3D animation and modeling tool buil
 - Scene export/import functionality
 - Animation export as JSON data
 - Responsive UI with touch support
+- **Export**: Downloadable **WebM** video (native `MediaRecorder`, with audio), animated **GIF** (built-in 3-3-2 + LZW encoder), and **image sequence** (PNG frames in a ZIP) — all dependency-free
+- **State Management**: Undo/redo (Ctrl+Z / Ctrl+Shift+Z), project save/load, and localStorage autosave with restore-on-startup
+- **Modeling**: `Subdivide` tool splits each triangle into four for denser geometry
+- **Easing**: Set `animation.easing = 'smooth'` for cubic (curve) interpolation on position/scale
+- **npm / CDN package**: importable via `require('animate-engine')` / `unpkg` / `jsDelivr`; auto-initializes only when a `#viewport` element is present
+- **Programmatic API + MCP**: `engine.runCommands()` drives the engine from scripts; an MCP server (`mcp/`) lets an AI build and export animations autonomously — see [mcp/README.md](mcp/README.md)
+- **Tests**: `npm test` runs the unit suite (`test/`) covering the encoders, packaging, and geometry utilities
 
 ### Requires Modification/Fixing
-- **Video/GIF Export**: Currently shows placeholder notifications; requires implementation of encoding libraries
+- **MP4 Export**: WebM/GIF/PNG-sequence are supported; MP4 would need a WASM encoder
 - **Advanced Animation Features**: Inverse kinematics, bone rigging, and skinning are not implemented
-- **Curve Editor**: UI exists but curve editing functionality is incomplete
-- **Performance Optimization**: Large scenes may experience performance issues
-- **Undo/Redo System**: Not implemented
+- **Modeling**: Boolean operations, extrude, and bevel are not implemented (Subdivide is)
+- **2D Animation**: The engine is 3D only; a 2D mode is not implemented
 - **Collaboration Features**: No real-time collaboration capabilities
 - **Advanced Materials**: Limited to basic color properties; no PBR materials or textures
 - **Model Import**: Only supports GLTF format; needs additional format support

@@ -178,6 +178,12 @@
                             </svg>
                             Scale
                         </button>
+                        <button class="button tool-button" id="subdivideTool" title="Subdivide the selected mesh">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm7 0v14M5 12h14"/>
+                            </svg>
+                            Subdivide
+                        </button>
                     </div>
                 </div>
             </div>
@@ -332,10 +338,13 @@
                 </div>
                 <div class="tool-section-content">
                     <div class="export-options-grid">
-                        <button class="button secondary" id="exportVideo">Export as Video</button>
+                        <button class="button secondary" id="exportVideo" disabled>Export as Video</button>
                         <button class="button secondary" id="exportGIF">Export as GIF</button>
                         <button class="button secondary" id="exportSequence">Export as Image Sequence</button>
                         <button class="button secondary" id="exportData">Export Animation Data</button>
+                        <button class="button secondary" id="saveProject">Save Project</button>
+                        <button class="button secondary" id="loadProject">Load Project</button>
+                        <input type="file" id="loadProjectFile" accept="application/json" style="display:none">
                     </div>
                 </div>
             </div>
@@ -652,17 +661,9 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/1.6.0/cannon.min.js"></script>
     
+<!-- animateEngine.js self-initializes against #viewport and exposes the global
+     `AnimationEngine` namespace: window.AnimationEngine.animationEngine is the
+     live instance; window.AnimationEngine.AnimationEngine is the class. -->
 <script src="./animateEngine.js"></script>
-  <script>
-    // Access everything from the global object
-    const { AnimationEngine, animationEngine } = animate;
-
-    // You can use the existing initialized engine
-    console.log(animationEngine);
-
-    // Or create your own instance:
-    const customEngine = new AnimationEngine('viewport');
-    console.log(customEngine);
-  </script>
 </body>
 </html>

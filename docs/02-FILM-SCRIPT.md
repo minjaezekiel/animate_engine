@@ -125,8 +125,43 @@ A shot:
 | `play` | instance a named action as a clip, tiled across `for` (or the shot) |
 | `pose` | key every channel in a named pose; with `for`, transition from the current value |
 | `move` | key the cast root's `x`/`y` to `to` over `for` |
+| `reach` | **IK** — put `part` on the point `to`, solving the bones above it |
 | `set` | key an arbitrary channel; `part` selects a sub-node |
 | `show` / `hide` | key the cast root's alpha |
+
+#### `reach` — inverse kinematics
+
+Authors think in positions; a cutout rig wants rotations. `reach` closes that
+gap: name the part and the point, and the compiler solves the chain above it
+and keys the rotations.
+
+```json
+{ "target": "jonas", "do": "reach", "part": "handL",
+  "to": [-55, -95], "at": 0.4, "for": 0.9, "bend": -1 }
+```
+
+| key | meaning |
+|---|---|
+| `part` | the part to place — a hand, a foot, any joint |
+| `to` | the target **in the character's own space**, its root at the origin |
+| `bones` | how many bones above `part` to solve; default `2` (elbow or knee) |
+| `bend` | `1` or `-1` — the two mirror elbow solutions. Pick what reads right |
+| `for` | ramp in from whatever held before, exactly as `pose` does |
+
+`to` is in character space rather than scene space on purpose: a reach then
+means the same thing wherever the character is standing and at whatever
+scale, so staging a shot does not break every pose in it.
+
+Two bones are solved in closed form and hit a reachable target **exactly**.
+Longer chains, and any chain with rotation limits, fall through to CCD seeded
+from the closed form. An unreachable target is not an error — the limb extends
+as far as it goes and the compiler emits an `info` diagnostic saying by how
+much it fell short.
+
+**Ceiling worth knowing:** the chain is solved against its **rest pose**. A
+character whose torso is leaning or breathing has moved the shoulder out from
+under the solve, so the hand lands slightly off — measured at 2.3 px on the
+demo film. See [01-CORE.md](01-CORE.md#rig-and-ik).
 
 ### Camera
 

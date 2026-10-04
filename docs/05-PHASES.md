@@ -81,22 +81,40 @@ loads `index.html` from `dist/` with no console errors and a non-blank canvas.
 
 ---
 
-## Phase 2 — 2D rig depth and an authoring UI
+## Phase 2 — 2D rig depth and an authoring UI — *shipped, partial*
 
-- Two-bone analytic IK plus CCD for longer chains (`core/rig/IK2D.js`, pure,
-  Node-testable).
-- Pose library with blending; squash and stretch via scale and skew.
-- Onion skinning and ghosting.
-- `studio.html`: a timeline and stage editor over core tracks, so a film can
-  be authored without writing JSON.
-- Parallax applied for scenery (the schema already accepts it).
-- Image assets loaded by the studio UI.
-- **Spectral viseme refinement evaluated against the text baseline**, not
-  shipped blind. See [03-VOICE.md](03-VOICE.md) for why this was excluded from
-  Phase 0.
+**Delivered:**
 
-**Verify:** IK unit tests for reachable, unreachable and singular targets;
-golden draw-call lists via `RecordingContext`.
+- Two-bone analytic IK plus CCD for longer chains and rotation limits
+  (`core/rig/IK2D.js`, pure, 23 unit tests).
+- `do: "reach"` — IK reachable from the film script, solved at compile time so
+  the render loop stays untouched.
+- `chainFromParts` — the rig is read off the character's `parts` list, so
+  there is no second skeleton format to keep in sync.
+- `studio.html` — drag a joint, the editor solves IK and writes a real
+  `reach` action back into the film. The edit **is** the script.
+- Onion skinning, frame stepping, playback, undo, a live JSON panel, and a
+  `sessionStorage` hand-off to the render harness.
+
+**Not built, with reasons** (see [STATUS.md](STATUS.md)): weighted blending of
+two simultaneous poses (`for` already covers pose-to-pose), scenery parallax,
+image assets in the UI. Squash and stretch needed nothing — `sx`/`sy`/`skx`
+were already animatable channels.
+
+**Spectral viseme refinement: rejected, not deferred.** Band energy cannot
+recover place of articulation, so /m/ /b/ /p/ /f/ /v/ would be misclassified,
+and wrong visemes flicker worse than fewer correct ones. See
+[03-VOICE.md](03-VOICE.md).
+
+**Verified:** IK unit tests for reachable, unreachable, singular, folded and
+limit-constrained targets; `npm run test:studio` drives the real page in
+headless Chrome — it drags a hand and asserts the hand lands within 2.3 px of
+the cursor, that the action was written, that undo removes it, and that
+recompiling from the saved JSON alone reproduces the pose with 0 px drift.
+
+It also asserts PWA installability, which is how two Phase-7 defects surfaced
+four phases early: the manifest's icons all 404'd and the service worker
+controlled nothing. Both fixed.
 
 ---
 

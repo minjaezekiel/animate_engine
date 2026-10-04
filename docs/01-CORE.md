@@ -115,6 +115,60 @@ snapshot must come from the scene **as authored** — capturing it from an
 already-rendered scene is how a second render silently diverges from the
 first.
 
+## Rig and IK
+
+`core/rig/IK2D.js` is pure: no scene, no clock, no DOM. A bone is
+`{ length, rest, min?, max? }` and the target is a point in the **chain
+root's** pivot space, so the solver never needs the scene graph.
+
+```js
+solveTwoBone({ bones, target, bend })      -> { rots, error, tip, clamped }
+solveChain  ({ bones, target, bend, iterations, tolerance })
+forwardKinematics(bones, rots)             -> joints[]   // bones.length + 1
+chainFromParts(parts, tipId, count)        -> { bones, rootId, tipId } | null
+chainRootOffset(parts, rootId)             -> [x, y]
+```
+
+### The angle convention, which is the only subtle part
+
+`rest` is the direction a bone's own geometry points in its parent's frame.
+`rot` is the node's `Transform2D.rot`, which **also rotates every
+descendant**. So a bone's world direction is `rest_i + Σ rot_0..rot_i`, and
+`forwardKinematics` accumulates accordingly. A solver that assumed every bone
+points straight down would be subtly wrong on the generated humanoid, whose
+limbs lean a few degrees.
+
+### Why no separate rig format
+
+`chainFromParts` reads the rig straight off the character's `parts` list. The
+cutout convention does the work: a child's `pivot` is expressed in its
+parent's frame and sits at the parent's tip, so **the child's pivot IS the
+parent's bone vector** — length and rest direction both. That holds for
+generated characters and for any hand-authored character that pivots its
+joints where the joints are, so there is no skeleton to declare, keep in sync
+or get wrong.
+
+### Degenerate cases return a pose, never `NaN`
+
+- target beyond `l0 + l1` → limb extends toward it, `clamped: true`
+- target inside `|l0 - l1|` → limb folds fully
+- target on the root → the rest direction, finite
+- rotation limits → honoured by CCD, and reported as not reached
+
+Each is unit-tested, because a `NaN` rotation does not throw — it silently
+propagates into a transform and the character vanishes mid-film.
+
+### Where it is solved, and the ceiling that buys
+
+IK runs at **compile time**, not per frame: the solver emits rotation
+keyframes and the render loop never sees it. That keeps the render path
+exactly as deterministic as it was, and costs one approximation — the chain is
+solved against its rest pose, so an animated torso moves the shoulder out from
+under the solve. Measured at **2.3 px** on the demo film. Solving against the
+live world matrix would require sampling a timeline that the solve is in the
+middle of building, which makes compilation order-dependent. Not worth it at
+two pixels.
+
 ## FrameClock
 
 ```js

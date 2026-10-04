@@ -6,33 +6,63 @@ ES modules need a real origin, so `file://` will not work.
 
 ```bash
 python3 -m http.server 8080
-open http://localhost:8080/film.html
+open http://localhost:8080/film.html     # author, voice, render, export
+open http://localhost:8080/studio.html   # pose characters by dragging them
 ```
+
+The two pages hand a film back and forth through `sessionStorage`, so you can
+stage a shot in the editor and ship it from the harness without saving a file
+in between.
 
 ## Installing
 
-`film.html` links a manifest and registers a service worker, so Chrome and
-Edge offer **Install app** (the page also shows its own button once the
-browser fires `beforeinstallprompt`). Installed, it opens standalone with no
-browser chrome.
+`film.html` and `studio.html` link a manifest and register a service worker,
+so Chrome and Edge offer **Install app** (the page also shows its own button
+once the browser fires `beforeinstallprompt`). Installed, it opens standalone
+with no browser chrome.
 
 Installability needs a secure context: `https://` or `http://localhost`.
+
+### Two layout rules the platform imposes
+
+Both of these were wrong until a test asserted them, and neither reports an
+error when it is — see [DEFECTS.md](DEFECTS.md#defects-in-the-new-code).
+
+- **`sw.js` must live at the repository root.** A service worker's default
+  scope is its own directory, and a static host sends no
+  `Service-Worker-Allowed` header to widen it. A worker under `src/pwa/`
+  registers successfully and then controls nothing.
+- **Every URL in the manifest resolves against the manifest**, not against the
+  page that links it. `manifest.webmanifest` lives in `src/pwa/`, so its icons
+  are `icons/icon-192.png` and its `scope` and `start_url` reach back up with
+  `../../`.
+
+`npm run test:studio` checks both: it resolves every icon and `start_url`
+against the manifest's own URL and asserts each returns 200, and that the
+manifest scope and the service-worker scope both cover the page.
 
 ### Offline behaviour
 
 Two caches, because the two kinds of resource fail differently:
 
-- **app shell** — cache-first and versioned (`jirex-shell-v1`), so a release
+- **app shell** — `sw.js` at the root, cache-first and versioned (`jirex-shell-v1`), so a release
   swaps atomically and a cold start never waits on the network. Same-origin
   modules fetched lazily are added as they are used, since ES module graphs
   cannot all be named up front.
 - **pinned vendor modules** — stale-while-revalidate in a separate cache that
   survives shell upgrades, because re-downloading a TTS runtime is expensive.
-  The TTS runtime and `onnxruntime-web` are warmed on install.
+  They are cached on **first use**, not warmed on install.
+
+Warming them on install was tried and removed. It blocked the service worker's
+installation on a multi-megabyte `onnxruntime-web` download, holding the
+network busy on every first load — and it never delivered what it promised,
+because speaking offline also needs a voice model, and those are in OPFS and
+were never warmed either.
 
 **Voice models are deliberately not in either cache.** They are 20–60 MB each
 and the TTS runtime stores them in OPFS itself, which is the right home for
-that much data. A voice works offline once it has been fetched or prefetched:
+that much data. A voice works offline once it has been fetched or prefetched,
+and prefetching a voice is also what pulls the runtime into the vendor cache:
 
 ```js
 await studio.tts.prefetch('en_GB-alba-medium');

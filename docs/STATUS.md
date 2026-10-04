@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-04 (end of Phase 0).
+Last updated: 2026-10-04 (end of Phase 2).
 
 Legend: **done** · *partial* · — not started
 
@@ -30,7 +30,7 @@ Legend: **done** · *partial* · — not started
 | PWA — manifest, service worker, icons | **done** | Installable; two-cache strategy; icons generated with no dependencies. |
 | Subtitles | **done** | Screen-space text node driven by a discrete track. |
 | Demo film | **done** | `demo/film.json` — 4 scenes, 19 shots, 10 lines, exactly 120.0 s. |
-| Tests — 59 Node unit tests | **done** | anim, compile, audio/lipsync, scene/backend/rig. |
+| Tests — Node unit tests | **done** | anim, compile, audio/lipsync, scene/backend, rig/IK. 83 at the end of Phase 2. |
 | Tests — e2e render + determinism | **done** | `test/e2e/render-film.mjs`: 2,880 frames, exact timestamps, draw-call determinism. |
 | Tests — e2e A/V sync probe | **done** | `test/e2e/render-av.mjs`: muxed audio, click recovered at 0.007 s. |
 | Docs | **done** | This directory. |
@@ -42,9 +42,10 @@ Legend: **done** · *partial* · — not started
   [04-RENDER-EXPORT.md](04-RENDER-EXPORT.md).
 - Preflight on the demo film at 1280×720: **0.44 ms median / 1.09 ms p95** per
   frame against a 41.67 ms ceiling.
-- Full 2,880-frame proxy render at 160×90: about **2 s**, 2,695 distinct
-  frames, **39 draw calls per frame**. (It was 527 before group alpha was made
-  to inherit — every scene in the film was being drawn every frame.)
+- Full 2,880-frame proxy render at 160×90: about **1 s** in Node against a
+  recording context, 2,695 distinct frames, **126 draw calls per frame**.
+  (Before group alpha was made to inherit, every scene in the film was drawn
+  every frame; fixing that is what made a 120 s render tractable.)
 - Determinism holds on the draw-call stream across repeated renders.
 - A/V sync probe: a 1 kHz click planted at t=0 is recovered from the encoded
   file at **0.007 s**.
@@ -79,9 +80,8 @@ The file is not committed — it is gitignored and reproducible from source.
   OPFS, so a fresh browser profile pays the cost again.
 - **A paced render takes as long as the film** and needs the tab visible. The
   WebCodecs path removes both constraints but needs a muxer wired in.
-- **No 2D editor UI.** Films are authored as JSON or from a screenplay; there
-  is no timeline/stage editor yet (Phase 2).
-- **No IK.** 2D rigs are parent/child rotation only (Phase 2).
+- ~~**No 2D editor UI.**~~ Shipped in Phase 2 as `studio.html`.
+- ~~**No IK.**~~ Shipped in Phase 2 as `core/rig/IK2D.js` and the `reach` verb.
 - **Image assets are declared but not loaded** by the studio UI; scenery is
   vector only. The compiler handles `background.image` when an asset is passed.
 - Scenery `parallax` is accepted by the schema but not yet applied.
@@ -118,12 +118,48 @@ midpoint.
 
 ---
 
-## Phase 2 — 2D rig depth + authoring UI — **not started**
+## Phase 2 — 2D rig depth + authoring UI — *partial*
 
-Two-bone analytic IK and CCD chains · pose library with blending · squash and
-stretch · onion skinning · `studio.html` timeline/stage editor · spectral
-viseme refinement *evaluated against* the text baseline rather than shipped
-blind.
+| Item | State |
+|---|---|
+| `core/rig/IK2D.js` — closed-form two-bone solve | **done** — law of cosines, both elbow solutions, exact on reachable targets |
+| `core/rig/IK2D.js` — CCD for longer chains and rotation limits | **done** — seeded from the closed form; `min`/`max` per bone honoured |
+| Degenerate cases return a pose, never `NaN` | **done** — out of range extends, inside the dead zone folds, a target on the root is finite. All four are unit-tested |
+| `chainFromParts` / `chainRootOffset` — rig from the film schema | **done** — a child's `pivot` IS its parent's bone vector, so bone lengths and rest angles come straight off the parts list |
+| `do: "reach"` verb | **done** — the author names a point, the compiler solves and keys the rotations. No runtime solver on the render path |
+| `studio.html` — stage + scrub + direct manipulation | **done** — drag a joint, the editor solves IK and writes a real `reach` action back into the film |
+| Onion skinning | **done** — past frames rendered offscreen and composited faint; the backend gets no editor mode |
+| Squash and stretch | **done** — `sx`/`sy`/`skx` were already animatable channels; `do: "set"` reaches them. Nothing to build |
+| Pose transitions | **done** — `for` on `pose` and `reach` ramps from whatever held before, which is the blending the plan asked for |
+| Image assets in the editor UI | **skipped** — the compiler handles `background.image`; the UI still does not load them |
+| Scenery parallax | **skipped** — accepted by the schema, still not applied |
+| Weighted blending of two simultaneous poses | **skipped** — `for` covers pose-to-pose. Add when something actually needs two poses at once |
+| Spectral viseme classification | **rejected, not deferred** — band energy cannot recover place of articulation, so /m/ /b/ /p/ /f/ /v/ would be misclassified. Wrong visemes flicker worse than fewer correct ones. The text+envelope tier stays the fallback |
+
+### What the editor does
+
+`studio.html` is a pose editor, not a second render harness. It stages; the
+harness ships, and the two hand a film back and forth through `sessionStorage`.
+
+- Every joint on stage is a handle. Dragging one runs IK and writes the result
+  into the film script as a `reach` (or `move` for a whole body). **The edit is
+  the script** — there is no editor-only state to lose.
+- Arrow keys step a frame, shift-arrow steps twelve, space plays.
+- Undo keeps 50 snapshots; the JSON panel is live and editable both ways.
+
+### Verified by measurement
+
+- `npm run test:studio` drives the real page: it loads the demo, clicks the
+  left hand's handle, drags it, and asserts the hand lands **within 2.3 px of
+  the cursor**, that a `reach` action appears in the film, that undo removes
+  it, and that re-compiling from the saved JSON alone reproduces the pose with
+  **0 px drift**.
+- Preview costs about **1 ms/frame** scrubbing the 120 s demo.
+- The residual 2.3 px is the documented IK ceiling, now quantified: reaches are
+  solved against the chain's **rest pose**, so a `breathe` cycle scaling the
+  torso moves the shoulder out from under the solve. Fixing it means sampling
+  the live world matrix at solve time, which makes compilation order-dependent.
+  Not worth it at 2 px.
 
 ## Phase 3 — 3D backend over the same core — **not started**
 
@@ -149,8 +185,16 @@ history as diffs · OffscreenCanvas + worker for the 2D offline path.
 Parametric primitives · full PBR properties (colour is currently the only
 editable one) · more post-FX · boolean/mirror/array modifiers.
 
-## Phase 7 — PWA and CDN hardening — **not started**
+## Phase 7 — PWA and CDN hardening — *partial, pulled forward*
 
-`dist/` published with correct `exports` · Three as an optional peer resolved
-at `mount()` so the 2D path works with no Three.js at all · Lighthouse
-installability · offline-mode e2e test.
+Phase 2's e2e test asserted PWA installability and found that **it had never
+worked** — see [DEFECTS.md](DEFECTS.md). Both causes are fixed.
+
+| Item | State |
+|---|---|
+| Manifest URLs resolve | **done** — every URL in a manifest resolves against the *manifest's* own location, not the page's. The icons were resolving to `src/pwa/src/pwa/...` (404) and `scope` collapsed to `src/pwa/`, which excludes the app |
+| Service worker actually controls the app | **done** — a worker's default scope is its own directory and a static host sends no `Service-Worker-Allowed` header, so `src/pwa/sw.js` registered cleanly and controlled nothing. `sw.js` now lives at the repository root |
+| Installability asserted in CI | **done** — `npm run test:studio` fetches the manifest, resolves every icon and `start_url` against it, and checks that both the manifest scope and the service-worker scope cover the page |
+| `dist/` published with correct `exports` | **done** in Phase 1 |
+| Three as an optional peer resolved at `mount()` | **done** — the 2D path needs no Three.js at all; `jirex-core.esm.min.js` is 43.5 KB with zero dependencies |
+| Offline-mode e2e test | — not started |

@@ -1,8 +1,13 @@
-# Defect register — legacy 3D engine (`animateEngine.js`)
+# Defect register
 
-Every entry was confirmed by reading the code, with line numbers from the
-state at the time of writing. **None of these block the 2D pipeline**, which
-executes none of this code — that is why Phase 0 was built purely additively.
+Most of this register covers the legacy 3D engine (`animateEngine.js`). Every
+entry was confirmed by reading the code, with line numbers from the state at
+the time of writing. **None of the legacy defects block the 2D pipeline**,
+which executes none of that code — that is why Phase 0 was built purely
+additively.
+
+[Defects found in the new code](#defects-in-the-new-code) are listed at the
+end, with how they were found.
 
 Dispositions:
 
@@ -163,12 +168,57 @@ Deleted objects also leave orphan bodies, because `removeObject` never calls
 
 ## Packaging
 
-### CDN users get a stale build — **fix (1)**
+### CDN users get a stale build — **fixed (1)**
 
 `animateEngine.min.js` predates `RigManager` and `CameraManager`, and
 `package.json` points `unpkg`/`jsdelivr` at it. Anyone loading the package
 from a CDN today gets an engine with no rigging. Phase 1 adds
 `prepublishOnly: build` so this cannot recur.
+
+---
+
+## Defects in the new code
+
+These are not legacy. Each was found by a test written to assert something
+nobody had checked, and each is **fixed**.
+
+### The PWA was never installable — **fixed (2)**
+
+Every URL in a web manifest resolves against the **manifest's own location**,
+not the page's. The manifest lives at `src/pwa/manifest.webmanifest` and
+declared `"src": "src/pwa/icons/icon-192.png"`, which resolved to
+`src/pwa/src/pwa/icons/icon-192.png` — a 404 for all three icons. `scope` and
+`start_url` were relative too, so the declared scope collapsed to `src/pwa/`,
+which does not contain the application.
+
+Nothing in the page reports this. The manifest link loads, the icons 404
+quietly, and the install prompt simply never appears.
+
+*Fix:* icon paths relative to the manifest (`icons/...`), `scope` and
+`start_url` pointed back at the root with `../../`.
+
+### The service worker controlled nothing — **fixed (2)**
+
+A service worker's default scope is **its own directory**, and a static host
+sends no `Service-Worker-Allowed` header to widen it. Registering
+`src/pwa/sw.js` therefore succeeded, resolved its `'./film.html'` shell asset
+to the non-existent `src/pwa/film.html`, and intercepted no request the
+application ever makes. The offline story in `CDN-AND-PWA.md` had never run.
+
+*Fix:* `sw.js` moved to the repository root — the only place it can work from.
+Its `./` shell paths are now correct by construction, and `studio.html` plus
+`src/core/index.js` were added to the precache list.
+
+### An editor drag snapped back on release — **fixed (2)**
+
+`studio.html` wrote a dragged pose as an action starting **at** the playhead
+with a `for` ramp, so at the playhead the channel still held its previous
+value: you let go and the character returned to where it was, with your pose
+sitting 0.4 s in the future.
+
+*Fix:* a drag eases **in to** the playhead — the action is written at
+`t - for` and arrives at `t`. Asserted in `test/e2e/studio.mjs`, which checks
+the written action's arrival time, not just that an action was written.
 
 ---
 
@@ -183,3 +233,8 @@ from a CDN today gets an engine with no rigging. Phase 1 adds
   cannot pass a size.
 - `README.md` is stale in both directions — it claims IK, bones and morphs are
   future work when `RigManager` exists.
+- 2D IK solves against the chain's **rest pose**, so an animated torso moves
+  the shoulder out from under the solve. Measured at **2.3 px** on the demo
+  film with a `breathe` cycle running. Sampling the live world matrix at solve
+  time would fix it and would make compilation order-dependent; not worth it
+  at two pixels. Noted in `IK2D.js` as a `ponytail:` ceiling.

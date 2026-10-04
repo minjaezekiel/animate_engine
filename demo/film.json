@@ -50,7 +50,7 @@
                    "foreL": { "rot": -1.05 }, "foreR": { "rot": 1.05 } },
         "heave": { "torso": { "rot": -0.18 }, "armL": { "rot": 1.05 }, "armR": { "rot": 1.15 },
                    "foreL": { "rot": 0.5 },   "foreR": { "rot": 0.45 }, "head": { "rot": 0.10 } },
-        "reach": { "torso": { "rot": -0.10 }, "armL": { "rot": 1.30 }, "foreL": { "rot": 0.35 }, "head": { "rot": -0.18 } }
+        "lean":  { "torso": { "rot": -0.10 }, "head": { "rot": -0.18 } }
       }
     }
   },
@@ -225,7 +225,9 @@
         { "id": "l3", "duration": 6.0,
           "camera": { "to": { "x": 190, "y": 68, "zoom": 1.6 }, "ease": "smooth" },
           "actions": [ { "target": "jonas", "do": "play", "action": "idle" },
-                       { "target": "jonas", "do": "pose", "pose": "reach", "at": 0.4, "for": 1.1 },
+                       { "target": "jonas", "do": "pose", "pose": "lean", "at": 0.4, "for": 0.7 },
+                       { "target": "jonas", "do": "reach", "part": "handL", "to": [-55, -95], "at": 0.4, "for": 0.9, "bend": -1 },
+                       { "target": "jonas", "do": "reach", "part": "handL", "to": [-26, 22], "at": 4.4, "for": 1.2, "bend": -1 },
                        { "target": "mara",  "do": "play", "action": "breathe" } ],
           "dialogue": [ { "speaker": "jonas", "at": 0.5, "text": "We have no replacement. Not before morning." } ] },
 

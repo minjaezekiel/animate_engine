@@ -28,6 +28,11 @@ MIT licensed — see [LICENSE](LICENSE).
 - **Lipsync** in three tiers: exact from phoneme timings where a voice
   provides them, otherwise the dialogue text gated by the real audio envelope,
   with a three-shape amplitude floor beneath that.
+- **Pose by dragging.** `studio.html` turns every joint into a handle: drag a
+  hand and inverse kinematics solves the arm, then writes the result back into
+  the film script as a real action. There is no editor-only state — the edit
+  *is* the script, so anything posed by hand can be read, diffed and rewritten
+  by an AI, and anything written by an AI can be posed by hand.
 - **Deterministic rendering.** Frame *N* is a pure function of *N*, so a
   re-render is identical and a timeline can be scrubbed. The full 2,880-frame
   loop runs in Node in about 75 ms against a null backend.
@@ -43,11 +48,14 @@ shots and ten voiced lines, running exactly 120.0 seconds.
 ```bash
 npm install          # only dev dependencies (terser, puppeteer-core, omggif)
 npm run serve        # ES modules need an http:// origin
-open http://localhost:8080/film.html
+open http://localhost:8080/film.html     # author, voice, render, export
+open http://localhost:8080/studio.html   # pose characters by dragging them
 ```
 
 Then **Load "The Keeper"** and **Render film**, or paste a screenplay and
-build a film from it.
+build a film from it. The two pages hand a film back and forth, so you can
+stage a shot in the editor and ship it from the harness without saving a file
+in between.
 
 To render the demo to a file from the command line:
 
@@ -115,22 +123,23 @@ recovers both from the encoded file.
 | [docs/04-RENDER-EXPORT.md](docs/04-RENDER-EXPORT.md) | the render loop, the MediaRecorder timing trap, frame budget, fallbacks |
 | [docs/05-PHASES.md](docs/05-PHASES.md) | roadmap |
 | [docs/STATUS.md](docs/STATUS.md) | **implemented vs not** |
-| [docs/DEFECTS.md](docs/DEFECTS.md) | defect register for the legacy 3D engine |
+| [docs/DEFECTS.md](docs/DEFECTS.md) | defect register — the legacy 3D engine, and what tests found in the new code |
 | [docs/CDN-AND-PWA.md](docs/CDN-AND-PWA.md) | library use, installing, offline |
 
 ## Known limits
 
 Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
 
-- **No 2D editor UI yet.** Films are authored as JSON or from a screenplay.
-- **No IK.** 2D rigs are parent/child rotation only.
+- **2D IK is solved against the rest pose**, so a character whose torso is
+  leaning or breathing has moved the shoulder out from under the solve.
+  Measured at 2.3 px on the demo film.
 - **A paced export takes as long as the film** and needs the tab visible,
   because MediaRecorder timestamps frames by wall clock. The WebCodecs path
   removes both limits but needs a muxer wired in.
 - **Voice models are 20–60 MB** and download on first use.
 - **MP4 needs a muxer**; WebM works with no dependencies.
-- **No 2D editor UI, and the legacy 3D editor's DOM is still hardwired** to 181
-  element ids, so it only runs inside its own `index.html`.
+- **The legacy 3D editor's DOM is still hardwired** to 181 element ids, so it
+  only runs inside its own `index.html`.
 - Pixel output is not bit-reproducible between runs (scene state is).
 - The 3D engine has real defects, including autosave data loss — see
   [docs/DEFECTS.md](docs/DEFECTS.md) before relying on it.

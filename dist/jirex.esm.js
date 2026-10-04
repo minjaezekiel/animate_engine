@@ -443,7 +443,24 @@ var KNOWN = {
   part: ["id", "parent", "pivot", "shape", "fill", "stroke", "strokeWidth", "z", "at", "alpha"],
   scene: ["id", "background", "transitionIn", "transitionOut", "cast", "audio", "shots", "scenery", "palette"],
   shot: ["id", "duration", "camera", "actions", "dialogue", "subtitleStyle"],
-  action: ["target", "do", "action", "pose", "to", "at", "for", "ease", "h", "loop", "speed", "value", "channel", "part"],
+  action: [
+    "target",
+    "do",
+    "action",
+    "pose",
+    "to",
+    "at",
+    "for",
+    "ease",
+    "h",
+    "loop",
+    "speed",
+    "value",
+    "channel",
+    "part",
+    "bones",
+    "bend"
+  ],
   dialogue: ["speaker", "at", "text", "audio", "voice", "lipsync", "subtitle", "gain", "duration"],
   camera: ["from", "to", "ease", "h", "at", "for"],
   audioCue: ["asset", "at", "gain", "fadeIn", "fadeOut", "offset", "duration", "bus"]
@@ -465,7 +482,7 @@ var KNOWN_SCENERY = [
   "rot"
 ];
 var TRANSITION_KINDS = ["fade", "crossfade", "none"];
-var DO_VERBS = ["play", "pose", "move", "set", "show", "hide"];
+var DO_VERBS = ["play", "pose", "move", "reach", "set", "show", "hide"];
 
 // src/core/script/generate.js
 var DEFAULT_PROPORTIONS = {
@@ -1177,6 +1194,134 @@ function castVoices(film) {
   return { castBySpeaker: out, diagnostics };
 }
 
+// src/core/rig/IK2D.js
+var TAU = Math.PI * 2;
+function wrapAngle(a) {
+  const r = ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+  return r === -Math.PI ? Math.PI : r;
+}
+var clampRot = (bone, rot) => {
+  let r = wrapAngle(rot);
+  if (bone.min != null) r = Math.max(bone.min, r);
+  if (bone.max != null) r = Math.min(bone.max, r);
+  return r;
+};
+function forwardKinematics(bones, rots) {
+  const joints = [[0, 0]];
+  let acc = 0;
+  let x = 0;
+  let y = 0;
+  for (let i = 0; i < bones.length; i++) {
+    acc += rots[i] ?? 0;
+    const dir = (bones[i].rest ?? Math.PI / 2) + acc;
+    x += bones[i].length * Math.cos(dir);
+    y += bones[i].length * Math.sin(dir);
+    joints.push([x, y]);
+  }
+  return joints;
+}
+function solveTwoBone({ bones, target, bend = 1 }) {
+  const [b0, b1] = bones;
+  const l0 = b0.length;
+  const l1 = b1.length;
+  const rest0 = b0.rest ?? Math.PI / 2;
+  const rest1 = b1.rest ?? Math.PI / 2;
+  const raw = Math.hypot(target[0], target[1]);
+  const base = raw < 1e-9 ? rest0 : Math.atan2(target[1], target[0]);
+  const lo = Math.abs(l0 - l1);
+  const hi = l0 + l1;
+  const d = Math.min(hi, Math.max(lo, raw));
+  const cosA = d < 1e-9 ? 1 : (l0 * l0 + d * d - l1 * l1) / (2 * l0 * d);
+  const cosI = (l0 * l0 + l1 * l1 - d * d) / (2 * l0 * l1);
+  const alpha = Math.acos(Math.min(1, Math.max(-1, cosA)));
+  const interior = Math.acos(Math.min(1, Math.max(-1, cosI)));
+  const dir0 = base + bend * alpha;
+  const dir1 = dir0 - bend * (Math.PI - interior);
+  const rot0 = clampRot(b0, dir0 - rest0);
+  const rot1 = clampRot(b1, dir1 - rest1 - rot0);
+  const rots = [rot0, rot1];
+  const tip = forwardKinematics(bones, rots)[2];
+  return {
+    rots,
+    error: Math.hypot(target[0] - tip[0], target[1] - tip[1]),
+    tip,
+    // `clamped` means the target was unreachable, not that the solve
+    // failed: the limb is extended or folded as far as it goes.
+    clamped: raw > hi + 1e-9 || raw < lo - 1e-9
+  };
+}
+function solveChain({ bones, target, bend = 1, iterations = 12, tolerance = 0.25 }) {
+  if (bones.length === 0) return { rots: [], error: Math.hypot(...target), tip: [0, 0], clamped: true };
+  if (bones.length === 1) {
+    const rest = bones[0].rest ?? Math.PI / 2;
+    const raw = Math.hypot(target[0], target[1]);
+    const rots2 = [clampRot(bones[0], (raw < 1e-9 ? rest : Math.atan2(target[1], target[0])) - rest)];
+    const tip = forwardKinematics(bones, rots2)[1];
+    return { rots: rots2, error: Math.hypot(target[0] - tip[0], target[1] - tip[1]), tip, clamped: Math.abs(raw - bones[0].length) > 1e-9 };
+  }
+  const limited = bones.some((b) => b.min != null || b.max != null);
+  if (bones.length === 2 && !limited) return solveTwoBone({ bones, target, bend });
+  const rots = bones.length === 2 ? solveTwoBone({ bones, target, bend }).rots.map((r, i) => clampRot(bones[i], r)) : bones.map(() => 0);
+  let joints = forwardKinematics(bones, rots);
+  let error = Math.hypot(target[0] - joints[bones.length][0], target[1] - joints[bones.length][1]);
+  for (let it = 0; it < iterations && error > tolerance; it++) {
+    for (let i = bones.length - 1; i >= 0; i--) {
+      const pivot = joints[i];
+      const tip2 = joints[bones.length];
+      const a = Math.atan2(tip2[1] - pivot[1], tip2[0] - pivot[0]);
+      const b = Math.atan2(target[1] - pivot[1], target[0] - pivot[0]);
+      rots[i] = clampRot(bones[i], rots[i] + wrapAngle(b - a));
+      joints = forwardKinematics(bones, rots);
+    }
+    const tip = joints[bones.length];
+    const next = Math.hypot(target[0] - tip[0], target[1] - tip[1]);
+    if (error - next < 1e-6) {
+      error = next;
+      break;
+    }
+    error = next;
+  }
+  return { rots, error, tip: joints[bones.length], clamped: error > tolerance };
+}
+function chainFromParts(parts, tipId, count = 2) {
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  const lineage = [];
+  for (let id = tipId; id != null && lineage.length <= count; ) {
+    const part = byId.get(id);
+    if (!part) break;
+    lineage.unshift(part);
+    id = part.parent;
+  }
+  const chain = lineage.slice(-(count + 1));
+  if (chain.length < 2) return null;
+  const bones = [];
+  for (let i = 1; i < chain.length; i++) {
+    const pivot = chain[i].pivot ?? [0, 0];
+    const length = Math.hypot(pivot[0], pivot[1]);
+    if (length < 1e-9) return null;
+    bones.push({
+      id: chain[i - 1].id,
+      length,
+      rest: Math.atan2(pivot[1], pivot[0])
+    });
+  }
+  return { bones, rootId: chain[0].id, tipId: chain[chain.length - 1].id };
+}
+function chainRootOffset(parts, rootId) {
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  let x = 0;
+  let y = 0;
+  for (let id = rootId; id != null; ) {
+    const part = byId.get(id);
+    if (!part) break;
+    const pivot = part.pivot ?? [0, 0];
+    x += pivot[0];
+    y += pivot[1];
+    id = part.parent;
+  }
+  return [x, y];
+}
+
 // src/core/script/compile.js
 var EPS = 1e-4;
 function compileFilm(film, { assets = {} } = {}) {
@@ -1405,10 +1550,7 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId, ent
     z: entry.z ?? 0,
     tags: ["cast", charName]
   }, parentId);
-  let parts = char.parts;
-  if ((!parts || !parts.length) && char.generate) {
-    parts = generateCharacterParts(char.generate, char.proportions);
-  }
+  const parts = characterParts(char);
   const byId = new Map((parts ?? []).map((p) => [p.id, p]));
   const added = /* @__PURE__ */ new Set();
   const addPart = (part) => {
@@ -1469,6 +1611,10 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId, ent
     });
   }
 }
+function characterParts(char) {
+  if (char.parts?.length) return char.parts;
+  return char.generate ? generateCharacterParts(char.generate, char.proportions) : [];
+}
 function shapeProps(shape) {
   if (!shape) return {};
   const { kind, ...rest } = shape;
@@ -1495,6 +1641,16 @@ function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamer
   }
   return { x: end.x ?? 0, y: end.y ?? 0, zoom: end.zoom ?? 1, rot: end.rot ?? 0 };
 }
+function writeChannel({ timeline, target, channel, value, at, span, ease, h }) {
+  const path = `transform.${channel}`;
+  if (span == null) {
+    key(timeline, target, path, at, value, { type: "number", ease, h });
+    return;
+  }
+  const prev = lastValueBefore(timeline, target, path, at) ?? defaultChannel(channel);
+  key(timeline, target, path, at, prev, { type: "number", ease, h });
+  key(timeline, target, path, at + span, value, { type: "number" });
+}
 function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sceneId, characters, diagnostics }) {
   const cast = castMap.get(action.target);
   if (!cast) return;
@@ -1510,15 +1666,16 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sce
       if (!pose) return;
       for (const [partId, channels] of Object.entries(pose)) {
         for (const [channel, value] of Object.entries(channels)) {
-          const target = `${rootId}/${partId}`;
-          const path = `transform.${channel}`;
-          if (span != null) {
-            const prev = lastValueBefore(timeline, target, path, at) ?? defaultChannel(channel);
-            key(timeline, target, path, at, prev, { type: "number", ease, h });
-            key(timeline, target, path, at + span, value, { type: "number" });
-          } else {
-            key(timeline, target, path, at, value, { type: "number", ease, h });
-          }
+          writeChannel({
+            timeline,
+            target: `${rootId}/${partId}`,
+            channel,
+            value,
+            at,
+            span,
+            ease,
+            h
+          });
         }
       }
       break;
@@ -1548,6 +1705,45 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sce
         speed: action.speed ?? 1,
         scopeId: rootId
       });
+      break;
+    }
+    case "reach": {
+      if (!action.part || !Array.isArray(action.to)) return;
+      const parts = characterParts(char ?? {});
+      const chain = chainFromParts(parts, action.part, action.bones ?? 2);
+      if (!chain) {
+        diagnostics.push({
+          severity: "warning",
+          path: `scenes.${sceneId}.actions`,
+          message: `reach: no ${action.bones ?? 2}-bone chain above part "${action.part}" on "${charName}"; ignored.`
+        });
+        return;
+      }
+      const offset = chainRootOffset(parts, chain.rootId);
+      const solved = solveChain({
+        bones: chain.bones,
+        target: [action.to[0] - offset[0], action.to[1] - offset[1]],
+        bend: action.bend ?? 1
+      });
+      chain.bones.forEach((bone, i) => {
+        writeChannel({
+          timeline,
+          target: `${rootId}/${bone.id}`,
+          channel: "rot",
+          value: solved.rots[i],
+          at,
+          span,
+          ease,
+          h
+        });
+      });
+      if (solved.clamped) {
+        diagnostics.push({
+          severity: "info",
+          path: `scenes.${sceneId}.actions`,
+          message: `reach: [${action.to}] is out of range for "${action.part}" (off by ${solved.error.toFixed(1)}); limb extended as far as it goes.`
+        });
+      }
       break;
     }
     case "set": {
@@ -3097,6 +3293,23 @@ var MemorySink = class extends FrameSink {
   }
 };
 
+// src/core/scene/visemeShapes.js
+function applyVisemeShapes(scene) {
+  for (const node of scene.byId.values()) {
+    const shapes = node.props.visemeShapes;
+    if (!shapes) continue;
+    const name = resolveViseme(node.props.viseme ?? "closed", shapes);
+    const shape = shapes[name];
+    if (!shape) continue;
+    if (node._shapeName === name) continue;
+    node._shapeName = name;
+    node.kind = shape.kind ?? "path";
+    for (const [k, v] of Object.entries(shape)) {
+      if (k !== "kind") node.props[k] = v;
+    }
+  }
+}
+
 // src/studio.js
 var SAMPLE_RATE = 48e3;
 var FilmStudio = class {
@@ -3288,21 +3501,6 @@ var FilmStudio = class {
     return prepared.audio ? audioBufferToWav(prepared.audio) : null;
   }
 };
-function applyVisemeShapes(scene) {
-  for (const node of scene.byId.values()) {
-    const shapes = node.props.visemeShapes;
-    if (!shapes) continue;
-    const name = resolveViseme(node.props.viseme ?? "closed", shapes);
-    const shape = shapes[name];
-    if (!shape) continue;
-    if (node._shapeName === name) continue;
-    node._shapeName = name;
-    node.kind = shape.kind ?? "path";
-    for (const [k, v] of Object.entries(shape)) {
-      if (k !== "kind") node.props[k] = v;
-    }
-  }
-}
 function attachSubtitles(compiled, voiced) {
   const jobs = compiled.lipsyncJobs.filter((j) => j.subtitle && j.text);
   if (!jobs.length) return;

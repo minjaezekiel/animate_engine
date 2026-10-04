@@ -11,6 +11,7 @@
 export { Scene } from './scene/Scene.js';
 export { createNode } from './scene/Node.js';
 export { transform2D, transform3D, TRANSFORM2D_CHANNELS } from './scene/Transform.js';
+export { applyVisemeShapes } from './scene/visemeShapes.js';
 
 // math
 export * as mat2d from './math/mat2d.js';
@@ -27,6 +28,12 @@ export {
 export { cubicBezierEase, smoothstep, easeProgress, DEFAULT_BEZIER_HANDLES } from './anim/easing.js';
 export { interpolateValue, lerpVec, slerpQuat, lerpColor } from './anim/interpolate.js';
 export { FrameClock } from './time/FrameClock.js';
+
+// rig
+export {
+    solveTwoBone, solveChain, forwardKinematics,
+    chainFromParts, chainRootOffset, wrapAngle,
+} from './rig/IK2D.js';
 
 // audio analysis + lipsync (pure; no Web Audio)
 export { createCue, cueSampleWindow, mixDuration, cueGainAt } from './audio/cues.js';
@@ -45,7 +52,7 @@ export { VoiceRegistry, createVoice } from './voice/VoiceRegistry.js';
 export { castVoices, synthesizeDialogue } from './voice/synthesize.js';
 
 // film script
-export { compileFilm } from './script/compile.js';
+export { compileFilm, filmShots, shotAt, characterParts } from './script/compile.js';
 export { validateFilm, hasFatal, hasError } from './script/validate.js';
 export { parseScreenplay, estimateSeconds, retimeToAudio } from './script/screenplay.js';
 export {

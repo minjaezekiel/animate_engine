@@ -10,6 +10,7 @@ const EPS = 1e-4;
 import { validateFilm } from './validate.js';
 import { castVoices } from '../voice/synthesize.js';
 import { generateCharacterParts, generateMouth, generateActions } from './generate.js';
+import { solveChain, chainFromParts, chainRootOffset } from '../rig/IK2D.js';
 
 /**
  * compileFilm: declarative film -> core Scene + Timeline + audio cues +
@@ -252,6 +253,37 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta) {
     });
 }
 
+/**
+ * Flatten a film into absolutely-timed shots.
+ *
+ * Shot timing is derived, so anything that needs to map a playhead back to
+ * the authored shot -- an editor, a progress readout, a diagnostic -- has to
+ * reproduce the compiler's arithmetic or ask for it. This is the ask.
+ */
+export function filmShots(film) {
+    const out = [];
+    let t = 0;
+    for (const [si, scene] of (film.scenes ?? []).entries()) {
+        const sceneId = scene.id ?? `s${si + 1}`;
+        for (const [shi, shot] of (scene.shots ?? []).entries()) {
+            const duration = shot.duration ?? DEFAULTS.shotDuration;
+            out.push({
+                sceneId, sceneIndex: si, shotIndex: shi,
+                shotId: shot.id ?? `${sceneId}.${shi + 1}`,
+                start: t, end: t + duration, duration, scene, shot,
+            });
+            t += duration;
+        }
+    }
+    return out;
+}
+
+/** The shot a given time falls in, or null past the end. */
+export function shotAt(film, t) {
+    const shots = filmShots(film);
+    return shots.find((s) => t >= s.start && t < s.end) ?? shots[shots.length - 1] ?? null;
+}
+
 // ----------------------------------------------------------------- character
 
 function instantiateCharacter({ scene, char, charName, as, rootId, parentId, entry, palettes, diagnostics }) {
@@ -268,10 +300,7 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId, ent
         tags: ['cast', charName],
     }, parentId);
 
-    let parts = char.parts;
-    if ((!parts || !parts.length) && char.generate) {
-        parts = generateCharacterParts(char.generate, char.proportions);
-    }
+    const parts = characterParts(char);
 
     // Parts are added parents-first so a child always finds its parent.
     const byId = new Map((parts ?? []).map((p) => [p.id, p]));
@@ -335,6 +364,16 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId, ent
     }
 }
 
+/**
+ * The parts list a character actually renders with. Generated characters have
+ * no `parts` in the film, so anything that needs the rig -- instantiation and
+ * IK alike -- has to go through here rather than reading `char.parts`.
+ */
+export function characterParts(char) {
+    if (char.parts?.length) return char.parts;
+    return char.generate ? generateCharacterParts(char.generate, char.proportions) : [];
+}
+
 function shapeProps(shape) {
     if (!shape) return {};
     const { kind, ...rest } = shape;
@@ -374,6 +413,24 @@ function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamer
 
 // ------------------------------------------------------------------- actions
 
+/**
+ * Write one channel, as a snap or as a transition.
+ *
+ * `for` means "ramp from wherever this channel already was", which needs the
+ * previous value held at the start or the ramp begins from the default. Both
+ * `pose` and `reach` need exactly this, so it lives in one place.
+ */
+function writeChannel({ timeline, target, channel, value, at, span, ease, h }) {
+    const path = `transform.${channel}`;
+    if (span == null) {
+        key(timeline, target, path, at, value, { type: 'number', ease, h });
+        return;
+    }
+    const prev = lastValueBefore(timeline, target, path, at) ?? defaultChannel(channel);
+    key(timeline, target, path, at, prev, { type: 'number', ease, h });
+    key(timeline, target, path, at + span, value, { type: 'number' });
+}
+
 function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sceneId, characters, diagnostics }) {
     const cast = castMap.get(action.target);
     if (!cast) return;
@@ -391,16 +448,8 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sce
             // `for` makes it a transition: hold the current value, then ramp.
             for (const [partId, channels] of Object.entries(pose)) {
                 for (const [channel, value] of Object.entries(channels)) {
-                    const target = `${rootId}/${partId}`;
-                    const path = `transform.${channel}`;
-                    if (span != null) {
-                        const prev = lastValueBefore(timeline, target, path, at)
-                            ?? defaultChannel(channel);
-                        key(timeline, target, path, at, prev, { type: 'number', ease, h });
-                        key(timeline, target, path, at + span, value, { type: 'number' });
-                    } else {
-                        key(timeline, target, path, at, value, { type: 'number', ease, h });
-                    }
+                    writeChannel({ timeline, target: `${rootId}/${partId}`,
+                                   channel, value, at, span, ease, h });
                 }
             }
             break;
@@ -437,6 +486,41 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sce
                 speed: action.speed ?? 1,
                 scopeId: rootId,
             });
+            break;
+        }
+        case 'reach': {
+            // IK: the author names a point, the solver names the rotations.
+            if (!action.part || !Array.isArray(action.to)) return;
+            const parts = characterParts(char ?? {});
+            const chain = chainFromParts(parts, action.part, action.bones ?? 2);
+            if (!chain) {
+                diagnostics.push({
+                    severity: 'warning', path: `scenes.${sceneId}.actions`,
+                    message: `reach: no ${action.bones ?? 2}-bone chain above part `
+                        + `"${action.part}" on "${charName}"; ignored.`,
+                });
+                return;
+            }
+            // `to` is in the character's own space (its root at the origin),
+            // so a reach keeps meaning the same thing wherever the character
+            // is standing and at whatever scale.
+            const offset = chainRootOffset(parts, chain.rootId);
+            const solved = solveChain({
+                bones: chain.bones,
+                target: [action.to[0] - offset[0], action.to[1] - offset[1]],
+                bend: action.bend ?? 1,
+            });
+            chain.bones.forEach((bone, i) => {
+                writeChannel({ timeline, target: `${rootId}/${bone.id}`,
+                               channel: 'rot', value: solved.rots[i], at, span, ease, h });
+            });
+            if (solved.clamped) {
+                diagnostics.push({
+                    severity: 'info', path: `scenes.${sceneId}.actions`,
+                    message: `reach: [${action.to}] is out of range for "${action.part}" `
+                        + `(off by ${solved.error.toFixed(1)}); limb extended as far as it goes.`,
+                });
+            }
             break;
         }
         case 'set': {

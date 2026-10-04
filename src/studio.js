@@ -25,7 +25,7 @@ import { renderOffline, preflight } from './render/OfflineRenderer.js';
 import { MediaRecorderSink } from './render/sinks/MediaRecorderSink.js';
 import { WebCodecsSink } from './render/sinks/WebCodecsSink.js';
 import { MemorySink } from './render/sinks/MemorySink.js';
-import { resolveViseme } from './core/audio/visemes.js';
+import { applyVisemeShapes } from './core/scene/visemeShapes.js';
 import { trackValueAt } from './core/anim/Track.js';
 
 const SAMPLE_RATE = 48000;
@@ -226,31 +226,6 @@ export class FilmStudio {
     /** Audio-only export: the fallback rung when muxing is unavailable. */
     audioAsWav(prepared) {
         return prepared.audio ? audioBufferToWav(prepared.audio) : null;
-    }
-}
-
-/**
- * Resolve each mouth's current viseme to a concrete declared shape.
- *
- * Runs per frame because the viseme channel is discrete: the Evaluator writes
- * a NAME, and the backend needs geometry. Characters declaring fewer shapes
- * degrade through the fallback chain rather than disappearing.
- */
-function applyVisemeShapes(scene) {
-    for (const node of scene.byId.values()) {
-        const shapes = node.props.visemeShapes;
-        if (!shapes) continue;
-        const name = resolveViseme(node.props.viseme ?? 'closed', shapes);
-        const shape = shapes[name];
-        if (!shape) continue;
-        // The cache key lives outside props so a per-frame pose reset cannot
-        // leave it disagreeing with the geometry actually applied.
-        if (node._shapeName === name) continue;
-        node._shapeName = name;
-        node.kind = shape.kind ?? 'path';
-        for (const [k, v] of Object.entries(shape)) {
-            if (k !== 'kind') node.props[k] = v;
-        }
     }
 }
 

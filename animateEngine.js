@@ -136,7 +136,17 @@
             restoreAutosave() {
                 try {
                     const saved = localStorage.getItem('animateEngine.project');
-                    if (saved) this.applyProject(JSON.parse(saved));
+                    if (!saved) return;
+                    const project = JSON.parse(saved);
+                    // An empty scene is honest; a scene full of cubes pretending to
+                    // be your sculpt is not. The snapshot is left in storage so an
+                    // explicit load can still inspect it.
+                    if (project.scene && project.scene.lossy) {
+                        console.warn('animateEngine: autosave skipped — it contains sculpted or '
+                            + 'imported meshes that cannot be restored yet. Use Load Project.');
+                        return;
+                    }
+                    this.applyProject(project);
                 } catch (e) { /* corrupt autosave — ignore */ }
             }
 
@@ -469,6 +479,10 @@
         /**
          * Enhanced Scene Manager - Handles all scene-related operations
          */
+        // Geometry types importScene can actually reconstruct.
+        const ROUNDTRIP_GEOMETRY = new Set(['BoxGeometry', 'SphereGeometry', 'CylinderGeometry',
+            'ConeGeometry', 'TorusGeometry', 'TetrahedronGeometry']);
+
         class SceneManager {
             constructor() {
                 this.scene = null;
@@ -1046,6 +1060,11 @@
                             properties: this.objectProperties.get(uuid)
                         });
                     } else if (object.isMesh) {
+                        // importScene rebuilds geometry from this type name and
+                        // falls back to a cube for anything else, so a sculpted or
+                        // imported mesh does not survive the round trip. Flag it
+                        // rather than let autosave silently replace it on reload.
+                        if (!ROUNDTRIP_GEOMETRY.has(object.geometry.type)) sceneData.lossy = true;
                         sceneData.objects.push({
                             uuid: object.uuid,
                             name: object.name,
@@ -1338,14 +1357,19 @@
             // starting playback, so poses can be sampled via setCurrentTime().
             prepareActions() {
                 if (!this.selectedAnimation) return;
-                this.mixers.forEach((mixer, uuid) => {
+                // Drive from keyframes, not from `mixers`: mixers are a cache that
+                // only addKeyframe ever filled, so after a project load or an
+                // autosave restore it was empty and playback/export silently did
+                // nothing. Creating them here fixes play, scrub and export at once.
+                this.selectedAnimation.keyframes.forEach((_, uuid) => {
                     const object = this.sceneManager.getObjectByUUID(uuid);
-                    if (object && this.selectedAnimation.keyframes.has(uuid)) {
-                        const clip = this.createAnimationClip(object, this.selectedAnimation);
-                        const action = mixer.clipAction(clip);
-                        action.reset();
-                        action.play();
-                    }
+                    if (!object) return;
+                    let mixer = this.mixers.get(uuid);
+                    if (!mixer) this.mixers.set(uuid, mixer = new THREE.AnimationMixer(object));
+                    const clip = this.createAnimationClip(object, this.selectedAnimation);
+                    const action = mixer.clipAction(clip);
+                    action.reset();
+                    action.play();
                 });
             }
 
@@ -1395,6 +1419,7 @@
             }
 
             setCurrentTime(time) {
+                if (this.mixers.size === 0) this.prepareActions();
                 this.currentTime = time;
                 
                 // Update all mixers

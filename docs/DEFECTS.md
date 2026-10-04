@@ -15,7 +15,7 @@ Dispositions:
 
 ## Data loss
 
-### Autosave destroys sculpted meshes and imported models — **guard (0.5), fix (3)**
+### Autosave destroys sculpted meshes and imported models — **guarded in 0.5, fix (3)**
 
 `importScene` reconstructs geometry from a type-name switch whose `default:`
 is `createCube` (`:1115`), and sculpted vertex data is never serialized at
@@ -56,7 +56,7 @@ pickable in the viewport.
 
 ## Broken behaviour
 
-### Playback and all export are dead after any load or reload — **superseded (3)**
+### Playback and all export are dead after any load or reload — **guarded in 0.5, superseded (3)**
 
 `new THREE.AnimationMixer` is constructed in exactly one place, `addKeyframe`
 (`:1438`). `importAnimation` and `applyProject` restore keyframes without ever

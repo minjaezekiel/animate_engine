@@ -88,14 +88,16 @@ The file is not committed — it is gitignored and reproducible from source.
 
 ---
 
-## Phase 0.5 — legacy data-loss guards — **not started**
-
-Two small fixes to the shipped 3D editor. See [DEFECTS.md](DEFECTS.md).
+## Phase 0.5 — legacy data-loss guards — **done**
 
 | Item | State |
 |---|---|
-| Guard `restoreAutosave` against non-round-trippable geometry | — |
-| Throwaway `rebuildMixers()` so the 3D editor is not dead after reload | — |
+| Guard `restoreAutosave` against non-round-trippable geometry | **done** — `exportScene` sets `lossy` when a mesh's geometry type is not one importScene can rebuild; autosave is then skipped with a console warning and the snapshot left in storage. Explicit Load Project is unaffected. |
+| Mixers rebuilt so playback survives a load | **done** — `prepareActions` now iterates the animation's keyframes and creates mixers on demand, instead of iterating a `mixers` cache that only `addKeyframe` ever filled. `setCurrentTime` primes them too, so scrubbing works before Play is pressed. This fixes play, scrub and export in one place; Phase 3 still deletes `mixers` entirely. |
+
+Verified by `npm run test:legacy` in headless Chrome: a sculpted mesh flags the
+snapshot, and after a simulated reload a scrub at t=1s moves the object to its
+midpoint.
 
 ---
 

@@ -24,11 +24,12 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:e2e": "node test/e2e/render-film.mjs",
     "test:av": "node test/e2e/render-av.mjs",
-    "test:all": "npm test && npm run test:e2e && npm run test:av",
+    "test:all": "npm test && npm run test:e2e && npm run test:av && npm run test:legacy",
     "produce": "node scripts/produce.mjs",
     "icons": "node scripts/make-icons.mjs",
     "serve": "python3 -m http.server 8080",
-    "build": "terser animateEngine.js -c -m -o animateEngine.min.js"
+    "build": "terser animateEngine.js -c -m -o animateEngine.min.js",
+    "test:legacy": "node test/e2e/legacy-guards.mjs"
   },
   "keywords": [
     "animation",

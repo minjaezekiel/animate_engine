@@ -101,17 +101,20 @@ midpoint.
 
 ---
 
-## Phase 1 — module split, build, CDN packaging — **not started**
+## Phase 1 — build and CDN packaging — *partial*
 
 | Item | State |
 |---|---|
-| `scripts/build.mjs` (esbuild) → `dist/` esm + umd + min | — |
-| Move the 11 legacy classes into `src/legacy/*.js` | — |
-| `animateEngine.js` becomes a shim; `utils` export kept byte-identical | — |
-| `createEngine()` factory, no auto-instantiation in the library entry | — |
-| Fix `package.json` main/module/exports/unpkg/jsdelivr + `prepublishOnly` | — |
-| Decouple DOM: one id table per panel, replacing 181 `getElementById` | — |
-| Generate MCP zod schemas from a single op table | — |
+| `scripts/build.mjs` (esbuild) → `dist/` esm + iife + cjs + min | **done** — 58 KB minified for the studio, 39.5 KB for core alone, zero runtime dependencies |
+| Fix `package.json` main/module/browser/exports/unpkg/jsdelivr | **done** — they pointed at a stale `animateEngine.min.js` that predated `RigManager` |
+| Regenerate `animateEngine.min.js` | **done** — was 74,686 bytes and four features behind; now current |
+| `prepublishOnly` so a stale build cannot ship again | **done** |
+| `dist/` committed so a CDN serves from the GitHub tag | **done** — no npm publish needed |
+| Bundle verified as a CDN consumer loads it | **done** — `npm run test:bundle` loads the script tag, the ESM bundle and the core bundle on a bare page and renders a frame |
+| Move the 11 legacy classes into `src/legacy/*.js` | **skipped** — a large mechanical diff that Phase 3 immediately churns, since it deletes ~450 lines of that file. Do it with Phase 3, not before. |
+| `createEngine()` factory | **skipped** — `AnimationEngine` is already exported and auto-init is already guarded by `#viewport`, so a factory adds a name and nothing else |
+| Decouple DOM: 181 `getElementById` | **skipped** — pure refactor, no behaviour change. Do it when a second host page actually needs the editor UI. |
+| Generate MCP zod schemas from a single op table | **skipped** — the op list is duplicated and has drifted, but the server works. Fix when an op is next added. |
 
 ---
 

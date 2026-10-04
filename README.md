@@ -66,7 +66,15 @@ const film = await (await fetch('./demo/film.json')).json();
 const { blob } = await studio.produce(film, { canvas: myCanvas });
 ```
 
-Or the core alone, with no backend, encoder or voice system attached:
+Or from a CDN, with no install at all:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/minjaezekiel/animate_engine@main/dist/jirex.min.js"></script>
+<script>const studio = new jireX.FilmStudio();</script>
+```
+
+Or the core alone — scene graph, timeline and film compiler, 39 KB minified,
+no backend, encoder or voice system:
 
 ```js
 import { compileFilm, FrameClock, Evaluator } from './src/core/index.js';
@@ -83,9 +91,12 @@ other host page must supply it or films render silent with subtitles. See
 ## Tests
 
 ```bash
-npm test             # 59 Node unit tests, no browser
+npm test             # 60 Node unit tests, no browser
 npm run test:e2e     # headless Chrome: 2,880 frames, timestamps, determinism
 npm run test:av      # audio muxing + the A/V sync probe
+npm run test:legacy  # the two 3D-editor data-loss guards
+npm run test:bundle  # dist/ bundles load and render as a CDN consumer gets them
+npm run test:all     # all of the above
 ```
 
 Determinism is asserted on the **draw-call stream**, not on pixels: encoders
@@ -118,6 +129,8 @@ Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
   removes both limits but needs a muxer wired in.
 - **Voice models are 20–60 MB** and download on first use.
 - **MP4 needs a muxer**; WebM works with no dependencies.
+- **No 2D editor UI, and the legacy 3D editor's DOM is still hardwired** to 181
+  element ids, so it only runs inside its own `index.html`.
 - Pixel output is not bit-reproducible between runs (scene state is).
 - The 3D engine has real defects, including autosave data loss — see
   [docs/DEFECTS.md](docs/DEFECTS.md) before relying on it.

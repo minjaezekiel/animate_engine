@@ -44,8 +44,39 @@ leave the app permanently uninstallable.
 
 ## Using the engine as a library
 
-Today the modules are plain ES modules with no build step, so they can be
-imported directly:
+`npm run build` emits `dist/`, which is committed so a CDN can serve it
+straight from the GitHub tag -- no npm publish needed.
+
+| File | For |
+|---|---|
+| `dist/jirex.esm.js` / `.esm.min.js` | `import` in a browser or bundler |
+| `dist/jirex.min.js` | a plain `<script>` tag; exposes `window.jireX` |
+| `dist/jirex.cjs` | `require()` in Node or a CJS bundler |
+| `dist/jirex-core.esm.js` / `.min.js` | the core alone: scene graph, timeline, film compiler. No backend, no encoder, no voice system. 39 KB minified. |
+
+```html
+<!-- script tag -->
+<script src="https://cdn.jsdelivr.net/gh/minjaezekiel/animate_engine@main/dist/jirex.min.js"></script>
+<script>
+  const studio = new jireX.FilmStudio();
+</script>
+```
+
+```html
+<!-- ES module -->
+<script type="module">
+  import { FilmStudio, compileFilm } from
+    'https://cdn.jsdelivr.net/gh/minjaezekiel/animate_engine@main/dist/jirex.esm.js';
+</script>
+```
+
+Pin a tag rather than `@main` for anything you care about.
+
+Note the TTS runtime is marked external and still loads from its own pinned
+URL at runtime, so the bundle stays dependency-free and the import map is
+still required for voices.
+
+The unbundled modules also work directly, which is what `film.html` uses:
 
 ```html
 <script type="importmap">

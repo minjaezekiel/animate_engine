@@ -4,10 +4,11 @@
   "description": "Browser animation studio: author a 2D film as JSON or from a screenplay, voice it with open-source TTS or your own recordings, and render it deterministically to video. Includes the legacy Three.js 3D editor.",
   "author": "Ezekiel Minja",
   "license": "MIT",
-  "main": "animateEngine.js",
-  "unpkg": "animateEngine.min.js",
-  "jsdelivr": "animateEngine.min.js",
+  "main": "./dist/jirex.cjs",
+  "unpkg": "./dist/jirex.min.js",
+  "jsdelivr": "./dist/jirex.min.js",
   "files": [
+    "dist",
     "src",
     "animateEngine.js",
     "animateEngine.min.js",
@@ -24,12 +25,15 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:e2e": "node test/e2e/render-film.mjs",
     "test:av": "node test/e2e/render-av.mjs",
-    "test:all": "npm test && npm run test:e2e && npm run test:av && npm run test:legacy",
+    "test:all": "npm test && npm run test:e2e && npm run test:av && npm run test:legacy && npm run test:bundle",
     "produce": "node scripts/produce.mjs",
     "icons": "node scripts/make-icons.mjs",
     "serve": "python3 -m http.server 8080",
-    "build": "terser animateEngine.js -c -m -o animateEngine.min.js",
-    "test:legacy": "node test/e2e/legacy-guards.mjs"
+    "build": "node scripts/build.mjs",
+    "test:legacy": "node test/e2e/legacy-guards.mjs",
+    "build:legacy": "terser animateEngine.js -c -m -o animateEngine.min.js",
+    "prepublishOnly": "npm run build && npm run build:legacy && npm test",
+    "test:bundle": "node test/e2e/bundle.mjs"
   },
   "keywords": [
     "animation",
@@ -51,18 +55,30 @@
     "three": "^0.128.0"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "omggif": "^1.0.10",
     "puppeteer-core": "^25.12.0",
     "terser": "^5.0.0"
   },
   "exports": {
-    ".": "./src/studio.js",
-    "./core": "./src/core/index.js",
-    "./legacy": "./animateEngine.js"
+    ".": {
+      "import": "./dist/jirex.esm.js",
+      "require": "./dist/jirex.cjs",
+      "default": "./dist/jirex.esm.js"
+    },
+    "./core": {
+      "import": "./dist/jirex-core.esm.js"
+    },
+    "./src/*": "./src/*",
+    "./legacy": "./animateEngine.js",
+    "./film.json": "./demo/film.json"
   },
   "peerDependenciesMeta": {
     "three": {
       "optional": true
     }
-  }
+  },
+  "module": "./dist/jirex.esm.js",
+  "sideEffects": false,
+  "browser": "./dist/jirex.min.js"
 }

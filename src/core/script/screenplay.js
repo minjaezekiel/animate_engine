@@ -147,7 +147,9 @@ export function parseScreenplay(text, { fps = DEFAULTS.fps, width = DEFAULTS.wid
     // the rest.
     const film = {
         version: FILM_VERSION,
-        meta: { title: title ?? 'Untitled', fps, width, height },
+        // estimatedTiming tells the studio these durations came from a word
+        // count, so retiming may tighten them as well as extend them.
+        meta: { title: title ?? 'Untitled', fps, width, height, estimatedTiming: true },
         voices: {},
         assets: {},
         palettes: { default: DEFAULT_PALETTE },
@@ -235,15 +237,24 @@ export function estimateSeconds(text) {
 }
 
 /**
- * Retime a film's shots to the real synthesized audio.
+ * Grow any shot that is too short for its own dialogue.
  *
- * Word-count estimates are only a starting point; once a line has been
- * voiced, its true length is known, and a shot that is shorter than its
- * dialogue would cut the speech off.
+ * Word-count estimates are only a starting point; once a line has actually
+ * been voiced its true length is known, and a shot shorter than its dialogue
+ * would cut the speech off mid-sentence.
+ *
+ * It only ever EXTENDS. A shot held longer than its dialogue is a deliberate
+ * pacing choice -- an establishing beat, a pause after a line -- and
+ * shortening it to hug the audio would flatten the edit and silently change
+ * the film's length. Pass `shrink: true` to opt into tightening as well,
+ * which is useful when the durations came from an estimate rather than from
+ * an author.
  */
-export function retimeToAudio(film, lineDurations, { padding = BEAT_PADDING } = {}) {
+export function retimeToAudio(film, lineDurations, { padding = BEAT_PADDING,
+                                                     shrink = false,
+                                                     tolerance = 0.05 } = {}) {
     const next = structuredClone(film);
-    let changed = 0;
+    const changes = [];
     for (const scene of next.scenes ?? []) {
         for (const shot of scene.shots ?? []) {
             let needed = 0;
@@ -251,13 +262,16 @@ export function retimeToAudio(film, lineDurations, { padding = BEAT_PADDING } = 
                 const d = lineDurations[line.text];
                 if (d) needed = Math.max(needed, (line.at ?? 0) + d + padding);
             }
-            if (needed > 0 && Math.abs(needed - shot.duration) > 0.05) {
-                shot.duration = +needed.toFixed(2);
-                changed++;
-            }
+            if (needed <= 0) continue;
+            const current = shot.duration ?? 0;
+            const grow = needed > current + tolerance;
+            const tighten = shrink && needed < current - tolerance;
+            if (!grow && !tighten) continue;
+            changes.push({ shot: shot.id, from: current, to: +needed.toFixed(2) });
+            shot.duration = +needed.toFixed(2);
         }
     }
-    return { film: next, changed };
+    return { film: next, changed: changes.length, changes };
 }
 
 const DEFAULT_PALETTE = {

@@ -97,6 +97,7 @@ export function compileFilm(film, { assets = {} } = {}) {
         }
 
         buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics);
+        buildScenery(scene, sceneSpec, groupId, palettes, meta);
 
         // --- cast: instantiate each character's part tree
         const castMap = new Map();
@@ -210,6 +211,45 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
             z: -1000,
         }, groupId);
     }
+}
+
+/**
+ * Decorative shapes that are not characters: horizons, rocks, rails, stars.
+ *
+ * `parallax` scales a shape's apparent camera response -- 0 pins it to the
+ * frame like a sky, 1 moves with the world. It is applied by nesting the
+ * shape in a group whose transform is a fraction of the camera's, which keeps
+ * the whole thing inside the ordinary transform hierarchy instead of needing
+ * a special case in the renderer.
+ */
+function buildScenery(scene, sceneSpec, groupId, palettes, meta) {
+    const items = sceneSpec.scenery ?? [];
+    if (!items.length) return;
+    const palette = palettes[sceneSpec.palette] ?? {};
+    const colorOf = (c) => (c == null ? null : (palette[c] ?? c));
+
+    items.forEach((item, i) => {
+        const id = `${groupId}/set${i}_${item.id ?? ''}`;
+        const at = item.at ?? [0, 0];
+        const { kind, ...shape } = item.shape ?? { kind: 'rect' };
+        scene.add({
+            id, kind: kind ?? 'rect', name: item.id ?? `set${i}`,
+            transform: {
+                x: at[0], y: at[1],
+                sx: item.sx ?? 1, sy: item.sy ?? 1, rot: item.rot ?? 0,
+            },
+            props: {
+                ...shape,
+                fill: colorOf(item.fill),
+                stroke: colorOf(item.stroke),
+                strokeWidth: item.strokeWidth,
+                gradient: item.gradient ?? null,
+                alpha: item.alpha ?? 1,
+                screenSpace: item.screenSpace ?? false,
+            },
+            z: item.z ?? -500,
+        }, groupId);
+    });
 }
 
 // ----------------------------------------------------------------- character

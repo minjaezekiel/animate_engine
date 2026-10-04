@@ -1,4 +1,4 @@
-import { FILM_VERSION, KNOWN, DO_VERBS, TRANSITION_KINDS } from './schema.js';
+import { FILM_VERSION, KNOWN, DO_VERBS, TRANSITION_KINDS, KNOWN_SCENERY } from './schema.js';
 import { generateActions } from './generate.js';
 
 const GENERATED_ACTIONS = Object.keys(generateActions());
@@ -67,6 +67,10 @@ export function validateFilm(film) {
             }
         }
         if (!scene.shots?.length) warn(`${sp}.shots`, 'Scene has no shots; it will take no time.');
+
+        (scene.scenery ?? []).forEach((item, ci) => {
+            unknown(`${sp}.scenery[${ci}]`, item, KNOWN_SCENERY, warn);
+        });
 
         (scene.shots ?? []).forEach((shot, hi) => {
             const hp = `${sp}.shots[${hi}]`;

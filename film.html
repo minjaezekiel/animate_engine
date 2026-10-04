@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jireX Film Studio</title>
+<meta name="description" content="Design and render 2D animated films in the browser, by hand or from a script.">
+<meta name="theme-color" content="#1b2a4a">
+<link rel="manifest" href="src/pwa/manifest.webmanifest">
+<!--
+  The in-browser TTS runtime dynamically imports "onnxruntime-web" by bare
+  specifier, which a browser cannot resolve on its own. The import map pins it
+  to the exact version the runtime depends on. Without this the voice provider
+  reports itself unavailable and the film renders silent with subtitles, which
+  is a deliberate rung on the fallback ladder rather than a crash.
+-->
+<script type="importmap">
+{
+  "imports": {
+    "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/+esm"
+  }
+}
+</script>
+<link rel="icon" href="src/pwa/icons/icon-192.png">
+<link rel="apple-touch-icon" href="src/pwa/icons/icon-192.png">
+<style>
+    :root {
+        --bg: #0b1120; --panel: #131a2a; --panel-2: #1b2437; --line: #28334a;
+        --ink: #e8eef9; --ink-dim: #93a1bd; --accent: #ffd98a; --accent-ink: #2a1f06;
+        --ok: #6ee7a8; --warn: #ffc566; --err: #ff8686;
+        --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0; background: var(--bg); color: var(--ink);
+        font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    header {
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel);
+    }
+    header h1 { font-size: 17px; margin: 0; letter-spacing: .2px; }
+    header .sub { color: var(--ink-dim); font-size: 13px; }
+    header .spacer { flex: 1; }
+    main { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 0; min-height: calc(100vh - 59px); }
+    @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+    .stage { padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+    .viewport {
+        position: relative; background: #000; border: 1px solid var(--line);
+        border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9;
+    }
+    .viewport canvas { width: 100%; height: 100%; display: block; }
+    .overlay {
+        position: absolute; inset: auto 0 0 0; padding: 10px 14px;
+        background: linear-gradient(transparent, rgba(0,0,0,.75));
+        font: 12px/1.4 var(--mono); color: var(--ink-dim);
+    }
+    .bar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+    .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+
+    .side { border-left: 1px solid var(--line); background: var(--panel); padding: 18px; overflow-y: auto; }
+    @media (max-width: 1000px) { .side { border-left: 0; border-top: 1px solid var(--line); } }
+    .side h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em;
+               color: var(--ink-dim); margin: 22px 0 10px; }
+    .side h2:first-child { margin-top: 0; }
+
+    button, select, textarea, input {
+        font: inherit; color: var(--ink); background: var(--panel-2);
+        border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px;
+    }
+    button { cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 650; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .row > * { min-width: 0; }
+    .grow { flex: 1; }
+    textarea { width: 100%; min-height: 150px; font: 13px/1.55 var(--mono); resize: vertical; }
+    label.field { display: block; font-size: 12px; color: var(--ink-dim); margin-bottom: 4px; }
+    .cast-row { display: grid; grid-template-columns: 1fr 1.3fr; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .cast-row span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #log {
+        font: 12px/1.6 var(--mono); background: #090d16; border: 1px solid var(--line);
+        border-radius: 8px; padding: 10px 12px; max-height: 240px; overflow-y: auto; white-space: pre-wrap;
+    }
+    #log .warn { color: var(--warn); } #log .err { color: var(--err); } #log .ok { color: var(--ok); }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px;
+            background: var(--panel-2); border: 1px solid var(--line); font-size: 12px; color: var(--ink-dim); }
+    a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+    <h1>jireX Film Studio</h1>
+    <span class="sub" id="filmTitle">no film loaded</span>
+    <span class="spacer"></span>
+    <span class="pill" id="encoderPill">encoder: --</span>
+    <button id="installBtn" hidden>Install app</button>
+</header>
+
+<main>
+    <section class="stage">
+        <div class="viewport">
+            <canvas id="stage" width="1280" height="720"></canvas>
+            <div class="overlay">
+                <div class="bar"><i id="progressBar"></i></div>
+                <div id="progressText" style="margin-top:6px">idle</div>
+            </div>
+        </div>
+        <div class="row">
+            <button class="primary" id="renderBtn" disabled>Render film</button>
+            <button id="previewBtn" disabled>Preview frame</button>
+            <button id="cancelBtn" disabled>Cancel</button>
+            <span class="spacer grow"></span>
+            <label class="field" style="margin:0">
+                resolution
+                <select id="resSel">
+                    <option value="1280x720" selected>1280 x 720</option>
+                    <option value="1920x1080">1920 x 1080</option>
+                    <option value="960x540">960 x 540</option>
+                    <option value="640x360">640 x 360</option>
+                </select>
+            </label>
+            <label class="field" style="margin:0">
+                fps
+                <select id="fpsSel">
+                    <option value="24" selected>24</option>
+                    <option value="30">30</option>
+                    <option value="15">15</option>
+                </select>
+            </label>
+        </div>
+        <div id="log">ready.</div>
+    </section>
+
+    <aside class="side">
+        <h2>1 &middot; the film</h2>
+        <div class="row">
+            <button id="loadDemoBtn" class="grow">Load "The Keeper"</button>
+            <button id="openJsonBtn">Open film.json</button>
+        </div>
+        <input type="file" id="jsonFile" accept=".json,application/json" hidden>
+
+        <h2>or write a script</h2>
+        <textarea id="scriptBox" placeholder="TITLE: My Film
+
+## SCENE: a kitchen at night
+[The fridge hums.]
+
+ANA
+I have been awake for three days.
+
+BEN: Then sit down.
+"></textarea>
+        <div class="row" style="margin-top:8px">
+            <button id="parseBtn" class="grow">Build film from script</button>
+            <button id="loadScriptBtn">Open .txt</button>
+        </div>
+        <input type="file" id="scriptFile" accept=".txt,.fountain,text/plain" hidden>
+
+        <h2>2 &middot; voices</h2>
+        <div class="row" style="margin-bottom:8px">
+            <select id="providerSel" class="grow"></select>
+            <button id="refreshVoicesBtn">Refresh</button>
+        </div>
+        <div id="castList"><span class="sub" style="color:var(--ink-dim);font-size:13px">Load a film to cast its characters.</span></div>
+        <div class="row" style="margin-top:10px">
+            <button id="recordBtn">Record my voice</button>
+            <button id="uploadVoiceBtn">Upload voice files</button>
+        </div>
+        <input type="file" id="voiceFiles" accept="audio/*" multiple hidden>
+
+        <h2>3 &middot; audio assets</h2>
+        <div class="row">
+            <button id="musicBtn" class="grow">Add music bed</button>
+        </div>
+        <input type="file" id="musicFile" accept="audio/*" hidden>
+        <div id="assetList" style="margin-top:8px;font:12px/1.6 var(--mono);color:var(--ink-dim)">none</div>
+
+        <h2>output</h2>
+        <div class="row">
+            <button id="saveVideoBtn" disabled class="grow">Save video</button>
+            <button id="saveAudioBtn" disabled>Save audio (wav)</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+            <button id="saveFilmBtn" disabled class="grow">Save film.json</button>
+        </div>
+    </aside>
+</main>
+
+<script type="module">
+import { FilmStudio } from './src/studio.js';
+
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+
+function log(msg, cls = '') {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+const studio = new FilmStudio({ onLog: (m) => log(m) });
+
+let film = null;          // the declarative film
+let prepared = null;      // compiled + voiced + mixed
+let videoBlob = null;
+let abort = null;
+const assets = {};        // image assets by id
+const audioBuffers = {};  // audio assets by id
+
+// ---------------------------------------------------------------- film input
+
+async function setFilm(next, label) {
+    film = next;
+    prepared = null;
+    videoBlob = null;
+    $('saveVideoBtn').disabled = true;
+    $('saveAudioBtn').disabled = true;
+    $('saveFilmBtn').disabled = false;
+    $('renderBtn').disabled = false;
+    $('previewBtn').disabled = false;
+    const shots = (film.scenes ?? []).reduce((n, s) => n + (s.shots?.length ?? 0), 0);
+    const secs = (film.scenes ?? []).reduce(
+        (n, s) => n + (s.shots ?? []).reduce((a, b) => a + (b.duration ?? 4), 0), 0);
+    $('filmTitle').textContent =
+        `${film.meta?.title ?? 'Untitled'} — ${film.scenes?.length ?? 0} scenes, ${shots} shots, ${secs.toFixed(1)}s`;
+    log(`${label}: ${film.meta?.title ?? 'Untitled'} (${secs.toFixed(1)}s)`, 'ok');
+    renderCastList();
+}
+
+$('loadDemoBtn').onclick = async () => {
+    try {
+        const res = await fetch('./demo/film.json');
+        await setFilm(await res.json(), 'loaded demo');
+    } catch (e) { log(`could not load demo: ${e.message}`, 'err'); }
+};
+
+$('openJsonBtn').onclick = () => $('jsonFile').click();
+$('jsonFile').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { await setFilm(JSON.parse(await f.text()), `loaded ${f.name}`); }
+    catch (err) { log(`bad film.json: ${err.message}`, 'err'); }
+    e.target.value = '';
+};
+
+$('loadScriptBtn').onclick = () => $('scriptFile').click();
+$('scriptFile').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    $('scriptBox').value = await f.text();
+    e.target.value = '';
+    $('parseBtn').click();
+};
+
+$('parseBtn').onclick = async () => {
+    const text = $('scriptBox').value.trim();
+    if (!text) { log('write or open a script first', 'warn'); return; }
+    const { film: built, diagnostics } = studio.parseScript(text);
+    for (const d of diagnostics) log(`  ${d.severity}: ${d.message}`, d.severity === 'info' ? '' : 'warn');
+    if (!built) { log('could not build a film from that script', 'err'); return; }
+    await setFilm(built, 'built from script');
+};
+
+// -------------------------------------------------------------------- voices
+
+async function refreshProviders() {
+    const sel = $('providerSel');
+    sel.innerHTML = '';
+    const available = await studio.voices.availableProviders();
+    for (const p of available) {
+        const o = document.createElement('option');
+        o.value = p.id; o.textContent = p.label;
+        sel.appendChild(o);
+    }
+    if (!available.length) {
+        const o = document.createElement('option');
+        o.textContent = 'no voice provider available';
+        sel.appendChild(o);
+    }
+    log(`voice providers: ${available.map((p) => p.id).join(', ') || 'none'}`);
+    return available;
+}
+
+async function renderCastList() {
+    const host = $('castList');
+    host.innerHTML = '';
+    if (!film?.characters) { host.textContent = 'no characters'; return; }
+    let voices = [];
+    try { voices = await studio.voices.listVoices(); } catch { /* offline */ }
+    for (const [name, char] of Object.entries(film.characters)) {
+        const row = document.createElement('div');
+        row.className = 'cast-row';
+        const label = document.createElement('span');
+        label.textContent = name;
+        const sel = document.createElement('select');
+        const current = film.voices?.[char.voice]?.spec ?? char.voice ?? '';
+        const seen = new Set();
+        for (const v of voices) {
+            const spec = `${v.provider}:${v.id}`;
+            if (seen.has(spec)) continue;
+            seen.add(spec);
+            const o = document.createElement('option');
+            o.value = spec;
+            o.textContent = `${v.name}`;
+            if (spec === current) o.selected = true;
+            sel.appendChild(o);
+        }
+        if (!seen.has(current) && current) {
+            const o = document.createElement('option');
+            o.value = current; o.textContent = `${current} (not loaded)`; o.selected = true;
+            sel.prepend(o);
+        }
+        sel.onchange = () => {
+            film.voices ??= {};
+            const key = char.voice ?? `${name}_v`;
+            char.voice = key;
+            film.voices[key] = { spec: sel.value };
+            prepared = null;
+            log(`${name} -> ${sel.value}`);
+        };
+        row.append(label, sel);
+        host.appendChild(row);
+    }
+}
+
+$('refreshVoicesBtn').onclick = async () => { await refreshProviders(); await renderCastList(); };
+
+$('recordBtn').onclick = async () => {
+    if (!film) { log('load a film first', 'warn'); return; }
+    const names = Object.keys(film.characters ?? {});
+    const who = names.length === 1 ? names[0] : prompt(`Record for which character?\n${names.join(', ')}`, names[0]);
+    if (!who || !film.characters[who]) return;
+    const lines = collectLines(film, who);
+    if (!lines.length) { log(`${who} has no lines`, 'warn'); return; }
+    log(`recording ${lines.length} line(s) for ${who}. Click OK, read the line, then click OK again.`);
+    for (const [i, text] of lines.entries()) {
+        if (!confirm(`Line ${i + 1}/${lines.length} for ${who}:\n\n"${text}"\n\nOK = start recording`)) return;
+        const ctrl = new AbortController();
+        const done = studio.mic.record({ voiceId: who, lineKey: text, stopSignal: ctrl.signal });
+        setTimeout(() => {
+            if (!confirm('Recording... OK = stop')) { /* stop anyway */ }
+            ctrl.abort();
+        }, 100);
+        await done;
+        log(`  captured line ${i + 1}`, 'ok');
+    }
+    film.voices ??= {};
+    const key = film.characters[who].voice ?? `${who}_v`;
+    film.characters[who].voice = key;
+    film.voices[key] = { spec: `mic:${who}` };
+    prepared = null;
+    await refreshProviders();
+    await renderCastList();
+    log(`${who} now uses your recorded voice`, 'ok');
+};
+
+$('uploadVoiceBtn').onclick = () => $('voiceFiles').click();
+$('voiceFiles').onchange = async (e) => {
+    const files = [...e.target.files];
+    e.target.value = '';
+    if (!files.length || !film) return;
+    const names = Object.keys(film.characters ?? {});
+    const who = names.length === 1 ? names[0] : prompt(`These files voice which character?\n${names.join(', ')}`, names[0]);
+    if (!who) return;
+    const lines = collectLines(film, who);
+    for (const [i, f] of files.entries()) {
+        // In file order: file N voices line N. One file voices every line.
+        const lineKey = files.length === 1 ? '__default' : (lines[i] ?? `__extra_${i}`);
+        await studio.upload.addFile(who, f, { name: who, lineKey });
+        log(`  ${f.name} -> ${lineKey === '__default' ? 'all lines' : `line ${i + 1}`}`);
+    }
+    film.voices ??= {};
+    const key = film.characters[who].voice ?? `${who}_v`;
+    film.characters[who].voice = key;
+    film.voices[key] = { spec: `upload:${who}` };
+    prepared = null;
+    await refreshProviders();
+    await renderCastList();
+    log(`${who} now uses ${files.length} uploaded file(s)`, 'ok');
+};
+
+function collectLines(f, speaker) {
+    const out = [];
+    for (const sc of f.scenes ?? []) {
+        for (const sh of sc.shots ?? []) {
+            for (const d of sh.dialogue ?? []) {
+                if (d.speaker === speaker && d.text) out.push(d.text);
+            }
+        }
+    }
+    return out;
+}
+
+// -------------------------------------------------------------------- assets
+
+$('musicBtn').onclick = () => $('musicFile').click();
+$('musicFile').onchange = async (e) => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f || !film) return;
+    const id = 'music';
+    audioBuffers[id] = await studio.decode(f);
+    film.assets ??= {};
+    film.assets[id] = { kind: 'audio', src: f.name };
+    // Lay the bed under the first scene for the whole film.
+    const first = film.scenes?.[0];
+    if (first) {
+        first.audio = (first.audio ?? []).filter((c) => c.asset !== id);
+        first.audio.push({ asset: id, at: 0, gain: 0.3, fadeIn: 2.5, fadeOut: 3, bus: 'music' });
+    }
+    prepared = null;
+    $('assetList').textContent = Object.keys(audioBuffers).join(', ') || 'none';
+    log(`music: ${f.name} (${audioBuffers[id].duration.toFixed(1)}s)`, 'ok');
+};
+
+// -------------------------------------------------------------------- render
+
+function dims() {
+    const [w, h] = $('resSel').value.split('x').map(Number);
+    return { width: w, height: h };
+}
+
+$('previewBtn').onclick = async () => {
+    if (!film) return;
+    try {
+        setBusy(true);
+        const { width, height } = dims();
+        prepared ??= await studio.prepare(film, { assets, audioBuffers });
+        reportDiagnostics(prepared.diagnostics);
+        const { Canvas2DBackend, renderOffline, MemorySink } = await import('./src/studio.js');
+        const canvas = $('stage');
+        canvas.width = width; canvas.height = height;
+        const backend = new Canvas2DBackend({ width, height });
+        backend.mount(canvas, { width, height });
+        // Render a short slice so staging and colour can be judged fast.
+        await renderOffline({
+            scene: prepared.scene, timeline: prepared.timeline, backend,
+            cameraId: prepared.cameraId, fps: Number($('fpsSel').value),
+            width, height, durationSec: 0.05, sink: new MemorySink(),
+        });
+        log('preview drawn (frame 0)', 'ok');
+    } catch (e) {
+        log(`preview failed: ${e.message}`, 'err');
+    } finally { setBusy(false); }
+};
+
+$('renderBtn').onclick = async () => {
+    if (!film) return;
+    abort = new AbortController();
+    try {
+        setBusy(true);
+        const { width, height } = dims();
+        const fps = Number($('fpsSel').value);
+        const canvas = $('stage');
+        canvas.width = width; canvas.height = height;
+
+        log('--- preparing ---');
+        prepared = await studio.prepare(film, { assets, audioBuffers });
+        reportDiagnostics(prepared.diagnostics);
+        if (!prepared.timeline) throw new Error('film did not compile');
+        log(`film is ${prepared.meta.duration.toFixed(2)}s = ${Math.round(prepared.meta.duration * fps)} frames`);
+
+        log('--- rendering ---');
+        const t0 = performance.now();
+        const out = await studio.render(prepared, {
+            canvas, width, height, fps, signal: abort.signal,
+            onProgress: (p) => {
+                if (p.stage !== 'render') return;
+                const pct = (p.frame / p.total) * 100;
+                $('progressBar').style.width = `${pct}%`;
+                const eta = p.msPerFrame * (p.total - p.frame) / 1000;
+                $('progressText').textContent =
+                    `frame ${p.frame}/${p.total}  ${p.msPerFrame.toFixed(1)} ms/frame  eta ${eta.toFixed(0)}s`;
+            },
+        });
+        videoBlob = out.blob;
+        $('encoderPill').textContent = `encoder: ${out.sink}`;
+        $('saveVideoBtn').disabled = false;
+        $('saveAudioBtn').disabled = !prepared.audio;
+        const secs = (performance.now() - t0) / 1000;
+        log(`done in ${secs.toFixed(1)}s -> ${(videoBlob.size / 1e6).toFixed(2)} MB `
+            + `${videoBlob.type}`, 'ok');
+        $('progressText').textContent = 'complete';
+    } catch (e) {
+        log(`render failed: ${e.message}`, 'err');
+        $('progressText').textContent = 'failed';
+    } finally { setBusy(false); abort = null; }
+};
+
+$('cancelBtn').onclick = () => { abort?.abort(); log('cancelling...', 'warn'); };
+
+function reportDiagnostics(ds) {
+    for (const d of ds ?? []) {
+        if (d.severity === 'info') continue;
+        log(`  ${d.severity} ${d.path}: ${d.message}`, d.severity === 'error' ? 'err' : 'warn');
+    }
+}
+
+function setBusy(b) {
+    $('renderBtn').disabled = b || !film;
+    $('previewBtn').disabled = b || !film;
+    $('parseBtn').disabled = b;
+    $('cancelBtn').disabled = !b;
+}
+
+// -------------------------------------------------------------------- output
+
+const save = (blob, name) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+};
+
+$('saveVideoBtn').onclick = () => {
+    if (!videoBlob) return;
+    const ext = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
+    save(videoBlob, `${slug(film?.meta?.title ?? 'film')}.${ext}`);
+};
+$('saveAudioBtn').onclick = () => {
+    const wav = studio.audioAsWav(prepared);
+    if (wav) save(wav, `${slug(film?.meta?.title ?? 'film')}.wav`);
+};
+$('saveFilmBtn').onclick = () =>
+    save(new Blob([JSON.stringify(film, null, 2)], { type: 'application/json' }), 'film.json');
+
+const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+// ----------------------------------------------------------------- PWA + init
+
+let installPrompt = null;
+addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); installPrompt = e; $('installBtn').hidden = false;
+});
+$('installBtn').onclick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    $('installBtn').hidden = true;
+};
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./src/pwa/sw.js')
+        .then(() => log('offline support registered'))
+        .catch((e) => log(`service worker not registered: ${e.message}`, 'warn'));
+}
+
+// Expose the studio so an agent (or the console) can drive it directly.
+window.jirex = {
+    studio,
+    get film() { return film; },
+    setFilm: (f) => setFilm(f, 'set programmatically'),
+    prepare: (opts) => studio.prepare(film, { assets, audioBuffers, ...opts }),
+    render: (opts) => studio.render(prepared, { canvas: $('stage'), ...opts }),
+    produce: (opts) => studio.produce(film, { assets, audioBuffers, canvas: $('stage'), ...opts }),
+    get prepared() { return prepared; },
+    get videoBlob() { return videoBlob; },
+};
+
+await refreshProviders();
+log('ready. Load the demo, or write a script and build a film from it.');
+</script>
+</body>
+</html>

@@ -1,70 +1,156 @@
+# jireX
 
+A browser animation studio. Write a film as JSON or as a plain screenplay,
+cast voices for its characters, and render it deterministically to video —
+entirely client side, installable, and usable offline.
 
-# Three.js Animation Engine Documentation
+The repository also contains **animateEngine**, the original single-file
+Three.js 3D editor. It still works and is unchanged; the roadmap folds it in
+as a second rendering backend over the shared core rather than keeping two
+programs. See [docs/05-PHASES.md](docs/05-PHASES.md).
 
-## License
+MIT licensed — see [LICENSE](LICENSE).
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+---
 
-## Overview
+## What it does today
 
-The Three.js Animation Engine is a web-based 3D animation and modeling tool built with Three.js. It provides a comprehensive environment for creating, editing, and animating 3D scenes directly in the browser, with features for physics simulation, sculpting, and media integration.
+- **Author a film** as `jirex.film/1` JSON, or paste a screenplay and have it
+  structured into one. Durations sequence automatically; the total is derived,
+  never declared.
+- **Characters without asset work.** Ask for a figure and get a 19-part cutout
+  rig with correctly placed joints, a six-shape mouth, and `idle`, `breathe`,
+  `walk` and `blink` cycles. The part tree *is* the rig — parent/child
+  transforms, no skin weights.
+- **Voices from three sources, interchangeably:** 124 open-source Piper/VITS
+  voices running in the browser, uploaded recordings from voice actors, or
+  your own voice through the microphone. Each character is cast independently.
+- **Lipsync** in three tiers: exact from phoneme timings where a voice
+  provides them, otherwise the dialogue text gated by the real audio envelope,
+  with a three-shape amplitude floor beneath that.
+- **Deterministic rendering.** Frame *N* is a pure function of *N*, so a
+  re-render is identical and a timeline can be scrubbed. The full 2,880-frame
+  loop runs in Node in about 75 ms against a null backend.
+- **Video out** with audio muxed, as WebM today — no dependencies at all on
+  the 2D path.
+- **Installable PWA**, offline after first load.
 
-## Features
+A worked example ships in the repo: `demo/film.json` is four scenes, nineteen
+shots and ten voiced lines, running exactly 120.0 seconds.
 
-### Core Functionality
-- **3D Scene Creation**: Create and manipulate 3D objects including primitives (cube, sphere, cylinder, cone, torus, tetrahedron)
-- **Lighting System**: Add and control various light types (point, spot, directional, ambient)
-- **Material System**: Apply colors and materials to objects
-- **Object Hierarchy**: Organize objects in groups and parent-child relationships
-- **Transform Tools**: Move, rotate, and scale objects with visual gizmos
-- **Sculpting Tools**: Modify mesh geometry with push, pull, smooth, ridge, pinch, and flatten tools
-- **Physics Simulation**: Integrate physics properties (mass, friction, restitution) with Cannon.js
-- **Animation System**: Create keyframe animations with timeline editing
-- **Curve Editing**: Fine-tune animation interpolation curves
-- **Media Integration**: Add background music, sound effects, and voice-overs
-- **Recording & Export**: Record animations and export in various formats
+## Quick start
 
-### User Interface
-- **Responsive Design**: Works on desktop and mobile devices
-- **Tool Panels**: Organized panels for objects, editing, animation, recording, media, and export
-- **Timeline**: Visual timeline for keyframe editing
-- **Property Inspector**: Detailed controls for object properties
-- **Context Menus**: Quick access to object actions
-- **Notification System**: User-friendly feedback messages
+```bash
+npm install          # only dev dependencies (terser, puppeteer-core, omggif)
+npm run serve        # ES modules need an http:// origin
+open http://localhost:8080/film.html
+```
 
-## Current Status
+Then **Load "The Keeper"** and **Render film**, or paste a screenplay and
+build a film from it.
 
-### What Works
-- Basic 3D scene creation and manipulation
-- Object selection and transformation
-- Primitive object creation
-- Lighting system implementation
-- Basic keyframe animation system
-- Physics simulation with Cannon.js
-- Sculpting tools with real-time mesh modification
-- Media integration (audio loading and playback)
-- Scene export/import functionality
-- Animation export as JSON data
-- Responsive UI with touch support
-- **Export**: Downloadable **WebM** video (native `MediaRecorder`, with audio), animated **GIF** (built-in 3-3-2 + LZW encoder), and **image sequence** (PNG frames in a ZIP) — all dependency-free
-- **State Management**: Undo/redo (Ctrl+Z / Ctrl+Shift+Z), project save/load, and localStorage autosave with restore-on-startup
-- **Modeling**: `Subdivide` tool splits each triangle into four for denser geometry
-- **Easing**: Set `animation.easing = 'smooth'` for cubic (curve) interpolation on position/scale
-- **npm / CDN package**: importable via `require('animate-engine')` / `unpkg` / `jsDelivr`; auto-initializes only when a `#viewport` element is present
-- **Programmatic API + MCP**: `engine.runCommands()` drives the engine from scripts; an MCP server (`mcp/`) lets an AI build and export animations autonomously — see [mcp/README.md](mcp/README.md)
-- **Tests**: `npm test` runs the unit suite (`test/`) covering the encoders, packaging, and geometry utilities
+To render the demo to a file from the command line:
 
-### Requires Modification/Fixing
-- **MP4 Export**: WebM/GIF/PNG-sequence are supported; MP4 would need a WASM encoder
-- **Advanced Animation Features**: Inverse kinematics, bone rigging, and skinning are not implemented
-- **Modeling**: Boolean operations, extrude, and bevel are not implemented (Subdivide is)
-- **2D Animation**: The engine is 3D only; a 2D mode is not implemented
-- **Collaboration Features**: No real-time collaboration capabilities
-- **Advanced Materials**: Limited to basic color properties; no PBR materials or textures
-- **Model Import**: Only supports GLTF format; needs additional format support
-- **Physics Constraints**: Limited physics constraint options
-- **Animation Blending**: No support for blending between animations
+```bash
+npm run produce      # -> demo/out/the-keeper.webm
+```
+
+## Driving it from code
+
+```js
+import { FilmStudio } from './src/studio.js';
+
+const studio = new FilmStudio({ onLog: console.log });
+const film = await (await fetch('./demo/film.json')).json();
+
+const { blob } = await studio.produce(film, { canvas: myCanvas });
+```
+
+Or the core alone, with no backend, encoder or voice system attached:
+
+```js
+import { compileFilm, FrameClock, Evaluator } from './src/core/index.js';
+```
+
+Inside the studio page, `window.jirex` exposes `setFilm`, `prepare`, `render`
+and `produce`, so an agent can author a film and render it without touching
+the UI.
+
+**Voices need an import map** for `onnxruntime-web`; `film.html` has it. Any
+other host page must supply it or films render silent with subtitles. See
+[docs/03-VOICE.md](docs/03-VOICE.md).
+
+## Tests
+
+```bash
+npm test             # 59 Node unit tests, no browser
+npm run test:e2e     # headless Chrome: 2,880 frames, timestamps, determinism
+npm run test:av      # audio muxing + the A/V sync probe
+```
+
+Determinism is asserted on the **draw-call stream**, not on pixels: encoders
+and rasterizers need not be bit-reproducible, but the renderer must be. The
+A/V test plants a one-frame flash and a 1 kHz click at the same instant and
+recovers both from the encoded file.
+
+## Documentation
+
+| Document | For |
+|---|---|
+| [docs/00-OVERVIEW.md](docs/00-OVERVIEW.md) | architecture and why the core exists |
+| [docs/01-CORE.md](docs/01-CORE.md) | the contracts: Node, Scene, Track, Timeline, Evaluator, Backend, FrameSink |
+| [docs/02-FILM-SCRIPT.md](docs/02-FILM-SCRIPT.md) | the `jirex.film/1` format and how it compiles |
+| [docs/03-VOICE.md](docs/03-VOICE.md) | voice providers, casting, lipsync tiers |
+| [docs/04-RENDER-EXPORT.md](docs/04-RENDER-EXPORT.md) | the render loop, the MediaRecorder timing trap, frame budget, fallbacks |
+| [docs/05-PHASES.md](docs/05-PHASES.md) | roadmap |
+| [docs/STATUS.md](docs/STATUS.md) | **implemented vs not** |
+| [docs/DEFECTS.md](docs/DEFECTS.md) | defect register for the legacy 3D engine |
+| [docs/CDN-AND-PWA.md](docs/CDN-AND-PWA.md) | library use, installing, offline |
+
+## Known limits
+
+Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
+
+- **No 2D editor UI yet.** Films are authored as JSON or from a screenplay.
+- **No IK.** 2D rigs are parent/child rotation only.
+- **A paced export takes as long as the film** and needs the tab visible,
+  because MediaRecorder timestamps frames by wall clock. The WebCodecs path
+  removes both limits but needs a muxer wired in.
+- **Voice models are 20–60 MB** and download on first use.
+- **MP4 needs a muxer**; WebM works with no dependencies.
+- Pixel output is not bit-reproducible between runs (scene state is).
+- The 3D engine has real defects, including autosave data loss — see
+  [docs/DEFECTS.md](docs/DEFECTS.md) before relying on it.
+
+---
+
+# animateEngine (legacy 3D editor)
+
+`index.html` + `animateEngine.js` — a single-file Three.js r128 editor,
+unchanged by the 2D work above.
+
+**What works:** six primitives, four light types, HDRI environments, texture
+slots, multiple keyframeable cameras, bloom post-processing, Cannon.js rigid
+bodies, six sculpt brushes, subdivide, keyframe animation with per-key
+interpolation, undo/redo and project save/load, WebM/GIF/PNG-sequence export,
+audio import with microphone recording, a programmatic `runCommands()` API,
+and an MCP server (`mcp/`) that lets an AI drive a live browser session — see
+[mcp/README.md](mcp/README.md).
+
+**What `RigManager` actually does:** it *discovers* bones and morph targets in
+imported glTF, shows a `SkeletonHelper`, poses a bone chain with one-shot CCD,
+and sets morph influences. It **constructs nothing** — there is no
+`THREE.Bone`, `Skeleton` or `SkinnedMesh` anywhere, no skin weights and no
+auto-rig. (Earlier versions of this README were wrong in both directions
+about this.)
+
+**Not implemented:** skinning, auto-rigging, bone constraints, retargeting,
+FBX/Mixamo import, boolean/extrude/bevel, PBR material properties beyond
+colour, MP4 export, animation blending, collaboration.
+
+**Before relying on it, read [docs/DEFECTS.md](docs/DEFECTS.md).** Most
+pressing: autosave replays a lossy snapshot on every boot, so sculpted and
+imported geometry can be silently replaced with a cube.
 
 ## Contributing
 

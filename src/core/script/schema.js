@@ -30,16 +30,19 @@ export const DEFAULTS = {
 /** Known keys per level, used to report (not reject) anything unrecognized. */
 export const KNOWN = {
     root: ['version', 'meta', 'voices', 'assets', 'palettes', 'characters', 'scenes'],
-    meta: ['title', 'fps', 'width', 'height', 'author', 'description', 'duration'],
+    meta: ['title', 'fps', 'width', 'height', 'author', 'description', 'duration', 'estimatedTiming'],
     character: ['palette', 'voice', 'parts', 'mouth', 'poses', 'actions', 'proportions', 'generate'],
     part: ['id', 'parent', 'pivot', 'shape', 'fill', 'stroke', 'strokeWidth', 'z', 'at', 'alpha'],
-    scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots'],
+    scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots', 'scenery', 'palette'],
     shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle'],
     action: ['target', 'do', 'action', 'pose', 'to', 'at', 'for', 'ease', 'h', 'loop', 'speed', 'value', 'channel', 'part'],
     dialogue: ['speaker', 'at', 'text', 'audio', 'voice', 'lipsync', 'subtitle', 'gain', 'duration'],
     camera: ['from', 'to', 'ease', 'h', 'at', 'for'],
     audioCue: ['asset', 'at', 'gain', 'fadeIn', 'fadeOut', 'offset', 'duration', 'bus'],
 };
+
+export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidth', 'z',
+                             'alpha', 'parallax', 'gradient', 'screenSpace', 'sx', 'sy', 'rot'];
 
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];
 export const TRANSITION_KINDS = ['fade', 'crossfade', 'none'];

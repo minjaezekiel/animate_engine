@@ -1,32 +1,50 @@
 {
-  "name": "animate-engine",
-  "version": "1.1.0",
-  "description": "Browser-based 3D animation and modeling engine (Three.js) with WebM/GIF/image-sequence export, undo/save state management, and an MCP interface for AI-driven animation.",
+  "name": "jirex",
+  "version": "2.0.0",
+  "description": "Browser animation studio: author a 2D film as JSON or from a screenplay, voice it with open-source TTS or your own recordings, and render it deterministically to video. Includes the legacy Three.js 3D editor.",
   "author": "Ezekiel Minja",
   "license": "MIT",
   "main": "animateEngine.js",
   "unpkg": "animateEngine.min.js",
   "jsdelivr": "animateEngine.min.js",
   "files": [
+    "src",
     "animateEngine.js",
     "animateEngine.min.js",
     "styles.css",
+    "film.html",
+    "index.html",
+    "demo/film.json",
+    "demo/script.txt",
+    "docs",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "terser animateEngine.js -c -m -o animateEngine.min.js",
-    "test": "node --test"
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "test:e2e": "node test/e2e/render-film.mjs",
+    "test:av": "node test/e2e/render-av.mjs",
+    "test:all": "npm test && npm run test:e2e && npm run test:av",
+    "produce": "node scripts/produce.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "serve": "python3 -m http.server 8080",
+    "build": "terser animateEngine.js -c -m -o animateEngine.min.js"
   },
   "keywords": [
-    "three.js",
     "animation",
+    "2d-animation",
+    "film",
+    "lipsync",
+    "tts",
+    "text-to-speech",
+    "webcodecs",
+    "mediarecorder",
+    "three.js",
     "3d",
     "webgl",
-    "gif",
-    "webm",
     "mcp",
-    "editor"
+    "pwa",
+    "deterministic-rendering"
   ],
   "peerDependencies": {
     "three": "^0.128.0"
@@ -35,5 +53,15 @@
     "omggif": "^1.0.10",
     "puppeteer-core": "^25.12.0",
     "terser": "^5.0.0"
+  },
+  "exports": {
+    ".": "./src/studio.js",
+    "./core": "./src/core/index.js",
+    "./legacy": "./animateEngine.js"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
   }
 }

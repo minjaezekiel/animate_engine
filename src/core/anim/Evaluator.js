@@ -69,4 +69,78 @@ export function applyPose(scene, pose) {
     return scene;
 }
 
-export const Evaluator = { sample: samplePose, apply: applyPose, trackValueAt };
+/**
+ * Every (node, channel) the timeline is capable of writing.
+ *
+ * Needed because a clip instance only contributes while it is active: the
+ * `walk` cycle writes thighL.rot between 7s and 10s and nothing writes it
+ * outside that window. Without knowing the full channel set, those nodes
+ * would keep whatever value the last active frame left behind.
+ */
+export function timelineChannels(timeline) {
+    const channels = [];
+    for (const track of timeline.tracks) channels.push([track.target, track.path]);
+    for (const inst of timeline.instances) {
+        const clip = timeline.clips.get(inst.clipId);
+        if (!clip) continue;
+        for (const track of clip.tracks) {
+            const target = inst.scopeId ? `${inst.scopeId}/${track.target}` : track.target;
+            channels.push([target, track.path]);
+        }
+    }
+    return channels;
+}
+
+/**
+ * Snapshot the scene's authored value for every channel the timeline can
+ * touch. Taken once, before the first frame.
+ */
+export function createPoseBaseline(scene, timeline) {
+    const baseline = new Map();
+    for (const [nodeId, path] of timelineChannels(timeline)) {
+        const node = scene.get(nodeId);
+        if (!node) continue;
+        let channels = baseline.get(nodeId);
+        if (!channels) baseline.set(nodeId, (channels = new Map()));
+        if (channels.has(path)) continue;
+        const dot = path.indexOf('.');
+        const group = dot < 0 ? null : path.slice(0, dot);
+        const field = dot < 0 ? path : path.slice(dot + 1);
+        const value = group === 'transform' ? node.transform[field]
+            : group === 'props' ? node.props[field]
+            : group ? node[group]?.[field]
+            : node[path];
+        channels.set(path, value);
+    }
+    return baseline;
+}
+
+/**
+ * Restore the baseline before applying a frame's pose.
+ *
+ * This is what makes frame N a pure function of N rather than of render
+ * history, which in turn is what lets a timeline be scrubbed, re-rendered
+ * and compared against golden frames.
+ */
+export function resetPose(scene, baseline) {
+    for (const [nodeId, channels] of baseline) {
+        const node = scene.get(nodeId);
+        if (!node) continue;
+        for (const [path, value] of channels) {
+            const dot = path.indexOf('.');
+            if (dot < 0) { node[path] = value; continue; }
+            const group = path.slice(0, dot);
+            const field = path.slice(dot + 1);
+            if (group === 'transform') node.transform[field] = value;
+            else if (group === 'props') node.props[field] = value;
+            else if (node[group]) node[group][field] = value;
+        }
+        scene.invalidate(nodeId);
+    }
+    return scene;
+}
+
+export const Evaluator = {
+    sample: samplePose, apply: applyPose, trackValueAt,
+    createBaseline: createPoseBaseline, reset: resetPose, channels: timelineChannels,
+};

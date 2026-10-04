@@ -1,0 +1,325 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "The Keeper",
+    "author": "jireX",
+    "description": "A lighthouse keeper and her neighbour turn a seized lamp by hand so four boats can find their way home.",
+    "fps": 24,
+    "width": 1280,
+    "height": 720
+  },
+
+  "voices": {
+    "mara_v": { "spec": "tts:en_GB-alba-medium" },
+    "jonas_v": { "spec": "tts:en_GB-alan-medium" }
+  },
+
+  "palettes": {
+    "dusk": {
+      "sky_hi": "#17233f", "sky_lo": "#c4663a", "sea": "#101c2a", "rock": "#15181d",
+      "tower": "#d9d3c7", "tower_dark": "#9a9387", "lamp_off": "#3b3a38", "lamp_on": "#ffd98a",
+      "skin": "#e8c39e", "coat": "#b23a2c", "coat2": "#2e4a6b", "hair": "#2b1d14",
+      "eye": "#15110e", "shoe": "#1c1410", "trouser": "#26303a", "brass": "#c9933f",
+      "glass": "#9fd0e0", "stone": "#2a2b30", "stone_hi": "#3b3d45", "night": "#0b1120"
+    }
+  },
+
+  "characters": {
+    "mara": {
+      "palette": "dusk",
+      "voice": "mara_v",
+      "generate": { "cloth": "coat", "trouser": "trouser", "hair": "hair" },
+      "proportions": { "height": 196 },
+      "poses": {
+        "stand":   { "torso": { "rot": 0 },      "armL": { "rot": 0.10 }, "armR": { "rot": -0.10 }, "head": { "rot": 0 } },
+        "look_up": { "torso": { "rot": -0.04 },  "head": { "rot": -0.30 }, "armL": { "rot": 0.16 }, "armR": { "rot": -0.16 } },
+        "point":   { "torso": { "rot": -0.08 },  "armR": { "rot": -1.35 }, "foreR": { "rot": -0.28 }, "head": { "rot": -0.12 } },
+        "heave":   { "torso": { "rot": 0.20 },   "armL": { "rot": -1.05 }, "armR": { "rot": -1.15 },
+                     "foreL": { "rot": -0.5 },   "foreR": { "rot": -0.45 }, "head": { "rot": 0.12 } },
+        "weary":   { "torso": { "rot": 0.10 },   "head": { "rot": 0.20 }, "armL": { "rot": 0.05 }, "armR": { "rot": -0.05 } }
+      }
+    },
+    "jonas": {
+      "palette": "dusk",
+      "voice": "jonas_v",
+      "generate": { "cloth": "coat2", "trouser": "trouser", "hair": "hair" },
+      "proportions": { "height": 208 },
+      "poses": {
+        "stand": { "torso": { "rot": 0 },     "armL": { "rot": -0.10 }, "armR": { "rot": 0.10 }, "head": { "rot": 0 } },
+        "folded":{ "torso": { "rot": 0.03 },  "armL": { "rot": -1.25 }, "armR": { "rot": 1.25 },
+                   "foreL": { "rot": -1.05 }, "foreR": { "rot": 1.05 } },
+        "heave": { "torso": { "rot": -0.18 }, "armL": { "rot": 1.05 }, "armR": { "rot": 1.15 },
+                   "foreL": { "rot": 0.5 },   "foreR": { "rot": 0.45 }, "head": { "rot": 0.10 } },
+        "reach": { "torso": { "rot": -0.10 }, "armL": { "rot": 1.30 }, "foreL": { "rot": 0.35 }, "head": { "rot": -0.18 } }
+      }
+    }
+  },
+
+  "scenes": [
+    {
+      "id": "harbour",
+      "palette": "dusk",
+      "background": {
+        "color": "#17233f",
+        "gradient": { "from": [0, -360, 0, 300], "stops": [[0, "#111b33"], [0.55, "#2b3a67"], [1, "#c4663a"]] }
+      },
+      "transitionIn": { "kind": "fade", "from": "#000000", "duration": 1.6 },
+      "transitionOut": { "kind": "crossfade", "duration": 1.0 },
+      "scenery": [
+        { "id": "sky",    "shape": { "kind": "rect", "w": 2600, "h": 900, "cx": true, "cy": true }, "at": [640, 300],
+          "gradient": { "from": [0, -450, 0, 450], "stops": [[0, "#0d1428"], [0.6, "#2b3a67"], [1, "#d07a45"]] }, "z": -900 },
+        { "id": "sun",    "shape": { "kind": "ellipse", "rx": 46, "ry": 46 }, "at": [980, 486], "fill": "#f2a35c", "alpha": 0.85, "z": -880 },
+        { "id": "sea",    "shape": { "kind": "rect", "w": 2600, "h": 300, "cx": true }, "at": [640, 498],
+          "gradient": { "from": [0, 0, 0, 300], "stops": [[0, "#1d3147"], [1, "#0a1119"]] }, "z": -800 },
+        { "id": "glint",  "shape": { "kind": "rect", "w": 90, "h": 4, "cx": true }, "at": [980, 520], "fill": "#f0b070", "alpha": 0.5, "z": -790 },
+        { "id": "headland", "shape": { "kind": "path",
+          "d": "M-760,180 L-520,40 L-300,96 L-120,-10 L60,52 L250,-30 L470,70 L760,150 L760,260 L-760,260 Z" },
+          "at": [640, 560], "fill": "#15181d", "z": -700 },
+        { "id": "tower_base", "shape": { "kind": "path", "d": "M-54,0 L54,0 L36,-250 L-36,-250 Z" },
+          "at": [366, 556], "fill": "#d9d3c7", "z": -650 },
+        { "id": "tower_band", "shape": { "kind": "rect", "w": 86, "h": 36, "cx": true }, "at": [366, 420], "fill": "#b23a2c", "z": -640 },
+        { "id": "lamp_house", "shape": { "kind": "rect", "w": 78, "h": 52, "cx": true }, "at": [366, 288], "fill": "#9a9387", "z": -630 },
+        { "id": "lamp_glass", "shape": { "kind": "ellipse", "rx": 24, "ry": 22 }, "at": [366, 288], "fill": "#3b3a38", "z": -620 },
+        { "id": "rail",   "shape": { "kind": "path", "d": "M-46,0 L46,0" }, "at": [366, 258], "stroke": "#15181d", "strokeWidth": 5, "z": -610 },
+        { "id": "rocks",  "shape": { "kind": "path",
+          "d": "M-420,60 L-300,-26 L-170,30 L-40,-40 L110,24 L260,-30 L420,50 L420,120 L-420,120 Z" },
+          "at": [640, 648], "fill": "#15181d", "z": -300 },
+        { "id": "foam",   "shape": { "kind": "path", "d": "M-420,0 Q-210,-16 0,0 Q210,16 420,0" },
+          "at": [640, 612], "stroke": "#5d7b8c", "strokeWidth": 6, "alpha": 0.55, "z": -290 }
+      ],
+      "cast": [ { "character": "mara", "as": "mara", "at": [252, 554], "scale": 0.92, "z": 10 } ],
+      "audio": [],
+      "shots": [
+        { "id": "h1", "duration": 6.0,
+          "camera": { "from": { "x": 0, "y": -40, "zoom": 1.0 }, "to": { "x": -120, "y": -90, "zoom": 1.22 }, "ease": "smooth" },
+          "actions": [ { "target": "mara", "do": "pose", "pose": "look_up", "at": 0 },
+                       { "target": "mara", "do": "play", "action": "breathe" } ] },
+
+        { "id": "h2", "duration": 8.5,
+          "camera": { "to": { "x": -230, "y": 34, "zoom": 1.5 }, "ease": "smooth" },
+          "actions": [ { "target": "mara", "do": "play", "action": "idle" },
+                       { "target": "mara", "do": "play", "action": "blink" },
+                       { "target": "mara", "do": "pose", "pose": "stand", "at": 0.2, "for": 1.0 } ],
+          "dialogue": [ { "speaker": "mara", "at": 0.5,
+            "text": "My grandmother lit this lamp for forty years. My mother for thirty. The light has never failed." } ] },
+
+        { "id": "h3", "duration": 5.0,
+          "camera": { "to": { "x": -250, "y": 68, "zoom": 1.75 }, "ease": "smooth" },
+          "actions": [ { "target": "mara", "do": "play", "action": "idle" },
+                       { "target": "mara", "do": "pose", "pose": "weary", "at": 0.3, "for": 1.2 } ],
+          "dialogue": [ { "speaker": "mara", "at": 0.9, "text": "Tonight it failed." } ] },
+
+        { "id": "h4", "duration": 4.5,
+          "camera": { "from": { "x": -274, "y": -72, "zoom": 2.0 }, "to": { "x": -274, "y": -72, "zoom": 2.35 }, "ease": "smooth" },
+          "actions": [ { "target": "mara", "do": "hide", "at": 0 } ] }
+      ]
+    },
+
+    {
+      "id": "climb",
+      "palette": "dusk",
+      "background": { "color": "#14161b" },
+      "transitionOut": { "kind": "crossfade", "duration": 1.0 },
+      "scenery": [
+        { "id": "wall",  "shape": { "kind": "rect", "w": 2600, "h": 1400, "cx": true, "cy": true }, "at": [640, 360],
+          "gradient": { "from": [0, -700, 0, 700], "stops": [[0, "#0a0c10"], [0.5, "#2a2b30"], [1, "#0d0f13"]] }, "z": -900 },
+        { "id": "slit",  "shape": { "kind": "rect", "w": 34, "h": 150, "cx": true }, "at": [980, 170], "fill": "#4c6a84", "alpha": 0.8, "z": -850 },
+        { "id": "slit2", "shape": { "kind": "rect", "w": 34, "h": 150, "cx": true }, "at": [260, 300], "fill": "#3e586e", "alpha": 0.6, "z": -850 },
+        { "id": "st1", "shape": { "kind": "path", "d": "M0,0 L240,0" }, "at": [430, 700], "stroke": "#3b3d45", "strokeWidth": 22, "z": -500 },
+        { "id": "st2", "shape": { "kind": "path", "d": "M0,0 L240,0" }, "at": [470, 628], "stroke": "#34363d", "strokeWidth": 22, "z": -500 },
+        { "id": "st3", "shape": { "kind": "path", "d": "M0,0 L240,0" }, "at": [510, 556], "stroke": "#2e3036", "strokeWidth": 22, "z": -500 },
+        { "id": "st4", "shape": { "kind": "path", "d": "M0,0 L240,0" }, "at": [550, 484], "stroke": "#282a2f", "strokeWidth": 22, "z": -500 },
+        { "id": "st5", "shape": { "kind": "path", "d": "M0,0 L240,0" }, "at": [590, 412], "stroke": "#222428", "strokeWidth": 22, "z": -500 },
+        { "id": "st6", "shape": { "kind": "path", "d": "M0,0 L240,0" }, "at": [630, 340], "stroke": "#1d1f22", "strokeWidth": 22, "z": -500 },
+        { "id": "rope", "shape": { "kind": "path", "d": "M0,0 Q40,220 10,440" }, "at": [300, 220], "stroke": "#5b4a33", "strokeWidth": 5, "alpha": 0.8, "z": -480 },
+        { "id": "lantern", "shape": { "kind": "ellipse", "rx": 16, "ry": 20 }, "at": [860, 430], "fill": "#ffd98a", "alpha": 0.9, "z": -200 },
+        { "id": "halo", "shape": { "kind": "ellipse", "rx": 110, "ry": 110 }, "at": [860, 430], "fill": "#ffd98a", "alpha": 0.1, "z": -210 }
+      ],
+      "cast": [
+        { "character": "mara",  "as": "mara",  "at": [560, 547], "scale": 0.86, "z": 12 },
+        { "character": "jonas", "as": "jonas", "at": [392, 614], "scale": 0.86, "z": 11 }
+      ],
+      "shots": [
+        { "id": "c1", "duration": 5.0,
+          "camera": { "from": { "x": 0, "y": 120, "zoom": 1.1 }, "to": { "x": -40, "y": -30, "zoom": 1.25 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "walk" },
+                       { "target": "jonas", "do": "play", "action": "walk" },
+                       { "target": "mara",  "do": "move", "to": [600, 475], "for": 5.0 },
+                       { "target": "jonas", "do": "move", "to": [440, 542], "for": 5.0 } ] },
+
+        { "id": "c2", "duration": 6.0,
+          "camera": { "to": { "x": -120, "y": 94, "zoom": 1.5 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "breathe" },
+                       { "target": "jonas", "do": "play", "action": "idle" },
+                       { "target": "jonas", "do": "pose", "pose": "stand", "at": 0 } ],
+          "dialogue": [ { "speaker": "jonas", "at": 0.5, "text": "You should not have come out here alone." } ] },
+
+        { "id": "c3", "duration": 8.0,
+          "camera": { "to": { "x": 20, "y": 58, "zoom": 1.55 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "idle" },
+                       { "target": "mara",  "do": "play", "action": "blink" },
+                       { "target": "jonas", "do": "play", "action": "breathe" },
+                       { "target": "mara",  "do": "pose", "pose": "point", "at": 2.6, "for": 0.9, "ease": "bezier", "h": [0.3, 0, 0.2, 1] },
+                       { "target": "mara",  "do": "pose", "pose": "stand", "at": 5.4, "for": 1.2 } ],
+          "dialogue": [ { "speaker": "mara", "at": 0.4,
+            "text": "Someone had to. The boats are still out there, Jonas. Four of them." } ] },
+
+        { "id": "c4", "duration": 6.5,
+          "camera": { "to": { "x": -90, "y": 119, "zoom": 1.7 }, "ease": "smooth" },
+          "actions": [ { "target": "jonas", "do": "play", "action": "idle" },
+                       { "target": "jonas", "do": "pose", "pose": "folded", "at": 0.2, "for": 1.0 },
+                       { "target": "mara",  "do": "play", "action": "breathe" } ],
+          "dialogue": [ { "speaker": "jonas", "at": 0.6,
+            "text": "Then we fix it together, or we do not fix it at all." } ] },
+
+        { "id": "c5", "duration": 4.5,
+          "camera": { "to": { "x": 60, "y": -40, "zoom": 1.3 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "walk" },
+                       { "target": "jonas", "do": "play", "action": "walk" },
+                       { "target": "mara",  "do": "move", "to": [700, 331], "for": 4.5 },
+                       { "target": "jonas", "do": "move", "to": [540, 403], "for": 4.5 } ] }
+      ]
+    },
+
+    {
+      "id": "lamproom",
+      "palette": "dusk",
+      "background": { "color": "#121519" },
+      "transitionOut": { "kind": "crossfade", "duration": 1.2 },
+      "scenery": [
+        { "id": "room", "shape": { "kind": "rect", "w": 2600, "h": 1400, "cx": true, "cy": true }, "at": [640, 360],
+          "gradient": { "from": [0, -700, 0, 700], "stops": [[0, "#0a0e14"], [0.55, "#1d242e"], [1, "#0b0e12"]] }, "z": -900 },
+        { "id": "win_l", "shape": { "kind": "rect", "w": 150, "h": 300, "cx": true }, "at": [210, 180], "fill": "#1b2b3c", "z": -860 },
+        { "id": "win_r", "shape": { "kind": "rect", "w": 150, "h": 300, "cx": true }, "at": [1070, 180], "fill": "#1b2b3c", "z": -860 },
+        { "id": "mull_l", "shape": { "kind": "path", "d": "M0,-150 L0,150" }, "at": [210, 180], "stroke": "#c9933f", "strokeWidth": 6, "z": -850 },
+        { "id": "mull_r", "shape": { "kind": "path", "d": "M0,-150 L0,150" }, "at": [1070, 180], "stroke": "#c9933f", "strokeWidth": 6, "z": -850 },
+        { "id": "plinth", "shape": { "kind": "path", "d": "M-150,0 L150,0 L110,-90 L-110,-90 Z" }, "at": [640, 620], "fill": "#2a2b30", "z": -420 },
+        { "id": "lens_out", "shape": { "kind": "ellipse", "rx": 128, "ry": 150 }, "at": [640, 402], "stroke": "#c9933f", "strokeWidth": 9, "fill": "#16222c", "z": -400 },
+        { "id": "lens_mid", "shape": { "kind": "ellipse", "rx": 92, "ry": 112 }, "at": [640, 402], "stroke": "#9fd0e0", "strokeWidth": 4, "alpha": 0.5, "z": -390 },
+        { "id": "lens_in", "shape": { "kind": "ellipse", "rx": 50, "ry": 62 }, "at": [640, 402], "stroke": "#9fd0e0", "strokeWidth": 3, "alpha": 0.4, "z": -385 },
+        { "id": "wick", "shape": { "kind": "ellipse", "rx": 15, "ry": 18 }, "at": [640, 402], "fill": "#3b3a38", "z": -380 },
+        { "id": "crank", "shape": { "kind": "path", "d": "M0,0 L72,0" }, "at": [768, 470], "stroke": "#c9933f", "strokeWidth": 10, "z": -370 },
+        { "id": "shard1", "shape": { "kind": "path", "d": "M0,0 L22,-12 L30,6 Z" }, "at": [430, 660], "fill": "#9fd0e0", "alpha": 0.5, "z": -200 },
+        { "id": "shard2", "shape": { "kind": "path", "d": "M0,0 L-18,-10 L-24,8 Z" }, "at": [880, 672], "fill": "#9fd0e0", "alpha": 0.4, "z": -200 }
+      ],
+      "cast": [
+        { "character": "mara",  "as": "mara",  "at": [430, 578], "scale": 0.9, "z": 12 },
+        { "character": "jonas", "as": "jonas", "at": [880, 572], "scale": 0.9, "z": 11 }
+      ],
+      "shots": [
+        { "id": "l1", "duration": 5.0,
+          "camera": { "from": { "x": 0, "y": -60, "zoom": 1.0 }, "to": { "x": 0, "y": -40, "zoom": 1.2 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "breathe" },
+                       { "target": "jonas", "do": "play", "action": "breathe" },
+                       { "target": "mara",  "do": "pose", "pose": "look_up", "at": 0 } ] },
+
+        { "id": "l2", "duration": 7.0,
+          "camera": { "to": { "x": -170, "y": 74, "zoom": 1.6 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "idle" },
+                       { "target": "mara",  "do": "play", "action": "blink" },
+                       { "target": "mara",  "do": "pose", "pose": "stand", "at": 0.2, "for": 1.0 },
+                       { "target": "jonas", "do": "play", "action": "breathe" } ],
+          "dialogue": [ { "speaker": "mara", "at": 0.5,
+            "text": "The mechanism is seized. The oil has gone to tar in the cold." } ] },
+
+        { "id": "l3", "duration": 6.0,
+          "camera": { "to": { "x": 190, "y": 68, "zoom": 1.6 }, "ease": "smooth" },
+          "actions": [ { "target": "jonas", "do": "play", "action": "idle" },
+                       { "target": "jonas", "do": "pose", "pose": "reach", "at": 0.4, "for": 1.1 },
+                       { "target": "mara",  "do": "play", "action": "breathe" } ],
+          "dialogue": [ { "speaker": "jonas", "at": 0.5, "text": "We have no replacement. Not before morning." } ] },
+
+        { "id": "l4", "duration": 6.0,
+          "camera": { "to": { "x": -140, "y": 71, "zoom": 1.5 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "idle" },
+                       { "target": "mara",  "do": "pose", "pose": "point", "at": 2.0, "for": 0.8 },
+                       { "target": "jonas", "do": "play", "action": "breathe" } ],
+          "dialogue": [ { "speaker": "mara", "at": 0.4, "text": "Then we do it the old way. We turn it by hand." } ] },
+
+        { "id": "l5", "duration": 8.0,
+          "camera": { "from": { "x": 0, "y": 40, "zoom": 1.35 }, "to": { "x": 30, "y": 26, "zoom": 1.25 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "move", "to": [540, 578], "for": 1.6 },
+                       { "target": "jonas", "do": "move", "to": [760, 572], "for": 1.6 },
+                       { "target": "mara",  "do": "pose", "pose": "heave", "at": 1.8, "for": 1.0 },
+                       { "target": "jonas", "do": "pose", "pose": "heave", "at": 1.8, "for": 1.0 },
+                       { "target": "mara",  "do": "pose", "pose": "stand", "at": 4.2, "for": 1.2 },
+                       { "target": "jonas", "do": "pose", "pose": "stand", "at": 4.2, "for": 1.2 },
+                       { "target": "mara",  "do": "pose", "pose": "heave", "at": 6.0, "for": 1.0 },
+                       { "target": "jonas", "do": "pose", "pose": "heave", "at": 6.0, "for": 1.0 } ] }
+      ]
+    },
+
+    {
+      "id": "light",
+      "palette": "dusk",
+      "background": { "color": "#0b1120" },
+      "transitionOut": { "kind": "fade", "duration": 3.0 },
+      "scenery": [
+        { "id": "night", "shape": { "kind": "rect", "w": 2600, "h": 1400, "cx": true, "cy": true }, "at": [640, 360],
+          "gradient": { "from": [0, -700, 0, 500], "stops": [[0, "#05080f"], [0.7, "#0b1120"], [1, "#132033"]] }, "z": -900 },
+        { "id": "s1", "shape": { "kind": "ellipse", "rx": 2, "ry": 2 }, "at": [180, 120], "fill": "#dfe8f5", "alpha": 0.9, "z": -880 },
+        { "id": "s2", "shape": { "kind": "ellipse", "rx": 3, "ry": 3 }, "at": [420, 72],  "fill": "#dfe8f5", "alpha": 0.7, "z": -880 },
+        { "id": "s3", "shape": { "kind": "ellipse", "rx": 2, "ry": 2 }, "at": [760, 140], "fill": "#dfe8f5", "alpha": 0.8, "z": -880 },
+        { "id": "s4", "shape": { "kind": "ellipse", "rx": 2, "ry": 2 }, "at": [1010, 90], "fill": "#dfe8f5", "alpha": 0.6, "z": -880 },
+        { "id": "s5", "shape": { "kind": "ellipse", "rx": 3, "ry": 3 }, "at": [1180, 200], "fill": "#dfe8f5", "alpha": 0.85, "z": -880 },
+        { "id": "sea",  "shape": { "kind": "rect", "w": 2600, "h": 320, "cx": true }, "at": [640, 480],
+          "gradient": { "from": [0, 0, 0, 320], "stops": [[0, "#122232"], [1, "#060a10"]] }, "z": -800 },
+        { "id": "beam", "shape": { "kind": "path", "d": "M0,0 L560,-120 L560,120 Z" }, "at": [366, 300],
+          "fill": "#ffd98a", "alpha": 0.17, "z": -700 },
+        { "id": "beam2", "shape": { "kind": "path", "d": "M0,0 L-560,-90 L-560,90 Z" }, "at": [366, 300],
+          "fill": "#ffd98a", "alpha": 0.1, "z": -700 },
+        { "id": "headland", "shape": { "kind": "path",
+          "d": "M-760,180 L-520,40 L-300,96 L-120,-10 L60,52 L250,-30 L470,70 L760,150 L760,260 L-760,260 Z" },
+          "at": [640, 560], "fill": "#0a0d12", "z": -600 },
+        { "id": "tower", "shape": { "kind": "path", "d": "M-54,0 L54,0 L36,-250 L-36,-250 Z" }, "at": [366, 556], "fill": "#8e897e", "z": -560 },
+        { "id": "band",  "shape": { "kind": "rect", "w": 86, "h": 36, "cx": true }, "at": [366, 420], "fill": "#7e291f", "z": -550 },
+        { "id": "house", "shape": { "kind": "rect", "w": 78, "h": 52, "cx": true }, "at": [366, 288], "fill": "#6d675d", "z": -540 },
+        { "id": "lamp",  "shape": { "kind": "ellipse", "rx": 26, "ry": 24 }, "at": [366, 288], "fill": "#ffd98a", "z": -530 },
+        { "id": "glow",  "shape": { "kind": "ellipse", "rx": 120, "ry": 120 }, "at": [366, 288], "fill": "#ffd98a", "alpha": 0.14, "z": -535 },
+        { "id": "boat1", "shape": { "kind": "path", "d": "M-22,0 L22,0 L16,10 L-16,10 Z" }, "at": [900, 520], "fill": "#1a2836", "z": -400 },
+        { "id": "mast1", "shape": { "kind": "path", "d": "M0,0 L0,-26" }, "at": [900, 520], "stroke": "#1a2836", "strokeWidth": 3, "z": -400 },
+        { "id": "boat2", "shape": { "kind": "path", "d": "M-16,0 L16,0 L11,8 L-11,8 Z" }, "at": [1060, 548], "fill": "#16222e", "z": -400 },
+        { "id": "rocks", "shape": { "kind": "path",
+          "d": "M-420,60 L-300,-26 L-170,30 L-40,-40 L110,24 L260,-30 L420,50 L420,120 L-420,120 Z" },
+          "at": [640, 648], "fill": "#0a0d12", "z": -300 }
+      ],
+      "cast": [
+        { "character": "mara",  "as": "mara",  "at": [540, 583], "scale": 0.8, "z": 12 },
+        { "character": "jonas", "as": "jonas", "at": [700, 578], "scale": 0.8, "z": 11 }
+      ],
+      "shots": [
+        { "id": "g1", "duration": 7.0,
+          "camera": { "from": { "x": -200, "y": -170, "zoom": 1.9 }, "to": { "x": -60, "y": -80, "zoom": 1.15 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "hide", "at": 0 },
+                       { "target": "jonas", "do": "hide", "at": 0 } ] },
+
+        { "id": "g2", "duration": 5.5,
+          "camera": { "to": { "x": 30, "y": 76, "zoom": 1.5 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "show", "at": 0 },
+                       { "target": "jonas", "do": "show", "at": 0 },
+                       { "target": "jonas", "do": "play", "action": "idle" },
+                       { "target": "jonas", "do": "pose", "pose": "stand", "at": 0 },
+                       { "target": "mara",  "do": "play", "action": "breathe" } ],
+          "dialogue": [ { "speaker": "jonas", "at": 0.5, "text": "How long can we keep this up?" } ] },
+
+        { "id": "g3", "duration": 6.0,
+          "camera": { "to": { "x": -20, "y": 88, "zoom": 1.55 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "idle" },
+                       { "target": "mara",  "do": "play", "action": "blink" },
+                       { "target": "mara",  "do": "pose", "pose": "look_up", "at": 1.6, "for": 1.2 },
+                       { "target": "jonas", "do": "play", "action": "breathe" } ],
+          "dialogue": [ { "speaker": "mara", "at": 0.5, "text": "Until the last boat is home." } ] },
+
+        { "id": "g4", "duration": 9.0,
+          "camera": { "to": { "x": -120, "y": -17, "zoom": 1.0 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "breathe" },
+                       { "target": "jonas", "do": "play", "action": "breathe" } ] },
+
+        { "id": "g5", "duration": 6.5,
+          "camera": { "to": { "x": -140, "y": 41, "zoom": 1.1 }, "ease": "smooth" },
+          "actions": [ { "target": "mara",  "do": "play", "action": "breathe" },
+                       { "target": "jonas", "do": "play", "action": "breathe" } ] }
+      ]
+    }
+  ]
+}

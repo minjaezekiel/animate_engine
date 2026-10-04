@@ -1,0 +1,17 @@
+{
+  "name": "jireX Film Studio",
+  "short_name": "jireX",
+  "description": "Design and render 2D animated films in the browser, by hand or from a script.",
+  "start_url": "./film.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1120",
+  "theme_color": "#1b2a4a",
+  "icons": [
+    { "src": "src/pwa/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "src/pwa/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "src/pwa/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "categories": ["graphics", "video", "productivity"]
+}

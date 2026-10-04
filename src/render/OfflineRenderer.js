@@ -1,5 +1,25 @@
 import { FrameClock } from '../core/time/FrameClock.js';
-import { samplePose, applyPose } from '../core/anim/Evaluator.js';
+import { samplePose, applyPose, createPoseBaseline, resetPose } from '../core/anim/Evaluator.js';
+
+/**
+ * Authored-pose snapshots, cached per timeline.
+ *
+ * The baseline has to come from the scene as AUTHORED, not from whatever
+ * state a previous render left it in -- otherwise rendering the same film
+ * twice captures a different baseline the second time and the two renders
+ * disagree. Caching here, plus restoring after each render, makes repeat
+ * renders and scrubbing give identical results.
+ */
+const baselines = new WeakMap();
+
+function baselineFor(scene, timeline) {
+    let baseline = baselines.get(timeline);
+    if (!baseline) {
+        baseline = createPoseBaseline(scene, timeline);
+        baselines.set(timeline, baseline);
+    }
+    return baseline;
+}
 
 /**
  * The one render loop. Every export format is a different FrameSink; the loop
@@ -19,6 +39,11 @@ export async function renderOffline({
     const clock = new FrameClock(fps);
     const total = clock.count(durationSec ?? timeline.duration);
 
+    // Every frame starts from the authored pose rather than from the previous
+    // frame's leftovers. Without this a clip instance that has ended leaves
+    // its last pose stuck, and frame N stops being a pure function of N.
+    const baseline = baselineFor(scene, timeline);
+
     await sink.configure({
         width, height, fps, totalFrames: total,
         canvas: backend.canvas?.() ?? null,
@@ -32,6 +57,7 @@ export async function renderOffline({
             const t = clock.timeOf(n);
 
             if (physics) physics.stepTo(t);
+            resetPose(scene, baseline);
             applyPose(scene, samplePose(timeline, t));
             if (beforeFrame) beforeFrame(t, n, scene);
 
@@ -50,6 +76,10 @@ export async function renderOffline({
     } catch (err) {
         sink.abort();
         throw err;
+    } finally {
+        // Leave the scene as authored, so a preview, a scrub or a second
+        // render all start from the same state.
+        resetPose(scene, baseline);
     }
 
     return sink.finish();
@@ -65,15 +95,18 @@ export async function preflight({
     scene, timeline, backend, cameraId, fps = 24, frames = 48,
 }) {
     const clock = new FrameClock(fps);
+    const baseline = baselineFor(scene, timeline);
     const samples = [];
     for (let n = 0; n < frames; n++) {
         const t = clock.timeOf(n);
         const start = performance.now();
+        resetPose(scene, baseline);
         applyPose(scene, samplePose(timeline, t));
         backend.sync(scene);
         backend.renderFrame(scene, cameraId);
         samples.push(performance.now() - start);
     }
+    resetPose(scene, baseline);
     samples.sort((a, b) => a - b);
     const at = (q) => samples[Math.min(samples.length - 1, Math.floor(q * samples.length))];
     return {

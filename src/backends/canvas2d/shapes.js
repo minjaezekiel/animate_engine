@@ -4,31 +4,59 @@
  * nothing here knows about hierarchy or camera.
  */
 
-/** Path2D cache keyed by `d` string: parsing SVG path data per frame is waste. */
-const pathCache = new Map();
+/**
+ * Path cache: parsing SVG path data every frame is pure waste at 2880 frames.
+ *
+ * Keyed by implementation as well as by `d`, because a RecordingPath2D from a
+ * test render must never be handed to a real canvas context (which rejects it
+ * outright) and vice versa. A single `d`-keyed cache silently leaks objects
+ * between backends.
+ */
+const pathCaches = new WeakMap();
 
 function getPath(d, Path2DImpl) {
-    let p = pathCache.get(d);
+    let cache = pathCaches.get(Path2DImpl);
+    if (!cache) pathCaches.set(Path2DImpl, (cache = new Map()));
+    let p = cache.get(d);
     if (!p) {
         p = new Path2DImpl(d);
-        pathCache.set(d, p);
+        cache.set(d, p);
     }
     return p;
 }
 
-export function clearPathCache() { pathCache.clear(); }
+export function clearPathCache(Path2DImpl) {
+    if (Path2DImpl) pathCaches.delete(Path2DImpl);
+}
 
-export function drawShape(ctx, node, { Path2DImpl }) {
+/**
+ * Resolve a fill that may be a gradient spec rather than a colour string.
+ * Gradients are built per draw because the context owns them; the spec is
+ * plain data so it still serializes and still diffs.
+ */
+function resolveFill(ctx, node, w, h) {
+    const g = node.props.gradient;
+    if (!g) return node.props.fill;
+    const [x0, y0, x1, y1] = g.from ?? [0, -h / 2, 0, h / 2];
+    const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+    for (const [stop, color] of g.stops ?? []) grad.addColorStop(stop, color);
+    return grad;
+}
+
+export function drawShape(ctx, node, { Path2DImpl, alpha }) {
     const p = node.props;
-    const alpha = p.alpha ?? 1;
-    if (alpha <= 0) return;
-    ctx.globalAlpha = alpha;
+    // The caller supplies the inherited alpha; fall back to the node's own
+    // for direct callers that are not walking a hierarchy.
+    const a = alpha ?? p.alpha ?? 1;
+    if (a <= 0) return;
+    ctx.globalAlpha = a;
 
     switch (node.kind) {
         case 'rect': {
             const w = p.w ?? 0, h = p.h ?? 0;
             const x = p.cx ? -w / 2 : 0, y = p.cy ? -h / 2 : 0;
-            if (p.fill) { ctx.fillStyle = p.fill; ctx.fillRect(x, y, w, h); }
+            const fill = resolveFill(ctx, node, w, h);
+            if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); }
             if (p.stroke) {
                 ctx.strokeStyle = p.stroke;
                 ctx.lineWidth = p.strokeWidth ?? 1;

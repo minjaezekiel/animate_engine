@@ -84,9 +84,8 @@ export class Canvas2DBackend {
         ctx.clearRect(0, 0, this.width, this.height);
 
         const view = this.viewMatrix(scene, cameraId);
-        const nodes = scene.drawOrder();
 
-        for (const node of nodes) {
+        for (const { node, alpha } of scene.drawOrder()) {
             if (node.kind === 'camera') continue;
             // A screen-space node (background wash, letterbox, subtitle,
             // transition overlay) ignores the camera so a pan cannot slide it.
@@ -94,7 +93,9 @@ export class Canvas2DBackend {
                 ? scene.worldMatrix(node.id)
                 : multiply(view, scene.worldMatrix(node.id));
             ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
-            drawShape(ctx, node, { Path2DImpl: this.Path2DImpl });
+            // `alpha` is the inherited product, so a group's opacity reaches
+            // its children rather than being dropped at the group.
+            drawShape(ctx, node, { Path2DImpl: this.Path2DImpl, alpha });
         }
 
         ctx.setTransform(1, 0, 0, 1, 0, 0);

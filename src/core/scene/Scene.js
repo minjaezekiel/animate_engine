@@ -70,19 +70,33 @@ export class Scene {
         for (const childId of node.childIds) this.walk(fn, childId);
     }
 
-    /** Nodes in draw order: depth-first, siblings sorted by z then insertion. */
+/**
+     * The draw list: depth-first, siblings sorted by z then insertion order,
+     * each entry carrying its EFFECTIVE alpha.
+     *
+     * Alpha accumulates down the hierarchy, so a group's opacity applies to
+     * everything inside it. That is what makes `props.alpha` on a scene group
+     * work as visibility -- without inheritance every scene in a film would
+     * draw at once and the last one would cover the rest.
+     *
+     * A subtree whose accumulated alpha has reached zero is skipped entirely,
+     * which is both correct and the single biggest saving per frame: only the
+     * scene actually on screen is drawn.
+     */
     drawOrder() {
         const out = [];
-        const visit = (id) => {
+        const visit = (id, inheritedAlpha) => {
             const node = this.byId.get(id);
             if (!node || !node.visible) return;
-            if (id !== this.rootId) out.push(node);
+            const alpha = inheritedAlpha * (node.props.alpha ?? 1);
+            if (alpha <= 0.0005) return;
+            if (id !== this.rootId) out.push({ node, alpha });
             const kids = node.childIds
                 .map((c, i) => ({ c, i, z: this.byId.get(c)?.z ?? 0 }))
                 .sort((a, b) => (a.z - b.z) || (a.i - b.i));
-            for (const k of kids) visit(k.c);
+            for (const k of kids) visit(k.c, alpha);
         };
-        visit(this.rootId);
+        visit(this.rootId, 1);
         return out;
     }
 

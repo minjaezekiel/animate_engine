@@ -9,7 +9,8 @@ import { createRequire } from 'node:module';
 // The engine is a UMD file; requiring it in Node must NOT touch the DOM.
 const require = createRequire(import.meta.url);
 const engine = require('../animateEngine.js');
-const { encodeGIF, buildZip, crc32, subdivideGeometry, dataURLToBytes } = engine.utils;
+const { encodeGIF, buildZip, crc32, subdivideGeometry, dataURLToBytes,
+        cubicBezierEase, sampleChannel } = engine.utils;
 
 test('packaging: module loads in Node without a browser', () => {
   assert.equal(engine.animationEngine, null, 'auto-init must be skipped without #viewport');
@@ -54,6 +55,39 @@ test('buildZip produces an archive the OS unzip accepts', () => {
   assert.match(listing, /a\.txt/);
   assert.match(listing, /b\.bin/);
   execFileSync('unzip', ['-tqq', path]); // integrity check; throws on CRC error
+});
+
+test('cubicBezierEase: endpoints exact, ease-in lags linear', () => {
+  assert.equal(cubicBezierEase(0.42, 0, 1, 1, 0), 0);
+  assert.equal(cubicBezierEase(0.42, 0, 1, 1, 1), 1);
+  assert.ok(cubicBezierEase(0.42, 0, 1, 1, 0.25) < 0.25, 'ease-in below linear early');
+  // symmetric ease-in-out passes through ~0.5 at the midpoint
+  assert.ok(Math.abs(cubicBezierEase(0.42, 0, 0.58, 1, 0.5) - 0.5) < 1e-6);
+});
+
+test('sampleChannel: linear passthrough, step holds, bezier eases', () => {
+  const linear = sampleChannel([
+    { time: 0, value: [0], interp: 'linear' },
+    { time: 1, value: [10], interp: 'linear' },
+  ]);
+  assert.deepEqual(linear.times, [0, 1]);
+  assert.deepEqual(linear.values, [0, 10]);
+
+  const step = sampleChannel([
+    { time: 0, value: [0], interp: 'step' },
+    { time: 1, value: [10], interp: 'linear' },
+  ]);
+  // holds 0 until just before t=1, then the final key is 10
+  assert.equal(step.values[0], 0);
+  assert.equal(step.values[step.values.length - 2], 0);
+  assert.equal(step.values[step.values.length - 1], 10);
+
+  const bez = sampleChannel([
+    { time: 0, value: [0], interp: 'bezier', handles: [0.42, 0, 1, 1] },
+    { time: 1, value: [1], interp: 'linear' },
+  ], 20);
+  const mid = bez.values[Math.floor(bez.values.length / 2)];
+  assert.ok(mid < 0.5, 'ease-in curve sits below the linear diagonal at the midpoint');
 });
 
 test('encodeGIF yields a valid animated GIF decodable by omggif', async () => {

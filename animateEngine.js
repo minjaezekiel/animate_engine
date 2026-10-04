@@ -25,11 +25,19 @@
                 this.editManager = new EditManager(this.sceneManager, this.uiManager);
                 this.mediaManager = new MediaManager(this.sceneManager, this.animationManager);
                 this.recordingManager = new RecordingManager(this.sceneManager, this.animationManager, this.mediaManager);
+                this.rigManager = new RigManager(this.sceneManager, this.animationManager);
+                this.cameraManager = new CameraManager(this.sceneManager);
+                this.sceneManager.cameraManager = this.cameraManager;
                 this.history = new HistoryManager(this);
 
                 // Route scene/animation mutations into undo history + autosave.
                 this.sceneManager.onChange = () => this.pushHistory();
                 this.animationManager.onChange = () => this.pushHistory();
+                // Register bones + morphs from imported rigged models.
+                this.sceneManager.onModelImported = (model) => {
+                    this.rigManager.extractRig(model);
+                    if (this.refreshRigUI) this.refreshRigUI();
+                };
 
                 // Initialize the engine
                 this.init();
@@ -38,7 +46,10 @@
             init() {
                 // Set up the scene
                 this.sceneManager.init(this.container);
-                
+
+                // Register the default camera + build the post-processing composer.
+                this.cameraManager.init();
+
                 // Set up the UI
                 this.uiManager.init();
                 
@@ -53,6 +64,9 @@
                 
                 // Wire project save/load UI, undo/redo shortcuts and MCP bridge.
                 this.setupProjectUI();
+                this.setupRigUI();
+                this.setupMaterialUI();
+                this.setupCameraUI();
                 this.setupShortcuts();
                 this.connectMcpBridge();
 
@@ -74,6 +88,8 @@
                     scene: JSON.parse(this.sceneManager.exportScene()),
                     animations: this.animationManager.getAllAnimations()
                         .map(a => JSON.parse(this.animationManager.exportAnimation(a.name))),
+                    environment: this.sceneManager.envURL || null,
+                    postFX: this.cameraManager ? this.cameraManager.fx : null,
                     meta: { version: '1.0', savedAt: new Date().toISOString() }
                 };
             }
@@ -93,6 +109,8 @@
 
                 this.sceneManager._suspendChange = false;
                 this.animationManager._suspendChange = false;
+                if ('environment' in project) this.sceneManager.setEnvironment(project.environment);
+                if (project.postFX && this.cameraManager) this.cameraManager.setPostFX(project.postFX);
                 if (this.uiManager.updateHierarchy) this.uiManager.updateHierarchy();
             }
 
@@ -149,6 +167,105 @@
                     e.preventDefault();
                     e.shiftKey ? this.redo() : this.undo();
                 });
+            }
+
+            setupRigUI() {
+                const toggle = document.getElementById('rigToggleSkeleton');
+                if (toggle) toggle.addEventListener('click', () => this.rigManager.toggleSkeleton());
+                this.refreshRigUI();
+
+                // Interpolation selector — applies to the selected object's keyframes.
+                const interp = document.getElementById('keyframeInterp');
+                if (interp) interp.addEventListener('change', (e) => {
+                    const obj = this.sceneManager.getSelectedObject();
+                    if (obj) this.animationManager.setInterpolation(obj, e.target.value);
+                });
+            }
+
+            setupMaterialUI() {
+                const readAsDataURL = (input, cb) => input.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => cb(ev.target.result);
+                    reader.readAsDataURL(file);
+                    e.target.value = '';
+                });
+                const texFile = document.getElementById('textureFile');
+                const envFile = document.getElementById('envFile');
+                const applyTex = document.getElementById('applyTexture');
+                const applyEnv = document.getElementById('applyEnv');
+                const clearEnv = document.getElementById('clearEnv');
+
+                if (applyTex && texFile) {
+                    applyTex.addEventListener('click', () => {
+                        if (!this.sceneManager.getSelectedObject())
+                            return this.recordingManager.showNotification('Select an object first', 'info');
+                        texFile.click();
+                    });
+                    readAsDataURL(texFile, (url) => {
+                        const obj = this.sceneManager.getSelectedObject();
+                        const slot = document.getElementById('textureSlot').value;
+                        if (obj) this.sceneManager.setTexture(obj.uuid, slot, url).catch(() => {});
+                    });
+                }
+                if (applyEnv && envFile) {
+                    applyEnv.addEventListener('click', () => envFile.click());
+                    readAsDataURL(envFile, (url) => this.sceneManager.setEnvironment(url));
+                }
+                if (clearEnv) clearEnv.addEventListener('click', () => this.sceneManager.setEnvironment(null));
+            }
+
+            setupCameraUI() {
+                const select = document.getElementById('cameraSelect');
+                const refresh = () => {
+                    if (!select) return;
+                    select.innerHTML = '';
+                    this.cameraManager.listCameras().forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.uuid;
+                        opt.textContent = c.name + (c.active ? ' (active)' : '');
+                        select.appendChild(opt);
+                    });
+                };
+                refresh();
+
+                const add = document.getElementById('addCamera');
+                if (add) add.addEventListener('click', () => {
+                    const cam = this.cameraManager.createCamera();
+                    cam.position.copy(this.sceneManager.camera.position);
+                    refresh();
+                });
+                const activate = document.getElementById('activateCamera');
+                if (activate && select) activate.addEventListener('click', () => {
+                    if (select.value) { this.cameraManager.activateCamera(select.value); refresh(); }
+                });
+                const bloom = document.getElementById('bloomToggle');
+                if (bloom) bloom.addEventListener('change', (e) =>
+                    this.cameraManager.setPostFX({ bloom: e.target.checked }));
+                const strength = document.getElementById('bloomStrength');
+                if (strength) strength.addEventListener('input', (e) =>
+                    this.cameraManager.setPostFX({ bloomStrength: parseFloat(e.target.value) }));
+            }
+
+            // Rebuild morph-target sliders for imported meshes (called after import).
+            refreshRigUI() {
+                const host = document.getElementById('morphSliders');
+                if (!host) return;
+                host.innerHTML = '';
+                const meshes = this.rigManager.listMorphMeshes();
+                const hint = document.getElementById('rigHint');
+                if (hint) hint.style.display = (meshes.length || this.rigManager.bones.size) ? 'none' : '';
+                meshes.forEach(mesh => mesh.morphs.forEach(name => {
+                    const row = document.createElement('div');
+                    row.className = 'tool-slider-container';
+                    row.innerHTML =
+                        `<div class="tool-slider-label">${name}</div>` +
+                        `<input type="range" class="tool-slider" min="0" max="1" step="0.01" value="0">`;
+                    row.querySelector('input').addEventListener('input', (e) =>
+                        this.rigManager.setMorph(mesh.uuid, name, parseFloat(e.target.value)));
+                    host.appendChild(row);
+                }));
             }
 
             // ---- Programmatic API (single choke point for scripts / AI / MCP bridge) ----
@@ -231,9 +348,44 @@
                         if (a.position) props.position = a.position;
                         if (a.rotation) props.rotation = a.rotation;
                         if (a.scale) props.scale = a.scale;
+                        if (a.morphs) props.morphs = a.morphs;
+                        if (a.interp) props.interp = a.interp;
                         am.addKeyframe(obj, a.time || 0, props);
                         return { uuid: a.uuid, time: a.time || 0 };
                     }
+                    case 'toggleSkeleton':
+                        return { visible: this.rigManager.toggleSkeleton() };
+                    case 'listBones':
+                        return { bones: this.rigManager.listBones() };
+                    case 'listMorphs':
+                        return { meshes: this.rigManager.listMorphMeshes() };
+                    case 'ikReach':
+                        return this.rigManager.ikReach(a.bones, a.target, a.iterations || 10);
+                    case 'setMorph':
+                        return this.rigManager.setMorph(a.uuid, a.name, a.value);
+                    case 'setInterpolation': {
+                        const obj = sm.getObjectByUUID(a.uuid);
+                        if (!obj) throw new Error('No object: ' + a.uuid);
+                        am.setInterpolation(obj, a.interp || 'linear', a.handles);
+                        return { uuid: a.uuid, interp: a.interp || 'linear' };
+                    }
+                    case 'setTexture':
+                        return await sm.setTexture(a.uuid, a.slot, a.url);
+                    case 'setEnvironment':
+                        sm.setEnvironment(a.url, a.background !== false);
+                        return { url: a.url || null };
+                    case 'createCamera': {
+                        const cam = this.cameraManager.createCamera(a.name, a);
+                        return { uuid: cam.uuid, name: cam.name };
+                    }
+                    case 'listCameras':
+                        return { cameras: this.cameraManager.listCameras() };
+                    case 'activateCamera':
+                        return this.cameraManager.activateCamera(a.uuid);
+                    case 'setCameraProps':
+                        return this.cameraManager.setCameraProps(a.uuid, a);
+                    case 'setPostFX':
+                        return this.cameraManager.setPostFX(a);
                     case 'play': am.play(); return {};
                     case 'pause': am.pause(); return {};
                     case 'stop': am.stop(); return {};
@@ -332,6 +484,8 @@
                 this.mouse = new THREE.Vector2();
                 this.onChange = null;        // set by AnimationEngine for undo/autosave
                 this._suspendChange = false; // true while importing a project
+                this.onModelImported = null; // set by AnimationEngine (rig extraction)
+                this.envURL = null;          // current environment/HDRI source
             }
 
             // Notify listeners that the scene mutated (drives undo history / autosave).
@@ -495,14 +649,17 @@
                 this.camera.aspect = container.clientWidth / container.clientHeight;
                 this.camera.updateProjectionMatrix();
                 this.renderer.setSize(container.clientWidth, container.clientHeight);
+                if (this.cameraManager) this.cameraManager.resize(container.clientWidth, container.clientHeight);
             }
 
             update() {
                 this.controls.update();
             }
 
+            // Delegate to the CameraManager (active camera + post-processing) when present.
             render() {
-                this.renderer.render(this.scene, this.camera);
+                if (this.cameraManager) this.cameraManager.render();
+                else this.renderer.render(this.scene, this.camera);
             }
 
             addObject(object, name, properties = {}) {
@@ -595,6 +752,56 @@
                 object.geometry = newGeo;
                 this.markChanged();
                 return true;
+            }
+
+            // Load an image texture into a PBR material slot of an object.
+            setTexture(uuid, slot, url) {
+                const obj = this.getObjectByUUID(uuid);
+                if (!obj || !obj.material) throw new Error('No material: ' + uuid);
+                const valid = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'];
+                if (!valid.includes(slot)) throw new Error('Bad texture slot: ' + slot);
+                return new Promise((resolve, reject) => {
+                    new THREE.TextureLoader().load(url, (tex) => {
+                        if (slot === 'map' || slot === 'emissiveMap') tex.encoding = THREE.sRGBEncoding;
+                        obj.material[slot] = tex;
+                        if (slot === 'emissiveMap') obj.material.emissive = new THREE.Color(0xffffff);
+                        obj.material.needsUpdate = true;
+                        obj.userData.textures = obj.userData.textures || {};
+                        obj.userData.textures[slot] = url;
+                        this.markChanged();
+                        resolve({ uuid, slot });
+                    }, undefined, () => reject(new Error('Texture load failed')));
+                });
+            }
+
+            // Set an equirectangular environment (HDR via RGBELoader, else image) for
+            // image-based lighting + reflections, prefiltered through PMREMGenerator.
+            setEnvironment(url, asBackground = true) {
+                if (!url) {
+                    this.scene.environment = null;
+                    this.scene.background = null;
+                    this.envURL = null;
+                    this.markChanged();
+                    return;
+                }
+                const pmrem = new THREE.PMREMGenerator(this.renderer);
+                const onTexture = (texture) => {
+                    const envMap = pmrem.fromEquirectangular(texture).texture;
+                    this.scene.environment = envMap;
+                    if (asBackground) this.scene.background = envMap;
+                    texture.dispose();
+                    pmrem.dispose();
+                    this.envURL = url;
+                    this.markChanged();
+                };
+                if (/\.hdr($|\?)/i.test(url) && THREE.RGBELoader) {
+                    new THREE.RGBELoader().load(url, onTexture);
+                } else {
+                    new THREE.TextureLoader().load(url, (t) => {
+                        t.mapping = THREE.EquirectangularReflectionMapping;
+                        onTexture(t);
+                    });
+                }
             }
 
             // Restore an object's original uuid and re-key it in every map so that
@@ -846,7 +1053,8 @@
                             geometry: object.geometry.type,
                             material: {
                                 type: object.material.type,
-                                color: object.material.color.getHex()
+                                color: object.material.color.getHex(),
+                                textures: object.userData.textures || null
                             },
                             position: [object.position.x, object.position.y, object.position.z],
                             rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
@@ -915,7 +1123,12 @@
                             if (objectData.material && objectData.material.color) {
                                 object.material.color.setHex(objectData.material.color);
                             }
-                            
+                            if (objectData.material && objectData.material.textures) {
+                                Object.entries(objectData.material.textures).forEach(([slot, url]) => {
+                                    try { this.setTexture(object.uuid, slot, url); } catch (e) { /* skip */ }
+                                });
+                            }
+
                             // Add to group if specified
                             if (objectData.parent) {
                                 const parent = this.getObjectByUUID(objectData.parent);
@@ -991,7 +1204,8 @@
                                     });
                                 }
                             });
-                            
+
+                            if (this.onModelImported) this.onModelImported(model);
                             callback(true, model);
                         }, (error) => {
                             console.error('Error parsing GLTF:', error);
@@ -1271,42 +1485,44 @@
                 return this.selectedAnimation.keyframes.get(uuid);
             }
 
+            // Build a position/scale track honouring per-keyframe interpolation:
+            // 'bezier' (with handles) densifies to a linear track, 'step' => discrete,
+            // 'smooth' => cubic, else linear. Curve data set via setCurve flows through interp.
+            _vectorTrack(object, keyframes, prop, animation) {
+                const fallback = animation.easing === 'smooth' ? 'smooth' : 'linear';
+                const keys = keyframes.filter(kf => kf.properties[prop]).map(kf => ({
+                    time: kf.time,
+                    value: kf.properties[prop],
+                    interp: kf.properties.interp || fallback,
+                    handles: kf.properties.handles
+                }));
+                if (!keys.length) return null;
+                const name = `${object.uuid}.${prop}`;
+                if (keys.some(k => k.interp === 'bezier')) {
+                    const s = sampleChannel(keys, 30);
+                    return new THREE.VectorKeyframeTrack(name, s.times, s.values);
+                }
+                const track = new THREE.VectorKeyframeTrack(
+                    name, keys.map(k => k.time), keys.flatMap(k => k.value));
+                if (keys.every(k => k.interp === 'step')) track.setInterpolation(THREE.InterpolateDiscrete);
+                else if (keys.some(k => k.interp === 'smooth')) track.setInterpolation(THREE.InterpolateSmooth);
+                return track;
+            }
+
             createAnimationClip(object, animation) {
                 const uuid = object.uuid;
                 const keyframes = animation.keyframes.get(uuid);
-                
+
                 if (!keyframes || keyframes.length === 0) {
                     return null;
                 }
-                
-                const tracks = [];
-                
-                // Process position keyframes
-                const positionTimes = [];
-                const positionValues = [];
-                
-                keyframes.forEach(kf => {
-                    if (kf.properties.position) {
-                        positionTimes.push(kf.time);
-                        positionValues.push(...kf.properties.position);
-                    }
-                });
-                
-                // 'smooth' easing => cubic interpolation on position/scale (curve editor).
-                const smooth = animation.easing === 'smooth';
-                const applyEasing = (track) => {
-                    if (smooth && track.setInterpolation) track.setInterpolation(THREE.InterpolateSmooth);
-                    return track;
-                };
 
-                if (positionTimes.length > 0) {
-                    tracks.push(applyEasing(new THREE.VectorKeyframeTrack(
-                        `${object.uuid}.position`,
-                        positionTimes,
-                        positionValues
-                    )));
-                }
-                
+                const tracks = [];
+
+                // Position track (honours per-keyframe interpolation / curves).
+                const posTrack = this._vectorTrack(object, keyframes, 'position', animation);
+                if (posTrack) tracks.push(posTrack);
+
                 // Process rotation keyframes
                 const rotationTimes = [];
                 const rotationValues = [];
@@ -1333,26 +1549,45 @@
                     ));
                 }
                 
-                // Process scale keyframes
-                const scaleTimes = [];
-                const scaleValues = [];
-                
-                keyframes.forEach(kf => {
-                    if (kf.properties.scale) {
-                        scaleTimes.push(kf.time);
-                        scaleValues.push(...kf.properties.scale);
-                    }
-                });
-                
-                if (scaleTimes.length > 0) {
-                    tracks.push(applyEasing(new THREE.VectorKeyframeTrack(
-                        `${object.uuid}.scale`,
-                        scaleTimes,
-                        scaleValues
-                    )));
+                // Scale track (honours per-keyframe interpolation / curves).
+                const scaleTrack = this._vectorTrack(object, keyframes, 'scale', animation);
+                if (scaleTrack) tracks.push(scaleTrack);
+
+                // Morph target (shape key) tracks — one NumberKeyframeTrack per named morph.
+                if (object.morphTargetDictionary) {
+                    const morphNames = new Set();
+                    keyframes.forEach(kf => kf.properties.morphs &&
+                        Object.keys(kf.properties.morphs).forEach(n => morphNames.add(n)));
+                    morphNames.forEach(name => {
+                        const idx = object.morphTargetDictionary[name];
+                        if (idx == null) return;
+                        const times = [], values = [];
+                        keyframes.forEach(kf => {
+                            if (kf.properties.morphs && kf.properties.morphs[name] != null) {
+                                times.push(kf.time);
+                                values.push(kf.properties.morphs[name]);
+                            }
+                        });
+                        if (times.length) tracks.push(new THREE.NumberKeyframeTrack(
+                            `${object.uuid}.morphTargetInfluences[${idx}]`, times, values));
+                    });
                 }
-                
+
                 return new THREE.AnimationClip(animation.name, animation.duration, tracks);
+            }
+
+            // Set the interpolation mode ('linear'|'smooth'|'step'|'bezier') and optional
+            // bezier handles on every keyframe of an object in the selected animation.
+            setInterpolation(object, interp, handles) {
+                if (!this.selectedAnimation) return false;
+                const kfs = this.selectedAnimation.keyframes.get(object.uuid);
+                if (!kfs) return false;
+                kfs.forEach(kf => {
+                    kf.properties.interp = interp;
+                    if (handles) kf.properties.handles = handles;
+                });
+                this.markChanged();
+                return true;
             }
 
             setCurve(object, property, channel, curve) {
@@ -3715,6 +3950,60 @@
             return bytes;
         }
 
+        // Evaluate a CSS-style cubic-bezier easing curve, returning eased y for
+        // linear progress t in [0,1]. Control points (x1,y1)/(x2,y2); ends at 0..1.
+        function cubicBezierEase(x1, y1, x2, y2, t) {
+            if (t <= 0) return 0;
+            if (t >= 1) return 1;
+            const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+            const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+            const fx = (u) => ((ax * u + bx) * u + cx) * u;
+            const dfx = (u) => (3 * ax * u + 2 * bx) * u + cx;
+            let u = t;
+            for (let i = 0; i < 8; i++) {
+                const x = fx(u) - t;
+                if (Math.abs(x) < 1e-6) break;
+                const d = dfx(u);
+                if (Math.abs(d) < 1e-6) break;
+                u -= x / d;
+            }
+            u = Math.max(0, Math.min(1, u));
+            return ((ay * u + by) * u + cy) * u;
+        }
+
+        // Densify keyframes into a dense linear track honouring per-key interpolation
+        // ('bezier' with handles / 'step' / linear). keys: [{time, value:[...], interp, handles}].
+        function sampleChannel(keys, fps = 30) {
+            const stride = keys[0].value.length;
+            const times = [], values = [];
+            for (let i = 0; i < keys.length - 1; i++) {
+                const a = keys[i], b = keys[i + 1];
+                const bezier = a.interp === 'bezier';
+                const step = a.interp === 'step';
+                const segDur = b.time - a.time;
+                const steps = bezier ? Math.max(2, Math.round(segDur * fps)) : 1;
+                for (let s = 0; s < steps; s++) {
+                    const tt = s / steps;
+                    let e = step ? 0 : tt;
+                    if (bezier) {
+                        const h = a.handles || [0.42, 0, 0.58, 1];
+                        e = cubicBezierEase(h[0], h[1], h[2], h[3], tt);
+                    }
+                    times.push(a.time + tt * segDur);
+                    for (let k = 0; k < stride; k++) values.push(a.value[k] + (b.value[k] - a.value[k]) * e);
+                }
+                // Hold a stepped value until just before the next key, then jump.
+                if (step) {
+                    times.push(b.time - 1e-4);
+                    for (let k = 0; k < stride; k++) values.push(a.value[k]);
+                }
+            }
+            const last = keys[keys.length - 1];
+            times.push(last.time);
+            for (let k = 0; k < stride; k++) values.push(last.value[k]);
+            return { times, values };
+        }
+
         // GIF LZW compressor. `indices` are 8-bit palette indices; returns a byte array.
         function lzwEncode(minCodeSize, indices) {
             const clearCode = 1 << minCodeSize;
@@ -3898,6 +4187,221 @@
 
             redo() {
                 if (this.index < this.stack.length - 1) this._restore(this.stack[++this.index]);
+            }
+        }
+
+        /**
+         * Rig Manager - Skeleton display, bone posing/keyframing, 2+ bone CCD
+         * inverse kinematics, and morph-target (shape key) control for imported
+         * rigged (GLTF) characters. Bones are registered as selectable objects so
+         * the existing transform gizmo + keyframe pipeline pose them (FK).
+         */
+        class RigManager {
+            constructor(sceneManager, animationManager) {
+                this.sceneManager = sceneManager;
+                this.animationManager = animationManager;
+                this.bones = new Map();          // bone uuid -> Bone
+                this.morphMeshes = new Map();    // mesh uuid -> Mesh with morph targets
+                this.skeletonHelpers = new Map();// root uuid -> SkeletonHelper
+            }
+
+            // Register bones + morph meshes from a freshly imported model.
+            extractRig(root) {
+                if (!root || !root.traverse) return;
+                root.traverse((node) => {
+                    if (node.isBone) {
+                        this.bones.set(node.uuid, node);
+                        this.sceneManager.objects.set(node.uuid, node); // selectable + keyframeable
+                        if (!this.sceneManager.objectProperties.has(node.uuid)) {
+                            this.sceneManager.objectProperties.set(node.uuid,
+                                { visible: true, locked: false, isBone: true });
+                        }
+                    }
+                    if (node.isMesh && node.morphTargetInfluences && node.morphTargetInfluences.length) {
+                        this.morphMeshes.set(node.uuid, node);
+                    }
+                });
+                if (this.bones.size) this.showSkeleton(root, true);
+            }
+
+            showSkeleton(root, on) {
+                const existing = this.skeletonHelpers.get(root.uuid);
+                if (on && !existing) {
+                    const helper = new THREE.SkeletonHelper(root);
+                    this.sceneManager.scene.add(helper);
+                    this.skeletonHelpers.set(root.uuid, helper);
+                } else if (!on && existing) {
+                    this.sceneManager.scene.remove(existing);
+                    this.skeletonHelpers.delete(root.uuid);
+                }
+            }
+
+            toggleSkeleton() {
+                if (this.skeletonHelpers.size) {
+                    this.skeletonHelpers.forEach(h => this.sceneManager.scene.remove(h));
+                    this.skeletonHelpers.clear();
+                    return false;
+                }
+                const roots = new Set();
+                this.bones.forEach(b => {
+                    let r = b;
+                    while (r.parent && r.parent.isBone) r = r.parent;
+                    roots.add(r.parent || r);
+                });
+                roots.forEach(r => this.showSkeleton(r, true));
+                return true;
+            }
+
+            listBones() {
+                return [...this.bones.values()].map(b => ({ uuid: b.uuid, name: b.name }));
+            }
+
+            listMorphMeshes() {
+                return [...this.morphMeshes.values()].map(m => ({
+                    uuid: m.uuid, name: m.name, morphs: Object.keys(m.morphTargetDictionary || {})
+                }));
+            }
+
+            // Cyclic-Coordinate-Descent IK over a bone chain (root -> end effector).
+            ikReach(boneUuids, target, iterations = 10) {
+                const bones = (boneUuids || [])
+                    .map(u => this.bones.get(u) || this.sceneManager.getObjectByUUID(u))
+                    .filter(Boolean);
+                if (bones.length < 2) throw new Error('IK needs at least 2 bones');
+                const end = bones[bones.length - 1];
+                const tgt = new THREE.Vector3(target[0], target[1], target[2]);
+                for (let it = 0; it < iterations; it++) {
+                    for (let i = bones.length - 2; i >= 0; i--) {
+                        const bone = bones[i];
+                        const bonePos = bone.getWorldPosition(new THREE.Vector3());
+                        const endPos = end.getWorldPosition(new THREE.Vector3());
+                        const toEnd = endPos.sub(bonePos).normalize();
+                        const toTgt = tgt.clone().sub(bonePos).normalize();
+                        const delta = new THREE.Quaternion().setFromUnitVectors(toEnd, toTgt);
+                        const boneWorldQ = bone.getWorldQuaternion(new THREE.Quaternion());
+                        const newWorldQ = delta.multiply(boneWorldQ);
+                        const parentWorldQ = bone.parent
+                            ? bone.parent.getWorldQuaternion(new THREE.Quaternion())
+                            : new THREE.Quaternion();
+                        bone.quaternion.copy(parentWorldQ.invert().multiply(newWorldQ));
+                        bone.updateMatrixWorld(true);
+                    }
+                }
+                this.sceneManager.markChanged();
+                return { end: end.getWorldPosition(new THREE.Vector3()).toArray() };
+            }
+
+            setMorph(meshUuid, name, value) {
+                const mesh = this.morphMeshes.get(meshUuid) || this.sceneManager.getObjectByUUID(meshUuid);
+                if (!mesh || !mesh.morphTargetDictionary) throw new Error('No morph targets: ' + meshUuid);
+                const idx = mesh.morphTargetDictionary[name];
+                if (idx == null) throw new Error('No morph target: ' + name);
+                mesh.morphTargetInfluences[idx] = value;
+                this.sceneManager.markChanged();
+                return { uuid: meshUuid, name, value };
+            }
+        }
+
+        /**
+         * Camera Manager - Multiple keyframeable cameras + an EffectComposer post-
+         * processing chain (bloom). Rendering (viewport and exports) routes through
+         * here so effects appear in recordings too.
+         */
+        class CameraManager {
+            constructor(sceneManager) {
+                this.sceneManager = sceneManager;
+                this.cameras = new Map();     // uuid -> PerspectiveCamera
+                this.active = null;
+                this.composer = null;
+                this.bloomPass = null;
+                this.renderPass = null;
+                this.fx = { bloom: false };
+            }
+
+            init() {
+                const cam = this.sceneManager.camera;
+                if (cam) { this.cameras.set(cam.uuid, cam); this.active = cam; }
+                this.setupComposer();
+            }
+
+            setupComposer() {
+                if (typeof THREE.EffectComposer === 'undefined' || !this.active) return;
+                const renderer = this.sceneManager.renderer;
+                this.composer = new THREE.EffectComposer(renderer);
+                this.renderPass = new THREE.RenderPass(this.sceneManager.scene, this.active);
+                this.composer.addPass(this.renderPass);
+                if (THREE.UnrealBloomPass) {
+                    const size = renderer.getSize(new THREE.Vector2());
+                    this.bloomPass = new THREE.UnrealBloomPass(size, 0.6, 0.4, 0.85);
+                    this.bloomPass.enabled = false;
+                    this.composer.addPass(this.bloomPass);
+                }
+            }
+
+            createCamera(name, opts = {}) {
+                const el = this.sceneManager.renderer.domElement;
+                const aspect = (el.clientWidth || 16) / (el.clientHeight || 9);
+                const cam = new THREE.PerspectiveCamera(opts.fov || 50, aspect, opts.near || 0.1, opts.far || 1000);
+                cam.name = name || `Camera_${this.cameras.size + 1}`;
+                if (opts.position) cam.position.set(...opts.position);
+                if (opts.target) cam.lookAt(new THREE.Vector3(...opts.target));
+                this.sceneManager.scene.add(cam);
+                this.cameras.set(cam.uuid, cam);
+                this.sceneManager.objects.set(cam.uuid, cam); // selectable + keyframeable
+                this.sceneManager.objectProperties.set(cam.uuid, { visible: true, locked: false, isCamera: true });
+                this.sceneManager.markChanged();
+                return cam;
+            }
+
+            listCameras() {
+                return [...this.cameras.values()].map(c => ({
+                    uuid: c.uuid, name: c.name, active: c === this.active
+                }));
+            }
+
+            activateCamera(uuid) {
+                const cam = this.cameras.get(uuid) || this.sceneManager.getObjectByUUID(uuid);
+                if (!cam || !cam.isCamera) throw new Error('No camera: ' + uuid);
+                this.active = cam;
+                this.sceneManager.camera = cam;
+                if (this.renderPass) this.renderPass.camera = cam;
+                if (this.sceneManager.controls) this.sceneManager.controls.object = cam;
+                this.sceneManager.markChanged();
+                return { uuid };
+            }
+
+            setCameraProps(uuid, props = {}) {
+                const cam = this.cameras.get(uuid) || this.sceneManager.getObjectByUUID(uuid);
+                if (!cam || !cam.isCamera) throw new Error('No camera: ' + uuid);
+                if (props.fov != null) cam.fov = props.fov;
+                if (props.near != null) cam.near = props.near;
+                if (props.far != null) cam.far = props.far;
+                if (props.focalLength != null && cam.setFocalLength) cam.setFocalLength(props.focalLength);
+                cam.updateProjectionMatrix();
+                this.sceneManager.markChanged();
+                return { uuid, fov: cam.fov };
+            }
+
+            setPostFX(fx = {}) {
+                this.fx = { ...this.fx, ...fx };
+                if (this.bloomPass) {
+                    this.bloomPass.enabled = !!this.fx.bloom;
+                    if (fx.bloomStrength != null) this.bloomPass.strength = fx.bloomStrength;
+                    if (fx.bloomRadius != null) this.bloomPass.radius = fx.bloomRadius;
+                    if (fx.bloomThreshold != null) this.bloomPass.threshold = fx.bloomThreshold;
+                }
+                this.sceneManager.markChanged();
+                return this.fx;
+            }
+
+            fxActive() { return !!(this.bloomPass && this.bloomPass.enabled); }
+
+            resize(w, h) { if (this.composer) this.composer.setSize(w, h); }
+
+            render() {
+                const sm = this.sceneManager;
+                if (this.composer && this.fxActive()) this.composer.render();
+                else sm.renderer.render(sm.scene, this.active || sm.camera);
             }
         }
 
@@ -4121,9 +4625,11 @@
             RecordingManager,
             MediaManager,
             HistoryManager,
+            RigManager,
+            CameraManager,
             animationEngine,
             // pure utilities (exposed for reuse and unit testing)
-            utils: { encodeGIF, lzwEncode, buildZip, crc32, subdivideGeometry, dataURLToBytes, downloadBlob, blobToDataUrl }
+            utils: { encodeGIF, lzwEncode, buildZip, crc32, subdivideGeometry, dataURLToBytes, cubicBezierEase, sampleChannel, downloadBlob, blobToDataUrl }
         }
     }
     )

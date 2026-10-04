@@ -246,9 +246,61 @@
                         </div>
                     </div>
                 </div>
+                <div class="tool-section">
+                    <div class="tool-section-header">
+                        <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 100 6 3 3 0 000-6zm0 8v6m0 6a3 3 0 100-6 3 3 0 000 6z"/></svg>
+                        Rig &amp; Morphs
+                    </div>
+                    <div class="tool-section-content">
+                        <button class="button secondary" id="rigToggleSkeleton">Toggle Skeleton</button>
+                        <div id="morphSliders" class="morph-sliders"></div>
+                        <div class="tool-hint" id="rigHint">Import a rigged GLTF/GLB model to pose bones and drive shape keys.</div>
+                    </div>
+                </div>
+                <div class="tool-section">
+                    <div class="tool-section-header">
+                        <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 15l4-4 5 5m-1-3l3-3 5 5"/></svg>
+                        Textures &amp; Environment
+                    </div>
+                    <div class="tool-section-content">
+                        <div class="tool-slider-container">
+                            <div class="tool-slider-label">Slot:</div>
+                            <select id="textureSlot" class="media-input">
+                                <option value="map">Albedo (color)</option>
+                                <option value="normalMap">Normal</option>
+                                <option value="roughnessMap">Roughness</option>
+                                <option value="metalnessMap">Metalness</option>
+                                <option value="emissiveMap">Emissive</option>
+                            </select>
+                        </div>
+                        <button class="button secondary" id="applyTexture" style="width:100%;">Apply Texture to Selected…</button>
+                        <button class="button secondary" id="applyEnv" style="width:100%; margin-top:5px;">Set Environment (HDR/Image)…</button>
+                        <button class="button secondary" id="clearEnv" style="width:100%; margin-top:5px;">Clear Environment</button>
+                        <input type="file" id="textureFile" accept="image/*" style="display:none">
+                        <input type="file" id="envFile" accept=".hdr,image/*" style="display:none">
+                    </div>
+                </div>
+                <div class="tool-section">
+                    <div class="tool-section-header">
+                        <svg viewBox="0 0 24 24"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/></svg>
+                        Camera &amp; Post-FX
+                    </div>
+                    <div class="tool-section-content">
+                        <button class="button secondary" id="addCamera" style="width:100%;">Add Camera</button>
+                        <select id="cameraSelect" class="media-input" style="margin-top:5px;"></select>
+                        <button class="button secondary" id="activateCamera" style="width:100%; margin-top:5px;">Activate Selected Camera</button>
+                        <label style="display:flex;align-items:center;gap:6px;margin-top:8px;">
+                            <input type="checkbox" id="bloomToggle"> Bloom
+                        </label>
+                        <div class="tool-slider-container">
+                            <div class="tool-slider-label">Strength:</div>
+                            <input type="range" class="tool-slider" id="bloomStrength" min="0" max="3" step="0.05" value="0.6">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        
+
         <div class="tool-panel" id="animatePanel">
             <div class="tool-panel-header">
                 Animation Tools
@@ -291,7 +343,16 @@
                     Keyframe Editing
                 </div>
                 <div class="tool-section-content">
-                    <button class="button secondary" id="editCurve" style="width: 100%;">Edit Animation Curves</button>
+                    <div class="tool-slider-container">
+                        <div class="tool-slider-label">Interpolation:</div>
+                        <select id="keyframeInterp" class="media-input">
+                            <option value="linear">Linear</option>
+                            <option value="smooth">Smooth</option>
+                            <option value="step">Stepped</option>
+                            <option value="bezier">Bezier (ease)</option>
+                        </select>
+                    </div>
+                    <button class="button secondary" id="editCurve" style="width: 100%; margin-top: 6px;">Edit Animation Curves</button>
                 </div>
             </div>
         </div>
@@ -659,6 +720,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+    <!-- Post-processing (bloom) — loaded as globals like the loaders above -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/MaskPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/1.6.0/cannon.min.js"></script>
     
 <!-- animateEngine.js self-initializes against #viewport and exposes the global

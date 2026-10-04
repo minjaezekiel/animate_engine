@@ -55,7 +55,10 @@ page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
 });
 
-await page.goto(`${base}/film.html`, { waitUntil: 'networkidle2' });
+// `load`, not `networkidle2`: the page registers a service worker, so there
+// is background traffic that has nothing to do with the page being ready, and
+// waiting for the network to go quiet makes this test hostage to a CDN.
+await page.goto(`${base}/film.html`, { waitUntil: 'load' });
 
 const result = await page.evaluate(async (origin) => {
     const out = { steps: [] };

@@ -16,24 +16,34 @@ const VERSION = 'v1';
 const SHELL = `jirex-shell-${VERSION}`;
 const VENDOR = 'jirex-vendor';
 
+// This file has to live at the repository root. A service worker's default
+// scope is its own directory and a static host sends no Service-Worker-Allowed
+// header, so a worker under src/pwa/ registers without error and then controls
+// nothing -- which is how the offline story was quietly broken.
 const SHELL_ASSETS = [
     './',
     './film.html',
+    './studio.html',
     './src/studio.js',
+    './src/core/index.js',
     './src/pwa/manifest.webmanifest',
+    './src/pwa/icons/icon-192.png',
+    './src/pwa/icons/icon-512.png',
     './demo/film.json',
     './demo/script.txt',
 ];
 
 const VENDOR_HOSTS = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'unpkg.com', 'huggingface.co'];
 
-// Pinned third-party modules, warmed on install so a later offline session can
-// still synthesize speech. Voice ONNX models are excluded on purpose: the TTS
-// runtime keeps those in OPFS, which is the right home for tens of megabytes.
-const VENDOR_WARM = [
-    'https://cdn.jsdelivr.net/npm/@diffusionstudio/vits-web@1.0.3/dist/vits-web.js',
-    'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/+esm',
-];
+// Third-party modules are cached on FIRST USE, by the stale-while-revalidate
+// path below, and not warmed on install.
+//
+// They used to be warmed, and it was a bad trade once the worker started
+// actually running: install blocked on a multi-megabyte `onnxruntime-web`
+// download, which held the page's network busy on every first load. It also
+// never bought what it claimed -- speaking offline needs a 20-60 MB voice
+// model too, and those live in OPFS and were never warmed. Use
+// `studio.tts.prefetch(voiceId)` to prepare for offline deliberately.
 
 self.addEventListener('install', (event) => {
     event.waitUntil((async () => {
@@ -43,11 +53,6 @@ self.addEventListener('install', (event) => {
         await Promise.all(SHELL_ASSETS.map(async (url) => {
             try { await cache.add(new Request(url, { cache: 'reload' })); }
             catch { /* optional asset */ }
-        }));
-        const vendor = await caches.open(VENDOR);
-        await Promise.all(VENDOR_WARM.map(async (url) => {
-            try { await vendor.add(new Request(url, { mode: 'cors' })); }
-            catch { /* warmed later on first use */ }
         }));
         await self.skipWaiting();
     })());

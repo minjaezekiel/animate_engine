@@ -62,7 +62,9 @@ page.on('console', (m) => {
     const t = m.text();
     if (m.type() === 'error' && !t.includes('404')) console.error('  [console]', t.slice(0, 200));
 });
-await page.goto(`${base}/film.html`, { waitUntil: 'networkidle2' });
+// `load`, not `networkidle2`: the page registers a service worker, so network
+// quiet is no longer a signal that the page is ready.
+await page.goto(`${base}/film.html`, { waitUntil: 'load' });
 
 await page.exposeFunction('report', (msg) => console.log('  ' + msg));
 

@@ -50,7 +50,9 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
-await page.goto(`${base}/film.html`, { waitUntil: 'networkidle2' });
+// `load`, not `networkidle2`: the page registers a service worker, so network
+// quiet is no longer a signal that the page is ready.
+await page.goto(`${base}/film.html`, { waitUntil: 'load' });
 
 const result = await page.evaluate(async (origin, durationSec) => {
     const out = { log: [] };

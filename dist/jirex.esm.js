@@ -2700,7 +2700,14 @@ var Canvas2DBackend = class {
     this.Path2DImpl = Path2DImpl ?? (typeof Path2D !== "undefined" ? Path2D : RecordingPath2D);
     this.capabilities = { kind: "2d", postFX: false, skinning: false };
   }
-  mount(host, { width, height } = {}) {
+  /**
+   * `contextAttributes` reaches `getContext('2d', ...)`. It matters because
+   * a canvas hands back the context it already has and ignores attributes
+   * on every later call -- so a caller that wants `willReadFrequently` has
+   * to say so HERE, before anything else touches the canvas, or the flag is
+   * silently dropped and nothing reports it.
+   */
+  mount(host, { width, height, contextAttributes } = {}) {
     if (width) this.width = width;
     if (height) this.height = height;
     if (!this.ctx) {
@@ -2713,7 +2720,7 @@ var Canvas2DBackend = class {
       if (!this._canvas) throw new Error("Canvas2DBackend: no canvas to mount");
       this._canvas.width = this.width;
       this._canvas.height = this.height;
-      this.ctx = this._canvas.getContext("2d");
+      this.ctx = this._canvas.getContext("2d", contextAttributes);
     }
     return this;
   }

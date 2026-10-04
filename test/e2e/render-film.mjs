@@ -47,6 +47,10 @@ const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required',
            '--use-fake-ui-for-media-stream', '--enable-unsafe-swiftshader'],
+    // The default protocolTimeout is 180s, which is puppeteer's number and not
+    // a budget anyone chose for this: reading back 2,880 frames three times
+    // over lands at 130-150s and was intermittently exceeding it.
+    protocolTimeout: 600_000,
 });
 const page = await browser.newPage();
 const errors = [];
@@ -92,14 +96,16 @@ const result = await page.evaluate(async (origin) => {
     const W = 160, H = 90, FPS = 24;
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
+    // willReadFrequently matters here: this test calls getImageData on every
+    // one of 2,880 frames, and without the flag Chrome moves the canvas
+    // between GPU and CPU rasterization, which perturbs antialiasing and --
+    // far worse -- is intermittently slow enough to blow the protocol
+    // timeout. It has to be set at mount: a canvas returns the context it
+    // already has and ignores attributes on any later getContext call.
     const backend = new Canvas2DBackend({ width: W, height: H });
-    backend.mount(canvas, { width: W, height: H });
-
-    // willReadFrequently matters here: without it Chrome may move the canvas
-    // between GPU and CPU rasterization during frequent getImageData calls,
-    // which perturbs antialiasing and makes a pixel digest look
-    // non-deterministic even when the scene state is identical.
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    backend.mount(canvas, { width: W, height: H,
+                            contextAttributes: { willReadFrequently: true } });
+    const ctx = backend.ctx;
     const digest = () => {
         const d = ctx.getImageData(0, 0, W, H).data;
         let h = 2166136261;

@@ -46,6 +46,7 @@ const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true,
     args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required',
            '--enable-unsafe-swiftshader', '--use-fake-ui-for-media-stream'],
+    protocolTimeout: 600_000,
 });
 const page = await browser.newPage();
 const errors = [];

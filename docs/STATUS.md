@@ -73,7 +73,10 @@ The file is not committed — it is gitignored and reproducible from source.
 - **Pixel output is not bit-reproducible** between runs. Chrome moves a canvas
   between GPU and CPU rasterization during frequent `getImageData`, which
   perturbs antialiasing. Scene state and draw calls are deterministic; tests
-  assert that instead.
+  assert that instead. `Canvas2DBackend.mount` takes `contextAttributes` so a
+  readback-heavy caller can ask for `willReadFrequently` — it has to be set
+  there, because a canvas returns the context it already has and ignores
+  attributes on every later `getContext` call.
 - **TTS needs an import map** for `onnxruntime-web`. Present in `film.html`;
   any other host page must supply it or TTS silently reports unavailable.
 - **Voice models are 20–60 MB each** and download on first use. They cache in

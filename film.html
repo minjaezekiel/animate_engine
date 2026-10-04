@@ -97,6 +97,7 @@
     <span class="sub" id="filmTitle">no film loaded</span>
     <span class="spacer"></span>
     <span class="pill" id="encoderPill">encoder: --</span>
+    <a href="studio.html">&larr; Pose editor</a>
     <button id="installBtn" hidden>Install app</button>
 </header>
 
@@ -232,6 +233,16 @@ async function setFilm(next, label) {
     log(`${label}: ${film.meta?.title ?? 'Untitled'} (${secs.toFixed(1)}s)`, 'ok');
     renderCastList();
 }
+
+// A film staged in the editor arrives here through sessionStorage, so the
+// two pages hand work back and forth without either needing the other's UI.
+try {
+    const handoff = sessionStorage.getItem('jirex.handoff');
+    if (handoff) {
+        sessionStorage.removeItem('jirex.handoff');
+        await setFilm(JSON.parse(handoff), 'received from studio');
+    }
+} catch (e) { log(`could not read the studio hand-off: ${e.message}`, 'warn'); }
 
 $('loadDemoBtn').onclick = async () => {
     try {
@@ -544,7 +555,7 @@ $('installBtn').onclick = async () => {
 };
 
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./src/pwa/sw.js')
+    navigator.serviceWorker.register('./sw.js')
         .then(() => log('offline support registered'))
         .catch((e) => log(`service worker not registered: ${e.message}`, 'warn'));
 }

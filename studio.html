@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jireX Studio — pose editor</title>
+<meta name="description" content="Pose 2D cutout characters by dragging their joints; the editor writes the film script for you.">
+<meta name="theme-color" content="#1b2a4a">
+<link rel="manifest" href="src/pwa/manifest.webmanifest">
+<link rel="icon" href="src/pwa/icons/icon-192.png">
+<link rel="apple-touch-icon" href="src/pwa/icons/icon-192.png">
+<style>
+    :root {
+        --bg: #0b1120; --panel: #131a2a; --panel-2: #1b2437; --line: #28334a;
+        --ink: #e8eef9; --ink-dim: #93a1bd; --accent: #ffd98a; --accent-ink: #2a1f06;
+        --ok: #6ee7a8; --warn: #ffc566; --err: #ff8686;
+        --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+    header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+             padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    header h1 { font-size: 17px; margin: 0; letter-spacing: .2px; }
+    header .sub { color: var(--ink-dim); font-size: 13px; }
+    header .spacer { flex: 1; }
+    main { display: grid; grid-template-columns: minmax(0,1fr) 400px;
+           min-height: calc(100vh - 59px); }
+    @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+    .stage { padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .viewport { position: relative; background: #000; border: 1px solid var(--line);
+                border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; }
+    .viewport canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #picks { cursor: crosshair; touch-action: none; }
+    #picks.dragging { cursor: grabbing; }
+
+    .scrub { display: flex; gap: 10px; align-items: center; }
+    .scrub input[type=range] { flex: 1; accent-color: var(--accent); }
+    .readout { font: 12px/1.4 var(--mono); color: var(--ink-dim); white-space: nowrap; }
+
+    .side { border-left: 1px solid var(--line); background: var(--panel); padding: 18px; overflow-y: auto; }
+    @media (max-width: 1000px) { .side { border-left: 0; border-top: 1px solid var(--line); } }
+    .side h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em;
+               color: var(--ink-dim); margin: 22px 0 10px; }
+    .side h2:first-child { margin-top: 0; }
+
+    button, select, textarea, input { font: inherit; color: var(--ink); background: var(--panel-2);
+        border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; }
+    button { cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-ink);
+                     border-color: var(--accent); font-weight: 650; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .row > * { min-width: 0; }
+    .grow { flex: 1; }
+    textarea { width: 100%; min-height: 220px; font: 12px/1.5 var(--mono); resize: vertical; }
+    label.field { display: block; font-size: 12px; color: var(--ink-dim); margin-bottom: 4px; }
+    label.check { display: flex; gap: 7px; align-items: center; font-size: 13px; color: var(--ink-dim); }
+    label.check input { padding: 0; }
+    dl.props { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px;
+               font: 12px/1.5 var(--mono); margin: 0; }
+    dl.props dt { color: var(--ink-dim); }
+    dl.props dd { margin: 0; overflow: hidden; text-overflow: ellipsis; }
+    #log { font: 12px/1.6 var(--mono); background: #090d16; border: 1px solid var(--line);
+           border-radius: 8px; padding: 10px 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+    #log .warn { color: var(--warn); } #log .err { color: var(--err); } #log .ok { color: var(--ok); }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--panel-2);
+            border: 1px solid var(--line); font-size: 12px; color: var(--ink-dim); }
+    a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+    <h1>jireX Studio</h1>
+    <span class="sub" id="filmTitle">no film loaded</span>
+    <span class="spacer"></span>
+    <span class="pill" id="shotPill">shot: --</span>
+    <a href="film.html">Render harness &rarr;</a>
+</header>
+
+<main>
+    <section class="stage">
+        <div class="viewport">
+            <!-- Two stacked canvases: the film underneath, the rig handles on
+                 top. Keeping handles off the film canvas means the stage is
+                 always exactly what will render. -->
+            <canvas id="stage" width="1280" height="720"></canvas>
+            <canvas id="picks" width="1280" height="720"></canvas>
+        </div>
+
+        <div class="scrub">
+            <button id="playBtn" title="Play / pause">&#9654;</button>
+            <input type="range" id="time" min="0" max="1" step="0.0416666" value="0">
+            <span class="readout" id="timeText">0.00s / 0.00s · f0</span>
+        </div>
+
+        <div class="row">
+            <label class="check"><input type="checkbox" id="ghosts" checked> onion skin</label>
+            <label class="check"><input type="checkbox" id="handles" checked> joint handles</label>
+            <label class="check"><input type="checkbox" id="flipBend"> flip elbow</label>
+            <label class="check">ease in
+                <input type="number" id="ramp" value="0.4" min="0" max="4" step="0.1"
+                       style="width:68px;padding:5px 7px"> s</label>
+            <span class="spacer grow"></span>
+            <span class="readout" id="hint">drag a joint to pose &middot; drag the body to move</span>
+        </div>
+
+        <div id="log">ready. load a film to start posing.</div>
+    </section>
+
+    <aside class="side">
+        <h2>Film</h2>
+        <div class="row">
+            <button id="loadDemoBtn" class="grow">Load "The Keeper"</button>
+            <button id="openJsonBtn">Open&hellip;</button>
+        </div>
+        <input type="file" id="jsonFile" accept=".json,application/json" hidden>
+        <div class="row" style="margin-top:8px">
+            <button id="newBtn" class="grow">New blank film</button>
+            <button id="undoBtn" disabled>Undo</button>
+        </div>
+
+        <h2>Selection</h2>
+        <dl class="props" id="selProps"><dt>nothing</dt><dd>click a joint</dd></dl>
+        <div class="row" style="margin-top:10px">
+            <label class="field grow" style="margin:0">bones in chain
+                <select id="boneCount" style="width:100%;margin-top:4px">
+                    <option value="1">1 — rotate this bone</option>
+                    <option value="2" selected>2 — IK (elbow/knee)</option>
+                    <option value="3">3 — IK (long chain)</option>
+                </select>
+            </label>
+        </div>
+        <div class="row" style="margin-top:8px">
+            <button id="clearPoseBtn" class="grow" disabled>Remove this action</button>
+        </div>
+
+        <h2>Shot actions</h2>
+        <div id="actionList" class="readout" style="color:var(--ink-dim)">load a film</div>
+
+        <h2>Film script</h2>
+        <textarea id="jsonBox" spellcheck="false" placeholder="film.json appears here as you pose"></textarea>
+        <div class="row" style="margin-top:8px">
+            <button id="applyBtn" class="primary grow">Apply edits</button>
+            <button id="saveBtn">Save .json</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+            <button id="toHarnessBtn" class="grow">Send to render harness</button>
+        </div>
+    </aside>
+</main>
+
+<script type="module">
+import {
+    compileFilm, filmShots, shotAt, characterParts,
+    samplePose, applyPose, createPoseBaseline, resetPose,
+    solveChain, chainFromParts, chainRootOffset, applyVisemeShapes,
+} from './src/core/index.js';
+import { Canvas2DBackend } from './src/backends/canvas2d/Canvas2DBackend.js';
+import { identity, multiply, invert, applyToPoint } from './src/core/math/mat2d.js';
+
+const $ = (id) => document.getElementById(id);
+const log = (msg, cls = '') => {
+    const el = $('log');
+    el.insertAdjacentHTML('beforeend', `\n<span class="${cls}">${msg}</span>`);
+    el.scrollTop = el.scrollHeight;
+};
+
+// ------------------------------------------------------------------ state
+
+let film = null;            // the authored film.json, the single source of truth
+let compiled = null;        // { scene, timeline, cameraId, meta, diagnostics }
+let baseline = null;        // pose baseline, so an ended clip cannot leave residue
+let backend = null;         // renders offscreen; the stage composites it
+let playing = false;
+let t = 0;                  // playhead, seconds
+let selection = null;       // { nodeId, sceneId, as, partId, charName, isRoot }
+let drag = null;            // { kind, from, override }
+let override = null;        // transforms held during a drag, applied after the pose
+const history = [];         // film snapshots, for undo
+
+const GHOST_OFFSETS = [-0.5, -0.25];
+const PICK_RADIUS = 26;     // screen px; a joint is grabbed, not an outline
+
+// --------------------------------------------------------------- compiling
+
+function recompile({ keepTime = true } = {}) {
+    if (!film) return;
+    const result = compileFilm(film, {});
+    const fatal = result.diagnostics.filter((d) => d.severity === 'fatal');
+    if (!result.timeline) {
+        log(`cannot compile: ${fatal.map((d) => d.message).join('; ')}`, 'err');
+        return;
+    }
+    compiled = result;
+    baseline = createPoseBaseline(result.scene, result.timeline);
+
+    const dur = result.meta.duration || 0;
+    $('time').max = String(Math.max(dur, 0.0001));
+    $('time').step = String(1 / (result.meta.fps || 24));
+    if (!keepTime || t > dur) t = 0;
+    $('time').value = String(t);
+
+    for (const d of result.diagnostics) {
+        if (d.severity === 'error' || d.severity === 'fatal') log(`${d.path}: ${d.message}`, 'err');
+    }
+    const shots = filmShots(film).length;
+    $('filmTitle').textContent =
+        `${film.meta?.title ?? 'Untitled'} — ${film.scenes?.length ?? 0} scenes, ${shots} shots, ${dur.toFixed(1)}s`;
+    syncJsonBox();
+    draw();
+}
+
+const syncJsonBox = () => { $('jsonBox').value = JSON.stringify(film, null, 2); };
+
+function setFilm(next, label) {
+    film = next;
+    history.length = 0;
+    $('undoBtn').disabled = true;
+    selection = null;
+    t = 0;
+    recompile({ keepTime: false });
+    log(`${label}: ${film.meta?.title ?? 'Untitled'}`, 'ok');
+}
+
+// Snapshot before every structural edit. A pose editor without undo is a trap.
+function pushHistory() {
+    history.push(JSON.stringify(film));
+    if (history.length > 50) history.shift();
+    $('undoBtn').disabled = false;
+}
+
+// ----------------------------------------------------------------- drawing
+
+/**
+ * The renderer draws to an offscreen canvas and the stage composites it.
+ * Onion skin needs several frames in one image, and the backend clears on
+ * every renderFrame -- as it must, since it is the renderer that produces the
+ * final film and gets no special editor mode.
+ */
+function mountBackend() {
+    const { width, height } = compiled.meta;
+    for (const id of ['stage', 'picks']) {
+        $(id).width = width;
+        $(id).height = height;
+    }
+    const off = document.createElement('canvas');
+    off.width = width; off.height = height;
+    backend = new Canvas2DBackend({ width, height });
+    backend.mount(off, { width, height });
+}
+
+/** Put the scene into its state at `time`, then let a drag override it. */
+function poseAt(time) {
+    resetPose(compiled.scene, baseline);
+    applyPose(compiled.scene, samplePose(compiled.timeline, time));
+    if (override) {
+        for (const [nodeId, patch] of override) {
+            const node = compiled.scene.get(nodeId);
+            if (node) Object.assign(node.transform, patch);
+        }
+        compiled.scene.invalidateAll();
+    }
+    applyVisemeShapes(compiled.scene);
+}
+
+function draw() {
+    if (!compiled) return;
+    if (!backend || backend.width !== compiled.meta.width) mountBackend();
+
+    const ctx = $('stage').getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, compiled.meta.width, compiled.meta.height);
+
+    // Onion skin: render each past frame offscreen and composite it faint.
+    // Doing it this way needs no cooperation from the backend, which stays
+    // exactly the renderer that produces the final film.
+    if ($('ghosts').checked) {
+        for (const d of GHOST_OFFSETS) {
+            const gt = t + d;
+            if (gt < 0) continue;
+            poseAt(gt);
+            backend.renderFrame(compiled.scene, compiled.cameraId);
+            ctx.globalAlpha = 0.18;
+            ctx.drawImage(backend.canvas(), 0, 0);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    poseAt(t);
+    backend.renderFrame(compiled.scene, compiled.cameraId);
+    ctx.drawImage(backend.canvas(), 0, 0);
+
+    drawHandles();
+    updateReadout();
+}
+
+function updateReadout() {
+    const dur = compiled.meta.duration || 0;
+    const fps = compiled.meta.fps || 24;
+    $('timeText').textContent =
+        `${t.toFixed(2)}s / ${dur.toFixed(2)}s · f${Math.round(t * fps)}`;
+    const span = shotAt(film, t);
+    $('shotPill').textContent = span
+        ? `shot: ${span.sceneId} / ${span.shotId} (+${(t - span.start).toFixed(2)}s)`
+        : 'shot: --';
+    renderActionList(span);
+}
+
+// ------------------------------------------------------------- joint picking
+
+/** Every poseable joint on stage, with its screen position. */
+function joints() {
+    const view = backend.viewMatrix(compiled.scene, compiled.cameraId);
+    const out = [];
+    for (const node of compiled.scene.byId.values()) {
+        const parsed = parseNodeId(node.id);
+        if (!parsed) continue;
+        const m = multiply(view, compiled.scene.worldMatrix(node.id));
+        const [sx, sy] = applyToPoint(m, 0, 0);
+        out.push({ ...parsed, nodeId: node.id, sx, sy });
+    }
+    return out;
+}
+
+/** `sceneId/as` is a cast root; `sceneId/as/partId` is one of its joints. */
+function parseNodeId(nodeId) {
+    const bits = String(nodeId).split('/');
+    if (bits.length === 2) {
+        const charName = castCharacter(bits[0], bits[1]);
+        return charName ? { sceneId: bits[0], as: bits[1], partId: null, charName, isRoot: true } : null;
+    }
+    if (bits.length === 3 && bits[2] !== 'mouth') {
+        const charName = castCharacter(bits[0], bits[1]);
+        return charName ? { sceneId: bits[0], as: bits[1], partId: bits[2], charName, isRoot: false } : null;
+    }
+    return null;
+}
+
+function castCharacter(sceneId, as) {
+    for (const [si, scene] of (film.scenes ?? []).entries()) {
+        if ((scene.id ?? `s${si + 1}`) !== sceneId) continue;
+        const entry = (scene.cast ?? []).find((c) => (c.as ?? c.character) === as);
+        return entry?.character ?? null;
+    }
+    return null;
+}
+
+/** Nearest joint to a stage point, preferring a limb over the whole body. */
+function pick(sx, sy) {
+    let best = null;
+    for (const j of joints()) {
+        const d = Math.hypot(j.sx - sx, j.sy - sy);
+        if (d > PICK_RADIUS) continue;
+        // A limb joint beats the body root even when the root is nearer:
+        // clicking a hip should still let you pose the leg.
+        const score = d + (j.isRoot ? PICK_RADIUS : 0);
+        if (!best || score < best.score) best = { ...j, d, score };
+    }
+    return best;
+}
+
+function drawHandles() {
+    const ctx = $('picks').getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, compiled.meta.width, compiled.meta.height);
+    if (!$('handles').checked) return;
+
+    for (const j of joints()) {
+        const chosen = selection && selection.nodeId === j.nodeId;
+        ctx.beginPath();
+        ctx.arc(j.sx, j.sy, j.isRoot ? 9 : 6, 0, Math.PI * 2);
+        ctx.fillStyle = chosen ? '#ffd98a' : (j.isRoot ? 'rgba(110,231,168,.55)' : 'rgba(232,238,249,.4)');
+        ctx.fill();
+        if (chosen) {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ffd98a';
+            ctx.beginPath();
+            ctx.arc(j.sx, j.sy, 14, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.font = '600 15px system-ui, sans-serif';
+            ctx.fillStyle = '#ffd98a';
+            ctx.fillText(j.partId ?? j.as, j.sx + 18, j.sy - 12);
+        }
+    }
+}
+
+// ------------------------------------------------------------------ dragging
+
+/** Stage pixel coordinates from a pointer event, canvas CSS size aside. */
+function stagePoint(ev) {
+    const rect = $('picks').getBoundingClientRect();
+    return [
+        (ev.clientX - rect.left) * (compiled.meta.width / rect.width),
+        (ev.clientY - rect.top) * (compiled.meta.height / rect.height),
+    ];
+}
+
+/** Stage point → a node's own local space. */
+function toLocal(nodeId, sx, sy) {
+    const view = backend.viewMatrix(compiled.scene, compiled.cameraId);
+    const m = multiply(view, compiled.scene.worldMatrix(nodeId));
+    const inv = invert(m) ?? identity();
+    return applyToPoint(inv, sx, sy);
+}
+
+$('picks').addEventListener('pointerdown', (ev) => {
+    if (!compiled) return;
+    const [sx, sy] = stagePoint(ev);
+    const hit = pick(sx, sy);
+    selection = hit ? { ...hit } : null;
+    showSelection();
+    if (!hit) { draw(); return; }
+
+    $('picks').setPointerCapture(ev.pointerId);
+    $('picks').classList.add('dragging');
+    pauseIfPlaying();
+    drag = { hit, moved: false };
+    override = new Map();
+    draw();
+});
+
+$('picks').addEventListener('pointermove', (ev) => {
+    if (!drag) return;
+    const [sx, sy] = stagePoint(ev);
+    drag.moved = true;
+    drag.last = [sx, sy];
+    previewDrag(sx, sy);
+});
+
+$('picks').addEventListener('pointerup', (ev) => {
+    if (!drag) return;
+    const held = drag;
+    $('picks').classList.remove('dragging');
+    drag = null;
+    override = null;
+    if (held.moved && held.last) commitDrag(held.hit, held.last);
+    else draw();
+});
+
+$('picks').addEventListener('pointercancel', () => {
+    drag = null; override = null; $('picks').classList.remove('dragging'); draw();
+});
+
+/**
+ * Solve the drag without touching the film, so dragging stays smooth and a
+ * released drag is the only thing that edits the script.
+ */
+function previewDrag(sx, sy) {
+    const hit = drag.hit;
+    override = new Map();
+    if (hit.isRoot) {
+        const parentId = compiled.scene.get(hit.nodeId)?.parentId;
+        const [x, y] = toLocal(parentId ?? compiled.scene.rootId, sx, sy);
+        drag.target = [x, y];
+        override.set(hit.nodeId, { x, y });
+    } else {
+        const solved = solveFor(hit, sx, sy);
+        if (!solved) return;
+        drag.target = solved.target;
+        drag.solved = solved;
+        for (const [i, bone] of solved.chain.bones.entries()) {
+            override.set(`${hit.sceneId}/${hit.as}/${bone.id}`, { rot: solved.rots[i] });
+        }
+    }
+    draw();
+}
+
+/** IK for the dragged joint: screen point → bone rotations. */
+function solveFor(hit, sx, sy) {
+    const char = film.characters?.[hit.charName];
+    if (!char) return null;
+    const parts = characterParts(char);
+    const count = Number($('boneCount').value) || 2;
+    const chain = chainFromParts(parts, hit.partId, count)
+        ?? chainFromParts(parts, hit.partId, 1);
+    if (!chain) return null;
+
+    // The target is expressed in the character's own space, which is what
+    // `reach` takes, so the action written below means the same thing no
+    // matter where the character is standing or how it is scaled.
+    const rootNode = `${hit.sceneId}/${hit.as}`;
+    const target = toLocal(rootNode, sx, sy);
+    const offset = chainRootOffset(parts, chain.rootId);
+    const solved = solveChain({
+        bones: chain.bones,
+        target: [target[0] - offset[0], target[1] - offset[1]],
+        bend: $('flipBend').checked ? -1 : 1,
+    });
+    return { chain, target, rots: solved.rots, error: solved.error, clamped: solved.clamped };
+}
+
+/** On release, write the drag into the film script as a real action. */
+function commitDrag(hit, [sx, sy]) {
+    const span = shotAt(film, t);
+    if (!span) { log('no shot at the playhead; nothing written', 'warn'); draw(); return; }
+    const shot = film.scenes[span.sceneIndex].shots[span.shotIndex];
+    shot.actions ??= [];
+
+    // The dragged pose has to be what you see AT the playhead, so the action
+    // eases IN to the playhead rather than starting there -- otherwise you
+    // let go and the character snaps back to where it was, with the move you
+    // just made sitting in the future.
+    const localT = Math.max(0, t - span.start);
+    const ease = Math.min(Math.max(0, Number($('ramp').value) || 0), localT);
+    const at = round(localT - ease);
+    const arrival = round(localT);
+    const timing = ease > 0.001 ? { at, for: round(ease) } : { at };
+    const sameArrival = (a) => Math.abs((a.at ?? 0) + (a.for ?? 0) - arrival) < 0.02;
+
+    pushHistory();
+
+    if (hit.isRoot) {
+        const [x, y] = toLocal(compiled.scene.get(hit.nodeId)?.parentId ?? compiled.scene.rootId, sx, sy);
+        if (arrival === 0 && !shot.actions.some((a) => a.do === 'move' && a.target === hit.as)) {
+            // At the very start of the shot there is nothing to move FROM, so
+            // restage the cast entry instead of writing a zero-length move.
+            const entry = (span.scene.cast ?? []).find((c) => (c.as ?? c.character) === hit.as);
+            if (entry) {
+                entry.at = [round(x), round(y)];
+                log(`${hit.as}: staged at [${entry.at}]`, 'ok');
+                afterEdit();
+                return;
+            }
+        }
+        upsert(shot.actions, { target: hit.as, do: 'move', to: [round(x), round(y)], ...timing },
+               (a) => a.do === 'move' && a.target === hit.as && sameArrival(a));
+        log(`${hit.as}: move to [${round(x)}, ${round(y)}] by +${arrival}s`, 'ok');
+    } else {
+        const solved = solveFor(hit, sx, sy);
+        if (!solved) { log(`no chain above ${hit.partId}`, 'warn'); draw(); return; }
+        const action = {
+            target: hit.as, do: 'reach', part: hit.partId,
+            to: [round(solved.target[0]), round(solved.target[1])],
+            ...timing,
+        };
+        if (solved.chain.bones.length !== 2) action.bones = solved.chain.bones.length;
+        action.bend = $('flipBend').checked ? -1 : 1;
+        upsert(shot.actions, action,
+               (a) => a.do === 'reach' && a.target === hit.as && a.part === hit.partId && sameArrival(a));
+        log(`${hit.as}/${hit.partId}: reach [${action.to}] by +${arrival}s`
+            + (solved.clamped ? ` (out of range by ${solved.error.toFixed(0)})` : ''),
+            solved.clamped ? 'warn' : 'ok');
+    }
+    afterEdit();
+}
+
+const round = (n) => Math.round(n * 100) / 100;
+
+/**
+ * Replace a matching action outright rather than merging into it: a merge
+ * would keep the old `for` alongside the new `at` and silently retime the
+ * move the author just made.
+ */
+function upsert(list, action, match) {
+    const i = list.findIndex(match);
+    if (i >= 0) list[i] = action;
+    else list.push(action);
+}
+
+function afterEdit() {
+    recompile();
+    showSelection();
+}
+
+// ----------------------------------------------------------------- inspector
+
+function showSelection() {
+    const dl = $('selProps');
+    $('clearPoseBtn').disabled = !selection;
+    if (!selection) {
+        dl.innerHTML = '<dt>nothing</dt><dd>click a joint</dd>';
+        return;
+    }
+    const rows = [
+        ['node', selection.nodeId],
+        ['character', selection.charName],
+        ['part', selection.partId ?? '(body root)'],
+    ];
+    if (!selection.isRoot) {
+        const parts = characterParts(film.characters?.[selection.charName] ?? {});
+        const chain = chainFromParts(parts, selection.partId, Number($('boneCount').value) || 2);
+        rows.push(['chain', chain ? chain.bones.map((b) => b.id).join(' → ') : 'none — rotates nothing']);
+        if (chain) rows.push(['lengths', chain.bones.map((b) => b.length.toFixed(1)).join(', ')]);
+        const node = compiled.scene.get(selection.nodeId);
+        if (node) rows.push(['rot', `${(node.transform.rot ?? 0).toFixed(3)} rad`]);
+    }
+    dl.innerHTML = rows
+        .map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(String(v))}</dd>`).join('');
+}
+
+const escapeHtml = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+function renderActionList(span) {
+    const el = $('actionList');
+    if (!span) { el.textContent = 'no shot'; return; }
+    const actions = span.shot.actions ?? [];
+    if (!actions.length) { el.textContent = 'no actions in this shot'; return; }
+    el.innerHTML = actions.map((a) => {
+        const live = Math.abs((span.start + (a.at ?? 0) + (a.for ?? 0)) - t) < 0.05;
+        const detail = a.do === 'reach' ? `${a.part} → [${a.to}]`
+            : a.do === 'move' ? `→ [${a.to}]`
+            : a.do === 'pose' ? a.pose
+            : a.do === 'play' ? a.action
+            : (a.channel ?? '');
+        const at = (a.at ?? 0);
+        const window = a.for ? `+${at.toFixed(2)}→${(at + a.for).toFixed(2)}s` : `+${at.toFixed(2)}s`;
+        return `<div style="color:${live ? 'var(--accent)' : 'inherit'}">`
+            + `${window} ${escapeHtml(a.target ?? '')} ${a.do} `
+            + `${escapeHtml(String(detail))}</div>`;
+    }).join('');
+}
+
+$('clearPoseBtn').onclick = () => {
+    if (!selection) return;
+    const span = shotAt(film, t);
+    if (!span) return;
+    const shot = film.scenes[span.sceneIndex].shots[span.shotIndex];
+    const before = (shot.actions ?? []).length;
+    shot.actions = (shot.actions ?? []).filter((a) => !(
+        a.target === selection.as
+        && (selection.isRoot ? a.do === 'move' : (a.do === 'reach' && a.part === selection.partId))
+        // arrival, not start: actions are written to land on the playhead
+        && Math.abs((a.at ?? 0) + (a.for ?? 0) - (t - span.start)) < 0.05));
+    if (shot.actions.length === before) { log('no matching action at the playhead', 'warn'); return; }
+    pushHistory();
+    log(`removed ${before - shot.actions.length} action(s)`, 'ok');
+    afterEdit();
+};
+
+$('boneCount').onchange = showSelection;
+$('flipBend').onchange = () => { if (drag?.last) previewDrag(...drag.last); };
+
+// ------------------------------------------------------------------ playback
+
+function pauseIfPlaying() {
+    if (!playing) return;
+    playing = false;
+    $('playBtn').innerHTML = '&#9654;';
+}
+
+$('playBtn').onclick = () => {
+    if (!compiled) return;
+    playing = !playing;
+    $('playBtn').innerHTML = playing ? '&#10073;&#10073;' : '&#9654;';
+    if (!playing) return;
+    // Preview only: wall-clock paced, frames dropped as needed. Export never
+    // goes through here -- it steps frames, which is why it stays exact.
+    let last = performance.now();
+    const step = (now) => {
+        if (!playing) return;
+        t += (now - last) / 1000;
+        last = now;
+        if (t >= compiled.meta.duration) { t = 0; }
+        $('time').value = String(t);
+        draw();
+        requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+};
+
+$('time').oninput = (ev) => { pauseIfPlaying(); t = Number(ev.target.value); draw(); };
+$('ghosts').onchange = draw;
+$('handles').onchange = draw;
+
+document.addEventListener('keydown', (ev) => {
+    if (ev.target.matches('textarea, input, select')) return;
+    const fps = compiled?.meta.fps ?? 24;
+    if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') {
+        ev.preventDefault();
+        pauseIfPlaying();
+        const d = (ev.key === 'ArrowRight' ? 1 : -1) * (ev.shiftKey ? 12 : 1) / fps;
+        t = Math.min(compiled?.meta.duration ?? 0, Math.max(0, t + d));
+        $('time').value = String(t);
+        draw();
+    } else if (ev.key === ' ') {
+        ev.preventDefault();
+        $('playBtn').click();
+    } else if ((ev.metaKey || ev.ctrlKey) && ev.key === 'z') {
+        ev.preventDefault();
+        $('undoBtn').click();
+    }
+});
+
+// ------------------------------------------------------------------- film I/O
+
+$('loadDemoBtn').onclick = async () => {
+    try {
+        const res = await fetch('./demo/film.json');
+        setFilm(await res.json(), 'loaded demo');
+    } catch (e) { log(`could not load demo: ${e.message}`, 'err'); }
+};
+
+$('openJsonBtn').onclick = () => $('jsonFile').click();
+$('jsonFile').onchange = async (ev) => {
+    const f = ev.target.files[0];
+    if (!f) return;
+    try { setFilm(JSON.parse(await f.text()), `loaded ${f.name}`); }
+    catch (e) { log(`bad film.json: ${e.message}`, 'err'); }
+    ev.target.value = '';
+};
+
+$('newBtn').onclick = () => setFilm(blankFilm(), 'new film');
+
+/** A one-character, one-shot film: enough to pose against immediately. */
+function blankFilm() {
+    return {
+        version: 'jirex.film/1',
+        meta: { title: 'Untitled', fps: 24, width: 1280, height: 720 },
+        palettes: { day: { sky: '#8fb8e8', skin: '#e8c39e', coat: '#c4452f',
+                           hair: '#3b2b22', eye: '#23303f', shoe: '#2a2320' } },
+        characters: { hero: { palette: 'day', generate: {}, poses: {
+            idle: { armL: { rot: 0.12 }, armR: { rot: -0.12 } },
+        } } },
+        scenes: [{
+            id: 's1',
+            background: { color: '#8fb8e8' },
+            cast: [{ character: 'hero', as: 'hero', at: [640, 560], scale: 1.6 }],
+            shots: [{ id: 's1.a', duration: 4, actions: [
+                { target: 'hero', do: 'pose', pose: 'idle', at: 0 },
+                { target: 'hero', do: 'play', action: 'breathe' },
+            ] }],
+        }],
+    };
+}
+
+$('applyBtn').onclick = () => {
+    try {
+        const next = JSON.parse($('jsonBox').value);
+        pushHistory();
+        film = next;
+        selection = null;
+        recompile();
+        log('edits applied', 'ok');
+    } catch (e) { log(`bad JSON: ${e.message}`, 'err'); }
+};
+
+$('undoBtn').onclick = () => {
+    const prev = history.pop();
+    if (!prev) return;
+    film = JSON.parse(prev);
+    selection = null;
+    $('undoBtn').disabled = history.length === 0;
+    recompile();
+    log('undone', 'ok');
+};
+
+$('saveBtn').onclick = () => {
+    if (!film) return;
+    const blob = new Blob([JSON.stringify(film, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(film.meta?.title ?? 'film').replace(/[^\w.-]+/g, '_')}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+
+// Hand the film to the render harness rather than duplicating voices, mixing
+// and encoding in here. The editor stages; the harness ships.
+$('toHarnessBtn').onclick = () => {
+    if (!film) return;
+    try {
+        sessionStorage.setItem('jirex.handoff', JSON.stringify(film));
+        location.href = 'film.html';
+    } catch (e) { log(`could not hand off: ${e.message}`, 'err'); }
+};
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// Pick up a film handed back from the harness, otherwise start on something.
+try {
+    const stashed = sessionStorage.getItem('jirex.handoff');
+    if (stashed) {
+        sessionStorage.removeItem('jirex.handoff');
+        setFilm(JSON.parse(stashed), 'received from harness');
+    } else {
+        setFilm(blankFilm(), 'new film');
+    }
+} catch { setFilm(blankFilm(), 'new film'); }
+
+window.jirexStudio = {
+    get film() { return film; },
+    get compiled() { return compiled; },
+    setFilm, recompile, draw, pick, joints,
+    seek(sec) { t = sec; $('time').value = String(sec); draw(); },
+    get time() { return t; },
+};
+</script>
+</body>
+</html>

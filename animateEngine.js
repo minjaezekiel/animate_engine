@@ -15,6 +15,53 @@
                 }
             }(typeof(window) !== "undefined" ? window : this, function (){
 
+                /**
+                 * Where to find the ES-module core from a classic script.
+                 *
+                 * Captured at load, because document.currentScript is only
+                 * meaningful during top-level execution. A dynamic import()
+                 * works fine from a classic script; the specifier just has to
+                 * be resolved against this file rather than the document, or
+                 * it breaks for anyone loading the engine from a CDN.
+                 */
+                const SCRIPT_URL = (typeof document !== 'undefined' && document.currentScript)
+                    ? document.currentScript.src : null;
+
+                const coreUrl = (path) => (SCRIPT_URL ? new URL(path, SCRIPT_URL).href : path);
+
+                let corePromise = null;
+
+                /**
+                 * The pure evaluator that drives 3D animation.
+                 *
+                 * Loaded lazily and once. If it cannot load, playback reports
+                 * it rather than silently doing nothing -- which is precisely
+                 * how the dead-mixer bug stayed hidden for so long.
+                 */
+                function loadAnimationCore() {
+                    if (corePromise) return corePromise;
+                    if (typeof globalThis.jirexCore === 'object' && globalThis.jirexCore) {
+                        corePromise = Promise.resolve(globalThis.jirexCore);
+                        return corePromise;
+                    }
+                    corePromise = Promise.all([
+                        import(coreUrl('./src/core/anim/Evaluator.js')),
+                        import(coreUrl('./src/backends/three3d/legacyTracks.js')),
+                        import(coreUrl('./src/backends/three3d/PoseApplier.js')),
+                        import(coreUrl('./src/backends/three3d/clipToTracks.js')),
+                    ]).then(([evaluator, legacy, applier, clips]) => ({
+                        samplePose: evaluator.samplePose,
+                        timelineFromAnimation: legacy.timelineFromAnimation,
+                        applyPoseToObjects: applier.applyPoseToObjects,
+                        timelineFromClip: clips.timelineFromClip,
+                    })).catch((error) => {
+                        corePromise = null;
+                        console.error('animateEngine: could not load the animation core', error);
+                        throw error;
+                    });
+                    return corePromise;
+                }
+
                 class AnimationEngine {
                 constructor(containerId) {
                 this.container = document.getElementById(containerId);
@@ -34,9 +81,14 @@
                 this.sceneManager.onChange = () => this.pushHistory();
                 this.animationManager.onChange = () => this.pushHistory();
                 // Register bones + morphs from imported rigged models.
-                this.sceneManager.onModelImported = (model) => {
+                this.sceneManager.onModelImported = (model, gltf) => {
                     this.rigManager.extractRig(model);
                     if (this.refreshRigUI) this.refreshRigUI();
+                    if (gltf && gltf.animations && gltf.animations.length) {
+                        this.animationManager.adoptClips(gltf.animations, model)
+                            .then(() => { if (this.uiManager.updateAnimationList) this.uiManager.updateAnimationList(); })
+                            .catch((e) => console.error('animateEngine: clip import failed', e));
+                    }
                 };
 
                 // Initialize the engine
@@ -1252,17 +1304,11 @@
                             // Add model to scene
                             this.addObject(model, file.name.replace(/\.[^/.]+$/, ""));
                             
-                            // Process animations if available
-                            if (gltf.animations && gltf.animations.length > 0) {
-                                // Create animation clips for each animation
-                                gltf.animations.forEach((clip, index) => {
-                                    const animationName = clip.name || `Animation_${index + 1}`;
-                                    this.animationManager.createAnimation(animationName, clip.duration, 'repeat');
-                                    
-                                    // Store the clip for later use
-                                    this.animationManager.animationClips.set(animationName, clip);
-                                });
-                            }
+                            // Animations go to whoever owns both managers.
+                            // This used to call `this.animationManager`, a
+                            // field SceneManager never defines, so importing
+                            // any glTF WITH animation threw and took the whole
+                            // import down with it.
                             
                             // Set up model properties
                             model.traverse((child) => {
@@ -1282,7 +1328,7 @@
                                 }
                             });
 
-                            if (this.onModelImported) this.onModelImported(model);
+                            if (this.onModelImported) this.onModelImported(model, gltf);
                             callback(true, model);
                         }, (error) => {
                             console.error('Error parsing GLTF:', error);
@@ -1308,47 +1354,59 @@
                 this.selectedAnimation = null;
                 this.isPlaying = false;
                 this.currentTime = 0;
+                this._direction = 1;         // pingpong flips this
                 this.clock = new THREE.Clock();
-                this.mixers = new Map(); // Map of object UUID to mixer
-                this.tweens = new Map(); // Map of object UUID to tween
-                this.animationClips = new Map(); // Map of animation name to clip
                 this.onChange = null;        // set by AnimationEngine for undo/autosave
                 this._suspendChange = false; // true while importing a project
+
+                this.core = null;            // the evaluator, once it has loaded
+                this._timeline = null;       // rebuilt whenever keyframes change
+                loadAnimationCore().then((core) => {
+                    this.core = core;
+                    // Whatever time the UI already moved to applies now.
+                    this.setCurrentTime(this.currentTime);
+                }).catch(() => { /* already reported */ });
             }
 
             markChanged() {
+                this.invalidateTimeline();
                 if (!this._suspendChange && this.onChange) this.onChange();
             }
 
-            update() {
-                if (this.isPlaying) {
-                    const delta = this.clock.getDelta();
-                    this.currentTime += delta;
-                    
-                    // Update all mixers
-                    this.mixers.forEach(mixer => {
-                        mixer.update(delta);
-                    });
-                    
-                    // Update all tweens
-                    this.tweens.forEach(tween => {
-                        tween.update();
-                    });
-                    
-                    // Check if we've reached the end of the animation
-                    if (this.selectedAnimation && this.currentTime >= this.selectedAnimation.duration) {
-                        if (this.selectedAnimation.loop === 'once') {
-                            this.stop();
-                        } else if (this.selectedAnimation.loop === 'repeat') {
-                            this.currentTime = 0;
-                        } else if (this.selectedAnimation.loop === 'pingpong') {
-                            // Reverse the animation
-                            this.mixers.forEach(mixer => {
-                                mixer.timeScale = -mixer.timeScale;
-                            });
-                        }
-                    }
+            /** Keyframes changed, so the compiled timeline is stale. */
+            invalidateTimeline() { this._timeline = null; }
+
+            /**
+             * The selected animation as a core Timeline.
+             *
+             * Built from the keyframes every time they change, which is what
+             * killed the dead-mixer bug rather than patching it: there is no
+             * cache that can be empty after a load, because the keyframes ARE
+             * the source and nothing else holds state.
+             */
+            timeline() {
+                if (!this.core || !this.selectedAnimation) return null;
+                if (!this._timeline) {
+                    this._timeline = this.core.timelineFromAnimation(this.selectedAnimation);
                 }
+                return this._timeline;
+            }
+
+            update() {
+                if (!this.isPlaying) return;
+                const animation = this.selectedAnimation;
+                const duration = animation ? animation.duration : 0;
+                let time = this.currentTime + this.clock.getDelta() * this._direction;
+
+                if (animation && time >= duration) {
+                    if (animation.loop === 'repeat') time -= duration;
+                    else if (animation.loop === 'pingpong') { this._direction = -1; time = duration; }
+                    else { this.setCurrentTime(duration); this.stop(); return; }
+                } else if (time <= 0 && this._direction < 0) {
+                    if (animation && animation.loop === 'pingpong') { this._direction = 1; time = 0; }
+                    else { this.setCurrentTime(0); this.stop(); return; }
+                }
+                this.setCurrentTime(time);
             }
 
             createAnimation(name, duration, loop = 'once') {
@@ -1357,8 +1415,8 @@
                     duration,
                     loop,
                     keyframes: new Map(), // Map of object UUID to keyframes
-                    curves: new Map(), // Map of object UUID to curves
-                    tweens: new Map() // Map of object UUID to tweens
+                    curves: new Map(), // legacy: read by nothing, kept so old files load
+                    tweens: new Map()  // legacy: read by nothing, kept so old files load
                 };
                 
                 this.animations.set(name, animation);
@@ -1413,112 +1471,103 @@
 
             // Build and start clip actions for the selected animation without
             // starting playback, so poses can be sampled via setCurrentTime().
-            prepareActions() {
-                if (!this.selectedAnimation) return;
-                // Drive from keyframes, not from `mixers`: mixers are a cache that
-                // only addKeyframe ever filled, so after a project load or an
-                // autosave restore it was empty and playback/export silently did
-                // nothing. Creating them here fixes play, scrub and export at once.
-                this.selectedAnimation.keyframes.forEach((_, uuid) => {
-                    const object = this.sceneManager.getObjectByUUID(uuid);
-                    if (!object) return;
-                    let mixer = this.mixers.get(uuid);
-                    if (!mixer) this.mixers.set(uuid, mixer = new THREE.AnimationMixer(object));
-                    const clip = this.createAnimationClip(object, this.selectedAnimation);
-                    const action = mixer.clipAction(clip);
-                    action.reset();
-                    action.play();
+            /**
+             * Take imported glTF clips into the editor's own keyframe model.
+             *
+             * Converting all the way down is what leaves AnimationMixer with
+             * no remaining job: imported animation becomes ordinary keyframes
+             * that scrub, export, render and can be edited. The old engine
+             * stashed clips in a Map that nothing ever read.
+             */
+            async adoptClips(clips, model) {
+                const [{ trackValueAt }, { clipToKeyframes }, { eulerFromQuat }] = await Promise.all([
+                    import(coreUrl('./src/core/anim/Track.js')),
+                    import(coreUrl('./src/backends/three3d/clipToTracks.js')),
+                    import(coreUrl('./src/backends/three3d/eulerQuat.js')),
+                ]);
+
+                // Clip tracks address nodes by name or by uuid; keyframes are
+                // keyed by uuid, so resolve once per import.
+                const byName = new Map();
+                model.traverse((node) => { if (node.name) byName.set(node.name, node); });
+                const resolveTarget = (target) => {
+                    const bone = /^bones\[(.+)\]$/.exec(target);
+                    const node = byName.get(bone ? bone[1] : target);
+                    return node ? node.uuid : (this.sceneManager.getObjectByUUID(target) ? target : null);
+                };
+
+                const adopted = [];
+                clips.forEach((clip, index) => {
+                    const name = clip.name || `Animation_${index + 1}`;
+                    const { keyframes, skipped } = clipToKeyframes(clip,
+                        { resolveTarget, trackValueAt, eulerFromQuat });
+                    if (!keyframes.size) return;
+                    const animation = this.createAnimation(name, clip.duration, 'repeat');
+                    keyframes.forEach((list, uuid) => animation.keyframes.set(uuid, list));
+                    if (skipped.length) {
+                        console.warn(`animateEngine: "${name}" has ${skipped.length} channel(s) `
+                            + `this engine does not animate: ${skipped.slice(0, 4).join(', ')}`);
+                    }
+                    adopted.push(name);
                 });
+                if (adopted.length && !this.selectedAnimation) this.selectAnimation(adopted[0]);
+                this.markChanged();
+                return adopted;
             }
 
-            play() {
-                if (this.selectedAnimation) {
-                    this.isPlaying = true;
-                    this.clock.start();
-                    this.prepareActions();
+            /**
+             * Kept because RecordingManager calls it before capturing frames.
+             * There is nothing to prepare any more -- building the timeline is
+             * the whole job and setCurrentTime does it on demand.
+             */
+            prepareActions() { return this.timeline(); }
 
-                    // Start all tweens
-                    this.tweens.forEach(tween => {
-                        tween.start();
-                    });
-                }
+            play() {
+                if (!this.selectedAnimation) return;
+                this.isPlaying = true;
+                this._direction = 1;
+                this.clock.start();
             }
 
             pause() {
                 this.isPlaying = false;
                 this.clock.stop();
-                
-                // Pause all mixers
-                this.mixers.forEach(mixer => {
-                    mixer.timeScale = 0;
-                });
-                
-                // Pause all tweens
-                this.tweens.forEach(tween => {
-                    tween.pause();
-                });
             }
 
             stop() {
                 this.isPlaying = false;
-                this.currentTime = 0;
+                this._direction = 1;
                 this.clock.stop();
-                
-                // Stop all mixers
-                this.mixers.forEach(mixer => {
-                    mixer.timeScale = 1;
-                    mixer.time = 0;
-                });
-                
-                // Stop all tweens
-                this.tweens.forEach(tween => {
-                    tween.stop();
-                });
+                this.setCurrentTime(0);
             }
 
+            /**
+             * Pose the scene at `time`. This is the only thing that moves an
+             * object, so play, scrub and offline export all agree by
+             * construction and frame N is a pure function of N.
+             */
             setCurrentTime(time) {
-                if (this.mixers.size === 0) this.prepareActions();
                 this.currentTime = time;
-                
-                // Update all mixers
-                this.mixers.forEach(mixer => {
-                    mixer.setTime(time);
-                });
-                
-                // Update all tweens
-                this.tweens.forEach(tween => {
-                    tween.seek(time);
-                });
+                const timeline = this.timeline();
+                if (!timeline) return;
+                this.core.applyPoseToObjects(
+                    this.core.samplePose(timeline, time),
+                    (uuid) => this.sceneManager.getObjectByUUID(uuid));
             }
 
             addKeyframe(object, time, properties) {
-                if (!this.selectedAnimation) {
-                    return false;
-                }
-                
+                if (!this.selectedAnimation) return false;
+
                 const uuid = object.uuid;
-                
                 if (!this.selectedAnimation.keyframes.has(uuid)) {
                     this.selectedAnimation.keyframes.set(uuid, []);
                 }
-                
                 const keyframes = this.selectedAnimation.keyframes.get(uuid);
-                
-                // Check if a keyframe already exists at this time
-                const existingIndex = keyframes.findIndex(kf => kf.time === time);
-                
-                if (existingIndex !== -1) {
-                    // Update existing keyframe
-                    keyframes[existingIndex] = { time, properties };
-                } else {
-                    // Add new keyframe
+                const existing = keyframes.findIndex(kf => kf.time === time);
+                if (existing !== -1) keyframes[existing] = { time, properties };
+                else {
                     keyframes.push({ time, properties });
                     keyframes.sort((a, b) => a.time - b.time);
-                }
-                
-                // Create or update mixer for this object
-                if (!this.mixers.has(uuid)) {
-                    this.mixers.set(uuid, new THREE.AnimationMixer(object));
                 }
 
                 this.markChanged();
@@ -1526,137 +1575,20 @@
             }
 
             removeKeyframe(object, time) {
-                if (!this.selectedAnimation) {
-                    return false;
-                }
-                
-                const uuid = object.uuid;
-                
-                if (!this.selectedAnimation.keyframes.has(uuid)) {
-                    return false;
-                }
-                
-                const keyframes = this.selectedAnimation.keyframes.get(uuid);
+                if (!this.selectedAnimation) return false;
+                const keyframes = this.selectedAnimation.keyframes.get(object.uuid);
+                if (!keyframes) return false;
                 const index = keyframes.findIndex(kf => kf.time === time);
-                
-                if (index !== -1) {
-                    keyframes.splice(index, 1);
-                    
-                    // If no more keyframes for this object, remove the mixer
-                    if (keyframes.length === 0) {
-                        this.mixers.delete(uuid);
-                    }
-
-                    this.markChanged();
-                    return true;
-                }
-                
-                return false;
+                if (index === -1) return false;
+                keyframes.splice(index, 1);
+                if (keyframes.length === 0) this.selectedAnimation.keyframes.delete(object.uuid);
+                this.markChanged();
+                return true;
             }
 
             getKeyframes(object) {
-                if (!this.selectedAnimation) {
-                    return [];
-                }
-                
-                const uuid = object.uuid;
-                
-                if (!this.selectedAnimation.keyframes.has(uuid)) {
-                    return [];
-                }
-                
-                return this.selectedAnimation.keyframes.get(uuid);
-            }
-
-            // Build a position/scale track honouring per-keyframe interpolation:
-            // 'bezier' (with handles) densifies to a linear track, 'step' => discrete,
-            // 'smooth' => cubic, else linear. Curve data set via setCurve flows through interp.
-            _vectorTrack(object, keyframes, prop, animation) {
-                const fallback = animation.easing === 'smooth' ? 'smooth' : 'linear';
-                const keys = keyframes.filter(kf => kf.properties[prop]).map(kf => ({
-                    time: kf.time,
-                    value: kf.properties[prop],
-                    interp: kf.properties.interp || fallback,
-                    handles: kf.properties.handles
-                }));
-                if (!keys.length) return null;
-                const name = `${object.uuid}.${prop}`;
-                if (keys.some(k => k.interp === 'bezier')) {
-                    const s = sampleChannel(keys, 30);
-                    return new THREE.VectorKeyframeTrack(name, s.times, s.values);
-                }
-                const track = new THREE.VectorKeyframeTrack(
-                    name, keys.map(k => k.time), keys.flatMap(k => k.value));
-                if (keys.every(k => k.interp === 'step')) track.setInterpolation(THREE.InterpolateDiscrete);
-                else if (keys.some(k => k.interp === 'smooth')) track.setInterpolation(THREE.InterpolateSmooth);
-                return track;
-            }
-
-            createAnimationClip(object, animation) {
-                const uuid = object.uuid;
-                const keyframes = animation.keyframes.get(uuid);
-
-                if (!keyframes || keyframes.length === 0) {
-                    return null;
-                }
-
-                const tracks = [];
-
-                // Position track (honours per-keyframe interpolation / curves).
-                const posTrack = this._vectorTrack(object, keyframes, 'position', animation);
-                if (posTrack) tracks.push(posTrack);
-
-                // Process rotation keyframes
-                const rotationTimes = [];
-                const rotationValues = [];
-                
-                keyframes.forEach(kf => {
-                    if (kf.properties.rotation) {
-                        rotationTimes.push(kf.time);
-                        // Convert Euler angles to quaternion
-                        const quaternion = new THREE.Quaternion();
-                        quaternion.setFromEuler(new THREE.Euler(
-                            kf.properties.rotation[0],
-                            kf.properties.rotation[1],
-                            kf.properties.rotation[2]
-                        ));
-                        rotationValues.push(...quaternion.toArray());
-                    }
-                });
-                
-                if (rotationTimes.length > 0) {
-                    tracks.push(new THREE.QuaternionKeyframeTrack(
-                        `${object.uuid}.quaternion`,
-                        rotationTimes,
-                        rotationValues
-                    ));
-                }
-                
-                // Scale track (honours per-keyframe interpolation / curves).
-                const scaleTrack = this._vectorTrack(object, keyframes, 'scale', animation);
-                if (scaleTrack) tracks.push(scaleTrack);
-
-                // Morph target (shape key) tracks — one NumberKeyframeTrack per named morph.
-                if (object.morphTargetDictionary) {
-                    const morphNames = new Set();
-                    keyframes.forEach(kf => kf.properties.morphs &&
-                        Object.keys(kf.properties.morphs).forEach(n => morphNames.add(n)));
-                    morphNames.forEach(name => {
-                        const idx = object.morphTargetDictionary[name];
-                        if (idx == null) return;
-                        const times = [], values = [];
-                        keyframes.forEach(kf => {
-                            if (kf.properties.morphs && kf.properties.morphs[name] != null) {
-                                times.push(kf.time);
-                                values.push(kf.properties.morphs[name]);
-                            }
-                        });
-                        if (times.length) tracks.push(new THREE.NumberKeyframeTrack(
-                            `${object.uuid}.morphTargetInfluences[${idx}]`, times, values));
-                    });
-                }
-
-                return new THREE.AnimationClip(animation.name, animation.duration, tracks);
+                if (!this.selectedAnimation) return [];
+                return this.selectedAnimation.keyframes.get(object.uuid) || [];
             }
 
             // Set the interpolation mode ('linear'|'smooth'|'step'|'bezier') and optional
@@ -1673,175 +1605,6 @@
                 return true;
             }
 
-            setCurve(object, property, channel, curve) {
-                if (!this.selectedAnimation) {
-                    return false;
-                }
-                
-                const uuid = object.uuid;
-                
-                if (!this.selectedAnimation.curves.has(uuid)) {
-                    this.selectedAnimation.curves.set(uuid, {});
-                }
-                
-                const curves = this.selectedAnimation.curves.get(uuid);
-                
-                if (!curves[property]) {
-                    curves[property] = {};
-                }
-                
-                curves[property][channel] = curve;
-                
-                return true;
-            }
-
-            getCurve(object, property, channel) {
-                if (!this.selectedAnimation) {
-                    return null;
-                }
-                
-                const uuid = object.uuid;
-                
-                if (!this.selectedAnimation.curves.has(uuid)) {
-                    return null;
-                }
-                
-                const curves = this.selectedAnimation.curves.get(uuid);
-                
-                if (!curves[property] || !curves[property][channel]) {
-                    return null;
-                }
-                
-                return curves[property][channel];
-            }
-
-            createTween(object, from, to, duration, easing = 'linear') {
-                const uuid = object.uuid;
-                
-                if (!this.selectedAnimation) {
-                    return false;
-                }
-                
-                if (!this.selectedAnimation.tweens.has(uuid)) {
-                    this.selectedAnimation.tweens.set(uuid, []);
-                }
-                
-                const tweens = this.selectedAnimation.tweens.get(uuid);
-                
-                const tween = {
-                    from: { ...from },
-                    to: { ...to },
-                    duration,
-                    easing,
-                    startTime: this.currentTime,
-                    object: object
-                };
-                
-                tweens.push(tween);
-                
-                // Create tween instance
-                if (!this.tweens.has(uuid)) {
-                    this.tweens.set(uuid, []);
-                }
-                
-                const objectTweens = this.tweens.get(uuid);
-                objectTweens.push(this.createTweenInstance(tween));
-                
-                return true;
-            }
-
-            createTweenInstance(tweenData) {
-                // Simple tween implementation
-                // In a real implementation, you would use a tweening library
-                const tween = {
-                    startTime: tweenData.startTime,
-                    duration: tweenData.duration,
-                    from: tweenData.from,
-                    to: tweenData.to,
-                    object: tweenData.object,
-                    easing: tweenData.easing,
-                    
-                    update: function() {
-                        const currentTime = this.animationManager.currentTime;
-                        const elapsed = currentTime - this.startTime;
-                        
-                        if (elapsed < 0 || elapsed > this.duration) {
-                            return;
-                        }
-                        
-                        const progress = Math.min(1, elapsed / this.duration);
-                        const easedProgress = this.applyEasing(progress, this.easing);
-                        
-                        // Interpolate values
-                        for (const property in this.from) {
-                            if (this.to.hasOwnProperty(property)) {
-                                const fromVal = this.from[property];
-                                const toVal = this.to[property];
-                                const currentVal = fromVal + (toVal - fromVal) * easedProgress;
-                                
-                                // Apply to object
-                                if (property === 'position') {
-                                    this.object.position.set(
-                                        currentVal.x || currentVal[0],
-                                        currentVal.y || currentVal[1],
-                                        currentVal.z || currentVal[2]
-                                    );
-                                } else if (property === 'rotation') {
-                                    this.object.rotation.set(
-                                        currentVal.x || currentVal[0],
-                                        currentVal.y || currentVal[1],
-                                        currentVal.z || currentVal[2]
-                                    );
-                                } else if (property === 'scale') {
-                                    this.object.scale.set(
-                                        currentVal.x || currentVal[0],
-                                        currentVal.y || currentVal[1],
-                                        currentVal.z || currentVal[2]
-                                    );
-                                } else if (property === 'color' && this.object.material) {
-                                    this.object.material.color.setHex(currentVal);
-                                }
-                            }
-                        }
-                    },
-                    
-                    applyEasing: function(t, easing) {
-                        switch (easing) {
-                            case 'easeIn':
-                                return t * t;
-                            case 'easeOut':
-                                return t * (2 - t);
-                            case 'easeInOut':
-                                return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-                            default: // linear
-                                return t;
-                        }
-                    },
-                    
-                    start: function() {
-                        this.startTime = this.animationManager.currentTime;
-                    },
-                    
-                    pause: function() {
-                        // Implementation would track paused state
-                    },
-                    
-                    stop: function() {
-                        // Implementation would reset object to initial state
-                    },
-                    
-                    seek: function(time) {
-                        // Implementation would set object to specific time in tween
-                    }
-                };
-                
-                // Bind animation manager to tween
-                tween.animationManager = this;
-                
-                return tween;
-            }
-
-            // Export animation data
             exportAnimation(name) {
                 if (!this.animations.has(name)) {
                     return null;

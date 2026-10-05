@@ -25,7 +25,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:e2e": "node test/e2e/render-film.mjs",
     "test:av": "node test/e2e/render-av.mjs",
-    "test:all": "npm test && npm run test:e2e && npm run test:av && npm run test:studio && npm run test:legacy && npm run test:bundle",
+    "test:all": "npm test && npm run test:e2e && npm run test:av && npm run test:studio && npm run test:legacy && npm run test:roundtrip && npm run test:bundle",
     "produce": "node scripts/produce.mjs",
     "icons": "node scripts/make-icons.mjs",
     "serve": "python3 -m http.server 8080",
@@ -34,7 +34,8 @@
     "build:legacy": "terser animateEngine.js -c -m -o animateEngine.min.js",
     "prepublishOnly": "npm run build && npm run build:legacy && npm test",
     "test:bundle": "node test/e2e/bundle.mjs",
-    "test:studio": "node test/e2e/studio.mjs"
+    "test:studio": "node test/e2e/studio.mjs",
+    "test:roundtrip": "node test/e2e/legacy-roundtrip.mjs"
   },
   "keywords": [
     "animation",

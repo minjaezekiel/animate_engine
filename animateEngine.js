@@ -126,27 +126,31 @@
                 if (record) this.history.push();
             }
 
-            autosave() {
+            autosave(json) {
+                const body = json ?? JSON.stringify(this.serializeProject());
                 try {
-                    localStorage.setItem('animateEngine.project',
-                        JSON.stringify(this.serializeProject()));
-                } catch (e) { /* storage full or unavailable — ignore */ }
+                    localStorage.setItem('animateEngine.project', body);
+                    this._autosaveWarned = false;
+                } catch (e) {
+                    // Geometry is serialized in full now, so a sculpt can
+                    // outgrow the ~5MB localStorage quota. Skipping is the
+                    // right call -- the previous snapshot stays usable and
+                    // Save Project writes the whole thing to a file -- but it
+                    // has to SAY so, because silently not saving is exactly
+                    // how work disappears.
+                    if (!this._autosaveWarned) {
+                        this._autosaveWarned = true;
+                        console.warn('animateEngine: autosave skipped — the project is '
+                            + `${(body.length / 1048576).toFixed(1)}MB, more than this browser `
+                            + 'will store. Use Save Project to keep it.');
+                    }
+                }
             }
 
             restoreAutosave() {
                 try {
                     const saved = localStorage.getItem('animateEngine.project');
-                    if (!saved) return;
-                    const project = JSON.parse(saved);
-                    // An empty scene is honest; a scene full of cubes pretending to
-                    // be your sculpt is not. The snapshot is left in storage so an
-                    // explicit load can still inspect it.
-                    if (project.scene && project.scene.lossy) {
-                        console.warn('animateEngine: autosave skipped — it contains sculpted or '
-                            + 'imported meshes that cannot be restored yet. Use Load Project.');
-                        return;
-                    }
-                    this.applyProject(project);
+                    if (saved) this.applyProject(JSON.parse(saved));
                 } catch (e) { /* corrupt autosave — ignore */ }
             }
 
@@ -479,9 +483,53 @@
         /**
          * Enhanced Scene Manager - Handles all scene-related operations
          */
-        // Geometry types importScene can actually reconstruct.
-        const ROUNDTRIP_GEOMETRY = new Set(['BoxGeometry', 'SphereGeometry', 'CylinderGeometry',
-            'ConeGeometry', 'TorusGeometry', 'TetrahedronGeometry']);
+        /**
+         * Temporarily replace an Object3D's children, returning the undo.
+         *
+         * toJSON walks `children` directly, so swapping the array is enough to
+         * keep furniture out of a save -- and unlike re-parenting it cannot
+         * leave the live scene wrong if something throws in between.
+         */
+        function swapChildren(object, children) {
+            const previous = object.children;
+            object.children = children;
+            return () => { object.children = previous; };
+        }
+
+        /**
+         * Make a mesh's geometry safe to edit vertex by vertex.
+         *
+         * BufferGeometry.toJSON serializes a PARAMETRIC geometry (BoxGeometry
+         * and friends) as its parameters and discards the attribute arrays
+         * entirely -- so sculpting a primitive and saving gives back a
+         * pristine primitive, silently. Once the vertices stop being described
+         * by the parameters, the geometry has to stop claiming they are.
+         */
+        function makeGeometryEditable(mesh) {
+            const geometry = mesh.geometry;
+            if (!geometry || !geometry.parameters) return geometry;
+            const plain = new THREE.BufferGeometry().copy(geometry);   // copy() drops `parameters`
+            plain.name = geometry.name;
+            geometry.dispose();
+            mesh.geometry = plain;
+            return plain;
+        }
+
+        const TEXTURE_SLOTS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'];
+
+        /** Detach a material's texture maps for the duration of a save. */
+        function detachTextures(material) {
+            const undos = [];
+            for (const m of Array.isArray(material) ? material : [material]) {
+                for (const slot of TEXTURE_SLOTS) {
+                    if (!m[slot]) continue;
+                    const texture = m[slot];
+                    m[slot] = null;
+                    undos.push(() => { m[slot] = texture; });
+                }
+            }
+            return undos;
+        }
 
         class SceneManager {
             constructor() {
@@ -940,22 +988,14 @@
                         light.castShadow = true;
                 }
                 
-                // Add a helper for the light
-                let helper;
-                if (type === 'point') {
-                    helper = new THREE.PointLightHelper(light, 0.5);
-                } else if (type === 'spot') {
-                    helper = new THREE.SpotLightHelper(light);
-                } else if (type === 'directional') {
-                    helper = new THREE.DirectionalLightHelper(light, 1);
-                }
-                
-                if (helper) {
-                    light.add(helper);
-                }
-                
+                this._addLightHelper(light);
+
                 this.scene.add(light);
                 this.lights.set(light.uuid, light);
+                // Lights go in `objects` too. They were only ever in `lights`,
+                // so they were absent from the hierarchy panel and could not
+                // be clicked in the viewport.
+                this.objects.set(light.uuid, light);
                 light.name = name || `Light_${this.lights.size}`;
                 
                 // Store properties
@@ -1024,158 +1064,176 @@
                 return false;
             }
 
-            // Export scene data
+            /**
+             * Serialize the scene with Three's OWN serializer.
+             *
+             * The hand-rolled version wrote a geometry TYPE NAME and rebuilt
+             * from a switch whose default was createCube, so a sculpt or an
+             * imported model came back as a cube; it wrote groups as
+             * `children` but read `parent`, so hierarchy was lost; and it
+             * never serialized lights at all. Object3D.toJSON already handles
+             * geometry parameters, modified vertex buffers, materials,
+             * hierarchy, lights and every light subclass -- and ObjectLoader
+             * reads it back preserving uuids, so keyframes keyed by uuid
+             * survive a round trip without the reassignUUID dance.
+             */
             exportScene() {
-                const sceneData = {
-                    objects: [],
-                    lights: [],
-                    groups: [],
-                    metadata: {
-                        version: '1.0',
-                        exportDate: new Date().toISOString()
-                    }
-                };
-                
-                // Export objects
-                this.objects.forEach((object, uuid) => {
-                    if (object.type === 'Group') {
-                        sceneData.groups.push({
-                            uuid: object.uuid,
-                            name: object.name,
-                            type: object.type,
-                            position: [object.position.x, object.position.y, object.position.z],
-                            rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
-                            scale: [object.scale.x, object.scale.y, object.scale.z],
-                            children: object.children.map(child => child.uuid),
-                            properties: this.objectProperties.get(uuid)
-                        });
-                    } else if (object.isLight) {
-                        sceneData.lights.push({
-                            uuid: object.uuid,
-                            name: object.name,
-                            type: object.type,
-                            position: [object.position.x, object.position.y, object.position.z],
-                            color: object.color.getHex(),
-                            intensity: object.intensity,
-                            properties: this.objectProperties.get(uuid)
-                        });
-                    } else if (object.isMesh) {
-                        // importScene rebuilds geometry from this type name and
-                        // falls back to a cube for anything else, so a sculpted or
-                        // imported mesh does not survive the round trip. Flag it
-                        // rather than let autosave silently replace it on reload.
-                        if (!ROUNDTRIP_GEOMETRY.has(object.geometry.type)) sceneData.lossy = true;
-                        sceneData.objects.push({
-                            uuid: object.uuid,
-                            name: object.name,
-                            type: object.type,
-                            geometry: object.geometry.type,
-                            material: {
-                                type: object.material.type,
-                                color: object.material.color.getHex(),
-                                textures: object.userData.textures || null
-                            },
-                            position: [object.position.x, object.position.y, object.position.z],
-                            rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
-                            scale: [object.scale.x, object.scale.y, object.scale.z],
-                            properties: this.objectProperties.get(uuid)
-                        });
-                    }
+                const restore = [];
+                // Serialize only what the user made. The grid, the axes and
+                // the light helpers are furniture, and a helper parented to a
+                // light would come back as a stray Object3D on load.
+                restore.push(swapChildren(this.scene,
+                    this.scene.children.filter((c) => this.objects.has(c.uuid) || this.lights.has(c.uuid))));
+                for (const light of this.lights.values()) {
+                    if (light.children.length) restore.push(swapChildren(light, []));
+                }
+                // Texture images are embedded by toJSON as data URLs, which is
+                // megabytes per map and throws outright on a cross-origin
+                // image. The source URLs are already in userData.textures, so
+                // detach the maps and re-apply them on load.
+                this.objects.forEach((object) => {
+                    if (object.material) restore.push(...detachTextures(object.material));
                 });
-                
-                return JSON.stringify(sceneData, null, 2);
+
+                let three;
+                try {
+                    // toJSON serializes object.matrix, which Three only
+                    // refreshes during a render. Autosave fires on mutation,
+                    // before the next frame, so without this a save could
+                    // record the transform an object had one frame ago.
+                    this.scene.updateMatrixWorld(true);
+                    three = this.scene.toJSON();
+                } finally {
+                    for (const undo of restore) undo();
+                }
+
+                const properties = {};
+                this.objectProperties.forEach((value, uuid) => { properties[uuid] = value; });
+
+                return JSON.stringify({
+                    format: 'animateEngine.scene/2',
+                    three,
+                    properties,
+                    lights: [...this.lights.keys()],
+                    groups: [...this.groups.keys()],
+                    metadata: { version: '2.0', exportDate: new Date().toISOString() },
+                }, null, 2);
             }
 
-            // Import scene data
             importScene(sceneData) {
                 try {
                     const data = JSON.parse(sceneData);
-                    
-                    // Clear current scene
-                    this.objects.forEach(object => {
-                        this.removeObject(object);
-                    });
-                    
-                    // Import groups first
-                    if (data.groups) {
-                        data.groups.forEach(groupData => {
-                            const group = this.createGroup(groupData.name, groupData.properties);
-                            group.position.set(...groupData.position);
-                            group.rotation.set(...groupData.rotation);
-                            group.scale.set(...groupData.scale);
-                            this.reassignUUID(group, groupData.uuid);
-                        });
-                    }
-                    
-                    // Import objects
-                    if (data.objects) {
-                        data.objects.forEach(objectData => {
-                            let object;
-                            
-                            switch (objectData.geometry) {
-                                case 'BoxGeometry':
-                                    object = this.createCube(objectData.name, objectData.properties);
-                                    break;
-                                case 'SphereGeometry':
-                                    object = this.createSphere(objectData.name, objectData.properties);
-                                    break;
-                                case 'CylinderGeometry':
-                                    object = this.createCylinder(objectData.name, objectData.properties);
-                                    break;
-                                case 'ConeGeometry':
-                                    object = this.createCone(objectData.name, objectData.properties);
-                                    break;
-                                case 'TorusGeometry':
-                                    object = this.createTorus(objectData.name, objectData.properties);
-                                    break;
-                                case 'TetrahedronGeometry':
-                                    object = this.createTetrahedron(objectData.name, objectData.properties);
-                                    break;
-                                default:
-                                    object = this.createCube(objectData.name, objectData.properties);
-                            }
-                            
-                            object.position.set(...objectData.position);
-                            object.rotation.set(...objectData.rotation);
-                            object.scale.set(...objectData.scale);
-                            
-                            if (objectData.material && objectData.material.color) {
-                                object.material.color.setHex(objectData.material.color);
-                            }
-                            if (objectData.material && objectData.material.textures) {
-                                Object.entries(objectData.material.textures).forEach(([slot, url]) => {
-                                    try { this.setTexture(object.uuid, slot, url); } catch (e) { /* skip */ }
-                                });
-                            }
+                    this.objects.forEach((object) => this.removeObject(object));
+                    this.lights.forEach((light) => this.removeObject(light));
+                    this.objects.clear();
+                    this.lights.clear();
+                    this.groups.clear();
+                    this.objectProperties.clear();
 
-                            // Add to group if specified
-                            if (objectData.parent) {
-                                const parent = this.getObjectByUUID(objectData.parent);
-                                if (parent && parent.type === 'Group') {
-                                    this.addToGroup(object, parent);
-                                }
-                            }
+                    if (!data.three) return this._importSceneV1(data);
 
-                            this.reassignUUID(object, objectData.uuid);
-                        });
-                    }
+                    const parsed = new THREE.ObjectLoader().parse(data.three);
+                    const lightIds = new Set(data.lights || []);
+                    const groupIds = new Set(data.groups || []);
 
-                    // Import lights
-                    if (data.lights) {
-                        data.lights.forEach(lightData => {
-                            const light = this.createLight(lightData.type.toLowerCase(), lightData.name, lightData.properties);
-                            light.position.set(...lightData.position);
-                            light.color.setHex(lightData.color);
-                            light.intensity = lightData.intensity;
-                            this.reassignUUID(light, lightData.uuid);
-                        });
+                    // parsed.children shrinks as we re-parent, so copy first.
+                    for (const child of [...parsed.children]) {
+                        this.scene.add(child);
+                        this._registerRestored(child, lightIds, groupIds, data.properties || {});
                     }
-                    
                     return true;
                 } catch (error) {
                     console.error('Error importing scene:', error);
                     return false;
                 }
+            }
+
+            /** Re-register a restored subtree into the manager's maps. */
+            _registerRestored(object, lightIds, groupIds, properties) {
+                const props = properties[object.uuid];
+                if (props) this.objectProperties.set(object.uuid, props);
+
+                if (object.isLight || lightIds.has(object.uuid)) {
+                    this.lights.set(object.uuid, object);
+                    // Lights belong in `objects` too: the hierarchy panel and
+                    // click-selection both read `objects`, which is why lights
+                    // were invisible to both.
+                    this.objects.set(object.uuid, object);
+                    this._addLightHelper(object);
+                    return;                       // helpers are not content
+                }
+
+                this.objects.set(object.uuid, object);
+                if (object.isGroup || groupIds.has(object.uuid)) this.groups.set(object.uuid, object);
+                if (object.userData && object.userData.textures) {
+                    Object.entries(object.userData.textures).forEach(([slot, url]) => {
+                        this.setTexture(object.uuid, slot, url).catch(() => {});
+                    });
+                }
+                for (const child of object.children) {
+                    this._registerRestored(child, lightIds, groupIds, properties);
+                }
+            }
+
+            /** The helper a light of this type gets, if any. */
+            _addLightHelper(light) {
+                let helper = null;
+                if (light.isPointLight) helper = new THREE.PointLightHelper(light, 0.5);
+                else if (light.isSpotLight) helper = new THREE.SpotLightHelper(light);
+                else if (light.isDirectionalLight) helper = new THREE.DirectionalLightHelper(light, 1);
+                if (helper) light.add(helper);
+                return helper;
+            }
+
+            /**
+             * Load a project written by the pre-2.0 serializer.
+             *
+             * Still lossy, because the data is: those files never contained
+             * geometry parameters or vertices. It restores what was actually
+             * recorded rather than refusing to open an old project.
+             */
+            _importSceneV1(data) {
+                const make = {
+                    BoxGeometry: 'createCube', SphereGeometry: 'createSphere',
+                    CylinderGeometry: 'createCylinder', ConeGeometry: 'createCone',
+                    TorusGeometry: 'createTorus', TetrahedronGeometry: 'createTetrahedron',
+                };
+                (data.groups || []).forEach((g) => {
+                    const group = this.createGroup(g.name, g.properties);
+                    group.position.set(...g.position);
+                    group.rotation.set(...g.rotation);
+                    group.scale.set(...g.scale);
+                    this.reassignUUID(group, g.uuid);
+                });
+                (data.objects || []).forEach((o) => {
+                    const object = this[make[o.geometry] || 'createCube'](o.name, o.properties);
+                    object.position.set(...o.position);
+                    object.rotation.set(...o.rotation);
+                    object.scale.set(...o.scale);
+                    if (o.material && o.material.color != null) object.material.color.setHex(o.material.color);
+                    if (o.material && o.material.textures) {
+                        Object.entries(o.material.textures).forEach(([slot, url]) => {
+                            this.setTexture(object.uuid, slot, url).catch(() => {});
+                        });
+                    }
+                    if (o.parent) {
+                        const parent = this.getObjectByUUID(o.parent);
+                        if (parent && parent.type === 'Group') this.addToGroup(object, parent);
+                    }
+                    this.reassignUUID(object, o.uuid);
+                });
+                (data.lights || []).forEach((l) => {
+                    // `type` is a class name like "PointLight"; the old code
+                    // lower-cased the whole thing, matched no case and turned
+                    // every light in the file into a point light.
+                    const kind = String(l.type || '').replace(/Light$/, '').toLowerCase();
+                    const light = this.createLight(kind, l.name, l.properties);
+                    light.position.set(...l.position);
+                    light.color.setHex(l.color);
+                    light.intensity = l.intensity;
+                    this.reassignUUID(light, l.uuid);
+                });
+                return true;
             }
 
             // Import 3D model
@@ -2616,7 +2674,7 @@
                 this.isSculpting = true;
                 
                 // Store original vertices
-                const geometry = object.geometry;
+                const geometry = makeGeometryEditable(object);
                 if (!geometry.attributes.position) return;
                 
                 this.originalVertices = geometry.attributes.position.array.slice();
@@ -2631,7 +2689,7 @@
             handleSculpting(event, object) {
                 if (!this.isSculpting || !object.isMesh) return;
                 
-                const geometry = object.geometry;
+                const geometry = makeGeometryEditable(object);
                 if (!geometry.attributes.position) return;
                 
                 // Get mouse position in normalized device coordinates
@@ -4183,26 +4241,39 @@
          * object produced by engine.serializeProject() and restored via applyProject().
          */
         class HistoryManager {
-            constructor(engine, limit = 30) {
+            constructor(engine, limit = 30, budgetBytes = 64 * 1024 * 1024) {
                 this.engine = engine;
                 this.limit = limit;
-                this.stack = [];
+                // Snapshots now carry real geometry, so 30 of a sculpted mesh
+                // is a memory problem rather than a rounding error. Drop the
+                // oldest until the stack fits; losing the far end of undo
+                // beats running the tab out of memory.
+                this.budgetBytes = budgetBytes;
+                this.stack = [];     // JSON strings: measurable, and smaller than object graphs
+                this.bytes = 0;
                 this.index = -1;
                 this.suspended = false; // true while restoring, so restores aren't recorded
             }
 
             push() {
                 if (this.suspended) return;
+                for (const dropped of this.stack.slice(this.index + 1)) this.bytes -= dropped.length;
                 this.stack = this.stack.slice(0, this.index + 1);
-                this.stack.push(this.engine.serializeProject());
-                if (this.stack.length > this.limit) this.stack.shift();
+
+                const snapshot = JSON.stringify(this.engine.serializeProject());
+                this.stack.push(snapshot);
+                this.bytes += snapshot.length;
+                while (this.stack.length > 1
+                    && (this.stack.length > this.limit || this.bytes > this.budgetBytes)) {
+                    this.bytes -= this.stack.shift().length;
+                }
                 this.index = this.stack.length - 1;
-                this.engine.autosave();
+                this.engine.autosave(snapshot);
             }
 
             _restore(snapshot) {
                 this.suspended = true;
-                this.engine.applyProject(snapshot);
+                this.engine.applyProject(JSON.parse(snapshot));
                 this.suspended = false;
             }
 

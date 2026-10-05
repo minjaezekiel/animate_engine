@@ -1,10 +1,8 @@
 /**
- * Phase 0.5 guards on the legacy 3D editor.
+ * Playback must survive a project load.
  *
- * 1. a snapshot containing geometry importScene cannot rebuild is flagged
- *    lossy, so autosave never silently replaces a sculpt with a cube
- * 2. mixers are rebuilt on demand, so playback and scrubbing work after a
- *    project load instead of silently doing nothing
+ * The lossy-snapshot guard that used to live here is gone: the round trip is
+ * real now, and test/e2e/legacy-roundtrip.mjs asserts it vertex by vertex.
  */
 import puppeteer from 'puppeteer-core';
 import { createServer } from 'node:http';
@@ -26,13 +24,8 @@ const out=await pg.evaluate(()=>{
   const e=(window.AnimationEngine&&window.AnimationEngine.animationEngine)||window.animationEngine||null;
   if(!e) return {error:'engine did not boot'};
   const sm=e.sceneManager, am=e.animationManager;
-  // guard 2: a sculpted mesh must mark the snapshot lossy
   const cube=sm.createCube('c');
-  const before=JSON.parse(sm.exportScene()).lossy||false;
-  cube.geometry=new THREE.BufferGeometry().copy(cube.geometry); // no .type match
-  cube.geometry.type='SculptedGeometry';
-  const after=JSON.parse(sm.exportScene()).lossy||false;
-  // guard 1: playback after a load, with mixers never populated
+  // playback after a load, with mixers never populated
   am.createAnimation('a',2,'once'); am.selectAnimation('a');
   am.addKeyframe(cube,0,{position:[0,0,0]});
   am.addKeyframe(cube,2,{position:[10,0,0]});
@@ -44,10 +37,10 @@ const out=await pg.evaluate(()=>{
   am.setCurrentTime(1);                    // scrub without pressing play
   const mixersAfterScrub=am.mixers.size;
   const x=cube.position.x;
-  return {lossyBefore:before, lossyAfter:after, mixersAfterImport, mixersAfterScrub, xAt1s:+x.toFixed(2)};
+  return {mixersAfterImport, mixersAfterScrub, xAt1s:+x.toFixed(2)};
 });
 console.log(JSON.stringify(out));
 await br.close(); srv.close();
-const ok = out.lossyBefore===false && out.lossyAfter===true && out.mixersAfterScrub===1 && Math.abs(out.xAt1s-5)<0.6;
-console.log(ok?'PASS: lossy flagged, mixers rebuilt on scrub, object animated':'FAIL');
+const ok = out.mixersAfterScrub===1 && Math.abs(out.xAt1s-5)<0.6;
+console.log(ok?'PASS: mixers rebuilt on scrub, object animated':'FAIL');
 process.exit(ok?0:1);

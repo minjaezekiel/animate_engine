@@ -72,6 +72,9 @@
                 this.editManager = new EditManager(this.sceneManager, this.uiManager);
                 this.mediaManager = new MediaManager(this.sceneManager, this.animationManager);
                 this.recordingManager = new RecordingManager(this.sceneManager, this.animationManager, this.mediaManager);
+                // So an export can advance physics in fixed substeps; without
+                // it, physics simply did not happen in any exported frame.
+                this.recordingManager.physicsManager = this.physicsManager;
                 this.rigManager = new RigManager(this.sceneManager, this.animationManager);
                 this.cameraManager = new CameraManager(this.sceneManager);
                 this.sceneManager.cameraManager = this.cameraManager;
@@ -1689,6 +1692,9 @@
                 this.objects = new Map(); // Map of object UUID to physics body
                 this.gravity = -9.8;
                 this.timeStep = 1 / 60;
+                this.simulatedTime = 0;
+                // Where each body started, so a render can rewind to t=0.
+                this.initialTransforms = new Map();
             }
 
             init() {
@@ -1700,19 +1706,56 @@
             }
 
             update() {
-                if (this.enabled && this.world) {
-                    // Step the physics world
-                    this.world.step(this.timeStep);
-                    
-                    // Update Three.js objects based on physics bodies
-                    this.objects.forEach((body, uuid) => {
-                        const object = this.sceneManager.getObjectByUUID(uuid);
-                        if (object) {
-                            object.position.copy(body.position);
-                            object.quaternion.copy(body.quaternion);
-                        }
-                    });
-                }
+                if (!this.enabled || !this.world) return;
+                this.world.step(this.timeStep);
+                this._syncBodies();
+                this.simulatedTime += this.timeStep;
+            }
+
+            /**
+             * Advance the simulation to an absolute time in fixed substeps.
+             *
+             * An offline render steps frames rather than waiting for them, so
+             * it never calls update() and physics simply did not happen in any
+             * export -- objects sat wherever the last live frame left them.
+             * Fixed substeps also make the result reproducible, which a
+             * variable realtime step never was.
+             */
+            stepTo(tSec) {
+                if (!this.enabled || !this.world) return;
+                // Going backwards means a scrub or a re-render; the only
+                // honest answer is to start over, since a solver has no
+                // reverse.
+                if (tSec < this.simulatedTime) this.resetSimulation();
+                // Cap the catch-up so a jump to the end of a long animation
+                // cannot lock the tab solving a million substeps.
+                const steps = Math.min(Math.ceil((tSec - this.simulatedTime) / this.timeStep), 4000);
+                for (let i = 0; i < steps; i++) this.world.step(this.timeStep);
+                this.simulatedTime += steps * this.timeStep;
+                this._syncBodies();
+            }
+
+            /** Put every body back where its Three object started. */
+            resetSimulation() {
+                this.simulatedTime = 0;
+                this.objects.forEach((body, uuid) => {
+                    const start = this.initialTransforms.get(uuid);
+                    if (!start) return;
+                    body.position.set(...start.position);
+                    body.quaternion.set(...start.quaternion);
+                    body.velocity.set(0, 0, 0);
+                    body.angularVelocity.set(0, 0, 0);
+                });
+            }
+
+            _syncBodies() {
+                this.objects.forEach((body, uuid) => {
+                    const object = this.sceneManager.getObjectByUUID(uuid);
+                    if (object) {
+                        object.position.copy(body.position);
+                        object.quaternion.copy(body.quaternion);
+                    }
+                });
             }
 
             enable() {
@@ -1833,6 +1876,12 @@
                         
                         this.world.addBody(body);
                         this.objects.set(uuid, body);
+                        // Remember the rest state so stepTo can rewind to t=0.
+                        this.initialTransforms.set(uuid, {
+                            position: [body.position.x, body.position.y, body.position.z],
+                            quaternion: [body.quaternion.x, body.quaternion.y,
+                                         body.quaternion.z, body.quaternion.w],
+                        });
                     }
                 }
             }
@@ -1843,6 +1892,7 @@
                     const body = this.objects.get(uuid);
                     this.world.removeBody(body);
                     this.objects.delete(uuid);
+                    this.initialTransforms.delete(uuid);
                 }
             }
 
@@ -3653,109 +3703,21 @@
                 }
             }
 
+            /**
+             * Scene transitions are rendered, not overlaid on the page.
+             *
+             * This used to build an absolutely-positioned <div> over the
+             * viewport and animate it with CSS, so a transition was visible
+             * on screen and invisible in every single export -- it is not
+             * part of the canvas. The 2D compiler builds fade and crossfade as
+             * ordinary alpha tracks, which is why they survive a render; the
+             * 3D path will take the same route.
+             */
             applySceneTransition(transition) {
-                const viewport = document.getElementById('viewport');
-                
-                // Create transition overlay
-                const overlay = document.createElement('div');
-                overlay.style.position = 'absolute';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.backgroundColor = '#000';
-                overlay.style.zIndex = '100';
-                overlay.style.pointerEvents = 'none';
-                
-                viewport.appendChild(overlay);
-                
-                // Apply transition based on type
-                switch (transition) {
-                    case 'fade':
-                        overlay.style.opacity = '0';
-                        overlay.style.transition = 'opacity 1s';
-                        setTimeout(() => {
-                            overlay.style.opacity = '1';
-                            setTimeout(() => {
-                                overlay.style.opacity = '0';
-                                setTimeout(() => {
-                                    viewport.removeChild(overlay);
-                                }, 1000);
-                            }, 500);
-                        }, 10);
-                        break;
-                    case 'slide':
-                        overlay.style.transform = 'translateX(-100%)';
-                        overlay.style.transition = 'transform 1s';
-                        setTimeout(() => {
-                            overlay.style.transform = 'translateX(0)';
-                            setTimeout(() => {
-                                overlay.style.transform = 'translateX(100%)';
-                                setTimeout(() => {
-                                    viewport.removeChild(overlay);
-                                }, 1000);
-                            }, 500);
-                        }, 10);
-                        break;
-                    case 'zoom':
-                        overlay.style.transform = 'scale(0)';
-                        overlay.style.transition = 'transform 1s';
-                        setTimeout(() => {
-                            overlay.style.transform = 'scale(1)';
-                            setTimeout(() => {
-                                overlay.style.transform = 'scale(2)';
-                                setTimeout(() => {
-                                    viewport.removeChild(overlay);
-                                }, 1000);
-                            }, 500);
-                        }, 10);
-                        break;
-                    case 'wipe':
-                        overlay.style.clipPath = 'inset(0 100% 0 0)';
-                        overlay.style.transition = 'clip-path 1s';
-                        setTimeout(() => {
-                            overlay.style.clipPath = 'inset(0 0% 0 0)';
-                            setTimeout(() => {
-                                overlay.style.clipPath = 'inset(0 0% 0 100%)';
-                                setTimeout(() => {
-                                    viewport.removeChild(overlay);
-                                }, 1000);
-                            }, 500);
-                        }, 10);
-                        break;
-                    case 'dissolve':
-                        // Create a grid of small squares for dissolve effect
-                        const gridSize = 20;
-                        const gridWidth = Math.ceil(viewport.offsetWidth / gridSize);
-                        const gridHeight = Math.ceil(viewport.offsetHeight / gridSize);
-                        
-                        for (let y = 0; y < gridHeight; y++) {
-                            for (let x = 0; x < gridWidth; x++) {
-                                const square = document.createElement('div');
-                                square.style.position = 'absolute';
-                                square.style.left = `${x * gridSize}px`;
-                                square.style.top = `${y * gridSize}px`;
-                                square.style.width = `${gridSize}px`;
-                                square.style.height = `${gridSize}px`;
-                                square.style.backgroundColor = '#000';
-                                square.style.opacity = '0';
-                                square.style.transition = `opacity ${Math.random() * 0.5 + 0.5}s`;
-                                overlay.appendChild(square);
-                                
-                                setTimeout(() => {
-                                    square.style.opacity = '1';
-                                    setTimeout(() => {
-                                        square.style.opacity = '0';
-                                    }, 500);
-                                }, Math.random() * 500);
-                            }
-                        }
-                        
-                        setTimeout(() => {
-                            viewport.removeChild(overlay);
-                        }, 2000);
-                        break;
-                }
+                this.showNotification(
+                    `"${transition}" transitions are not rendered yet, so they would be `
+                    + 'invisible in an export. Use a fade keyframed on the objects instead.',
+                    'info');
             }
 
             update() {
@@ -4433,16 +4395,59 @@
                 downloadBlob(this.lastRecording, 'animation.webm');
             }
 
+            /**
+             * Render the selected animation to WebM by stepping frames.
+             *
+             * The old path played the animation in real time into a
+             * MediaRecorder fed by captureStream(30) and stopped it with a
+             * wall-clock setTimeout, so it dropped frames under load and came
+             * out the wrong length. This steps an explicit frame index through
+             * the same OfflineRenderer the 2D films use: the content is
+             * frame-exact, physics advances in fixed substeps, and the sink
+             * paces to the wall clock so the file's duration is right.
+             */
+            async renderSelectedAnimation({ fps = 30, width, height, signal = null,
+                                            onProgress = null } = {}) {
+                const anim = this.animationManager.getSelectedAnimation();
+                if (!anim) throw new Error('No animation selected');
+                const timeline = this.animationManager.prepareActions();
+                if (!timeline) throw new Error('The animation core has not loaded yet');
+
+                const [render, sinks, three] = await Promise.all([
+                    import(coreUrl('./src/render/OfflineRenderer.js')),
+                    import(coreUrl('./src/render/sinks/MediaRecorderSink.js')),
+                    import(coreUrl('./src/backends/three3d/Three3DBackend.js')),
+                ]);
+
+                const gl = this.sceneManager.renderer.domElement;
+                const w = width ?? gl.width;
+                const h = height ?? gl.height;
+                const backend = new three.Three3DBackend({ sceneManager: this.sceneManager });
+                const resolve = (uuid) => this.sceneManager.getObjectByUUID(uuid);
+                const poser = three.createThreePoser({
+                    timeline, resolve, samplePose: this.animationManager.core.samplePose,
+                });
+
+                backend.mount(gl, { width: w, height: h });
+                try {
+                    this.physicsManager?.resetSimulation();
+                    return await render.renderOffline({
+                        scene: null, timeline, backend, cameraId: null, poser,
+                        fps, width: w, height: h, durationSec: anim.duration,
+                        physics: this.physicsManager ?? null,
+                        sink: new sinks.MediaRecorderSink(),
+                        signal, onProgress,
+                    });
+                } finally {
+                    // Put the viewport back the way the editor had it.
+                    backend.resize(gl.width, gl.height);
+                    this.animationManager.setCurrentTime(this.animationManager.currentTime);
+                }
+            }
+
             // Record the selected animation and resolve with the resulting WebM Blob.
             recordSelectedAnimation() {
-                return new Promise((resolve, reject) => {
-                    if (!this.animationManager.getSelectedAnimation()) {
-                        reject(new Error('No animation selected'));
-                        return;
-                    }
-                    this._resolveRecording = resolve;
-                    this.startRecording(true);
-                });
+                return this.renderSelectedAnimation();
             }
 
             // Export the selected animation's keyframe data as JSON.

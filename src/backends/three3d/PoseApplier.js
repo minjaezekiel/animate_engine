@@ -63,3 +63,58 @@ function setColor(target, value) {
     if (typeof value === 'number') target.setHex(value);
     else if (typeof value === 'string') target.setStyle(value);
 }
+
+/**
+ * The pose the given channels are in right now.
+ *
+ * The 2D path calls this a baseline and needs it for the same reason: every
+ * frame must start from the authored pose, not from the previous frame's
+ * leftovers, or frame N stops being a pure function of N.
+ */
+export function captureBaseline(channels, resolve) {
+    const baseline = new Map();
+    for (const [uuid, paths] of channels) {
+        const object = resolve(uuid);
+        if (!object) continue;
+        const values = new Map();
+        for (const path of paths) {
+            const value = readChannel(object, path);
+            if (value !== undefined) values.set(path, value);
+        }
+        baseline.set(uuid, values);
+    }
+    return baseline;
+}
+
+export function readChannel(object, path) {
+    const dot = path.indexOf('.');
+    const group = dot < 0 ? path : path.slice(0, dot);
+    switch (group) {
+        case 'position':
+        case 'scale': return [object[group].x, object[group].y, object[group].z];
+        case 'quaternion': return [object.quaternion.x, object.quaternion.y,
+                                   object.quaternion.z, object.quaternion.w];
+        case 'color': return object.material && object.material.color
+            ? object.material.color.getHex() : undefined;
+        case 'visible': return object.visible;
+        case 'morph': {
+            const index = object.morphTargetDictionary
+                && object.morphTargetDictionary[path.slice(dot + 1)];
+            return index != null && object.morphTargetInfluences
+                ? object.morphTargetInfluences[index] : undefined;
+        }
+        case 'morphIndex': {
+            const index = Number(path.slice(dot + 1));
+            return object.morphTargetInfluences ? object.morphTargetInfluences[index] : undefined;
+        }
+        default: return undefined;
+    }
+}
+
+export function restoreBaseline(baseline, resolve) {
+    for (const [uuid, values] of baseline) {
+        const object = resolve(uuid);
+        if (!object) continue;
+        for (const [path, value] of values) applyChannel(object, path, value);
+    }
+}

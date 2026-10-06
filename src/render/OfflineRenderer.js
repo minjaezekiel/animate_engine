@@ -34,7 +34,7 @@ export async function renderOffline({
     scene, timeline, backend, cameraId,
     fps = 24, width, height, durationSec,
     sink, physics = null, onProgress = null, signal = null,
-    beforeFrame = null,
+    beforeFrame = null, poser = null,
 }) {
     const clock = new FrameClock(fps);
     const total = clock.count(durationSec ?? timeline.duration);
@@ -42,7 +42,11 @@ export async function renderOffline({
     // Every frame starts from the authored pose rather than from the previous
     // frame's leftovers. Without this a clip instance that has ended leaves
     // its last pose stuck, and frame N stops being a pure function of N.
-    const baseline = baselineFor(scene, timeline);
+    //
+    // `poser` lets a backend own that step: the 3D backend writes onto THREE
+    // objects, which are not the plain nodes a core Scene holds. The loop
+    // below does not change, which is the part that matters.
+    const pose = poser ?? defaultPoser(scene, timeline);
 
     await sink.configure({
         width, height, fps, totalFrames: total,
@@ -57,8 +61,8 @@ export async function renderOffline({
             const t = clock.timeOf(n);
 
             if (physics) physics.stepTo(t);
-            resetPose(scene, baseline);
-            applyPose(scene, samplePose(timeline, t));
+            pose.reset();
+            pose.apply(t);
             if (beforeFrame) beforeFrame(t, n, scene);
 
             backend.sync(scene);
@@ -79,10 +83,19 @@ export async function renderOffline({
     } finally {
         // Leave the scene as authored, so a preview, a scrub or a second
         // render all start from the same state.
-        resetPose(scene, baseline);
+        pose.reset();
     }
 
     return sink.finish();
+}
+
+/** The core-Scene poser, used whenever a backend does not supply its own. */
+function defaultPoser(scene, timeline) {
+    const baseline = baselineFor(scene, timeline);
+    return {
+        reset() { resetPose(scene, baseline); },
+        apply(tSec) { applyPose(scene, samplePose(timeline, tSec)); },
+    };
 }
 
 /**
@@ -92,21 +105,21 @@ export async function renderOffline({
  * of 1000/fps ms per frame; exceeding it drops frames and drifts audio.
  */
 export async function preflight({
-    scene, timeline, backend, cameraId, fps = 24, frames = 48,
+    scene, timeline, backend, cameraId, fps = 24, frames = 48, poser = null,
 }) {
     const clock = new FrameClock(fps);
-    const baseline = baselineFor(scene, timeline);
+    const pose = poser ?? defaultPoser(scene, timeline);
     const samples = [];
     for (let n = 0; n < frames; n++) {
         const t = clock.timeOf(n);
         const start = performance.now();
-        resetPose(scene, baseline);
-        applyPose(scene, samplePose(timeline, t));
+        pose.reset();
+        pose.apply(t);
         backend.sync(scene);
         backend.renderFrame(scene, cameraId);
         samples.push(performance.now() - start);
     }
-    resetPose(scene, baseline);
+    pose.reset();
     samples.sort((a, b) => a - b);
     const at = (q) => samples[Math.min(samples.length - 1, Math.floor(q * samples.length))];
     return {

@@ -67,10 +67,83 @@ const out=await pg.evaluate(()=>{
   r.xAtEnd=+cube.position.x.toFixed(3);
   return r;
 });
+
+// The 3D editor's scene rendered through the SAME offline loop the 2D films
+// use: frame-stepped, deterministic, with physics advanced in fixed substeps.
+const render=await pg.evaluate(async()=>{
+  const e=window.AnimationEngine.animationEngine;
+  const am=e.animationManager, sm=e.sceneManager;
+  const [render3, sinks, three]=await Promise.all([
+    import('/src/render/OfflineRenderer.js'),
+    import('/src/render/sinks/MemorySink.js'),
+    import('/src/backends/three3d/Three3DBackend.js'),
+  ]);
+  const timeline=am.prepareActions();
+  const backend=new three.Three3DBackend({sceneManager:sm});
+  backend.mount(sm.renderer.domElement,{width:160,height:90});
+  const resolve=(uuid)=>sm.getObjectByUUID(uuid);
+  const gl=sm.renderer.domElement;
+  const probe=document.createElement('canvas');
+  probe.width=16; probe.height=9;
+  const pctx=probe.getContext('2d',{willReadFrequently:true});
+
+  const run=async()=>{
+    const poser=three.createThreePoser({timeline,resolve,samplePose:am.core.samplePose});
+    const digests=[];
+    const sink=new sinks.MemorySink({digest:()=>{
+      pctx.drawImage(gl,0,0,16,9);
+      const d=pctx.getImageData(0,0,16,9).data;
+      let h=2166136261;
+      for(let i=0;i<d.length;i+=7){h^=d[i];h=Math.imul(h,16777619);}
+      return (h>>>0).toString(36);
+    }});
+    const out=await render3.renderOffline({
+      scene:null, timeline, backend, cameraId:null, poser,
+      fps:24, width:160, height:90, durationSec:2, sink,
+    });
+    for(const f of out.frames) digests.push(f.digest);
+    return {out, digests};
+  };
+
+  const a=await run();
+  const b=await run();
+  const r={
+    frames:a.out.count,
+    timestampsExact:a.out.frames.every(f=>f.tSec===f.frameIndex/24),
+    distinct:new Set(a.digests).size,
+    deterministic:a.digests.join()===b.digests.join(),
+  };
+
+  // Physics must advance when an export steps frames. It never did: an
+  // offline render does not call update(), so bodies sat still in every
+  // exported frame.
+  const ball=sm.createSphere('phys');
+  ball.position.set(0,10,0);
+  e.physicsManager.enable?.();
+  e.physicsManager.addObject(ball,{mass:1});
+  e.physicsManager.resetSimulation();
+  const yStart=ball.position.y;
+  e.physicsManager.stepTo(1.0);
+  const yAfter=ball.position.y;
+  e.physicsManager.stepTo(0);            // rewind: a solver has no reverse
+  const yRewound=ball.position.y;
+  e.physicsManager.stepTo(1.0);
+  r.physics={fell:+(yStart-yAfter).toFixed(2), rewound:+yRewound.toFixed(2),
+             repeatable:Math.abs(ball.position.y-yAfter)<1e-6};
+  return r;
+});
+console.log(JSON.stringify(render));
 console.log(JSON.stringify(out));
 await br.close(); srv.close();
 const fails=[];
 if(!out.noMixers) fails.push('mixers/tweens still present');
+if(render.frames!==48) fails.push(`offline render produced ${render.frames} frames, want 48`);
+if(!render.timestampsExact) fails.push('frame timestamps are not exactly n/fps');
+if(render.distinct<20) fails.push(`only ${render.distinct} distinct frames; the scene is not animating`);
+if(!render.deterministic) fails.push('two renders of the same animation differed');
+if(!(render.physics.fell>1)) fails.push(`physics did not advance offline (fell ${render.physics.fell})`);
+if(Math.abs(render.physics.rewound-10)>0.01) fails.push(`rewind left the body at y=${render.physics.rewound}`);
+if(!render.physics.repeatable) fails.push('stepping to the same time twice gave different physics');
 if(Math.abs(out.xAt1s-5)>0.01) fails.push(`position at 1s is ${out.xAt1s}, want 5`);
 if(Math.abs(out.quatYAt1s-Math.sin(Math.PI/4))>0.01) fails.push(`rotation not slerped: quat.y ${out.quatYAt1s}`);
 if(!out.reproducible) fails.push('same time gave a different pose');
@@ -78,4 +151,6 @@ if(!out.stepHolds) fails.push('step interpolation did not hold');
 if(out.colorAt1s===0||out.colorAt1s===0xffffff) fails.push(`colour keyframes not interpolated: ${out.colorAt1s.toString(16)}`);
 if(Math.abs(out.xAtEnd-10)>0.01) fails.push(`position at end is ${out.xAtEnd}, want 10`);
 if(fails.length){ console.error('FAILED:\n - '+fails.join('\n - ')); process.exit(1); }
-console.log('PASS: scrubs after a load, slerps rotation, honours step, animates colour, reproducible');
+console.log(`PASS: scrubs after a load, slerps rotation, honours step, animates colour; `
+  + `${render.frames} frames rendered offline, ${render.distinct} distinct, deterministic, `
+  + `physics fell ${render.physics.fell} and rewinds`);

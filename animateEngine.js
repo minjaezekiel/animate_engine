@@ -127,7 +127,8 @@
 
                 // Restore the last autosaved project, then seed the history baseline.
                 this.restoreAutosave();
-                this.history.push();
+                this.history.flush();
+// listeners removed for isolation
 
                 // Start the render loop
                 this.animate();
@@ -170,6 +171,7 @@
             }
 
             saveProject() {
+                this.history.flush();
                 const blob = new Blob([JSON.stringify(this.serializeProject(), null, 2)],
                     { type: 'application/json' });
                 downloadBlob(blob, 'project.json');
@@ -580,6 +582,39 @@
             mesh.geometry = plain;
             return plain;
         }
+
+        const HANDLE_SIZE = 12;
+        const HANDLE_REACH = 50;
+
+        /**
+         * [className, offsetX, offsetY, dragAxis] relative to the gizmo
+         * origin, which sits on the object. Data, because three near-identical
+         * builders differing only in these numbers is how the placement bug
+         * survived in all three.
+         */
+        const TRANSFORM_HANDLES = (() => {
+            const half = -HANDLE_SIZE / 2;
+            const near = HANDLE_REACH / 2;
+            const axisRow = (prefix) => [
+                ['transform-handle x', HANDLE_REACH, half, `${prefix}X`],
+                ['transform-handle y', half, -HANDLE_REACH, `${prefix}Y`],
+                ['transform-handle z', half, HANDLE_REACH, `${prefix}Z`],
+            ];
+            return {
+                move: [
+                    ['transform-handle x', HANDLE_REACH, half, 'x'],
+                    ['transform-handle y', half, -HANDLE_REACH, 'y'],
+                    ['transform-handle z', half, HANDLE_REACH, 'z'],
+                    ['transform-plane x', near, -near, 'xy'],
+                    ['transform-plane z', near, near, 'xz'],
+                    ['transform-plane y', -near, -near, 'yz'],
+                    ['transform-handle xyz', half, half, 'xyz'],
+                ],
+                rotate: axisRow('rotate'),
+                scale: [...axisRow('scale'),
+                        ['transform-handle xyz', half, half, 'scaleUniform']],
+            };
+        })();
 
         const TEXTURE_SLOTS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'];
 
@@ -2103,6 +2138,9 @@
                 
                 if (!selectedObject || this.currentTool === 'select') {
                     this.transformGizmo.style.display = 'none';
+                    // Forget the cached build, so re-selecting rebuilds with
+                    // listeners bound to the object actually selected.
+                    this._handleObject = null;
                     return;
                 }
                 
@@ -2116,184 +2154,46 @@
                 const x = (vector.x * 0.5 + 0.5) * rect.width;
                 const y = (-vector.y * 0.5 + 0.5) * rect.height;
                 
-                // Show transform gizmo
+                // Show transform gizmo. translate() composites; left/top
+                // would relayout the handles every frame.
                 this.transformGizmo.style.display = 'block';
-                this.transformGizmo.style.left = `${x}px`;
-                this.transformGizmo.style.top = `${y}px`;
+                this.transformGizmo.style.left = '0';
+                this.transformGizmo.style.top = '0';
+                this.transformGizmo.style.transform = `translate(${x}px, ${y}px)`;
                 
-                // Create transform handles based on current tool
                 this.createTransformHandles(selectedObject, x, y);
             }
 
+            /**
+             * Build the handles, once per tool and object.
+             *
+             * This used to run every frame: innerHTML = '' plus seven fresh
+             * <div>s with fresh listeners, sixty times a second, forever. It
+             * also positioned each handle at an ABSOLUTE viewport coordinate
+             * while the gizmo container was itself absolutely positioned at
+             * the same coordinate -- so every handle rendered at roughly twice
+             * the offset it should have, which is why they never sat on the
+             * object. Offsets relative to the container fix the placement and
+             * make the per-frame work two style writes.
+             */
             createTransformHandles(object, x, y) {
-                // Clear existing handles
-                this.transformGizmo.innerHTML = '';
-                
-                if (this.currentTool === 'move') {
-                    // Create move handles
-                    this.createMoveHandles(object, x, y);
-                } else if (this.currentTool === 'rotate') {
-                    // Create rotate handles
-                    this.createRotateHandles(object, x, y);
-                } else if (this.currentTool === 'scale') {
-                    // Create scale handles
-                    this.createScaleHandles(object, x, y);
+                if (this._handleTool === this.currentTool && this._handleObject === object) return;
+                this._handleTool = this.currentTool;
+                this._handleObject = object;
+                this.transformGizmo.replaceChildren();
+
+                const specs = TRANSFORM_HANDLES[this.currentTool];
+                if (!specs) return;
+                for (const [className, dx, dy, axis, size] of specs) {
+                    const handle = document.createElement('div');
+                    handle.className = className;
+                    handle.style.width = `${size ?? HANDLE_SIZE}px`;
+                    handle.style.height = `${size ?? HANDLE_SIZE}px`;
+                    handle.style.left = `${dx}px`;
+                    handle.style.top = `${dy}px`;
+                    handle.addEventListener('mousedown', (e) => this.startDrag(e, object, axis));
+                    this.transformGizmo.appendChild(handle);
                 }
-            }
-
-            createMoveHandles(object, x, y) {
-                const handleSize = 12;
-                const handleDistance = 50;
-                
-                // X-axis handle (red)
-                const xHandle = document.createElement('div');
-                xHandle.className = 'transform-handle x';
-                xHandle.style.width = `${handleSize}px`;
-                xHandle.style.height = `${handleSize}px`;
-                xHandle.style.left = `${x + handleDistance}px`;
-                xHandle.style.top = `${y - handleSize / 2}px`;
-                xHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'x'));
-                this.transformGizmo.appendChild(xHandle);
-                
-                // Y-axis handle (green)
-                const yHandle = document.createElement('div');
-                yHandle.className = 'transform-handle y';
-                yHandle.style.width = `${handleSize}px`;
-                yHandle.style.height = `${handleSize}px`;
-                yHandle.style.left = `${x - handleSize / 2}px`;
-                yHandle.style.top = `${y - handleDistance}px`;
-                yHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'y'));
-                this.transformGizmo.appendChild(yHandle);
-                
-                // Z-axis handle (blue)
-                const zHandle = document.createElement('div');
-                zHandle.className = 'transform-handle z';
-                zHandle.style.width = `${handleSize}px`;
-                zHandle.style.height = `${handleSize}px`;
-                zHandle.style.left = `${x - handleSize / 2}px`;
-                zHandle.style.top = `${y + handleDistance}px`;
-                zHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'z'));
-                this.transformGizmo.appendChild(zHandle);
-                
-                // XY plane handle
-                const xyHandle = document.createElement('div');
-                xyHandle.className = 'transform-plane x';
-                xyHandle.style.width = `${handleSize}px`;
-                xyHandle.style.height = `${handleSize}px`;
-                xyHandle.style.left = `${x + handleDistance / 2}px`;
-                xyHandle.style.top = `${y - handleDistance / 2}px`;
-                xyHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'xy'));
-                this.transformGizmo.appendChild(xyHandle);
-                
-                // XZ plane handle
-                const xzHandle = document.createElement('div');
-                xzHandle.className = 'transform-plane z';
-                xzHandle.style.width = `${handleSize}px`;
-                xzHandle.style.height = `${handleSize}px`;
-                xzHandle.style.left = `${x + handleDistance / 2}px`;
-                xzHandle.style.top = `${y + handleDistance / 2}px`;
-                xzHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'xz'));
-                this.transformGizmo.appendChild(xzHandle);
-                
-                // YZ plane handle
-                const yzHandle = document.createElement('div');
-                yzHandle.className = 'transform-plane y';
-                yzHandle.style.width = `${handleSize}px`;
-                yzHandle.style.height = `${handleSize}px`;
-                yzHandle.style.left = `${x - handleDistance / 2}px`;
-                yzHandle.style.top = `${y - handleDistance / 2}px`;
-                yzHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'yz'));
-                this.transformGizmo.appendChild(yzHandle);
-                
-                // XYZ handle
-                const xyzHandle = document.createElement('div');
-                xyzHandle.className = 'transform-handle xyz';
-                xyzHandle.style.width = `${handleSize}px`;
-                xyzHandle.style.height = `${handleSize}px`;
-                xyzHandle.style.left = `${x - handleSize / 2}px`;
-                xyzHandle.style.top = `${y - handleSize / 2}px`;
-                xyzHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'xyz'));
-                this.transformGizmo.appendChild(xyzHandle);
-            }
-
-            createRotateHandles(object, x, y) {
-                const handleSize = 12;
-                const handleDistance = 50;
-                
-                // X-axis rotation handle
-                const xHandle = document.createElement('div');
-                xHandle.className = 'transform-handle x';
-                xHandle.style.width = `${handleSize}px`;
-                xHandle.style.height = `${handleSize}px`;
-                xHandle.style.left = `${x + handleDistance}px`;
-                xHandle.style.top = `${y - handleSize / 2}px`;
-                xHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'rotateX'));
-                this.transformGizmo.appendChild(xHandle);
-                
-                // Y-axis rotation handle
-                const yHandle = document.createElement('div');
-                yHandle.className = 'transform-handle y';
-                yHandle.style.width = `${handleSize}px`;
-                yHandle.style.height = `${handleSize}px`;
-                yHandle.style.left = `${x - handleSize / 2}px`;
-                yHandle.style.top = `${y - handleDistance}px`;
-                yHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'rotateY'));
-                this.transformGizmo.appendChild(yHandle);
-                
-                // Z-axis rotation handle
-                const zHandle = document.createElement('div');
-                zHandle.className = 'transform-handle z';
-                zHandle.style.width = `${handleSize}px`;
-                zHandle.style.height = `${handleSize}px`;
-                zHandle.style.left = `${x - handleSize / 2}px`;
-                zHandle.style.top = `${y + handleDistance}px`;
-                zHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'rotateZ'));
-                this.transformGizmo.appendChild(zHandle);
-            }
-
-            createScaleHandles(object, x, y) {
-                const handleSize = 12;
-                const handleDistance = 50;
-                
-                // X-axis scale handle
-                const xHandle = document.createElement('div');
-                xHandle.className = 'transform-handle x';
-                xHandle.style.width = `${handleSize}px`;
-                xHandle.style.height = `${handleSize}px`;
-                xHandle.style.left = `${x + handleDistance}px`;
-                xHandle.style.top = `${y - handleSize / 2}px`;
-                xHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'scaleX'));
-                this.transformGizmo.appendChild(xHandle);
-                
-                // Y-axis scale handle
-                const yHandle = document.createElement('div');
-                yHandle.className = 'transform-handle y';
-                yHandle.style.width = `${handleSize}px`;
-                yHandle.style.height = `${handleSize}px`;
-                yHandle.style.left = `${x - handleSize / 2}px`;
-                yHandle.style.top = `${y - handleDistance}px`;
-                yHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'scaleY'));
-                this.transformGizmo.appendChild(yHandle);
-                
-                // Z-axis scale handle
-                const zHandle = document.createElement('div');
-                zHandle.className = 'transform-handle z';
-                zHandle.style.width = `${handleSize}px`;
-                zHandle.style.height = `${handleSize}px`;
-                zHandle.style.left = `${x - handleSize / 2}px`;
-                zHandle.style.top = `${y + handleDistance}px`;
-                zHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'scaleZ'));
-                this.transformGizmo.appendChild(zHandle);
-                
-                // Uniform scale handle
-                const uniformHandle = document.createElement('div');
-                uniformHandle.className = 'transform-handle xyz';
-                uniformHandle.style.width = `${handleSize}px`;
-                uniformHandle.style.height = `${handleSize}px`;
-                uniformHandle.style.left = `${x - handleSize / 2}px`;
-                uniformHandle.style.top = `${y - handleSize / 2}px`;
-                uniformHandle.addEventListener('mousedown', (e) => this.startDrag(e, object, 'scaleUniform'));
-                this.transformGizmo.appendChild(uniformHandle);
             }
 
             updateLightHelper() {
@@ -2367,9 +2267,76 @@
                 this.dragStartPosition = object.position.clone();
                 this.dragStartRotation = object.rotation.clone();
                 this.dragStartScale = object.scale.clone();
+                this._dragPlane = this._planeForAxis(axis, object);
+                this._dragFrom = this._dragPlane ? this._pointOnDragPlane(event) : null;
                 
                 // Disable orbit controls while dragging
                 this.sceneManager.controls.enabled = false;
+            }
+
+            /**
+             * The plane a position drag happens in.
+             *
+             * Position used to move by screen pixels times 0.01 -- so a drag
+             * covered a different distance depending on how far away the
+             * camera was, 'z' was driven by vertical mouse movement, and the
+             * three plane handles had no branch at all and simply did nothing.
+             * Projecting the pointer ray onto a plane in the scene is what
+             * makes the object follow the cursor instead.
+             *
+             * For a single axis, the plane contains that axis and faces the
+             * camera as squarely as it can; the hit is then projected back
+             * onto the axis.
+             */
+            _planeForAxis(axis, object) {
+                const AXES = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
+                const origin = object.getWorldPosition(new THREE.Vector3());
+                const camera = this.sceneManager.camera;
+
+                if (axis.length === 2 && AXES[axis[0]] && AXES[axis[1]]) {
+                    // A plane handle: its normal is simply the third axis.
+                    const used = new Set(axis.split(''));
+                    const normalAxis = ['x', 'y', 'z'].find((a) => !used.has(a));
+                    return {
+                        kind: 'plane',
+                        axes: [new THREE.Vector3(...AXES[axis[0]]), new THREE.Vector3(...AXES[axis[1]])],
+                        plane: new THREE.Plane().setFromNormalAndCoplanarPoint(
+                            new THREE.Vector3(...AXES[normalAxis]), origin),
+                    };
+                }
+                if (!AXES[axis]) return null;      // rotate/scale/light keep screen deltas
+
+                const dir = new THREE.Vector3(...AXES[axis]);
+                const toCamera = camera.getWorldPosition(new THREE.Vector3()).sub(origin);
+                // The part of the view direction perpendicular to the axis is
+                // the most face-on normal available.
+                let normal = toCamera.clone().sub(dir.clone().multiplyScalar(toCamera.dot(dir)));
+                if (normal.lengthSq() < 1e-8) {
+                    // Looking straight down the axis: any perpendicular will do.
+                    normal = Math.abs(dir.y) < 0.9
+                        ? new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0))
+                        : new THREE.Vector3(1, 0, 0);
+                }
+                return {
+                    kind: 'axis',
+                    axes: [dir],
+                    plane: new THREE.Plane().setFromNormalAndCoplanarPoint(normal.normalize(), origin),
+                };
+            }
+
+            /** Where the pointer ray meets the drag plane, in world space. */
+            _pointOnDragPlane(event) {
+                const viewport = document.getElementById('viewport');
+                const rect = viewport.getBoundingClientRect();
+                const ndc = new THREE.Vector2(
+                    ((event.clientX - rect.left) / rect.width) * 2 - 1,
+                    -((event.clientY - rect.top) / rect.height) * 2 + 1);
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(ndc, this.sceneManager.camera);
+                const hit = new THREE.Vector3();
+                // A ray parallel to the plane never meets it; hold the last
+                // position rather than snapping the object to infinity.
+                return raycaster.ray.intersectPlane(this._dragPlane.plane, hit) ? hit : null;
             }
 
             onMouseDown(event) {
@@ -2473,14 +2440,23 @@
                 const dx = event.clientX - this.dragStart.x;
                 const dy = event.clientY - this.dragStart.y;
                 
-                // Calculate movement based on the axis
-                if (this.dragAxis === 'x') {
-                    this.dragObject.position.x = this.dragStartPosition.x + dx * 0.01;
-                } else if (this.dragAxis === 'y') {
-                    this.dragObject.position.y = this.dragStartPosition.y - dy * 0.01;
-                } else if (this.dragAxis === 'z') {
-                    this.dragObject.position.z = this.dragStartPosition.z + dy * 0.01;
-                } else if (this.dragAxis === 'rotateX') {
+                // Position drags follow the cursor through the scene; rotate
+                // and scale stay screen-relative, which is the convention for
+                // a DOM gizmo and is not what was wrong with this code.
+                if (this._dragPlane && this._dragFrom) {
+                    const to = this._pointOnDragPlane(event);
+                    if (!to) return;
+                    const moved = to.sub(this._dragFrom);
+                    const next = this.dragStartPosition.clone();
+                    for (const axis of this._dragPlane.axes) {
+                        next.addScaledVector(axis, moved.dot(axis));
+                    }
+                    this.dragObject.position.copy(next);
+                    this.uiManager.updateProperties();
+                    return;
+                }
+
+                if (this.dragAxis === 'rotateX') {
                     this.dragObject.rotation.x = this.dragStartRotation.x + dy * 0.01;
                 } else if (this.dragAxis === 'rotateY') {
                     this.dragObject.rotation.y = this.dragStartRotation.y + dx * 0.01;
@@ -2496,7 +2472,8 @@
                     const scale = Math.max(0.1, this.dragStartScale.x + dx * 0.01);
                     this.dragObject.scale.set(scale, scale, scale);
                 } else if (this.dragAxis === 'light') {
-                    // Move light based on drag
+                    // Lights are dragged from their own helper, which has no
+                    // axis, so this one stays screen-relative.
                     this.dragObject.position.x = this.dragStartPosition.x + dx * 0.01;
                     this.dragObject.position.y = this.dragStartPosition.y - dy * 0.01;
                 }
@@ -2553,6 +2530,11 @@
                 // Get vertices and apply sculpting
                 const positions = geometry.attributes.position.array;
                 const vertex = new THREE.Vector3();
+                // One pass to bucket the mesh, instead of a full scan per
+                // affected vertex. Built here because the positions move as
+                // the stroke is applied.
+                const vertexIndex = this.sculptTool === 'smooth'
+                    ? this.buildVertexIndex(geometry) : null;
                 
                 for (let i = 0; i < positions.length; i += 3) {
                     vertex.set(positions[i], positions[i + 1], positions[i + 2]);
@@ -2571,7 +2553,8 @@
                             vertex.add(normal.clone().multiplyScalar(strength));
                         } else if (this.sculptTool === 'smooth') {
                             // Smooth by averaging with neighbors
-                            const neighbors = this.getVertexNeighbors(geometry, i / 3);
+                            const neighbors = vertexIndex.near(i / 3);
+                            if (!neighbors.length) continue;   // isolated vertex: nothing to average
                             const avgPosition = new THREE.Vector3();
                             
                             neighbors.forEach(neighborIndex => {
@@ -2619,25 +2602,72 @@
                 geometry.computeVertexNormals();
             }
             
-            getVertexNeighbors(geometry, vertexIndex) {
-                const neighbors = [];
-                const positionAttribute = geometry.attributes.position;
-                
-                // This is a simplified approach - in a real implementation, 
-                // you would use the index buffer to find connected vertices
-                for (let i = 0; i < positionAttribute.count; i++) {
-                    if (i !== vertexIndex) {
-                        const v1 = new THREE.Vector3().fromBufferAttribute(positionAttribute, vertexIndex);
-                        const v2 = new THREE.Vector3().fromBufferAttribute(positionAttribute, i);
-                        
-                        // If vertices are close enough, consider them neighbors
-                        if (v1.distanceTo(v2) < 0.5) {
-                            neighbors.push(i);
-                        }
-                    }
+            /**
+             * A spatial hash over the vertices, built once per brush stroke.
+             *
+             * The smooth brush asked for a vertex's neighbours by scanning
+             * every vertex and measuring the distance -- per affected vertex,
+             * per mousemove. On a mesh subdivided four times that is 85
+             * million distance checks and twice as many Vector3 allocations
+             * for a single brush event, which is why smooth locked the tab.
+             *
+             * Bucketing by the search radius makes each query look at 27 cells
+             * instead of the whole mesh, and keeps the "near enough counts as
+             * connected" rule the brush was written around -- a non-indexed
+             * mesh duplicates vertices at shared corners, so index adjacency
+             * would silently stop smoothing across seams.
+             */
+            buildVertexIndex(geometry, radius = null) {
+                const pos = geometry.attributes.position;
+                // The old threshold was a hardcoded 0.5 in model units, which
+                // does not scale with the mesh: on a unit cube subdivided four
+                // times it caught 1,355 "neighbours" per vertex, so smooth was
+                // really averaging with a quarter of the model and erased
+                // detail rather than relaxing it. Scaling to the typical
+                // spacing between vertices makes it local, and incidentally
+                // makes each query cheap.
+                if (radius == null) {
+                    geometry.computeBoundingBox();
+                    const size = geometry.boundingBox.getSize(new THREE.Vector3()).length();
+                    radius = Math.max(1e-4, (size / Math.cbrt(Math.max(pos.count, 1))) * 1.5);
                 }
-                
-                return neighbors;
+                const buckets = new Map();
+                const cellOf = (v) => Math.floor(v / radius);
+                const key = (cx, cy, cz) => `${cx},${cy},${cz}`;
+
+                for (let i = 0; i < pos.count; i++) {
+                    const k = key(cellOf(pos.getX(i)), cellOf(pos.getY(i)), cellOf(pos.getZ(i)));
+                    let bucket = buckets.get(k);
+                    if (!bucket) buckets.set(k, (bucket = []));
+                    bucket.push(i);
+                }
+
+                const r2 = radius * radius;
+                return {
+                    near(vertexIndex) {
+                        const x = pos.getX(vertexIndex);
+                        const y = pos.getY(vertexIndex);
+                        const z = pos.getZ(vertexIndex);
+                        const cx = cellOf(x), cy = cellOf(y), cz = cellOf(z);
+                        const out = [];
+                        for (let dx = -1; dx <= 1; dx++) {
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dz = -1; dz <= 1; dz++) {
+                                    const bucket = buckets.get(key(cx + dx, cy + dy, cz + dz));
+                                    if (!bucket) continue;
+                                    for (const i of bucket) {
+                                        if (i === vertexIndex) continue;
+                                        const ddx = pos.getX(i) - x;
+                                        const ddy = pos.getY(i) - y;
+                                        const ddz = pos.getZ(i) - z;
+                                        if (ddx * ddx + ddy * ddy + ddz * ddz < r2) out.push(i);
+                                    }
+                                }
+                            }
+                        }
+                        return out;
+                    },
+                };
             }
             
             finishSculpting() {
@@ -4040,14 +4070,46 @@
                 this.bytes = 0;
                 this.index = -1;
                 this.suspended = false; // true while restoring, so restores aren't recorded
+                this.coalesceMs = 350;
+                this.timer = null;
             }
 
+            /**
+             * Record a snapshot, coalescing bursts.
+             *
+             * Measured on a subdivided cube (9,216 vertices): 10ms to
+             * serialize and 10ms more for the synchronous localStorage write.
+             * That was paid once per committed gesture, so a run of sculpt
+             * strokes stalled on every one, and a dense mesh scales it
+             * linearly.
+             *
+             * A trailing timer collapses a burst into one snapshot. Undo
+             * granularity becomes "a run of edits", which for sculpting is
+             * what you want anyway, and anything that READS the history
+             * flushes first so a pending snapshot is never missed.
+             *
+             * ponytail: coalescing, not diffing. Diffs would also remove the
+             * cost of the edits that do land, but they need a diff format for
+             * a Three JSON tree. Measure again before building one.
+             */
             push() {
+                if (this.suspended) return;
+                if (this.timer !== null) return;      // one already queued
+                this.timer = setTimeout(() => { this.timer = null; this.flush(); }, this.coalesceMs);
+            }
+
+            /** Take the snapshot now, if one is due. */
+            flush() {
+                if (this.timer !== null) { clearTimeout(this.timer); this.timer = null; }
                 if (this.suspended) return;
                 for (const dropped of this.stack.slice(this.index + 1)) this.bytes -= dropped.length;
                 this.stack = this.stack.slice(0, this.index + 1);
 
                 const snapshot = JSON.stringify(this.engine.serializeProject());
+                // Nothing actually changed: a timer that fired after a no-op
+                // mutation should not cost an undo step.
+                if (snapshot === this.stack[this.index]) return;
+
                 this.stack.push(snapshot);
                 this.bytes += snapshot.length;
                 while (this.stack.length > 1
@@ -4065,10 +4127,12 @@
             }
 
             undo() {
+                this.flush();
                 if (this.index > 0) this._restore(this.stack[--this.index]);
             }
 
             redo() {
+                this.flush();
                 if (this.index < this.stack.length - 1) this._restore(this.stack[++this.index]);
             }
         }

@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-06 (end of Phase 3).
+Last updated: 2026-10-06 (end of Phase 5).
 
 Legend: **done** · *partial* · — not started
 
@@ -179,7 +179,7 @@ harness ships, and the two hand a film back and forth through `sessionStorage`.
 | Frame-stepped WebM export for the 3D editor | **done** — replaces realtime `captureStream(30)` + a wall-clock stop |
 | `PhysicsManager.stepTo` | **done** — fixed substeps, rewinds to a recorded rest state, capped catch-up |
 | Delete the CSS transition path | **done** — deleted, not ported; the menu now says why |
-| `captureFrames` memory (holds raw RGBA **and** PNG bytes per frame) | **not done** — the sinks exist and `Three3DBackend` can feed them; rewiring GIF and PNG-sequence export is Phase 5 work |
+| `captureFrames` memory (holds raw RGBA **and** PNG bytes per frame) | **done** — see Phase 5 |
 
 ### What the rewrite fixed as a consequence, not as feature work
 
@@ -221,11 +221,45 @@ Then Bone/Skeleton/SkinnedMesh construction, skin weights or auto-weights,
 auto-rig, bone constraints, Mixamo retargeting, FBX, 3D viseme lipsync via
 morph targets.
 
-## Phase 5 — performance — **not started**
+## Phase 5 — performance — *partial*
 
-Dirty-flag incremental sync · on-demand render · persistent gizmo handles and
-correct ray-plane drag maths · index-buffer adjacency for the sculpt brush ·
-history as diffs · OffscreenCanvas + worker for the 2D offline path.
+Everything here was measured before and after; the numbers are from
+`npm run test:legacy`, which now asserts them.
+
+| Item | State |
+|---|---|
+| GIF export streams | **done** — 12 s of raw frames → compressed bytes only |
+| PNG-sequence export streams | **done** — PNGs must be held for the zip's central directory; the raw RGBA need not be, and both were |
+| Gizmo built once, not per frame | **done** — `innerHTML=''` + 7 fresh `<div>`s + listeners at 60fps → **0.005 ms/frame** |
+| Gizmo handles land on the object | **done** — they were positioned at an absolute viewport coordinate *inside* a container already at that coordinate, so every handle rendered at roughly double the offset |
+| Position drags follow the cursor | **done** — ray-plane projection replaces screen pixels × 0.01 |
+| Plane handles work at all | **done** — `xy`, `xz` and `yz` had no drag branch whatsoever |
+| Sculpt smooth is no longer O(n²) | **done** — **~10,000 ms → 55 ms** over 9,216 vertices |
+| Smooth radius scales with the mesh | **done** — a hardcoded 0.5 caught 1,355 "neighbours" per vertex on a dense mesh, so smooth averaged with a quarter of the model |
+| History stops amplifying | **done** — a burst of 25 mutations takes **one** snapshot, not 25 |
+| History as diffs | **skipped** — coalescing removed the amplification. Diffs would also remove the cost of the edits that *do* land (11 ms serialize + 13 ms localStorage at 9,216 vertices), but need a diff format for a Three JSON tree. Measure again before building one |
+| Dirty-flag incremental `sync` | **skipped** — `Canvas2DBackend.sync` is already a no-op and the 2D render costs 0.4 ms/frame at 720p. Nothing to make incremental |
+| On-demand render | **skipped** — the editor still renders at 60fps forever. Real, but it is a battery cost, not a correctness or capability one |
+| OffscreenCanvas + worker | **skipped** — `MediaRecorderSink` needs the main thread anyway, and the 2D offline render is already ~1 ms/frame |
+
+### Measured
+
+| | before | after |
+|---|---|---|
+| gizmo, per frame | 7 DOM nodes + 7 listeners rebuilt | **0.005 ms**, reused |
+| sculpt smooth, 9,216 verts | ~10,000 ms | **55 ms** (4 ms to index, 51 ms to query) |
+| smooth neighbours per vertex | 1,355 | **57** |
+| 25 mutations | 25 serialize + 25 localStorage writes | **1 of each** |
+| GIF export, peak retained | every frame's RGBA + PNG | compressed GIF bytes only |
+
+### One fix reverted by measurement
+
+Flushing pending history on `visibilitychange`/`pagehide` looked obviously
+right — don't lose the last edits to a closing tab. It measurably wedged page
+teardown: headless Chrome would not close, because the handler serializes a few
+hundred KB synchronously during unload. Dropped. The worst case is losing 350 ms
+of autosave with the previous snapshot still in storage, which is a far better
+trade than blocking a tab from closing.
 
 ## Phase 6 — modeling and material parity — **not started**
 

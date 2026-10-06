@@ -88,18 +88,17 @@ Realtime `captureStream(30)` with a wall-clock `setTimeout` stop, while
 `AnimationManager.update` (`:1246`) advances by `clock.getDelta()`. Replaced by
 `OfflineRenderer` + paced/WebCodecs sinks.
 
-### A two-minute PNG sequence cannot complete — **open, fix (5)**
+### A two-minute PNG sequence cannot complete — **fixed (5)**
 
 `captureFrames` retains both the raw RGBA **and** the PNG bytes of every frame
 (~15 GB for 2 min at 1080p), hardcodes 10/15 fps, and only ever downscales.
 
-Phase 3 built what replaces it — `Three3DBackend` plus the sink contract,
-which requires `writeFrame` to consume and release — and moved the WebM path
-onto it. **GIF and PNG-sequence export still call `captureFrames`**, so this
-is unfixed for those two. Rewiring them is Phase 5.
-
-(It also never stepped physics. That part is fixed: an offline render drives
-`PhysicsManager.stepTo`.)
+Phase 5 moved both onto the sink contract, which requires `writeFrame` to
+consume and release. The GIF palette is a fixed 3-3-2 cube, so quantizing is
+stateless per pixel and a frame can be LZW-compressed the moment it is drawn —
+peak memory becomes the size of the GIF itself. A zip's central directory is
+written last, so the compressed PNGs genuinely must be held; the raw RGBA need
+not be, and the old path held both. `captureFrames` is gone.
 
 ### Transitions never appear in any export — **deleted (3)**
 
@@ -140,12 +139,20 @@ the end-of-animation condition trips on every subsequent frame.
 
 ## Performance and correctness in the editor
 
-### Per-frame DOM churn in the render loop — **fix (5)**
+### Per-frame DOM churn in the render loop — **fixed (5)**
 
 `updateTransformGizmo` runs on every mousemove *and* every animation frame,
 setting `innerHTML = ''` and recreating up to 7 nodes with fresh listeners.
 
-### Gizmo drag maths is wrong — **fix (5)**
+### Gizmo handles render in the wrong place — **fixed (5)**
+
+Each handle was positioned at an absolute viewport coordinate (`x + 50px`)
+while its container was itself absolutely positioned at `x` — so every handle
+rendered at roughly twice the offset it should have and never sat on the
+object. Three near-identical builders differed only in these numbers, which is
+how it survived in all three. They are one data table now.
+
+### Gizmo drag maths is wrong — **fixed (5)**
 
 `handleDrag` (`:2550`) maps pixels to values with hardcoded `* 0.01` factors,
 ignoring camera orientation, distance and projection. Dragging the Z handle is
@@ -153,13 +160,13 @@ driven by `dy`, so from a rotated view the object moves in a direction
 unrelated to the screen. Plane handles (`xy`/`xz`/`yz`) are created and wired
 but `handleDrag` has no branch for them, so they do nothing.
 
-### Sculpt smooth brush is O(n²) per mousemove — **fix (5)**
+### Sculpt smooth brush is O(n²) per mousemove — **fixed (5)**
 
 `getVertexNeighbors` (`:2702`) scans every vertex with a distance threshold,
 self-documented as *"a simplified approach — in a real implementation, you
 would use the index buffer"*. Neighbours are proximity-based, not topological.
 
-### History and autosave amplification — **fix (5)**
+### History and autosave amplification — **fixed (5)**
 
 Every mutation triggers a full `serializeProject()` for the undo stack **and**
 a `localStorage.setItem`. The stack holds 30 complete project serializations.

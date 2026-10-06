@@ -175,18 +175,27 @@ unit-test it in core; golden-frame renders for skinning.
 
 ---
 
-## Phase 5 — performance
+## Phase 5 — performance — *shipped, partial*
 
-Dirty-flag propagation so `sync` is incremental · on-demand render (the legacy
-loop runs the whole manager stack plus a DOM gizmo rebuild at 60 fps forever) ·
-persistent gizmo handles and proper ray-plane projection replacing the
-hardcoded `* 0.01` drag maths · index-buffer adjacency for the sculpt smooth
-brush · history as **diffs** instead of a full `serializeProject()` plus a
-`localStorage.setItem` per mutation · OffscreenCanvas and a worker for the 2D
-offline path.
+Everything here was measured before and after, and `npm run test:legacy`
+asserts the numbers so they cannot quietly regress.
 
-**Verify:** a benchmark harness asserting ms-per-frame ceilings; a test that
-one transform mutation produces a diff under *N* bytes.
+**Delivered:** streaming GIF and PNG-sequence export · gizmo handles built once
+from a data table (and landing on the object, which they never did) ·
+ray-plane drag projection, with the three plane handles working at all for the
+first time · a spatial hash for the smooth brush, with a radius that scales
+with the mesh · history coalescing.
+
+**Skipped, with reasons in [STATUS.md](STATUS.md):** history as diffs
+(coalescing removed the amplification), dirty-flag incremental `sync` (the 2D
+backend's `sync` is already a no-op), on-demand render, OffscreenCanvas +
+worker.
+
+| | before | after |
+|---|---|---|
+| gizmo, per frame | 7 nodes + 7 listeners rebuilt | 0.005 ms, reused |
+| sculpt smooth, 9,216 verts | ~10,000 ms | 55 ms |
+| 25 mutations | 25 serialize + 25 writes | 1 of each |
 
 ---
 

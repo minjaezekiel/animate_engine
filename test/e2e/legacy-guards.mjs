@@ -20,7 +20,7 @@ const srv=createServer(async(q,r)=>{try{
 }catch{if(!r.headersSent)r.writeHead(404);r.end();}});
 await new Promise(r=>srv.listen(0,r));
 const base=`http://127.0.0.1:${srv.address().port}`;
-const br=await puppeteer.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
+const br=await puppeteer.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader'],protocolTimeout:600000});
 const pg=await br.newPage(); pg.on('pageerror',e=>console.error('[page]',String(e).slice(0,160)));
 await pg.goto(`${base}/index.html`,{waitUntil:'load'});
 await pg.waitForFunction(()=>window.AnimationEngine?.animationEngine?.animationManager?.core,{timeout:20000});
@@ -159,6 +159,82 @@ const exports_=await pg.evaluate(async()=>{
   };
 });
 console.log(JSON.stringify(exports_));
+
+// Phase 5: the editor's interaction costs, asserted rather than assumed.
+const perf=await pg.evaluate(()=>{
+  const e=window.AnimationEngine.animationEngine;
+  const sm=e.sceneManager, em=e.editManager, h=e.history;
+  const r={};
+  const ms=(fn,n=1)=>{const t=performance.now();for(let i=0;i<n;i++)fn();return (performance.now()-t)/n;};
+
+  // --- the gizmo is built once, not sixty times a second ---
+  const cube=sm.createCube('gizmo-target');
+  sm.getSelectedObject=()=>cube;
+  em.currentTool='move';
+  em.update();
+  const gizmo=document.getElementById('transformGizmo');
+  const firstHandle=gizmo.children[0];
+  r.handles=gizmo.children.length;
+  r.frameMs=+ms(()=>em.update(),200).toFixed(3);
+  r.handlesReused=gizmo.children[0]===firstHandle;
+  // handles sit at offsets from the gizmo origin, not at doubled absolute
+  // viewport coordinates
+  r.handleLeft=gizmo.children[0].style.left;
+  r.gizmoUsesTransform=/translate/.test(gizmo.style.transform);
+  // switching tool rebuilds
+  em.currentTool='rotate'; em.update();
+  r.rebuiltOnToolChange=gizmo.children[0]!==firstHandle;
+  em.currentTool='move'; em.update();
+
+  // --- plane handles drag; they had no branch at all ---
+  const planeHandle=[...gizmo.children].find(c=>c.className==='transform-plane z');
+  r.hasPlaneHandle=!!planeHandle;
+  cube.position.set(0,0,0);
+  const vp=document.getElementById('viewport').getBoundingClientRect();
+  const at=(fx,fy)=>({clientX:vp.left+vp.width*fx, clientY:vp.top+vp.height*fy,
+                      preventDefault(){}, stopPropagation(){}});
+  em.startDrag(at(0.5,0.5), cube, 'xz');
+  em.isDragging=true; em.dragObject=cube;
+  em.handleDrag(at(0.62,0.58));
+  r.planeDragMoved=+Math.hypot(cube.position.x,cube.position.z).toFixed(3);
+  r.planeDragKeptY=+cube.position.y.toFixed(6);
+  em.isDragging=false;
+
+  // --- an axis drag follows the cursor instead of a magic 0.01 ---
+  cube.position.set(0,0,0);
+  em.startDrag(at(0.5,0.5), cube, 'x');
+  em.isDragging=true; em.dragObject=cube;
+  em.handleDrag(at(0.7,0.5));
+  r.axisDragX=+cube.position.x.toFixed(3);
+  r.axisDragKeptZ=+cube.position.z.toFixed(6);
+  em.isDragging=false;
+
+  // --- smooth brush: spatial hash, radius scaled to the mesh ---
+  for(let i=0;i<4;i++) sm.subdivide(cube);
+  const g=cube.geometry, n=g.attributes.position.count;
+  r.verts=n;
+  let idx;
+  r.indexBuildMs=+ms(()=>{idx=em.buildVertexIndex(g);}).toFixed(2);
+  let found=0;
+  r.queryAllMs=+ms(()=>{found=0;for(let i=0;i<n;i++)found+=idx.near(i).length;}).toFixed(1);
+  r.avgNeighbors=+(found/n).toFixed(1);
+  // what one old full-scan query cost, times n
+  const pos=g.attributes.position;
+  const oneScan=ms(()=>{let c=0;for(let i=1;i<n;i++){
+    const dx=pos.getX(i)-pos.getX(0),dy=pos.getY(i)-pos.getY(0),dz=pos.getZ(i)-pos.getZ(0);
+    if(dx*dx+dy*dy+dz*dz<0.25)c++;}});
+  r.oldScanAllMs=+(oneScan*n).toFixed(0);
+
+  // --- history coalesces a burst into one snapshot ---
+  h.flush();
+  const before=h.stack.length;
+  for(let i=0;i<25;i++) sm.markChanged();
+  r.snapshotsDuringBurst=h.stack.length-before;
+  h.flush();
+  r.snapshotsAfterFlush=h.stack.length-before;
+  return r;
+});
+console.log(JSON.stringify(perf));
 console.log(JSON.stringify(out));
 await br.close(); srv.close();
 const fails=[];
@@ -175,6 +251,23 @@ if(!(exports_.gifBytes>500)) fails.push(`GIF is ${exports_.gifBytes} bytes; it h
 if(JSON.stringify(exports_.zipMagic)!=='[80,75,3,4]') fails.push('PNG sequence is not a zip');
 if(!(exports_.zipBytes>1000)) fails.push(`zip is ${exports_.zipBytes} bytes; it has no frames`);
 if(!exports_.captureFramesGone) fails.push('captureFrames is still there, still holding every frame');
+if(perf.handles!==7) fails.push(`move gizmo built ${perf.handles} handles, want 7`);
+if(!perf.handlesReused) fails.push('the gizmo is still rebuilt every frame');
+if(!perf.rebuiltOnToolChange) fails.push('the gizmo did not rebuild when the tool changed');
+if(!perf.gizmoUsesTransform) fails.push('the gizmo still moves with left/top, which relayouts');
+if(perf.frameMs>0.3) fails.push(`gizmo update costs ${perf.frameMs}ms a frame`);
+if(!/^-?\d/.test(perf.handleLeft)||Math.abs(parseFloat(perf.handleLeft))>120)
+  fails.push(`handle offset ${perf.handleLeft} looks like an absolute viewport coordinate`);
+if(!perf.hasPlaneHandle) fails.push('no plane handle to drag');
+if(!(perf.planeDragMoved>0.1)) fails.push(`plane handle drag moved the object ${perf.planeDragMoved}`);
+if(Math.abs(perf.planeDragKeptY)>1e-6) fails.push('an xz drag moved y');
+if(!(perf.axisDragX>0.1)) fails.push(`x-axis drag moved ${perf.axisDragX}`);
+if(Math.abs(perf.axisDragKeptZ)>1e-6) fails.push('an x drag moved z');
+if(perf.avgNeighbors>200) fails.push(`smooth averages ${perf.avgNeighbors} neighbours; the radius is not scaled`);
+if(!(perf.queryAllMs*8<perf.oldScanAllMs)) fails.push(
+  `spatial hash (${perf.queryAllMs}ms) is not meaningfully faster than the full scan (${perf.oldScanAllMs}ms)`);
+if(perf.snapshotsDuringBurst!==0) fails.push(`25 mutations took ${perf.snapshotsDuringBurst} snapshots mid-burst`);
+if(perf.snapshotsAfterFlush!==1) fails.push(`a burst produced ${perf.snapshotsAfterFlush} snapshots, want 1`);
 if(Math.abs(out.xAt1s-5)>0.01) fails.push(`position at 1s is ${out.xAt1s}, want 5`);
 if(Math.abs(out.quatYAt1s-Math.sin(Math.PI/4))>0.01) fails.push(`rotation not slerped: quat.y ${out.quatYAt1s}`);
 if(!out.reproducible) fails.push('same time gave a different pose');
@@ -185,4 +278,7 @@ if(fails.length){ console.error('FAILED:\n - '+fails.join('\n - ')); process.exi
 console.log(`PASS: scrubs after a load, slerps rotation, honours step, animates colour; `
   + `${render.frames} frames rendered offline, ${render.distinct} distinct, deterministic, `
   + `physics fell ${render.physics.fell} and rewinds; `
-  + `GIF ${(exports_.gifBytes/1024).toFixed(0)}KB and zip ${(exports_.zipBytes/1024).toFixed(0)}KB streamed`);
+  + `GIF ${(exports_.gifBytes/1024).toFixed(0)}KB and zip ${(exports_.zipBytes/1024).toFixed(0)}KB streamed; `
+  + `gizmo ${perf.frameMs}ms/frame reused, drags follow the cursor, `
+  + `smooth ${perf.oldScanAllMs}ms -> ${perf.queryAllMs}ms at ${perf.verts} verts, `
+  + `25 mutations -> 1 snapshot`);

@@ -118,34 +118,39 @@ controlled nothing. Both fixed.
 
 ---
 
-## Phase 3 — 3D backend over the same core
+## Phase 3 — 3D backend over the same core — *shipped*
 
-The 3D editor starts running on the core evaluator, and `AnimationMixer`
-leaves authored animation entirely.
+**Delivered:**
 
-- `Three3DBackend` / `SceneAdapter` / `PoseApplier` **wrapping the existing
-  manager instances** rather than replacing them. `sync()` calls the existing
-  `createCube`/`createSphere`/`createCamera`; `PoseApplier` writes straight to
-  `position`/`quaternion`/`scale`/`material.color`/`morphTargetInfluences`.
-- `AnimationManager` becomes a facade over core. **Deleted, not ported:**
-  `mixers`, `tweens`, `animationClips`, `prepareActions`,
-  `createAnimationClip`, `_vectorTrack`, `createTween`, `createTweenInstance`,
-  `setCurve`, `getCurve` — roughly 450 lines. `UIManager` and `EditManager`
-  are untouched; they keep calling the same method names.
-- `clipToTracks(THREE.AnimationClip)` converts imported glTF clips at import,
-  after which the mixer has no remaining job.
-- **Fix serialization properly**, because the 3D track cannot proceed without
-  it: geometry parameters rather than type names, sculpted vertex buffers,
-  imported models as embedded GLB, parent/child round-trip, lights registered
-  and serialized, the light-type case miss, and `importModel`'s undefined
-  `animationManager`.
-- `PhysicsManager.stepTo(t)` with fixed substeps, so offline render advances
-  simulation deterministically (today offline capture never steps physics).
-- Delete the CSS transition path in favour of core transition tracks.
+- The scene serializes with Three's own `toJSON` / `ObjectLoader`, which fixes
+  geometry parameters, edited vertex buffers, hierarchy, lights and light
+  types in one move — and preserves uuids, so keyframes survive a round trip.
+- `AnimationMixer`, the tween engine and the curve store are gone: ~450 lines
+  replaced by a conversion to core tracks and forty lines that write a sampled
+  pose onto THREE objects.
+- Imported glTF clips convert all the way down into ordinary editable
+  keyframes, which is what leaves the mixer with no remaining job.
+- `Three3DBackend` + a pluggable `poser` on `OfflineRenderer`, so the 3D
+  editor exports through the same frame-stepped loop as the 2D films.
+- `PhysicsManager.stepTo` for offline renders, and a real accumulator for live
+  ones.
+- The CSS transition path is deleted, not ported.
 
-**Verify:** a Node round-trip of a scene containing every node kind including a
-sculpted mesh and a GLB, asserting structural **and vertex-level** equality;
-then a golden-frame render of a 3D film script.
+**Not done:** GIF and PNG-sequence export still call `captureFrames`, which
+holds raw RGBA *and* PNG bytes per frame. The replacement exists; rewiring
+those two buttons is Phase 5.
+
+**Verified:** `npm run test:roundtrip` asserts the project round trip vertex by
+vertex, plus hierarchy, uuids, light types, helpers and a v1 project.
+`npm run test:legacy` asserts scrubbing after a load, slerped rotation, step
+interpolation, animated colour, reproducibility, a 48-frame deterministic
+offline render, and physics that falls, rewinds and repeats. 27 Node unit
+tests cover the conversion and the applier with no browser.
+
+Three silent defects surfaced from asserting rather than assuming: cannon.js
+had never loaded (a CDN version that does not exist), `toJSON` reads a matrix
+Three only refreshes during a render, and `BufferGeometry.toJSON` discards
+edited vertices on a parametric geometry.
 
 ---
 

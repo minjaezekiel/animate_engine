@@ -140,8 +140,11 @@ Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
 - **MP4 needs a muxer**; WebM works with no dependencies.
 - **The legacy 3D editor's DOM is still hardwired** to 181 element ids, so it
   only runs inside its own `index.html`.
+- **GIF and PNG-sequence export still hold every frame in memory**, so a long
+  sequence will not complete. WebM export does not — it was moved onto the
+  frame-stepped renderer in Phase 3.
 - Pixel output is not bit-reproducible between runs (scene state is).
-- The 3D engine has real defects, including autosave data loss — see
+- The 3D engine's remaining defects are mostly performance — see
   [docs/DEFECTS.md](docs/DEFECTS.md) before relying on it.
 
 ---

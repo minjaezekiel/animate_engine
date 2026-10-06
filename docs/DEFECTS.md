@@ -9,18 +9,19 @@ additively.
 [Defects found in the new code](#defects-in-the-new-code) are listed at the
 end, with how they were found.
 
-Dispositions:
+Dispositions (the number is the phase):
 
 - **fix** — needs a real repair, in the named phase
-- **guard** — a cheap mitigation now, real fix later
-- **superseded** — the new architecture deletes the code; repairing it would
-  be work thrown away
+- **fixed** — repaired, with a test that fails if it comes back
+- **fixed by deletion** — the code that held the bug is gone
+- **superseded** — the new architecture replaced the code; repairing it would
+  have been work thrown away
 
 ---
 
 ## Data loss
 
-### Autosave destroys sculpted meshes and imported models — **guarded in 0.5, fix (3)**
+### Autosave destroys sculpted meshes and imported models — **fixed (3)**
 
 `importScene` reconstructs geometry from a type-name switch whose `default:`
 is `createCube` (`:1115`), and sculpted vertex data is never serialized at
@@ -39,19 +40,19 @@ cannot round-trip.
 sculpted vertex buffers, and store imported models as embedded GLB via
 `GLTFExporter`.
 
-### Hierarchy is lost on save/load — **fix (3)**
+### Hierarchy is lost on save/load — **fixed (3)**
 
 `exportScene` writes groups as `children: [uuid]`; `importScene` reads
 `objectData.parent`, which is never written. Same function as above.
 
-### Lights are never saved, listed, or clickable — **fix (3)**
+### Lights are never saved, listed, or clickable — **fixed (3)**
 
 `createLight` registers into `this.lights` only, never `this.objects`, while
 `exportScene` (`:1016`) iterates `this.objects`. Consequences: lights are
 absent from the project file, absent from the hierarchy panel, and not
 pickable in the viewport.
 
-### All lights collapse to point lights on import — **fix (3), one line**
+### All lights collapse to point lights on import — **fixed (3)**
 
 `createLight(lightData.type.toLowerCase())` receives `"pointlight"` /
 `"directionallight"`, which match no `case`, so every light falls to the
@@ -61,7 +62,7 @@ pickable in the viewport.
 
 ## Broken behaviour
 
-### Playback and all export are dead after any load or reload — **guarded in 0.5, superseded (3)**
+### Playback and all export are dead after any load or reload — **fixed by deletion (3)**
 
 `new THREE.AnimationMixer` is constructed in exactly one place, `addKeyframe`
 (`:1438`). `importAnimation` and `applyProject` restore keyframes without ever
@@ -75,46 +76,52 @@ the 2D path. A labelled throwaway `rebuildMixers()` in Phase 0.5 is the right
 investment and no more — purely so the 3D editor is not embarrassing if
 demonstrated before Phase 3.
 
-### glTF-with-animation import throws — **fix (3), one line**
+### glTF-with-animation import throws — **fixed (3)**
 
 `importModel` (`:1182`) calls `this.animationManager`, a field `SceneManager`
 never defines. Any glTF carrying animation clips raises a TypeError inside the
 loader callback — exactly the files a rigging feature needs.
 
-### WebM export drops frames and has the wrong length — **superseded (0)**
+### WebM export drops frames and has the wrong length — **fixed (3)**
 
 Realtime `captureStream(30)` with a wall-clock `setTimeout` stop, while
 `AnimationManager.update` (`:1246`) advances by `clock.getDelta()`. Replaced by
 `OfflineRenderer` + paced/WebCodecs sinks.
 
-### A two-minute PNG sequence cannot complete — **superseded (0)**
+### A two-minute PNG sequence cannot complete — **open, fix (5)**
 
-`captureFrames` (`:4445`) retains both the raw RGBA **and** the PNG bytes of
-every frame (~15 GB for 2 min at 1080p), never steps physics, hardcodes 10/15
-fps, and only ever downscales. Replaced by the sink contract, which requires
-`writeFrame` to consume and release.
+`captureFrames` retains both the raw RGBA **and** the PNG bytes of every frame
+(~15 GB for 2 min at 1080p), hardcodes 10/15 fps, and only ever downscales.
 
-### Transitions never appear in any export — **superseded (0)**
+Phase 3 built what replaces it — `Three3DBackend` plus the sink contract,
+which requires `writeFrame` to consume and release — and moved the WebM path
+onto it. **GIF and PNG-sequence export still call `captureFrames`**, so this
+is unfixed for those two. Rewiring them is Phase 5.
+
+(It also never stepped physics. That part is fixed: an offline render drives
+`PhysicsManager.stepTo`.)
+
+### Transitions never appear in any export — **deleted (3)**
 
 `applySceneTransition` (`:3810`) builds CSS-transitioned DOM overlays as
 siblings of the canvas, so they are invisible to `captureStream` and to
 offline capture alike. In the new pipeline transitions compile to scene-alpha
 tracks, so every sink sees them by construction.
 
-### Colour keyframes are dead data — **superseded (3)**
+### Colour keyframes are dead data — **fixed (3)**
 
 `addKeyframeBtn` stores `properties.color` (`:3085`) and
 `createAnimationClip` builds no colour track, so it is never played back.
 `PoseApplier` writes `material.color` directly, so this works with no new
 feature code.
 
-### Rotation ignores per-key interpolation — **superseded (3)**
+### Rotation ignores per-key interpolation — **fixed (3)**
 
 The quaternion branch (`:1530`) never consults `interp`/`handles`, so stepped
 and bezier rotation are impossible. The core evaluator interpolates at sample
 time for every channel type.
 
-### `loop: 'pingpong'` re-fires forever — **superseded (3)**
+### `loop: 'pingpong'` re-fires forever — **fixed (3)**
 
 It flips `mixer.timeScale` but never reverses `currentTime` accumulation, so
 the end-of-animation condition trips on every subsequent frame.
@@ -157,12 +164,17 @@ would use the index buffer"*. Neighbours are proximity-based, not topological.
 Every mutation triggers a full `serializeProject()` for the undo stack **and**
 a `localStorage.setItem`. The stack holds 30 complete project serializations.
 
-### Physics is coupled to display refresh rate — **fix (3)**
+### Physics is coupled to display refresh rate — **fixed (3)**
 
 `world.step(1/60)` once per rendered frame with no accumulator, so simulation
-runs at half speed on a 30 fps machine and double on a 120 Hz display.
-Deleted objects also leave orphan bodies, because `removeObject` never calls
-`physicsManager.removeObject`.
+ran at half speed on a 30 fps machine and double on a 120 Hz display. `update`
+now takes real elapsed time and spends it in fixed steps, capped at eight per
+frame so a stalled tab cannot spiral.
+
+Deleted objects also left orphan bodies simulating forever, because
+`SceneManager.removeObject` has no way to reach `PhysicsManager`. Rather than
+wire the two together, bodies are reaped where the object is looked up anyway
+— which is the one place that already knows the object is gone.
 
 ---
 
@@ -208,6 +220,32 @@ application ever makes. The offline story in `CDN-AND-PWA.md` had never run.
 *Fix:* `sw.js` moved to the repository root — the only place it can work from.
 Its `./` shell paths are now correct by construction, and `studio.html` plus
 `src/core/index.js` were added to the precache list.
+
+### cannon.js has never loaded — **fixed (3)**
+
+`index.html` loaded `cannon.js/1.6.0` from cdnjs. That version does not exist;
+the latest published there is 0.6.2. The script tag 404'd silently, so every
+physics feature in the editor failed on `CANNON is not defined` the moment
+anyone enabled it — which is to say physics has never worked, in any build.
+
+Found by a test that tried to drop a sphere, not by reading the code.
+
+### Autosave could record a stale transform — **fixed (3)**
+
+`Object3D.toJSON` serializes `object.matrix`, and Three only refreshes that
+during a render. Autosave fires on mutation, before the next frame, so a save
+could record the transform an object had a frame ago. `updateMatrixWorld(true)`
+first.
+
+### Saving a sculpted primitive gave back a pristine primitive — **fixed (3)**
+
+`BufferGeometry.toJSON` serializes a PARAMETRIC geometry (`BoxGeometry` and
+friends) as its parameters and discards the attribute arrays entirely. Moving
+to Three's own serializer therefore reintroduced the Phase 0.5 data loss in a
+new form — and this time with no `lossy` flag to catch it.
+
+A geometry now stops being parametric at the moment its vertices stop being
+described by the parameters, which is where sculpting begins.
 
 ### An editor drag snapped back on release — **fixed (2)**
 

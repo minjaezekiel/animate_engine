@@ -205,6 +205,45 @@ The 2D camera is just the inverse of a camera node's transform, recentred on
 the frame. A node with `props.screenSpace` skips it, which is how backgrounds,
 subtitles and transition overlays stay put while the camera pans.
 
+### Two backends, one loop
+
+`Canvas2DBackend` draws core nodes. `Three3DBackend` wraps the 3D editor's
+existing `SceneManager` — the THREE scene already *is* the scene, so `sync`
+has nothing to reconcile. A second backend turned out to be an adapter rather
+than a second engine, which is the whole return on the core being
+renderer-agnostic.
+
+The one thing the two cannot share is how a pose is applied: THREE objects are
+not the plain nodes a core `Scene` holds. So `renderOffline` takes an optional
+**poser**:
+
+```js
+poser = {
+    reset(),          // back to the authored pose, before every frame
+    apply(tSec),      // sample the timeline and write it
+}
+```
+
+Omit it and the core-Scene poser is used. `createThreePoser` supplies the 3D
+one. The loop itself does not branch.
+
+### The 3D animation path
+
+Three modules, none of which import THREE or touch the DOM — every write they
+make is an instance method on an object they were handed — so the whole 3D
+animation path is unit-tested in Node:
+
+| module | job |
+|---|---|
+| `legacyTracks.js` | the editor's keyframes → core tracks. Euler in, quaternion out, with the ease riding the key |
+| `clipToTracks.js` | a `THREE.AnimationClip` → core tracks, or all the way down to editor keyframes |
+| `PoseApplier.js` | a sampled Pose → `position` / `quaternion` / `scale` / `color` / `morph.<name>` / `visible` |
+
+Rotation is converted to quaternions at track-build time rather than at sample
+time. That is what lets it be slerped **and** eased: `AnimationMixer` slerped
+but ignored `interp` entirely, while densifying Euler keys honoured `interp`
+but travelled 340° to move 20°.
+
 ## FrameSink contract
 
 ```js

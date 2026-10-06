@@ -508,12 +508,18 @@
 
             animate() {
                 requestAnimationFrame(() => this.animate());
-                
+
+                // One clock read per frame, shared: physics needs real elapsed
+                // time to spend in fixed steps, not a count of frames.
+                const now = (typeof performance !== 'undefined' ? performance : Date).now();
+                const deltaSec = this._lastFrameMs ? (now - this._lastFrameMs) / 1000 : 0;
+                this._lastFrameMs = now;
+
                 // Update the scene
                 this.sceneManager.update();
                 
                 // Update physics
-                this.physicsManager.update();
+                this.physicsManager.update(deltaSec);
                 
                 // Update animations
                 this.animationManager.update();
@@ -1693,6 +1699,7 @@
                 this.gravity = -9.8;
                 this.timeStep = 1 / 60;
                 this.simulatedTime = 0;
+                this.accumulator = 0;
                 // Where each body started, so a render can rewind to t=0.
                 this.initialTransforms = new Map();
             }
@@ -1705,11 +1712,20 @@
                 this.world.solver.iterations = 10;
             }
 
-            update() {
+            update(deltaSec) {
                 if (!this.enabled || !this.world) return;
-                this.world.step(this.timeStep);
-                this._syncBodies();
-                this.simulatedTime += this.timeStep;
+                // Accumulate real time and spend it in fixed steps. Stepping
+                // once per rendered frame tied the simulation to the display:
+                // half speed at 30fps, double on a 120Hz panel.
+                this.accumulator += Math.min(deltaSec ?? this.timeStep, 0.25);
+                let steps = 0;
+                while (this.accumulator >= this.timeStep && steps < 8) {
+                    this.world.step(this.timeStep);
+                    this.accumulator -= this.timeStep;
+                    this.simulatedTime += this.timeStep;
+                    steps++;
+                }
+                if (steps) this._syncBodies();
             }
 
             /**
@@ -1751,11 +1767,22 @@
             _syncBodies() {
                 this.objects.forEach((body, uuid) => {
                     const object = this.sceneManager.getObjectByUUID(uuid);
-                    if (object) {
-                        object.position.copy(body.position);
-                        object.quaternion.copy(body.quaternion);
-                    }
+                    // A deleted object used to leave its body simulating
+                    // forever, because SceneManager.removeObject has no way to
+                    // reach this class. Reaping here needs no such wiring: this
+                    // is the one place that looks the object up anyway.
+                    if (!object) { this.removeBodyFor(uuid); return; }
+                    object.position.copy(body.position);
+                    object.quaternion.copy(body.quaternion);
                 });
+            }
+
+            removeBodyFor(uuid) {
+                const body = this.objects.get(uuid);
+                if (!body) return;
+                this.world.removeBody(body);
+                this.objects.delete(uuid);
+                this.initialTransforms.delete(uuid);
             }
 
             enable() {
@@ -1886,15 +1913,7 @@
                 }
             }
 
-            removeObject(object) {
-                const uuid = object.uuid;
-                if (this.objects.has(uuid)) {
-                    const body = this.objects.get(uuid);
-                    this.world.removeBody(body);
-                    this.objects.delete(uuid);
-                    this.initialTransforms.delete(uuid);
-                }
-            }
+            removeObject(object) { this.removeBodyFor(object.uuid); }
 
             updateObjectProperties(object, properties) {
                 const uuid = object.uuid;

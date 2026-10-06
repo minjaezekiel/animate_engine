@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-04 (end of Phase 2).
+Last updated: 2026-10-06 (end of Phase 3).
 
 Legend: **done** · *partial* · — not started
 
@@ -164,13 +164,57 @@ harness ships, and the two hand a film back and forth through `sessionStorage`.
   the live world matrix at solve time, which makes compilation order-dependent.
   Not worth it at 2 px.
 
-## Phase 3 — 3D backend over the same core — **not started**
+## Phase 3 — 3D backend over the same core — **done**
 
-`Three3DBackend` wrapping the existing managers · `PoseApplier` · glTF clips
-converted to core tracks · delete ~450 lines of mixer/tween/curve code · fix
-the serialization defects the 3D path genuinely needs · `PhysicsManager.stepTo`.
+| Item | State |
+|---|---|
+| Serialize with Three's own `toJSON` / `ObjectLoader` | **done** — geometry parameters, edited vertex buffers, materials, hierarchy, lights and every light subclass, with uuids preserved so keyframes survive |
+| Old project files still open | **done** — a migration branch, which also repairs their light types on the way in |
+| `PoseApplier` — a core Pose onto THREE objects | **done** — imports neither THREE nor the DOM, so it is unit-tested in Node |
+| `legacyTracks` — editor keyframes → core tracks | **done** — Euler in, quaternion out, ease riding the key |
+| `clipToTracks` / `clipToKeyframes` — glTF → core | **done** — imported animation becomes ordinary editable keyframes |
+| Delete `mixers`, `tweens`, `animationClips`, `createAnimationClip`, `_vectorTrack`, `createTween`, `createTweenInstance`, `setCurve`, `getCurve` | **done** — ~450 lines |
+| `Three3DBackend` | **done** — wraps SceneManager; `sync` has nothing to reconcile |
+| `OfflineRenderer` takes a `poser` | **done** — the one loop now serves both backends |
+| Frame-stepped WebM export for the 3D editor | **done** — replaces realtime `captureStream(30)` + a wall-clock stop |
+| `PhysicsManager.stepTo` | **done** — fixed substeps, rewinds to a recorded rest state, capped catch-up |
+| Delete the CSS transition path | **done** — deleted, not ported; the menu now says why |
+| `captureFrames` memory (holds raw RGBA **and** PNG bytes per frame) | **not done** — the sinks exist and `Three3DBackend` can feed them; rewiring GIF and PNG-sequence export is Phase 5 work |
+
+### What the rewrite fixed as a consequence, not as feature work
+
+- **`interp` works on rotation.** The old path built a `QuaternionKeyframeTrack`
+  and never looked at `interp`, so step and bezier silently did nothing there.
+- **Rotation takes the short way round *and* eases.** The mixer slerped but
+  ignored the ease; densified Euler keys honoured the ease but travelled 340°
+  to move 20°. Slerping with the ease on the key gets both.
+- **Bezier is exact at any frame rate.** The old path densified at 30fps and
+  rendered at 24.
+- **Colour keyframes animate.** They were stored and read by nothing.
+- **Scrubbing is a pure function of time**, so an export is reproducible.
+- **The dead-mixer bug died by deletion.** There is no cache left that can be
+  empty after a load, because the keyframes are the source.
+
+### Three defects found by asserting rather than assuming
+
+Each was silent — nothing in the page reported them. See
+[DEFECTS.md](DEFECTS.md#defects-in-the-new-code).
+
+- **cannon.js has never loaded.** `index.html` asked cdnjs for version 1.6.0,
+  which does not exist. Every physics feature died on `CANNON is not defined`
+  the moment anyone enabled it.
+- **`toJSON` serializes `object.matrix`**, which Three only refreshes during a
+  render — so an autosave firing on mutation could record a transform one
+  frame stale.
+- **`BufferGeometry.toJSON` discards edited vertices** on a parametric
+  geometry, serializing its parameters instead. Sculpting a primitive and
+  saving gave back a pristine primitive.
 
 ## Phase 4 — real 3D rigging and skinning — **not started**
+
+Phase 3 cleared its prerequisites on the animation side: imported clips are
+already core tracks, so retargeting has a target format to retarget *into*.
+The Three r128 → r150+ ES-module upgrade is still unbudgeted.
 
 **Prerequisite: get off Three r128 CDN globals onto ES-module Three r150+.**
 Then Bone/Skeleton/SkinnedMesh construction, skin weights or auto-weights,

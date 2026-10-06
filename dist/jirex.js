@@ -2963,11 +2963,12 @@ var jireX = (() => {
     physics = null,
     onProgress = null,
     signal = null,
-    beforeFrame = null
+    beforeFrame = null,
+    poser = null
   }) {
     const clock = new FrameClock(fps);
     const total = clock.count(durationSec ?? timeline.duration);
-    const baseline = baselineFor(scene, timeline);
+    const pose = poser ?? defaultPoser(scene, timeline);
     await sink.configure({
       width,
       height,
@@ -2982,8 +2983,8 @@ var jireX = (() => {
         if (signal?.aborted) throw new Error("render aborted");
         const t = clock.timeOf(n);
         if (physics) physics.stepTo(t);
-        resetPose(scene, baseline);
-        applyPose(scene, samplePose(timeline, t));
+        pose.reset();
+        pose.apply(t);
         if (beforeFrame) beforeFrame(t, n, scene);
         backend.sync(scene);
         backend.renderFrame(scene, cameraId);
@@ -3002,9 +3003,20 @@ var jireX = (() => {
       sink.abort();
       throw err;
     } finally {
-      resetPose(scene, baseline);
+      pose.reset();
     }
     return sink.finish();
+  }
+  function defaultPoser(scene, timeline) {
+    const baseline = baselineFor(scene, timeline);
+    return {
+      reset() {
+        resetPose(scene, baseline);
+      },
+      apply(tSec) {
+        applyPose(scene, samplePose(timeline, tSec));
+      }
+    };
   }
   async function preflight({
     scene,
@@ -3012,21 +3024,22 @@ var jireX = (() => {
     backend,
     cameraId,
     fps = 24,
-    frames = 48
+    frames = 48,
+    poser = null
   }) {
     const clock = new FrameClock(fps);
-    const baseline = baselineFor(scene, timeline);
+    const pose = poser ?? defaultPoser(scene, timeline);
     const samples = [];
     for (let n = 0; n < frames; n++) {
       const t = clock.timeOf(n);
       const start = performance.now();
-      resetPose(scene, baseline);
-      applyPose(scene, samplePose(timeline, t));
+      pose.reset();
+      pose.apply(t);
       backend.sync(scene);
       backend.renderFrame(scene, cameraId);
       samples.push(performance.now() - start);
     }
-    resetPose(scene, baseline);
+    pose.reset();
     samples.sort((a, b) => a - b);
     const at = (q) => samples[Math.min(samples.length - 1, Math.floor(q * samples.length))];
     return {

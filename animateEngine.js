@@ -472,11 +472,16 @@
                         return { dataUrl: await blobToDataUrl(blob), size: blob.size };
                     }
                     case 'exportGif': {
-                        const cap = this.recordingManager.captureFrames(a.fps || 10, a.maxWidth || 480);
-                        if (!cap) throw new Error('No animation selected');
-                        const bytes = encodeGIF(cap.frames, cap.width, cap.height, cap.delayMs);
-                        const dataUrl = await blobToDataUrl(new Blob([bytes], { type: 'image/gif' }));
-                        return { dataUrl, size: bytes.length };
+                        const blob = await this.recordingManager.exportAsGIF(
+                            { fps: a.fps || 10, maxWidth: a.maxWidth || 480 });
+                        if (!blob) throw new Error('No animation selected');
+                        return { dataUrl: await blobToDataUrl(blob), size: blob.size };
+                    }
+                    case 'exportSequence': {
+                        const blob = await this.recordingManager.exportAsImageSequence(
+                            { fps: a.fps || 15, maxWidth: a.maxWidth || 1920 });
+                        if (!blob) throw new Error('No animation selected');
+                        return { dataUrl: await blobToDataUrl(blob), size: blob.size };
                     }
                     default:
                         throw new Error('Unknown op: ' + cmd.op);
@@ -3873,43 +3878,81 @@
         }
 
         // Encode RGBA frames to an animated GIF89a (256-colour 3-3-2 palette). No deps.
-        function encodeGIF(frames, width, height, delayMs = 100) {
-            const out = [];
-            const short = (v) => out.push(v & 0xff, (v >> 8) & 0xff);
-            const str = (s) => { for (let i = 0; i < s.length; i++) out.push(s.charCodeAt(i)); };
+        /**
+         * Streaming GIF writer: one frame in, its compressed bytes kept, the
+         * pixels dropped.
+         *
+         * The batch encoder needed every frame's raw RGBA alive at once -- at
+         * 480x270 that is 518KB a frame, so a two-minute GIF wanted 622MB
+         * before encoding even started. Nothing here needs that: the palette
+         * is a fixed 3-3-2 cube, so quantizing is stateless per pixel and a
+         * frame can be compressed the moment it is drawn. Memory becomes the
+         * size of the GIF you were producing anyway.
+         */
+        function createGifStream(width, height, delayMs = 100) {
+            const parts = [];
+            const head = [];
+            const short = (out, v) => out.push(v & 0xff, (v >> 8) & 0xff);
+            const str = (out, t) => { for (let i = 0; i < t.length; i++) out.push(t.charCodeAt(i)); };
 
-            str('GIF89a');
-            short(width); short(height);
-            out.push(0xF7, 0, 0); // global colour table, 256 entries, 8 bits/pixel
+            str(head, 'GIF89a');
+            short(head, width); short(head, height);
+            head.push(0xF7, 0, 0); // global colour table, 256 entries, 8 bits/pixel
             for (let i = 0; i < 256; i++) {
-                out.push(
+                head.push(
                     Math.round(((i >> 5) & 7) * 255 / 7),
                     Math.round(((i >> 2) & 7) * 255 / 7),
                     Math.round((i & 3) * 255 / 3)
                 );
             }
-            out.push(0x21, 0xFF, 11); str('NETSCAPE2.0'); out.push(3, 1, 0, 0, 0); // loop forever
+            head.push(0x21, 0xFF, 11); str(head, 'NETSCAPE2.0'); head.push(3, 1, 0, 0, 0); // loop forever
+            parts.push(Uint8Array.from(head));
 
             const delay = Math.round(delayMs / 10); // centiseconds
-            for (const rgba of frames) {
-                out.push(0x21, 0xF9, 4, 0, delay & 0xff, (delay >> 8) & 0xff, 0, 0);
-                out.push(0x2C); short(0); short(0); short(width); short(height); out.push(0);
+            let count = 0;
 
-                const indices = new Uint8Array(width * height);
-                for (let p = 0; p < indices.length; p++) {
-                    const r = rgba[p * 4], g = rgba[p * 4 + 1], b = rgba[p * 4 + 2];
-                    indices[p] = ((r >> 5) << 5) | ((g >> 5) << 2) | (b >> 6);
-                }
-                const data = lzwEncode(8, indices);
-                out.push(8); // LZW minimum code size
-                for (let i = 0; i < data.length; i += 255) {
-                    const chunk = data.slice(i, i + 255);
-                    out.push(chunk.length, ...chunk);
-                }
-                out.push(0); // block terminator
-            }
-            out.push(0x3B); // trailer
-            return new Uint8Array(out);
+            return {
+                get frameCount() { return count; },
+                addFrame(rgba) {
+                    const out = [];
+                    out.push(0x21, 0xF9, 4, 0, delay & 0xff, (delay >> 8) & 0xff, 0, 0);
+                    out.push(0x2C); short(out, 0); short(out, 0);
+                    short(out, width); short(out, height); out.push(0);
+
+                    const indices = new Uint8Array(width * height);
+                    for (let p = 0; p < indices.length; p++) {
+                        const r = rgba[p * 4], g = rgba[p * 4 + 1], b = rgba[p * 4 + 2];
+                        indices[p] = ((r >> 5) << 5) | ((g >> 5) << 2) | (b >> 6);
+                    }
+                    const data = lzwEncode(8, indices);
+                    out.push(8); // LZW minimum code size
+                    for (let i = 0; i < data.length; i += 255) {
+                        const chunk = data.slice(i, i + 255);   // lzwEncode returns a plain array
+                        out.push(chunk.length);
+                        for (let j = 0; j < chunk.length; j++) out.push(chunk[j]);
+                    }
+                    out.push(0); // block terminator
+                    parts.push(Uint8Array.from(out));
+                    count++;
+                    return this;
+                },
+                finish() {
+                    parts.push(Uint8Array.from([0x3B])); // trailer
+                    const total = parts.reduce((n, part) => n + part.length, 0);
+                    const gif = new Uint8Array(total);
+                    let at = 0;
+                    for (const part of parts) { gif.set(part, at); at += part.length; }
+                    parts.length = 0;
+                    return gif;
+                },
+            };
+        }
+
+        /** Batch form, kept because it is the documented utility and is tested. */
+        function encodeGIF(frames, width, height, delayMs = 100) {
+            const gif = createGifStream(width, height, delayMs);
+            for (const rgba of frames) gif.addFrame(rgba);
+            return gif.finish();
         }
 
         const CRC_TABLE = (() => {
@@ -4280,50 +4323,120 @@
                 on('exportData', () => this.exportAnimationData());
             }
 
-            // Deterministically sample the selected animation into downscaled frames
-            // by stepping time and rendering offline (no realtime playback needed).
-            captureFrames(fps = 10, maxWidth = 480) {
+            /**
+             * Render the selected animation through the shared offline loop.
+             *
+             * Every export goes through here, so they all get the same
+             * frame-stepped timing, the same physics stepping, and the same
+             * guarantee that frame N is a pure function of N. The sink decides
+             * what to do with each frame -- and, critically, is expected to
+             * consume and release it.
+             */
+            async renderWithSink(sink, { fps = 24, width, height, signal = null,
+                                         onProgress = null } = {}) {
                 const anim = this.animationManager.getSelectedAnimation();
                 if (!anim) { this.showNotification('No animation selected', 'info'); return null; }
-                this.animationManager.prepareActions();
+                const timeline = this.animationManager.prepareActions();
+                if (!timeline) throw new Error('The animation core has not loaded yet');
 
+                const [render, three] = await Promise.all([
+                    import(coreUrl('./src/render/OfflineRenderer.js')),
+                    import(coreUrl('./src/backends/three3d/Three3DBackend.js')),
+                ]);
+
+                const gl = this.sceneManager.renderer.domElement;
+                const w = Math.max(1, Math.round(width ?? gl.width));
+                const h = Math.max(1, Math.round(height ?? gl.height));
+                const backend = new three.Three3DBackend({ sceneManager: this.sceneManager });
+                const resolve = (uuid) => this.sceneManager.getObjectByUUID(uuid);
+                const poser = three.createThreePoser({
+                    timeline, resolve, samplePose: this.animationManager.core.samplePose,
+                });
+
+                const previous = { width: gl.width, height: gl.height };
+                backend.mount(gl, { width: w, height: h });
+                try {
+                    this.physicsManager?.resetSimulation();
+                    return await render.renderOffline({
+                        scene: null, timeline, backend, cameraId: null, poser,
+                        fps, width: w, height: h, durationSec: anim.duration,
+                        physics: this.physicsManager ?? null,
+                        sink, signal, onProgress,
+                    });
+                } finally {
+                    backend.resize(previous.width, previous.height);
+                    this.animationManager.setCurrentTime(this.animationManager.currentTime);
+                }
+            }
+
+            /**
+             * Read a frame off the WebGL canvas as RGBA, into one reused
+             * buffer. The scratch canvas is allocated once per export rather
+             * than per frame, because an export is thousands of frames.
+             */
+            _frameReader(width, height) {
+                const scratch = document.createElement('canvas');
+                scratch.width = width;
+                scratch.height = height;
+                const ctx = scratch.getContext('2d', { willReadFrequently: true });
+                return {
+                    rgba(canvas) {
+                        ctx.drawImage(canvas, 0, 0, width, height);
+                        return ctx.getImageData(0, 0, width, height).data;
+                    },
+                    png(canvas) {
+                        ctx.drawImage(canvas, 0, 0, width, height);
+                        return dataURLToBytes(scratch.toDataURL('image/png'));
+                    },
+                };
+            }
+
+            async exportAsGIF({ fps = 10, maxWidth = 480 } = {}) {
                 const gl = this.sceneManager.renderer.domElement;
                 const scale = Math.min(1, maxWidth / gl.width);
                 const w = Math.max(1, Math.round(gl.width * scale));
                 const h = Math.max(1, Math.round(gl.height * scale));
-                const c2d = document.createElement('canvas');
-                c2d.width = w; c2d.height = h;
-                const ctx = c2d.getContext('2d');
-
-                const count = Math.max(1, Math.round(anim.duration * fps));
-                const frames = [], pngs = [];
-                for (let i = 0; i < count; i++) {
-                    this.animationManager.setCurrentTime((i / count) * anim.duration);
-                    this.sceneManager.render();
-                    ctx.drawImage(gl, 0, 0, w, h);
-                    frames.push(ctx.getImageData(0, 0, w, h).data);
-                    pngs.push(dataURLToBytes(c2d.toDataURL('image/png')));
-                }
-                this.animationManager.setCurrentTime(0);
-                return { width: w, height: h, delayMs: 1000 / fps, frames, pngs };
+                const read = this._frameReader(w, h);
+                const gif = createGifStream(w, h, 1000 / fps);
+                // The sink keeps COMPRESSED bytes and drops the pixels. The
+                // old path held raw RGBA and PNG bytes for every frame --
+                // about 15GB for two minutes at 1080p -- so a long export
+                // could not finish at all.
+                const out = await this.renderWithSink({
+                    configure() {},
+                    writeFrame(canvas) { gif.addFrame(read.rgba(canvas)); },
+                    finish() { return new Blob([gif.finish()], { type: 'image/gif' }); },
+                    abort() { gif.finish(); },
+                }, { fps, width: w, height: h });
+                if (!out) return null;
+                downloadBlob(out, 'animation.gif');
+                this.showNotification(`GIF exported (${gif.frameCount} frames)`, 'success');
+                return out;
             }
 
-            exportAsGIF() {
-                const cap = this.captureFrames(10, 480);
-                if (!cap) return;
-                const bytes = encodeGIF(cap.frames, cap.width, cap.height, cap.delayMs);
-                downloadBlob(new Blob([bytes], { type: 'image/gif' }), 'animation.gif');
-                this.showNotification('GIF exported', 'success');
-            }
-
-            exportAsImageSequence() {
-                const cap = this.captureFrames(15, 1920);
-                if (!cap) return;
-                const files = cap.pngs.map((data, i) => ({
-                    name: `frame_${String(i).padStart(4, '0')}.png`, data
-                }));
-                downloadBlob(new Blob([buildZip(files)], { type: 'application/zip' }), 'frames.zip');
-                this.showNotification('Image sequence exported', 'success');
+            async exportAsImageSequence({ fps = 15, maxWidth = 1920 } = {}) {
+                const gl = this.sceneManager.renderer.domElement;
+                const scale = Math.min(1, maxWidth / gl.width);
+                const w = Math.max(1, Math.round(gl.width * scale));
+                const h = Math.max(1, Math.round(gl.height * scale));
+                const read = this._frameReader(w, h);
+                // A zip's central directory is written last, so the compressed
+                // PNGs do have to be held. The raw RGBA does not, and the old
+                // path held both.
+                const files = [];
+                const out = await this.renderWithSink({
+                    configure() {},
+                    writeFrame(canvas, n) {
+                        files.push({ name: `frame_${String(n).padStart(4, '0')}.png`,
+                                     data: read.png(canvas) });
+                    },
+                    finish() { return new Blob([buildZip(files)], { type: 'application/zip' }); },
+                    abort() { files.length = 0; },
+                }, { fps, width: w, height: h });
+                if (!out) return null;
+                downloadBlob(out, 'frames.zip');
+                this.showNotification(`Image sequence exported (${files.length} frames)`, 'success');
+                return out;
             }
 
             // Toggle the four control-button indicators; true = stopped (dim).
@@ -4512,7 +4625,7 @@
             CameraManager,
             animationEngine,
             // pure utilities (exposed for reuse and unit testing)
-            utils: { encodeGIF, lzwEncode, buildZip, crc32, subdivideGeometry, dataURLToBytes, cubicBezierEase, sampleChannel, downloadBlob, blobToDataUrl }
+            utils: { encodeGIF, createGifStream, lzwEncode, buildZip, crc32, subdivideGeometry, dataURLToBytes, cubicBezierEase, sampleChannel, downloadBlob, blobToDataUrl }
         }
     }
     )

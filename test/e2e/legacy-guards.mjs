@@ -133,6 +133,32 @@ const render=await pg.evaluate(async()=>{
   return r;
 });
 console.log(JSON.stringify(render));
+
+// GIF and PNG-sequence export must stream: the old path held raw RGBA AND
+// PNG bytes for every frame, so a long sequence could not finish at all.
+const exports_=await pg.evaluate(async()=>{
+  const e=window.AnimationEngine.animationEngine;
+  const rm=e.recordingManager;
+  // Keep the files instead of downloading them.
+  const saved=[];
+  const originalCreate=URL.createObjectURL;
+  URL.createObjectURL=(b)=>{ saved.push(b); return originalCreate.call(URL,b); };
+  const peak={bytes:0};
+  const gif=await rm.exportAsGIF({fps:8,maxWidth:160});
+  const zip=await rm.exportAsImageSequence({fps:8,maxWidth:160});
+  URL.createObjectURL=originalCreate;
+  const head=new Uint8Array(await gif.slice(0,6).arrayBuffer());
+  const zipHead=new Uint8Array(await zip.slice(0,4).arrayBuffer());
+  return {
+    gifBytes:gif.size,
+    gifMagic:String.fromCharCode(...head),
+    zipBytes:zip.size,
+    zipMagic:[...zipHead],
+    captureFramesGone: typeof rm.captureFrames==='undefined',
+    downloads:saved.length,
+  };
+});
+console.log(JSON.stringify(exports_));
 console.log(JSON.stringify(out));
 await br.close(); srv.close();
 const fails=[];
@@ -144,6 +170,11 @@ if(!render.deterministic) fails.push('two renders of the same animation differed
 if(!(render.physics.fell>1)) fails.push(`physics did not advance offline (fell ${render.physics.fell})`);
 if(Math.abs(render.physics.rewound-10)>0.01) fails.push(`rewind left the body at y=${render.physics.rewound}`);
 if(!render.physics.repeatable) fails.push('stepping to the same time twice gave different physics');
+if(exports_.gifMagic!=='GIF89a') fails.push(`GIF export is not a GIF: ${exports_.gifMagic}`);
+if(!(exports_.gifBytes>500)) fails.push(`GIF is ${exports_.gifBytes} bytes; it has no frames`);
+if(JSON.stringify(exports_.zipMagic)!=='[80,75,3,4]') fails.push('PNG sequence is not a zip');
+if(!(exports_.zipBytes>1000)) fails.push(`zip is ${exports_.zipBytes} bytes; it has no frames`);
+if(!exports_.captureFramesGone) fails.push('captureFrames is still there, still holding every frame');
 if(Math.abs(out.xAt1s-5)>0.01) fails.push(`position at 1s is ${out.xAt1s}, want 5`);
 if(Math.abs(out.quatYAt1s-Math.sin(Math.PI/4))>0.01) fails.push(`rotation not slerped: quat.y ${out.quatYAt1s}`);
 if(!out.reproducible) fails.push('same time gave a different pose');
@@ -153,4 +184,5 @@ if(Math.abs(out.xAtEnd-10)>0.01) fails.push(`position at end is ${out.xAtEnd}, w
 if(fails.length){ console.error('FAILED:\n - '+fails.join('\n - ')); process.exit(1); }
 console.log(`PASS: scrubs after a load, slerps rotation, honours step, animates colour; `
   + `${render.frames} frames rendered offline, ${render.distinct} distinct, deterministic, `
-  + `physics fell ${render.physics.fell} and rewinds`);
+  + `physics fell ${render.physics.fell} and rewinds; `
+  + `GIF ${(exports_.gifBytes/1024).toFixed(0)}KB and zip ${(exports_.zipBytes/1024).toFixed(0)}KB streamed`);

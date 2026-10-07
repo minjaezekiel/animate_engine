@@ -522,15 +522,49 @@
                         this._film = film;
                         const { compileFilm } = await import(coreUrl('./src/core/script/compile.js'));
                         const compiled = compileFilm(film, {});
+                        let staging = [];
+                        if (compiled.scene) {
+                            const [{ analyseStaging }, { trackValueAt }] = await Promise.all([
+                                import(coreUrl('./src/core/script/staging.js')),
+                                import(coreUrl('./src/core/anim/Track.js')),
+                            ]);
+                            staging = analyseStaging(compiled, film, { trackValueAt });
+                        }
                         return {
                             title: film.meta?.title ?? null,
                             duration: compiled.meta?.duration ?? 0,
                             frames: compiled.meta?.frames ?? 0,
                             scenes: (film.scenes ?? []).length,
                             dialogue: compiled.lipsyncJobs?.length ?? 0,
-                            diagnostics: compiled.diagnostics
+                            diagnostics: [...compiled.diagnostics, ...staging]
                                 .filter((d) => d.severity !== 'info')
                                 .map((d) => `${d.severity}: ${d.message}`),
+                        };
+                    }
+                    case 'checkFilm': {
+                        // Validation without rendering. There was no way to
+                        // ask "is this film staged correctly" short of
+                        // producing a video, which is why staging bugs were
+                        // only ever found by looking at frames.
+                        const film = a.film ?? (a.url ? await (await fetch(a.url)).json() : this._film);
+                        if (!film) throw new Error('checkFilm needs `film`, `url`, or a loaded film');
+                        const [{ compileFilm }, { analyseStaging }, { trackValueAt }] = await Promise.all([
+                            import(coreUrl('./src/core/script/compile.js')),
+                            import(coreUrl('./src/core/script/staging.js')),
+                            import(coreUrl('./src/core/anim/Track.js')),
+                        ]);
+                        const compiled = compileFilm(film, {});
+                        const staging = compiled.scene
+                            ? analyseStaging(compiled, film, { trackValueAt }) : [];
+                        const all = [...compiled.diagnostics, ...staging]
+                            .filter((d) => d.severity !== 'info');
+                        return {
+                            duration: compiled.meta?.duration ?? 0,
+                            frames: compiled.meta?.frames ?? 0,
+                            ok: !all.some((d) => d.severity === 'error' || d.severity === 'fatal'),
+                            // `path` is folded in because the agent-facing
+                            // shape below drops it.
+                            problems: all.map((d) => `${d.severity}: ${d.path ? d.path + ' — ' : ''}${d.message}`),
                         };
                     }
                     case 'renderFilm': {

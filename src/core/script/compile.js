@@ -11,6 +11,7 @@ import { validateFilm } from './validate.js';
 import { castVoices } from '../voice/synthesize.js';
 import { generateCharacterParts, generateMouth, generateActions } from './generate.js';
 import { solveChain, chainFromParts, chainRootOffset } from '../rig/IK2D.js';
+import { groundAt, measureCharacter } from './staging.js';
 
 /**
  * compileFilm: declarative film -> core Scene + Timeline + audio cues +
@@ -98,7 +99,7 @@ export function compileFilm(film, { assets = {} } = {}) {
         }
 
         buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics);
-        buildScenery(scene, sceneSpec, groupId, palettes, meta);
+        buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics);
 
         // --- cast: instantiate each character's part tree
         const castMap = new Map();
@@ -110,9 +111,9 @@ export function compileFilm(film, { assets = {} } = {}) {
             const rootId = `${sceneId}/${as}`;
             instantiateCharacter({
                 scene, char, charName, as, rootId, parentId: groupId,
-                entry, palettes, diagnostics,
+                entry, palettes, diagnostics, assets,
             });
-            castMap.set(as, { rootId, char, charName });
+            castMap.set(as, { rootId, char, charName, entry });
         }
 
         // --- scene-level audio (music beds)
@@ -146,7 +147,7 @@ export function compileFilm(film, { assets = {} } = {}) {
             for (const action of shot.actions ?? []) {
                 buildAction({
                     scene, timeline, action, castMap, shotStart, shotEnd,
-                    sceneId, characters, diagnostics,
+                    sceneId, characters, diagnostics, ground: sceneSpec.ground ?? null,
                 });
             }
 
@@ -179,6 +180,36 @@ export function compileFilm(film, { assets = {} } = {}) {
     };
 }
 
+/**
+ * Turn an asset id into something `drawImage` accepts.
+ *
+ * There has to be exactly one of these. Scenery spreads `...shape` straight
+ * into props, so `{ kind: 'image', image: 'bg1' }` used to put the STRING on
+ * `props.image`, pass the backend's truthiness check, and then throw inside
+ * a real canvas -- a trap rather than a gap. Every path that can name an
+ * image now comes through here and gets a diagnostic instead.
+ *
+ * Accepts `image` or `asset` as the id, so scenery and parts can read the way
+ * their authors expect.
+ */
+function resolveImageProps(props, assets, diagnostics, path) {
+    const id = props.asset ?? (typeof props.image === 'string' ? props.image : null);
+    if (id == null) return props;
+
+    const image = assets[id];
+    delete props.asset;
+    if (!image) {
+        diagnostics.push({
+            severity: 'warning', path,
+            message: `Image asset "${id}" was not loaded; nothing will be drawn here.`,
+        });
+        props.image = null;
+        return props;
+    }
+    props.image = image;
+    return props;
+}
+
 // ---------------------------------------------------------------- background
 
 function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics) {
@@ -196,8 +227,13 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
         scene.add({
             id, kind: image ? 'image' : 'rect',
             props: image
-                ? { image, w: meta.width, h: meta.height, screenSpace: true }
+                // `cover` rather than a stretch: a background declared at
+                // frame size would otherwise distort any art that is not
+                // exactly the film's aspect ratio.
+                ? { image, w: meta.width, h: meta.height, cx: true, cy: true,
+                    fit: bg.fit ?? 'cover', screenSpace: true }
                 : { w: meta.width, h: meta.height, fill: bg.color ?? '#111317', screenSpace: true },
+            transform: image ? { x: meta.width / 2, y: meta.height / 2 } : undefined,
             z: -1000,
         }, groupId);
     } else if (bg.color || bg.gradient) {
@@ -223,7 +259,7 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
  * the whole thing inside the ordinary transform hierarchy instead of needing
  * a special case in the renderer.
  */
-function buildScenery(scene, sceneSpec, groupId, palettes, meta) {
+function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics) {
     const items = sceneSpec.scenery ?? [];
     if (!items.length) return;
     const palette = palettes[sceneSpec.palette] ?? {};
@@ -239,7 +275,7 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta) {
                 x: at[0], y: at[1],
                 sx: item.sx ?? 1, sy: item.sy ?? 1, rot: item.rot ?? 0,
             },
-            props: {
+            props: resolveImageProps({
                 ...shape,
                 fill: colorOf(item.fill),
                 stroke: colorOf(item.stroke),
@@ -247,7 +283,7 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta) {
                 gradient: item.gradient ?? null,
                 alpha: item.alpha ?? 1,
                 screenSpace: item.screenSpace ?? false,
-            },
+            }, assets, diagnostics, `scenes.${sceneSpec.id}.scenery.${item.id ?? i}`),
             z: item.z ?? -500,
         }, groupId);
     });
@@ -286,7 +322,8 @@ export function shotAt(film, t) {
 
 // ----------------------------------------------------------------- character
 
-function instantiateCharacter({ scene, char, charName, as, rootId, parentId, entry, palettes, diagnostics }) {
+function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
+                               entry, palettes, diagnostics, assets = {} }) {
     const palette = { ...(palettes[char.palette] ?? {}), ...(entry.palette ?? {}) };
     const colorOf = (c) => (c == null ? null : (palette[c] ?? c));
     const scale = entry.scale ?? 1;
@@ -321,13 +358,13 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId, ent
                 y: (part.at?.[1] ?? 0) + pivot[1],
                 ox: 0, oy: 0,
             },
-            props: {
+            props: resolveImageProps({
                 ...shapeProps(part.shape),
                 fill: colorOf(part.fill),
                 stroke: colorOf(part.stroke),
                 strokeWidth: part.strokeWidth,
                 alpha: part.alpha ?? 1,
-            },
+            }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
             z: part.z ?? 0,
         }, part.parent ? `${rootId}/${part.parent}` : rootId);
         added.add(part.id);
@@ -397,8 +434,26 @@ function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamer
     const moveStart = shotStart + (cam?.at ?? 0);
     const moveEnd = moveStart + (cam?.for ?? dur - (cam?.at ?? 0));
 
+    // A shot that declares its own `from` is a cut, not a continuation. Its
+    // start key lands on the same time as the previous shot's end key, and
+    // `key()` replaces rather than appends -- so writing it at `moveStart`
+    // silently DELETED the previous shot's `to` and made the whole preceding
+    // segment interpolate to this shot's opening framing instead. In the
+    // shipped demo that flew the camera away from both characters for the
+    // last eight seconds of a scene.
+    //
+    // Half a frame later is close enough to be a cut and late enough not to
+    // clobber the key before it.
+    // Not `prevCamera != null`: that resets at a scene boundary, which is
+    // exactly where the clobber happened. Any explicit `from` after t=0
+    // lands on a time some earlier shot already keyed.
+    const cut = cam?.from != null && moveStart > 0;
+    const startAt = cut ? moveStart + 0.5 / (meta.fps || 24) : moveStart;
+
     const write = (path, a, b) => {
-        key(timeline, cameraId, path, moveStart, a, { type: 'number', ease, h });
+        // On a cut, nothing is written AT `moveStart` -- that instant belongs
+        // to the previous shot's `to`, and writing there is what deleted it.
+        key(timeline, cameraId, path, startAt, a, { type: 'number', ease, h });
         key(timeline, cameraId, path, moveEnd, b, { type: 'number' });
     };
     write('transform.x', centre.x + (start.x ?? 0), centre.x + (end.x ?? 0));
@@ -431,10 +486,18 @@ function writeChannel({ timeline, target, channel, value, at, span, ease, h }) {
     key(timeline, target, path, at + span, value, { type: 'number' });
 }
 
-function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sceneId, characters, diagnostics }) {
+/** How far a cast member's feet sit below its root, at its staged scale. */
+function castFeet(char, entry) {
+    const parts = characterParts(char ?? {});
+    if (!parts.length) return 0;
+    return measureCharacter(parts).bottom * (entry?.scale ?? 1);
+}
+
+function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
+                       sceneId, characters, diagnostics, ground = null }) {
     const cast = castMap.get(action.target);
     if (!cast) return;
-    const { rootId, charName } = cast;
+    const { rootId, charName, entry } = cast;
     const char = characters[charName];
     const at = shotStart + (action.at ?? 0);
     const span = action.for ?? null;
@@ -456,6 +519,14 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sce
         }
         case 'move': {
             const to = action.to ?? [0, 0];
+            // `to: [700]` with a declared ground means "walk to x=700 and
+            // stay on the floor". Deriving y from the ground beats computing
+            // a slope by hand, which is how the demo ended up 109px under it.
+            if (to[1] == null && ground) {
+                const feet = castFeet(char, entry);
+                const gy = groundAt(ground, to[0]);
+                if (gy != null) to[1] = gy - feet;
+            }
             const prevX = lastValueBefore(timeline, rootId, 'transform.x', at)
                 ?? scene.get(rootId)?.transform.x ?? 0;
             const prevY = lastValueBefore(timeline, rootId, 'transform.y', at)

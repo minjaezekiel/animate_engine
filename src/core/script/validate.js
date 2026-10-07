@@ -1,4 +1,5 @@
-import { FILM_VERSION, KNOWN, DO_VERBS, TRANSITION_KINDS, KNOWN_SCENERY } from './schema.js';
+import { FILM_VERSION, KNOWN, DO_VERBS, TRANSITION_KINDS, KNOWN_SCENERY,
+         ASSET_KINDS, SHAPE_KINDS } from './schema.js';
 import { generateActions } from './generate.js';
 
 const GENERATED_ACTIONS = Object.keys(generateActions());
@@ -21,6 +22,7 @@ export function validateFilm(film) {
     }
     unknown('', film, KNOWN.root, warn);
     if (film.meta) unknown('meta', film.meta, KNOWN.meta, warn);
+    validateAssets(film, d);
 
     if (film.meta?.duration != null) {
         warn('meta.duration', 'Duration is derived from shot durations; the declared value is ignored.');
@@ -116,6 +118,25 @@ export function validateFilm(film) {
             }
         });
 
+        // An image named but not declared renders nothing, silently, which
+        // is worse than a wrong colour. Check it the way audio is checked.
+        if (scene.background) {
+            unknown(`${sp}.background`, scene.background, KNOWN.background, warn);
+            if (scene.background.image && !film.assets?.[scene.background.image]) {
+                err(`${sp}.background`, `Image asset "${scene.background.image}" is not declared.`);
+            }
+        }
+        for (const item of scene.scenery ?? []) {
+            const id = item.shape?.asset
+                ?? (item.shape?.kind === 'image' ? item.shape?.image : null);
+            if (id && !film.assets?.[id]) {
+                err(`${sp}.scenery`, `Image asset "${id}" is not declared (scenery "${item.id}").`);
+            }
+            if (item.shape?.kind && !SHAPE_KINDS.includes(item.shape.kind)) {
+                warn(`${sp}.scenery`, `Unknown shape kind "${item.shape.kind}" on "${item.id}". `
+                    + `Known: ${SHAPE_KINDS.join(', ')}.`);
+            }
+        }
         for (const cue of scene.audio ?? []) {
             unknown(`${sp}.audio`, cue, KNOWN.audioCue, warn);
             if (cue.asset && !film.assets?.[cue.asset]) {
@@ -133,6 +154,30 @@ function unknown(path, obj, known, warn) {
             warn(path ? `${path}.${k}` : k, `Unrecognized field "${k}"; ignored.`);
         }
     }
+}
+
+export function validateAssets(film, d) {
+    for (const [id, asset] of Object.entries(film.assets ?? {})) {
+        if (!asset || typeof asset !== 'object') {
+            d.push({ severity: 'error', path: `assets.${id}`, message: 'Asset must be an object.' });
+            continue;
+        }
+        for (const key of Object.keys(asset)) {
+            if (!KNOWN.asset.includes(key)) {
+                d.push({ severity: 'warning', path: `assets.${id}`,
+                         message: `Unknown asset key "${key}". Known: ${KNOWN.asset.join(', ')}.` });
+            }
+        }
+        if (asset.kind && !ASSET_KINDS.includes(asset.kind)) {
+            d.push({ severity: 'warning', path: `assets.${id}`,
+                     message: `Unknown asset kind "${asset.kind}". Known: ${ASSET_KINDS.join(', ')}.` });
+        }
+        if (!asset.src && !asset.file) {
+            d.push({ severity: 'warning', path: `assets.${id}`,
+                     message: `Asset "${id}" has neither "src" nor "file"; it can never load.` });
+        }
+    }
+    return d;
 }
 
 export const hasFatal = (diagnostics) => diagnostics.some((x) => x.severity === 'fatal');

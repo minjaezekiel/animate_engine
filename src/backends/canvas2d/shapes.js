@@ -43,6 +43,40 @@ function resolveFill(ctx, node, w, h) {
     return grad;
 }
 
+/**
+ * Draw an image node, optionally cropping a sub-rectangle of a sprite atlas.
+ *
+ * `sx/sy/sw/sh` select the source frame; without them the whole image is
+ * used. `fit` decides what happens when the destination box and the source
+ * have different aspect ratios -- 'stretch' is the old behaviour and still
+ * the default, but a background declared at frame size would otherwise
+ * distort any art that is not exactly 16:9.
+ */
+function drawImageNode(ctx, img, p) {
+    const srcW = p.sw ?? img.width ?? 0;
+    const srcH = p.sh ?? img.height ?? 0;
+    if (!srcW || !srcH) return;
+
+    let w = p.w ?? srcW;
+    let h = p.h ?? srcH;
+    if (p.fit === 'contain' || p.fit === 'cover') {
+        const scale = p.fit === 'contain'
+            ? Math.min(w / srcW, h / srcH)
+            : Math.max(w / srcW, h / srcH);
+        w = srcW * scale;
+        h = srcH * scale;
+    }
+    // `cx`/`cy` are booleans meaning "centre on this axis", not coordinates.
+    const dx = p.cx ? -w / 2 : 0;
+    const dy = p.cy ? -h / 2 : 0;
+
+    if (p.sx != null || p.sy != null || p.sw != null || p.sh != null) {
+        ctx.drawImage(img, p.sx ?? 0, p.sy ?? 0, srcW, srcH, dx, dy, w, h);
+    } else {
+        ctx.drawImage(img, dx, dy, w, h);
+    }
+}
+
 export function drawShape(ctx, node, { Path2DImpl, alpha }) {
     const p = node.props;
     // The caller supplies the inherited alpha; fall back to the node's own
@@ -90,10 +124,11 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
         }
         case 'image': {
             const img = p.image;
-            if (!img) break;
-            const w = p.w ?? img.width ?? 0;
-            const h = p.h ?? img.height ?? 0;
-            ctx.drawImage(img, p.cx ? -w / 2 : 0, p.cy ? -h / 2 : 0, w, h);
+            // A string here means an asset id that nothing resolved. Drawing
+            // it throws inside a real canvas, so refuse quietly rather than
+            // take the frame down.
+            if (!img || typeof img === 'string') break;
+            drawImageNode(ctx, img, p);
             break;
         }
         case 'text': {

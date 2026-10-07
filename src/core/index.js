@@ -35,6 +35,11 @@ export {
     chainFromParts, chainRootOffset, wrapAngle,
 } from './rig/IK2D.js';
 
+// art assets (provider-based, same seam as voices)
+export { AssetRegistry, loadAssets } from './art/AssetRegistry.js';
+export { UrlProvider } from './art/providers/UrlProvider.js';
+export { FileProvider } from './art/providers/FileProvider.js';
+
 // audio analysis + lipsync (pure; no Web Audio)
 export { createCue, cueSampleWindow, mixDuration, cueGainAt } from './audio/cues.js';
 export { envelope, voicedSpans, normalize } from './audio/envelope.js';
@@ -53,7 +58,8 @@ export { castVoices, synthesizeDialogue } from './voice/synthesize.js';
 
 // film script
 export { compileFilm, filmShots, shotAt, characterParts } from './script/compile.js';
-export { validateFilm, hasFatal, hasError } from './script/validate.js';
+export { validateFilm, validateAssets, hasFatal, hasError } from './script/validate.js';
+export { analyseStaging, measureCharacter, groundAt } from './script/staging.js';
 export { parseScreenplay, estimateSeconds, retimeToAudio } from './script/screenplay.js';
 export {
     generateCharacterParts, generateMouth, generateActions, DEFAULT_PROPORTIONS,

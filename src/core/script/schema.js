@@ -32,15 +32,21 @@ export const KNOWN = {
     root: ['version', 'meta', 'voices', 'assets', 'palettes', 'characters', 'scenes'],
     meta: ['title', 'fps', 'width', 'height', 'author', 'description', 'duration', 'estimatedTiming'],
     character: ['palette', 'voice', 'parts', 'mouth', 'poses', 'actions', 'proportions', 'generate'],
-    part: ['id', 'parent', 'pivot', 'shape', 'fill', 'stroke', 'strokeWidth', 'z', 'at', 'alpha'],
-    scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots', 'scenery', 'palette'],
+    part: ['id', 'parent', 'pivot', 'shape', 'shapes', 'fill', 'stroke', 'strokeWidth',
+           'z', 'at', 'alpha'],
+    scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
+            'scenery', 'palette', 'ground'],
     shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle'],
     action: ['target', 'do', 'action', 'pose', 'to', 'at', 'for', 'ease', 'h', 'loop', 'speed', 'value', 'channel',
              'part', 'bones', 'bend'],
     dialogue: ['speaker', 'at', 'text', 'audio', 'voice', 'lipsync', 'subtitle', 'gain', 'duration'],
     camera: ['from', 'to', 'ease', 'h', 'at', 'for'],
     audioCue: ['asset', 'at', 'gain', 'fadeIn', 'fadeOut', 'offset', 'duration', 'bus'],
+    asset: ['kind', 'src', 'file', 'provider', 'frames', 'grid', 'pivot', 'fit'],
+    background: ['color', 'gradient', 'image', 'fit'],
 };
+
+export const ASSET_KINDS = ['image', 'audio'];
 
 export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidth', 'z',
                              'alpha', 'parallax', 'gradient', 'screenSpace', 'sx', 'sy', 'rot'];

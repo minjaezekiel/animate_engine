@@ -440,8 +440,31 @@ var KNOWN = {
   root: ["version", "meta", "voices", "assets", "palettes", "characters", "scenes"],
   meta: ["title", "fps", "width", "height", "author", "description", "duration", "estimatedTiming"],
   character: ["palette", "voice", "parts", "mouth", "poses", "actions", "proportions", "generate"],
-  part: ["id", "parent", "pivot", "shape", "fill", "stroke", "strokeWidth", "z", "at", "alpha"],
-  scene: ["id", "background", "transitionIn", "transitionOut", "cast", "audio", "shots", "scenery", "palette"],
+  part: [
+    "id",
+    "parent",
+    "pivot",
+    "shape",
+    "shapes",
+    "fill",
+    "stroke",
+    "strokeWidth",
+    "z",
+    "at",
+    "alpha"
+  ],
+  scene: [
+    "id",
+    "background",
+    "transitionIn",
+    "transitionOut",
+    "cast",
+    "audio",
+    "shots",
+    "scenery",
+    "palette",
+    "ground"
+  ],
   shot: ["id", "duration", "camera", "actions", "dialogue", "subtitleStyle"],
   action: [
     "target",
@@ -463,8 +486,11 @@ var KNOWN = {
   ],
   dialogue: ["speaker", "at", "text", "audio", "voice", "lipsync", "subtitle", "gain", "duration"],
   camera: ["from", "to", "ease", "h", "at", "for"],
-  audioCue: ["asset", "at", "gain", "fadeIn", "fadeOut", "offset", "duration", "bus"]
+  audioCue: ["asset", "at", "gain", "fadeIn", "fadeOut", "offset", "duration", "bus"],
+  asset: ["kind", "src", "file", "provider", "frames", "grid", "pivot", "fit"],
+  background: ["color", "gradient", "image", "fit"]
 };
+var ASSET_KINDS = ["image", "audio"];
 var KNOWN_SCENERY = [
   "id",
   "shape",
@@ -481,6 +507,7 @@ var KNOWN_SCENERY = [
   "sy",
   "rot"
 ];
+var SHAPE_KINDS = ["path", "ellipse", "rect", "image", "text", "group"];
 var TRANSITION_KINDS = ["fade", "crossfade", "none"];
 var DO_VERBS = ["play", "pose", "move", "reach", "set", "show", "hide"];
 
@@ -725,6 +752,7 @@ function validateFilm(film) {
   }
   unknown("", film, KNOWN.root, warn);
   if (film.meta) unknown("meta", film.meta, KNOWN.meta, warn);
+  validateAssets(film, d);
   if (film.meta?.duration != null) {
     warn("meta.duration", "Duration is derived from shot durations; the declared value is ignored.");
   }
@@ -812,6 +840,21 @@ function validateFilm(film) {
         }
       }
     });
+    if (scene.background) {
+      unknown(`${sp}.background`, scene.background, KNOWN.background, warn);
+      if (scene.background.image && !film.assets?.[scene.background.image]) {
+        err(`${sp}.background`, `Image asset "${scene.background.image}" is not declared.`);
+      }
+    }
+    for (const item of scene.scenery ?? []) {
+      const id = item.shape?.asset ?? (item.shape?.kind === "image" ? item.shape?.image : null);
+      if (id && !film.assets?.[id]) {
+        err(`${sp}.scenery`, `Image asset "${id}" is not declared (scenery "${item.id}").`);
+      }
+      if (item.shape?.kind && !SHAPE_KINDS.includes(item.shape.kind)) {
+        warn(`${sp}.scenery`, `Unknown shape kind "${item.shape.kind}" on "${item.id}". Known: ${SHAPE_KINDS.join(", ")}.`);
+      }
+    }
     for (const cue of scene.audio ?? []) {
       unknown(`${sp}.audio`, cue, KNOWN.audioCue, warn);
       if (cue.asset && !film.assets?.[cue.asset]) {
@@ -827,6 +870,38 @@ function unknown(path, obj, known, warn) {
       warn(path ? `${path}.${k}` : k, `Unrecognized field "${k}"; ignored.`);
     }
   }
+}
+function validateAssets(film, d) {
+  for (const [id, asset] of Object.entries(film.assets ?? {})) {
+    if (!asset || typeof asset !== "object") {
+      d.push({ severity: "error", path: `assets.${id}`, message: "Asset must be an object." });
+      continue;
+    }
+    for (const key2 of Object.keys(asset)) {
+      if (!KNOWN.asset.includes(key2)) {
+        d.push({
+          severity: "warning",
+          path: `assets.${id}`,
+          message: `Unknown asset key "${key2}". Known: ${KNOWN.asset.join(", ")}.`
+        });
+      }
+    }
+    if (asset.kind && !ASSET_KINDS.includes(asset.kind)) {
+      d.push({
+        severity: "warning",
+        path: `assets.${id}`,
+        message: `Unknown asset kind "${asset.kind}". Known: ${ASSET_KINDS.join(", ")}.`
+      });
+    }
+    if (!asset.src && !asset.file) {
+      d.push({
+        severity: "warning",
+        path: `assets.${id}`,
+        message: `Asset "${id}" has neither "src" nor "file"; it can never load.`
+      });
+    }
+  }
+  return d;
 }
 
 // src/core/audio/envelope.js
@@ -1322,6 +1397,203 @@ function chainRootOffset(parts, rootId) {
   return [x, y];
 }
 
+// src/core/anim/Evaluator.js
+function samplePose(timeline, tSec) {
+  const pose = /* @__PURE__ */ new Map();
+  const write = (target, path, value) => {
+    if (value === void 0) return;
+    let channels = pose.get(target);
+    if (!channels) pose.set(target, channels = /* @__PURE__ */ new Map());
+    channels.set(path, value);
+  };
+  for (const inst of timeline.instances) {
+    const clip = timeline.clips.get(inst.clipId);
+    if (!clip) continue;
+    const start = inst.start ?? 0;
+    const end = inst.end ?? timeline.duration;
+    if (tSec < start || tSec > end) continue;
+    const local = clipLocalTime(clip, (tSec - start) * (inst.speed ?? 1));
+    for (const track of clip.tracks) {
+      const target = inst.scopeId ? `${inst.scopeId}/${track.target}` : track.target;
+      write(target, track.path, trackValueAt(track, local));
+    }
+  }
+  for (const track of timeline.tracks) {
+    write(track.target, track.path, trackValueAt(track, tSec));
+  }
+  return pose;
+}
+function applyPose(scene, pose) {
+  for (const [nodeId, channels] of pose) {
+    const node = scene.get(nodeId);
+    if (!node) continue;
+    let transformTouched = false;
+    for (const [path, value] of channels) {
+      const dot = path.indexOf(".");
+      if (dot < 0) {
+        node[path] = value;
+        continue;
+      }
+      const group = path.slice(0, dot);
+      const field = path.slice(dot + 1);
+      if (group === "transform") {
+        node.transform[field] = value;
+        transformTouched = true;
+      } else if (group === "props") {
+        node.props[field] = value;
+      } else {
+        (node[group] ??= {})[field] = value;
+      }
+    }
+    if (transformTouched) scene.invalidate(nodeId);
+  }
+  return scene;
+}
+function timelineChannels(timeline) {
+  const channels = [];
+  for (const track of timeline.tracks) channels.push([track.target, track.path]);
+  for (const inst of timeline.instances) {
+    const clip = timeline.clips.get(inst.clipId);
+    if (!clip) continue;
+    for (const track of clip.tracks) {
+      const target = inst.scopeId ? `${inst.scopeId}/${track.target}` : track.target;
+      channels.push([target, track.path]);
+    }
+  }
+  return channels;
+}
+function createPoseBaseline(scene, timeline) {
+  const baseline = /* @__PURE__ */ new Map();
+  for (const [nodeId, path] of timelineChannels(timeline)) {
+    const node = scene.get(nodeId);
+    if (!node) continue;
+    let channels = baseline.get(nodeId);
+    if (!channels) baseline.set(nodeId, channels = /* @__PURE__ */ new Map());
+    if (channels.has(path)) continue;
+    const dot = path.indexOf(".");
+    const group = dot < 0 ? null : path.slice(0, dot);
+    const field = dot < 0 ? path : path.slice(dot + 1);
+    const value = group === "transform" ? node.transform[field] : group === "props" ? node.props[field] : group ? node[group]?.[field] : node[path];
+    channels.set(path, value);
+  }
+  return baseline;
+}
+function resetPose(scene, baseline) {
+  for (const [nodeId, channels] of baseline) {
+    const node = scene.get(nodeId);
+    if (!node) continue;
+    for (const [path, value] of channels) {
+      const dot = path.indexOf(".");
+      if (dot < 0) {
+        node[path] = value;
+        continue;
+      }
+      const group = path.slice(0, dot);
+      const field = path.slice(dot + 1);
+      if (group === "transform") node.transform[field] = value;
+      else if (group === "props") node.props[field] = value;
+      else if (node[group]) node[group][field] = value;
+    }
+    scene.invalidate(nodeId);
+  }
+  return scene;
+}
+
+// src/core/script/staging.js
+function measureCharacter(parts) {
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  const offsetOf = (part) => {
+    let x = 0, y = 0;
+    for (let p = part; p; p = p.parent ? byId.get(p.parent) : null) {
+      const pivot = p.pivot ?? [0, 0];
+      x += (p.at?.[0] ?? 0) + pivot[0];
+      y += (p.at?.[1] ?? 0) + pivot[1];
+      if (!p.parent) break;
+    }
+    return [x, y];
+  };
+  let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
+  for (const part of parts) {
+    const [ox, oy] = offsetOf(part);
+    const e = shapeExtent(part.shape, part.strokeWidth ?? 0);
+    if (!e) continue;
+    left = Math.min(left, ox + e.left);
+    right = Math.max(right, ox + e.right);
+    top = Math.min(top, oy + e.top);
+    bottom = Math.max(bottom, oy + e.bottom);
+  }
+  if (!Number.isFinite(top)) return { top: 0, bottom: 0, left: 0, right: 0 };
+  return { top, bottom, left, right };
+}
+function shapeExtent(shape, strokeWidth) {
+  if (!shape) return null;
+  const pad = strokeWidth / 2;
+  switch (shape.kind) {
+    case "ellipse":
+      return {
+        left: -(shape.rx ?? 1) - pad,
+        right: (shape.rx ?? 1) + pad,
+        top: -(shape.ry ?? 1) - pad,
+        bottom: (shape.ry ?? 1) + pad
+      };
+    case "rect": {
+      const w = shape.w ?? 0, h = shape.h ?? 0;
+      return {
+        left: (shape.cx ? -w / 2 : 0) - pad,
+        right: (shape.cx ? w / 2 : w) + pad,
+        top: (shape.cy ? -h / 2 : 0) - pad,
+        bottom: (shape.cy ? h / 2 : h) + pad
+      };
+    }
+    case "image": {
+      const w = shape.w ?? 0, h = shape.h ?? 0;
+      return {
+        left: shape.cx ? -w / 2 : 0,
+        right: shape.cx ? w / 2 : w,
+        top: shape.cy ? -h / 2 : 0,
+        bottom: shape.cy ? h / 2 : h
+      };
+    }
+    case "path":
+      return pathExtent(shape.d, pad);
+    default:
+      return null;
+  }
+}
+function pathExtent(d, pad) {
+  if (!d) return null;
+  const nums = String(d).match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
+  if (!nums || nums.length < 2) return null;
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  for (let i = 0; i + 1 < nums.length; i += 2) {
+    const x = Number(nums[i]), y = Number(nums[i + 1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    left = Math.min(left, x);
+    right = Math.max(right, x);
+    top = Math.min(top, y);
+    bottom = Math.max(bottom, y);
+  }
+  if (!Number.isFinite(left)) return null;
+  return { left: left - pad, right: right + pad, top: top - pad, bottom: bottom + pad };
+}
+function groundAt(ground, x) {
+  if (!ground) return null;
+  if (typeof ground.y === "number") return ground.y;
+  const pts = ground.points;
+  if (!Array.isArray(pts) || pts.length === 0) return null;
+  if (x <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    if (x <= pts[i][0]) {
+      const [x0, y0] = pts[i - 1];
+      const [x1, y1] = pts[i];
+      const span = x1 - x0;
+      const u = span === 0 ? 0 : (x - x0) / span;
+      return y0 + (y1 - y0) * u;
+    }
+  }
+  return pts[pts.length - 1][1];
+}
+
 // src/core/script/compile.js
 var EPS = 1e-4;
 function compileFilm(film, { assets = {} } = {}) {
@@ -1375,7 +1647,7 @@ function compileFilm(film, { assets = {} } = {}) {
       key(timeline, groupId, "props.alpha", sceneEnd, 0, { type: "number", ease: "step" });
     }
     buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics);
-    buildScenery(scene, sceneSpec, groupId, palettes, meta);
+    buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics);
     const castMap = /* @__PURE__ */ new Map();
     for (const entry of sceneSpec.cast ?? []) {
       const charName = entry.character;
@@ -1392,9 +1664,10 @@ function compileFilm(film, { assets = {} } = {}) {
         parentId: groupId,
         entry,
         palettes,
-        diagnostics
+        diagnostics,
+        assets
       });
-      castMap.set(as, { rootId, char, charName });
+      castMap.set(as, { rootId, char, charName, entry });
     }
     for (const cue of sceneSpec.audio ?? []) {
       if (!cue.asset) continue;
@@ -1435,7 +1708,8 @@ function compileFilm(film, { assets = {} } = {}) {
           shotEnd,
           sceneId,
           characters,
-          diagnostics
+          diagnostics,
+          ground: sceneSpec.ground ?? null
         });
       }
       for (const line of shot.dialogue ?? []) {
@@ -1470,6 +1744,23 @@ function compileFilm(film, { assets = {} } = {}) {
     cameraId
   };
 }
+function resolveImageProps(props, assets, diagnostics, path) {
+  const id = props.asset ?? (typeof props.image === "string" ? props.image : null);
+  if (id == null) return props;
+  const image = assets[id];
+  delete props.asset;
+  if (!image) {
+    diagnostics.push({
+      severity: "warning",
+      path,
+      message: `Image asset "${id}" was not loaded; nothing will be drawn here.`
+    });
+    props.image = null;
+    return props;
+  }
+  props.image = image;
+  return props;
+}
 function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics) {
   const bg = sceneSpec.background;
   if (!bg) return;
@@ -1486,7 +1777,16 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
     scene.add({
       id,
       kind: image ? "image" : "rect",
-      props: image ? { image, w: meta.width, h: meta.height, screenSpace: true } : { w: meta.width, h: meta.height, fill: bg.color ?? "#111317", screenSpace: true },
+      props: image ? {
+        image,
+        w: meta.width,
+        h: meta.height,
+        cx: true,
+        cy: true,
+        fit: bg.fit ?? "cover",
+        screenSpace: true
+      } : { w: meta.width, h: meta.height, fill: bg.color ?? "#111317", screenSpace: true },
+      transform: image ? { x: meta.width / 2, y: meta.height / 2 } : void 0,
       z: -1e3
     }, groupId);
   } else if (bg.color || bg.gradient) {
@@ -1504,7 +1804,7 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
     }, groupId);
   }
 }
-function buildScenery(scene, sceneSpec, groupId, palettes, meta) {
+function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics) {
   const items = sceneSpec.scenery ?? [];
   if (!items.length) return;
   const palette = palettes[sceneSpec.palette] ?? {};
@@ -1524,7 +1824,7 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta) {
         sy: item.sy ?? 1,
         rot: item.rot ?? 0
       },
-      props: {
+      props: resolveImageProps({
         ...shape,
         fill: colorOf(item.fill),
         stroke: colorOf(item.stroke),
@@ -1532,12 +1832,23 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta) {
         gradient: item.gradient ?? null,
         alpha: item.alpha ?? 1,
         screenSpace: item.screenSpace ?? false
-      },
+      }, assets, diagnostics, `scenes.${sceneSpec.id}.scenery.${item.id ?? i}`),
       z: item.z ?? -500
     }, groupId);
   });
 }
-function instantiateCharacter({ scene, char, charName, as, rootId, parentId, entry, palettes, diagnostics }) {
+function instantiateCharacter({
+  scene,
+  char,
+  charName,
+  as,
+  rootId,
+  parentId,
+  entry,
+  palettes,
+  diagnostics,
+  assets = {}
+}) {
   const palette = { ...palettes[char.palette] ?? {}, ...entry.palette ?? {} };
   const colorOf = (c) => c == null ? null : palette[c] ?? c;
   const scale = entry.scale ?? 1;
@@ -1570,13 +1881,13 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId, ent
         ox: 0,
         oy: 0
       },
-      props: {
+      props: resolveImageProps({
         ...shapeProps(part.shape),
         fill: colorOf(part.fill),
         stroke: colorOf(part.stroke),
         strokeWidth: part.strokeWidth,
         alpha: part.alpha ?? 1
-      },
+      }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
       z: part.z ?? 0
     }, part.parent ? `${rootId}/${part.parent}` : rootId);
     added.add(part.id);
@@ -1629,8 +1940,10 @@ function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamer
   const h = cam?.h;
   const moveStart = shotStart + (cam?.at ?? 0);
   const moveEnd = moveStart + (cam?.for ?? dur - (cam?.at ?? 0));
+  const cut = cam?.from != null && moveStart > 0;
+  const startAt = cut ? moveStart + 0.5 / (meta.fps || 24) : moveStart;
   const write = (path, a, b) => {
-    key(timeline, cameraId, path, moveStart, a, { type: "number", ease, h });
+    key(timeline, cameraId, path, startAt, a, { type: "number", ease, h });
     key(timeline, cameraId, path, moveEnd, b, { type: "number" });
   };
   write("transform.x", centre.x + (start.x ?? 0), centre.x + (end.x ?? 0));
@@ -1651,10 +1964,26 @@ function writeChannel({ timeline, target, channel, value, at, span, ease, h }) {
   key(timeline, target, path, at, prev, { type: "number", ease, h });
   key(timeline, target, path, at + span, value, { type: "number" });
 }
-function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sceneId, characters, diagnostics }) {
+function castFeet(char, entry) {
+  const parts = characterParts(char ?? {});
+  if (!parts.length) return 0;
+  return measureCharacter(parts).bottom * (entry?.scale ?? 1);
+}
+function buildAction({
+  scene,
+  timeline,
+  action,
+  castMap,
+  shotStart,
+  shotEnd,
+  sceneId,
+  characters,
+  diagnostics,
+  ground = null
+}) {
   const cast = castMap.get(action.target);
   if (!cast) return;
-  const { rootId, charName } = cast;
+  const { rootId, charName, entry } = cast;
   const char = characters[charName];
   const at = shotStart + (action.at ?? 0);
   const span = action.for ?? null;
@@ -1682,6 +2011,11 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd, sce
     }
     case "move": {
       const to = action.to ?? [0, 0];
+      if (to[1] == null && ground) {
+        const feet = castFeet(char, entry);
+        const gy = groundAt(ground, to[0]);
+        if (gy != null) to[1] = gy - feet;
+      }
       const prevX = lastValueBefore(timeline, rootId, "transform.x", at) ?? scene.get(rootId)?.transform.x ?? 0;
       const prevY = lastValueBefore(timeline, rootId, "transform.y", at) ?? scene.get(rootId)?.transform.y ?? 0;
       const end = at + (span ?? shotEnd - at);
@@ -2259,6 +2593,112 @@ var VoiceRegistry = class {
   }
 };
 
+// src/core/art/AssetRegistry.js
+var AssetRegistry = class {
+  constructor() {
+    this.providers = /* @__PURE__ */ new Map();
+  }
+  register(provider) {
+    this.providers.set(provider.id, provider);
+    return this;
+  }
+  all() {
+    return [...this.providers.values()];
+  }
+  byId(id) {
+    return this.providers.get(id) ?? null;
+  }
+  /**
+   * Pick the provider for an asset.
+   *
+   * An explicit `provider` wins; otherwise the shape of `src` decides, so
+   * a film can just say `"src": "art/room.png"` and mean it.
+   */
+  resolve(asset) {
+    if (asset.provider) return this.byId(asset.provider);
+    for (const provider of this.providers.values()) {
+      if (provider.accepts?.(asset)) return provider;
+    }
+    return null;
+  }
+};
+async function loadAssets(film, { registry, baseUrl = "", onProgress = null } = {}) {
+  const assets = {};
+  const diagnostics = [];
+  const declared = Object.entries(film?.assets ?? {}).filter(([, a]) => a && a.kind === "image");
+  let done = 0;
+  for (const [id, asset] of declared) {
+    const provider = registry?.resolve(asset);
+    if (!provider) {
+      diagnostics.push({
+        severity: "warning",
+        path: `assets.${id}`,
+        message: `No art provider can load image asset "${id}"${asset.src ? ` (src "${asset.src}")` : ""}.`
+      });
+      continue;
+    }
+    try {
+      assets[id] = await provider.load({ ...asset, id, baseUrl });
+    } catch (error) {
+      diagnostics.push({
+        severity: "warning",
+        path: `assets.${id}`,
+        message: `Image asset "${id}" failed to load: ${error.message}`
+      });
+    }
+    onProgress?.({ stage: "assets", done: ++done, total: declared.length, id });
+  }
+  return { assets, diagnostics };
+}
+
+// src/core/art/providers/UrlProvider.js
+var UrlProvider = class {
+  constructor({ fetchImpl = null, createBitmap = null } = {}) {
+    this.id = "url";
+    this.label = "File or URL";
+    this._fetch = fetchImpl;
+    this._createBitmap = createBitmap;
+  }
+  available() {
+    return typeof (this._fetch ?? globalThis.fetch) === "function" && typeof (this._createBitmap ?? globalThis.createImageBitmap) === "function";
+  }
+  accepts(asset) {
+    return typeof asset.src === "string";
+  }
+  async load({ src, baseUrl = "" }) {
+    if (!src) throw new Error("no src");
+    const fetchImpl = this._fetch ?? globalThis.fetch;
+    const createBitmap = this._createBitmap ?? globalThis.createImageBitmap;
+    if (!fetchImpl || !createBitmap) throw new Error("no fetch/createImageBitmap here");
+    const base = baseUrl || globalThis.location?.href || "http://localhost/";
+    const url = /^(https?:|data:|blob:)/.test(src) ? src : new URL(src, base).href;
+    const res = await fetchImpl(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return createBitmap(await res.blob());
+  }
+};
+
+// src/core/art/providers/FileProvider.js
+var FileProvider = class {
+  constructor({ createBitmap = null } = {}) {
+    this.id = "file";
+    this.label = "Uploaded image";
+    this._createBitmap = createBitmap;
+  }
+  available() {
+    return typeof (this._createBitmap ?? globalThis.createImageBitmap) === "function";
+  }
+  accepts(asset) {
+    return !!asset.file;
+  }
+  async load({ file }) {
+    if (!file) throw new Error("no file");
+    const createBitmap = this._createBitmap ?? globalThis.createImageBitmap;
+    if (!createBitmap) throw new Error("createImageBitmap is unavailable here");
+    return createBitmap(file);
+  }
+};
+
 // src/core/voice/providers/MicProvider.js
 var MicProvider = class {
   constructor({ decode, sampleRate = 48e3 } = {}) {
@@ -2599,6 +3039,25 @@ function resolveFill(ctx, node, w, h) {
   for (const [stop, color] of g.stops ?? []) grad.addColorStop(stop, color);
   return grad;
 }
+function drawImageNode(ctx, img, p) {
+  const srcW = p.sw ?? img.width ?? 0;
+  const srcH = p.sh ?? img.height ?? 0;
+  if (!srcW || !srcH) return;
+  let w = p.w ?? srcW;
+  let h = p.h ?? srcH;
+  if (p.fit === "contain" || p.fit === "cover") {
+    const scale = p.fit === "contain" ? Math.min(w / srcW, h / srcH) : Math.max(w / srcW, h / srcH);
+    w = srcW * scale;
+    h = srcH * scale;
+  }
+  const dx = p.cx ? -w / 2 : 0;
+  const dy = p.cy ? -h / 2 : 0;
+  if (p.sx != null || p.sy != null || p.sw != null || p.sh != null) {
+    ctx.drawImage(img, p.sx ?? 0, p.sy ?? 0, srcW, srcH, dx, dy, w, h);
+  } else {
+    ctx.drawImage(img, dx, dy, w, h);
+  }
+}
 function drawShape(ctx, node, { Path2DImpl, alpha }) {
   const p = node.props;
   const a = alpha ?? p.alpha ?? 1;
@@ -2652,10 +3111,8 @@ function drawShape(ctx, node, { Path2DImpl, alpha }) {
     }
     case "image": {
       const img = p.image;
-      if (!img) break;
-      const w = p.w ?? img.width ?? 0;
-      const h = p.h ?? img.height ?? 0;
-      ctx.drawImage(img, p.cx ? -w / 2 : 0, p.cy ? -h / 2 : 0, w, h);
+      if (!img || typeof img === "string") break;
+      drawImageNode(ctx, img, p);
       break;
     }
     case "text": {
@@ -2801,108 +3258,6 @@ var FrameClock = class {
     return 1 / this.fps;
   }
 };
-
-// src/core/anim/Evaluator.js
-function samplePose(timeline, tSec) {
-  const pose = /* @__PURE__ */ new Map();
-  const write = (target, path, value) => {
-    if (value === void 0) return;
-    let channels = pose.get(target);
-    if (!channels) pose.set(target, channels = /* @__PURE__ */ new Map());
-    channels.set(path, value);
-  };
-  for (const inst of timeline.instances) {
-    const clip = timeline.clips.get(inst.clipId);
-    if (!clip) continue;
-    const start = inst.start ?? 0;
-    const end = inst.end ?? timeline.duration;
-    if (tSec < start || tSec > end) continue;
-    const local = clipLocalTime(clip, (tSec - start) * (inst.speed ?? 1));
-    for (const track of clip.tracks) {
-      const target = inst.scopeId ? `${inst.scopeId}/${track.target}` : track.target;
-      write(target, track.path, trackValueAt(track, local));
-    }
-  }
-  for (const track of timeline.tracks) {
-    write(track.target, track.path, trackValueAt(track, tSec));
-  }
-  return pose;
-}
-function applyPose(scene, pose) {
-  for (const [nodeId, channels] of pose) {
-    const node = scene.get(nodeId);
-    if (!node) continue;
-    let transformTouched = false;
-    for (const [path, value] of channels) {
-      const dot = path.indexOf(".");
-      if (dot < 0) {
-        node[path] = value;
-        continue;
-      }
-      const group = path.slice(0, dot);
-      const field = path.slice(dot + 1);
-      if (group === "transform") {
-        node.transform[field] = value;
-        transformTouched = true;
-      } else if (group === "props") {
-        node.props[field] = value;
-      } else {
-        (node[group] ??= {})[field] = value;
-      }
-    }
-    if (transformTouched) scene.invalidate(nodeId);
-  }
-  return scene;
-}
-function timelineChannels(timeline) {
-  const channels = [];
-  for (const track of timeline.tracks) channels.push([track.target, track.path]);
-  for (const inst of timeline.instances) {
-    const clip = timeline.clips.get(inst.clipId);
-    if (!clip) continue;
-    for (const track of clip.tracks) {
-      const target = inst.scopeId ? `${inst.scopeId}/${track.target}` : track.target;
-      channels.push([target, track.path]);
-    }
-  }
-  return channels;
-}
-function createPoseBaseline(scene, timeline) {
-  const baseline = /* @__PURE__ */ new Map();
-  for (const [nodeId, path] of timelineChannels(timeline)) {
-    const node = scene.get(nodeId);
-    if (!node) continue;
-    let channels = baseline.get(nodeId);
-    if (!channels) baseline.set(nodeId, channels = /* @__PURE__ */ new Map());
-    if (channels.has(path)) continue;
-    const dot = path.indexOf(".");
-    const group = dot < 0 ? null : path.slice(0, dot);
-    const field = dot < 0 ? path : path.slice(dot + 1);
-    const value = group === "transform" ? node.transform[field] : group === "props" ? node.props[field] : group ? node[group]?.[field] : node[path];
-    channels.set(path, value);
-  }
-  return baseline;
-}
-function resetPose(scene, baseline) {
-  for (const [nodeId, channels] of baseline) {
-    const node = scene.get(nodeId);
-    if (!node) continue;
-    for (const [path, value] of channels) {
-      const dot = path.indexOf(".");
-      if (dot < 0) {
-        node[path] = value;
-        continue;
-      }
-      const group = path.slice(0, dot);
-      const field = path.slice(dot + 1);
-      if (group === "transform") node.transform[field] = value;
-      else if (group === "props") node.props[field] = value;
-      else if (node[group]) node[group][field] = value;
-    }
-    scene.invalidate(nodeId);
-  }
-  return scene;
-}
 
 // src/render/OfflineRenderer.js
 var baselines = /* @__PURE__ */ new WeakMap();
@@ -3351,6 +3706,9 @@ var FilmStudio = class {
     this.voices.register(this.upload);
     this.voices.register(this.mic);
     this.decode = decode;
+    this.art = new AssetRegistry();
+    this.art.register(new FileProvider());
+    this.art.register(new UrlProvider());
   }
   log(msg) {
     this.onLog?.(msg);
@@ -3375,10 +3733,29 @@ var FilmStudio = class {
    * lipsync. Separated from the render so a caller can preview, retime, or
    * inspect diagnostics before committing to a two-minute encode.
    */
-  async prepare(film, { assets = {}, audioBuffers = {}, onProgress = null, retime = true } = {}) {
+  async prepare(film, {
+    assets = null,
+    audioBuffers = {},
+    onProgress = null,
+    retime = true,
+    baseUrl = ""
+  } = {}) {
     let working = film;
     const notes = [];
-    let first = compileFilm(working, { assets });
+    let images = assets;
+    if (!images) {
+      const loaded = await loadAssets(film, {
+        registry: this.art,
+        baseUrl,
+        onProgress: (p) => {
+          this.log(`asset ${p.done}/${p.total}: ${p.id}`);
+          onProgress?.(p);
+        }
+      });
+      images = loaded.assets;
+      notes.push(...loaded.diagnostics);
+    }
+    let first = compileFilm(working, { assets: images });
     if (!first.timeline) return { ...first, audio: null };
     const voiced = await synthesizeDialogue({
       lipsyncJobs: first.lipsyncJobs,
@@ -3404,7 +3781,7 @@ var FilmStudio = class {
       if (changed > 0) {
         this.log(`extended ${changed} shot(s) to fit the recorded audio: ` + changes.map((c) => `${c.shot ?? "?"} ${c.from}s->${c.to}s`).join(", "));
         working = retimed;
-        first = compileFilm(working, { assets });
+        first = compileFilm(working, { assets: images });
         const again = await synthesizeDialogue({
           lipsyncJobs: first.lipsyncJobs,
           registry: this.voices,
@@ -3508,8 +3885,15 @@ var FilmStudio = class {
     }
   }
   /** Compile + prepare + render in one call. */
-  async produce(film, { assets = {}, audioBuffers = {}, canvas, onProgress, ...rest } = {}) {
-    const prepared = await this.prepare(film, { assets, audioBuffers, onProgress });
+  async produce(film, {
+    assets = null,
+    audioBuffers = {},
+    canvas,
+    onProgress,
+    baseUrl = "",
+    ...rest
+  } = {}) {
+    const prepared = await this.prepare(film, { assets, audioBuffers, onProgress, baseUrl });
     if (!prepared.timeline) {
       throw new Error("Film did not compile: " + prepared.diagnostics.filter((d) => d.severity === "fatal").map((d) => d.message).join("; "));
     }

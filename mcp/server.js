@@ -64,7 +64,7 @@ const vec3 = z.array(z.number()).length(3);
 
 server.tool(
   'run_script',
-  'Run a batch of raw engine commands ([{op, args}]). Ops: createObject, createLight, setMaterial, resize, transform, subdivide, createAnimation, selectAnimation, addKeyframe, setInterpolation, toggleSkeleton, listBones, listMorphs, ikReach, setMorph, setTexture, setEnvironment, createCamera, listCameras, activateCamera, setCameraProps, setPostFX, play, pause, stop, setTime, getScene, loadScene, clear, exportVideo, exportGif, exportSequence, loadFilm, renderFilm.',
+  'Run a batch of raw engine commands ([{op, args}]). Ops: createObject, createLight, setMaterial, resize, transform, subdivide, createAnimation, selectAnimation, addKeyframe, setInterpolation, toggleSkeleton, listBones, listMorphs, ikReach, setMorph, setTexture, setEnvironment, createCamera, listCameras, activateCamera, setCameraProps, setPostFX, play, pause, stop, setTime, getScene, loadScene, clear, exportVideo, exportGif, exportSequence, loadFilm, checkFilm, renderFilm, readFilmChunk.',
   { commands: z.array(z.object({ op: z.string(), args: z.record(z.any()).optional() })) },
   async ({ commands }) => asText(await runCommands(commands))
 );
@@ -117,9 +117,16 @@ server.tool(
 
 server.tool(
   'load_film',
-  'Load a `jirex.film/1` document into the browser and compile it. Returns the derived duration, frame count and any diagnostics, without rendering.',
+  'Load a `jirex.film/1` document into the browser and compile it. Returns the derived duration, frame count and any diagnostics (including staging), without rendering.',
   { film: z.record(z.any()).optional(), url: z.string().optional() },
   async (args) => asText((await runCommands([{ op: 'loadFilm', args }], 120000))[0]?.value)
+);
+
+server.tool(
+  'check_film',
+  'Compile a film and report every problem without rendering it: schema errors, undeclared assets, and staging — a character outside the camera frame, or feet off the declared ground. Cheap, and the way to catch a bad shot before spending a render on it.',
+  { film: z.record(z.any()).optional(), url: z.string().optional() },
+  async (args) => asText((await runCommands([{ op: 'checkFilm', args }], 120000))[0]?.value)
 );
 
 server.tool(

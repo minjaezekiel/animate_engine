@@ -13,6 +13,9 @@
 import { compileFilm } from './core/script/compile.js';
 import { parseScreenplay, retimeToAudio } from './core/script/screenplay.js';
 import { VoiceRegistry } from './core/voice/VoiceRegistry.js';
+import { AssetRegistry, loadAssets } from './core/art/AssetRegistry.js';
+import { UrlProvider } from './core/art/providers/UrlProvider.js';
+import { FileProvider } from './core/art/providers/FileProvider.js';
 import { MicProvider } from './core/voice/providers/MicProvider.js';
 import { UploadProvider } from './core/voice/providers/UploadProvider.js';
 import { TtsVitsProvider } from './core/voice/providers/TtsVitsProvider.js';
@@ -51,6 +54,12 @@ export class FilmStudio {
         this.voices.register(this.upload);
         this.voices.register(this.mic);
         this.decode = decode;
+
+        // Art providers, same seam as voices: a film does not care whether a
+        // picture came from a URL or a file picker.
+        this.art = new AssetRegistry();
+        this.art.register(new FileProvider());
+        this.art.register(new UrlProvider());
     }
 
     log(msg) { this.onLog?.(msg); }
@@ -70,12 +79,27 @@ export class FilmStudio {
      * lipsync. Separated from the render so a caller can preview, retime, or
      * inspect diagnostics before committing to a two-minute encode.
      */
-    async prepare(film, { assets = {}, audioBuffers = {}, onProgress = null, retime = true } = {}) {
+    async prepare(film, { assets = null, audioBuffers = {}, onProgress = null,
+                          retime = true, baseUrl = '' } = {}) {
         let working = film;
         const notes = [];
 
+        // Load the film's declared images unless the caller already did.
+        // Without this a film can name a background and never show it --
+        // which is exactly what `npm run produce` did, passing no assets at
+        // all, so a headless render could never display one.
+        let images = assets;
+        if (!images) {
+            const loaded = await loadAssets(film, {
+                registry: this.art, baseUrl,
+                onProgress: (p) => { this.log(`asset ${p.done}/${p.total}: ${p.id}`); onProgress?.(p); },
+            });
+            images = loaded.assets;
+            notes.push(...loaded.diagnostics);
+        }
+
         // Pass 1: synthesize so real line durations are known.
-        let first = compileFilm(working, { assets });
+        let first = compileFilm(working, { assets: images });
         if (!first.timeline) return { ...first, audio: null };
 
         const voiced = await synthesizeDialogue({
@@ -109,7 +133,7 @@ export class FilmStudio {
                 this.log(`extended ${changed} shot(s) to fit the recorded audio: `
                     + changes.map((c) => `${c.shot ?? '?'} ${c.from}s->${c.to}s`).join(', '));
                 working = retimed;
-                first = compileFilm(working, { assets });
+                first = compileFilm(working, { assets: images });
                 // Re-key lipsync at the corrected offsets without
                 // re-synthesizing: the audio itself has not changed.
                 const again = await synthesizeDialogue({
@@ -212,8 +236,11 @@ export class FilmStudio {
     }
 
     /** Compile + prepare + render in one call. */
-    async produce(film, { assets = {}, audioBuffers = {}, canvas, onProgress, ...rest } = {}) {
-        const prepared = await this.prepare(film, { assets, audioBuffers, onProgress });
+    async produce(film, { assets = null, audioBuffers = {}, canvas, onProgress,
+                          baseUrl = '', ...rest } = {}) {
+        // `null`, not `{}`: an empty object means "the caller loaded them and
+        // there were none", which would silently skip loading.
+        const prepared = await this.prepare(film, { assets, audioBuffers, onProgress, baseUrl });
         if (!prepared.timeline) {
             throw new Error('Film did not compile: '
                 + prepared.diagnostics.filter((d) => d.severity === 'fatal')

@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-07 (end of Phases 4 and 6).
+Last updated: 2026-10-07 (end of Phase 8a/8b).
 
 Legend: **done** · *partial* · — not started
 
@@ -322,6 +322,62 @@ trade than blocking a tab from closing.
 
 Opacity now implies `transparent` unless stated, because forgetting that is the
 usual reason "opacity does nothing".
+
+## Phase 8 — art assets and staging — **done**
+
+The cheap half of [the art system](07-ART-SYSTEM.md). Design and remaining
+phases are in that file; this is what shipped.
+
+| Item | State |
+|---|---|
+| `AssetRegistry` + `Url`/`File` providers | **done** — the same seam as `VoiceRegistry`, so a picture's source is as interchangeable as a voice's |
+| Images load end to end | **done** — nothing anywhere loaded one before; `produce.mjs` passed no assets at all, so a headless render could never show a background |
+| One asset-id resolution point | **done** — background, scenery and character parts all go through `resolveImageProps` |
+| Sprite-atlas sub-rects | **done** — `sx/sy/sw/sh` reach the 9-argument `drawImage`; it was 5-argument only |
+| `fit: stretch \| contain \| cover` | **done** — backgrounds were hardcoded to frame size and stretched any art that was not 16:9 |
+| Asset + background validation | **done** — `KNOWN.asset`, `KNOWN.background`, and `SHAPE_KINDS` wired up (it was dead code) |
+| Scene `ground` declaration | **done** — `{y}` or a polyline |
+| `do:'move'` derives y from the ground | **done** — `to: [700]` means "walk there and stay on the floor" |
+| `measureCharacter` | **done** — a rig's AABB, stroke widths included |
+| `analyseStaging` | **done** — off-frame cast, feet off the ground, reported in pixels |
+| `checkFilm` op + `check_film` MCP tool | **done** — there was no way to validate without rendering |
+
+### Why this phase existed
+
+Measured, not assumed: `demo/mountain.json` is 6,118 bytes, about **1,650
+tokens**, while the session that produced it cost ~57,000. The film script was
+**3%** of the spend. The rest was re-reading engine source, four contact-sheet
+images, and three rounds of visual iteration fixing staging the compiler
+called clean.
+
+`analyseStaging` reports all three of that session's bugs by name and in
+pixels, without rendering a frame. A contact sheet cost ~2,500 tokens; this
+costs ~200.
+
+### Two defects it found immediately
+
+- **A shot's camera `to` was silently deleted** whenever the next shot
+  declared its own `from`. Both keys land on the same time and `key()`
+  replaces rather than appends, so the whole preceding segment interpolated to
+  the *next* shot's opening framing. In the shipped demo this flew the camera
+  away from both characters for the last eight seconds of a scene. A cut now
+  leaves that instant to the outgoing shot and opens half a frame later.
+- **An unresolved asset id reached the backend as a string**, passed its
+  truthiness check, and threw inside `ctx.drawImage`. Scenery spread `...shape`
+  straight into props, so this was a trap rather than a gap.
+
+### Known limits
+
+- `sw.js` is cache-first for same-origin, so editing an image in place serves
+  stale pixels until `VERSION` bumps. Content-hash asset URLs, or carve out a
+  network-first rule, before shipping an asset directory people edit.
+- `film.html` still has no image picker; the `FileProvider` exists and nothing
+  calls it yet.
+- Staging judges only the cast belonging to the shot's own scene. During a
+  crossfade two scenes share one camera, and the incoming cast being outside
+  the outgoing framing is a property of crossfades, not an error.
+
+---
 
 ## Phase 7 — PWA and CDN hardening — *partial, pulled forward*
 

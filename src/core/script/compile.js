@@ -347,9 +347,13 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
         if (part.parent && byId.has(part.parent)) addPart(byId.get(part.parent));
         const pivot = part.pivot ?? [0, 0];
         const nodeId = `${rootId}/${part.id}`;
+        // `shapes` makes the part a group of stacked drawings. Cel art is
+        // three per part -- flat base, a hard-edged shadow, and line work --
+        // and one part/one shape/one node could not express that.
+        const layers = Array.isArray(part.shapes) ? part.shapes : null;
         scene.add({
             id: nodeId,
-            kind: part.shape?.kind ?? 'group',
+            kind: layers ? 'group' : (part.shape?.kind ?? 'group'),
             name: part.id,
             // The pivot is the joint: a limb rotates about where it attaches,
             // which is the whole trick behind a cutout rig reading correctly.
@@ -364,9 +368,28 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
                 stroke: colorOf(part.stroke),
                 strokeWidth: part.strokeWidth,
                 alpha: part.alpha ?? 1,
+                ...swapProps(part, colorOf),
             }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
             z: part.z ?? 0,
         }, part.parent ? `${rootId}/${part.parent}` : rootId);
+
+        for (const [i, layer] of (layers ?? []).entries()) {
+            scene.add({
+                id: `${nodeId}/${layer.id ?? i}`,
+                kind: layer.shape?.kind ?? 'group',
+                name: layer.id ?? `layer${i}`,
+                transform: { x: layer.at?.[0] ?? 0, y: layer.at?.[1] ?? 0 },
+                props: resolveImageProps({
+                    ...shapeProps(layer.shape),
+                    fill: colorOf(layer.fill),
+                    stroke: colorOf(layer.stroke),
+                    strokeWidth: layer.strokeWidth,
+                    alpha: layer.alpha ?? 1,
+                    ...swapProps(layer, colorOf),
+                }, assets, diagnostics, `characters.${charName}.parts.${part.id}.${layer.id ?? i}`),
+                z: layer.z ?? i,
+            }, nodeId);
+        }
         added.add(part.id);
     };
     for (const part of parts ?? []) addPart(part);
@@ -409,6 +432,28 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
 export function characterParts(char) {
     if (char.parts?.length) return char.parts;
     return char.generate ? generateCharacterParts(char.generate, char.proportions) : [];
+}
+
+/**
+ * Turn a part's `swap` declaration into the props the swap pass reads.
+ *
+ *   "swap": { "view": { "default": "front",
+ *                       "shapes": { "front": {...}, "profile": {...} } } }
+ *
+ * The channel name is the key, because that is the prop a discrete track
+ * writes -- `props.view` drives the `view` set, with no indirection between.
+ */
+function swapProps(part, colorOf) {
+    const spec = part.swap;
+    if (!spec) return {};
+    const swapSets = {};
+    const props = {};
+    for (const [channel, set] of Object.entries(spec)) {
+        const shapes = set.shapes ?? set;
+        swapSets[channel] = shapes;
+        props[channel] = set.default ?? Object.keys(shapes)[0];
+    }
+    return { swapSets, ...props };
 }
 
 function shapeProps(shape) {

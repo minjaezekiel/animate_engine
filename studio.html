@@ -156,7 +156,7 @@
 import {
     compileFilm, filmShots, shotAt, characterParts,
     samplePose, applyPose, createPoseBaseline, resetPose,
-    solveChain, chainFromParts, chainRootOffset, applyVisemeShapes,
+    solveChain, chainFromParts, chainRootOffset, applySwapSets,
 } from './src/core/index.js';
 import { Canvas2DBackend } from './src/backends/canvas2d/Canvas2DBackend.js';
 import { identity, multiply, invert, applyToPoint } from './src/core/math/mat2d.js';
@@ -263,7 +263,7 @@ function poseAt(time) {
         }
         compiled.scene.invalidateAll();
     }
-    applyVisemeShapes(compiled.scene);
+    applySwapSets(compiled.scene);
 }
 
 function draw() {

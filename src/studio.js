@@ -28,7 +28,7 @@ import { renderOffline, preflight } from './render/OfflineRenderer.js';
 import { MediaRecorderSink } from './render/sinks/MediaRecorderSink.js';
 import { WebCodecsSink } from './render/sinks/WebCodecsSink.js';
 import { MemorySink } from './render/sinks/MemorySink.js';
-import { applyVisemeShapes } from './core/scene/visemeShapes.js';
+import { applySwapSets } from './core/scene/swapSets.js';
 import { trackValueAt } from './core/anim/Track.js';
 
 const SAMPLE_RATE = 48000;
@@ -226,7 +226,7 @@ export class FilmStudio {
                 fps: rate, width: w, height: h,
                 durationSec: meta.duration,
                 sink: chosen, signal,
-                beforeFrame: (t) => applyVisemeShapes(prepared.scene),
+                beforeFrame: (t) => applySwapSets(prepared.scene),
                 onProgress: (p) => { onProgress?.({ stage: 'render', ...p, preflight: pf }); },
             });
             return { blob, preflight: pf, meta, sink: chosen.constructor.name };

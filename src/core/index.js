@@ -11,7 +11,7 @@
 export { Scene } from './scene/Scene.js';
 export { createNode } from './scene/Node.js';
 export { transform2D, transform3D, TRANSFORM2D_CHANNELS } from './scene/Transform.js';
-export { applyVisemeShapes } from './scene/visemeShapes.js';
+export { applySwapSets, applyVisemeShapes, resolveSwap, SWAP_FALLBACK } from './scene/swapSets.js';
 
 // math
 export * as mat2d from './math/mat2d.js';

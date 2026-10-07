@@ -482,6 +482,7 @@ var KNOWN = {
     "pivot",
     "shape",
     "shapes",
+    "swap",
     "fill",
     "stroke",
     "strokeWidth",
@@ -1009,12 +1010,6 @@ var VISEME_FALLBACK = {
   wide: ["wide", "mid", "open", "closed"],
   teeth: ["teeth", "mid", "closed", "open"]
 };
-function resolveViseme(viseme, availableShapes) {
-  for (const candidate of VISEME_FALLBACK[viseme] ?? [viseme]) {
-    if (availableShapes[candidate]) return candidate;
-  }
-  return Object.keys(availableShapes)[0] ?? "closed";
-}
 var PHONEME_VISEME = {
   m: "closed",
   b: "closed",
@@ -1905,9 +1900,10 @@ function instantiateCharacter({
     if (part.parent && byId.has(part.parent)) addPart(byId.get(part.parent));
     const pivot = part.pivot ?? [0, 0];
     const nodeId = `${rootId}/${part.id}`;
+    const layers = Array.isArray(part.shapes) ? part.shapes : null;
     scene.add({
       id: nodeId,
-      kind: part.shape?.kind ?? "group",
+      kind: layers ? "group" : part.shape?.kind ?? "group",
       name: part.id,
       // The pivot is the joint: a limb rotates about where it attaches,
       // which is the whole trick behind a cutout rig reading correctly.
@@ -1922,10 +1918,28 @@ function instantiateCharacter({
         fill: colorOf(part.fill),
         stroke: colorOf(part.stroke),
         strokeWidth: part.strokeWidth,
-        alpha: part.alpha ?? 1
+        alpha: part.alpha ?? 1,
+        ...swapProps(part, colorOf)
       }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
       z: part.z ?? 0
     }, part.parent ? `${rootId}/${part.parent}` : rootId);
+    for (const [i, layer] of (layers ?? []).entries()) {
+      scene.add({
+        id: `${nodeId}/${layer.id ?? i}`,
+        kind: layer.shape?.kind ?? "group",
+        name: layer.id ?? `layer${i}`,
+        transform: { x: layer.at?.[0] ?? 0, y: layer.at?.[1] ?? 0 },
+        props: resolveImageProps({
+          ...shapeProps(layer.shape),
+          fill: colorOf(layer.fill),
+          stroke: colorOf(layer.stroke),
+          strokeWidth: layer.strokeWidth,
+          alpha: layer.alpha ?? 1,
+          ...swapProps(layer, colorOf)
+        }, assets, diagnostics, `characters.${charName}.parts.${part.id}.${layer.id ?? i}`),
+        z: layer.z ?? i
+      }, nodeId);
+    }
     added.add(part.id);
   };
   for (const part of parts ?? []) addPart(part);
@@ -1961,6 +1975,18 @@ function instantiateCharacter({
 function characterParts(char) {
   if (char.parts?.length) return char.parts;
   return char.generate ? generateCharacterParts(char.generate, char.proportions) : [];
+}
+function swapProps(part, colorOf) {
+  const spec = part.swap;
+  if (!spec) return {};
+  const swapSets = {};
+  const props = {};
+  for (const [channel, set] of Object.entries(spec)) {
+    const shapes = set.shapes ?? set;
+    swapSets[channel] = shapes;
+    props[channel] = set.default ?? Object.keys(shapes)[0];
+  }
+  return { swapSets, ...props };
 }
 function shapeProps(shape) {
   if (!shape) return {};
@@ -3704,22 +3730,62 @@ var MemorySink = class extends FrameSink {
   }
 };
 
-// src/core/scene/visemeShapes.js
-function applyVisemeShapes(scene) {
+// src/core/scene/swapSets.js
+var SWAP_FALLBACK = {
+  viseme: VISEME_FALLBACK,
+  view: {
+    front: ["front", "threeQuarter", "profile"],
+    threeQuarter: ["threeQuarter", "front", "profile"],
+    profile: ["profile", "threeQuarter", "front"],
+    back: ["back", "threeQuarter", "front"]
+  },
+  eyes: {
+    open: ["open", "neutral"],
+    closed: ["closed", "squint", "open"],
+    squint: ["squint", "closed", "open"]
+  }
+};
+function resolveSwap(channel, wanted, shapes) {
+  if (shapes[wanted]) return wanted;
+  for (const candidate of SWAP_FALLBACK[channel]?.[wanted] ?? []) {
+    if (shapes[candidate]) return candidate;
+  }
+  return Object.keys(shapes)[0] ?? null;
+}
+function applySwapSets(scene) {
   for (const node of scene.byId.values()) {
-    const shapes = node.props.visemeShapes;
-    if (!shapes) continue;
-    const name = resolveViseme(node.props.viseme ?? "closed", shapes);
-    const shape = shapes[name];
-    if (!shape) continue;
-    if (node._shapeName === name) continue;
-    node._shapeName = name;
-    node.kind = shape.kind ?? "path";
-    for (const [k, v] of Object.entries(shape)) {
-      if (k !== "kind") node.props[k] = v;
+    const sets = node.props.swapSets;
+    const legacy = node.props.visemeShapes;
+    if (!sets && !legacy) continue;
+    const channels = sets ? legacy ? { viseme: legacy, ...sets } : sets : { viseme: legacy };
+    const applied = node._swapNames ??= {};
+    let changed = false;
+    const wanted = {};
+    for (const [channel, shapes] of Object.entries(channels)) {
+      const name = resolveSwap(channel, node.props[channel] ?? firstKey(shapes), shapes);
+      wanted[channel] = name;
+      if (applied[channel] !== name) changed = true;
     }
+    if (!changed) continue;
+    for (const key2 of node._swapProps ?? []) delete node.props[key2];
+    const owned = /* @__PURE__ */ new Set();
+    let kind = null;
+    for (const [channel, shapes] of Object.entries(channels)) {
+      const shape = shapes[wanted[channel]];
+      if (!shape) continue;
+      applied[channel] = wanted[channel];
+      kind = shape.kind ?? kind;
+      for (const [k, v] of Object.entries(shape)) {
+        if (k === "kind") continue;
+        node.props[k] = v;
+        owned.add(k);
+      }
+    }
+    node._swapProps = owned;
+    if (kind) node.kind = kind;
   }
 }
+var firstKey = (shapes) => Object.keys(shapes)[0];
 
 // src/studio.js
 var SAMPLE_RATE = 48e3;
@@ -3909,7 +3975,7 @@ var FilmStudio = class {
         durationSec: meta.duration,
         sink: chosen,
         signal,
-        beforeFrame: (t) => applyVisemeShapes(prepared.scene),
+        beforeFrame: (t) => applySwapSets(prepared.scene),
         onProgress: (p) => {
           onProgress?.({ stage: "render", ...p, preflight: pf });
         }

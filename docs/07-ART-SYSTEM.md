@@ -205,7 +205,7 @@ staging report costs ~200 tokens and catches more than I caught by eye.
 
 ---
 
-## Phase 9 — swap sets
+## Phase 9 — swap sets — *shipped*
 
 `applyVisemeShapes` (`src/core/scene/visemeShapes.js`) already does the hard
 part: it reassigns `node.kind` at runtime, so one node can be a path on one

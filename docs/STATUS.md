@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-07 (end of Phase 8a/8b).
+Last updated: 2026-10-07 (end of Phase 9).
 
 Legend: **done** · *partial* · — not started
 
@@ -376,6 +376,48 @@ costs ~200.
 - Staging judges only the cast belonging to the shot's own scene. During a
   crossfade two scenes share one camera, and the incoming cast being outside
   the outgoing framing is a property of crossfades, not an error.
+
+---
+
+## Phase 9 — swap sets — **done**
+
+Limited animation is "hold a drawing, swap it", and lipsync had already built
+that: a dictionary of shapes on a node plus a discrete channel naming one.
+Generalised rather than duplicated, so a head turn, an expression, a hand
+shape and a sprite frame are the same mechanism as a mouth.
+
+| Item | State |
+|---|---|
+| `applySwapSets` replaces `applyVisemeShapes` | **done** — keyed by channel name, so `props.view` drives the `view` set with no indirection |
+| Stale props cleared between members | **done** — see below |
+| Per-channel fallback orders | **done** — `SWAP_FALLBACK` for `viseme`, `view`, `eyes`; a front-only character faces front rather than vanishing |
+| Several channels on one node | **done** |
+| Image members (sprite atlas frames) | **done** — a frame is just a member with `sx/sw/sh` |
+| `part.swap` in the film script | **done** |
+| Multi-shape parts (`part.shapes`) | **done** — a part becomes a group of stacked layers |
+| `visemeShapes` + `props.viseme` still work | **done** — it is what the lipsync compiler emits; read as the `viseme` set rather than migrated |
+| An index of swap nodes instead of walking the scene | **skipped** — the walk is a few hundred nodes against a 0.4 ms/frame render. Measure before indexing |
+
+### The footgun this closed
+
+The old pass was a shallow additive copy that never deleted:
+
+```js
+for (const [k, v] of Object.entries(shape)) if (k !== 'kind') node.props[k] = v;
+```
+
+Swapping a `path` member for an `ellipse` one left a stale `d` on the node. It
+was harmless only because every mouth member happened to be the same kind —
+which stops being true the moment images and multi-kind views join in. Props a
+swap wrote are now tracked and cleared; props the node owns are not touched.
+
+### Why multi-shape parts matter
+
+Cel art is three drawings per part — a flat base, a hard-edged shadow, and
+line work — and `instantiateCharacter` was one part, one shape, one node. A
+part with `shapes: [...]` is now a group with layered children, which is the
+prerequisite for anything in Phase 10 that reads as drawn rather than as
+clip-art.
 
 ---
 

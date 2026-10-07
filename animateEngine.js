@@ -137,6 +137,17 @@
                 document.getElementById('loadingOverlay').style.display = 'none';
             }
 
+            /** The 2D film studio, built once and only when a film op asks. */
+            async filmStudio() {
+                if (!this._filmStudio) {
+                    const { FilmStudio } = await import(coreUrl('./src/studio.js'));
+                    this._filmStudio = new FilmStudio({
+                        onLog: (m) => { if (this.onFilmProgress) this.onFilmProgress({ log: m }); },
+                    });
+                }
+                return this._filmStudio;
+            }
+
             // ---- Project state: serialize / restore / persist ----
 
             serializeProject() {
@@ -499,6 +510,84 @@
                             { fps: a.fps || 15, maxWidth: a.maxWidth || 1920 });
                         if (!blob) throw new Error('No animation selected');
                         return { dataUrl: await blobToDataUrl(blob), size: blob.size };
+                    }
+                    // --- 2D film pipeline ---------------------------------
+                    // The command surface reached only the 3D editor, so an
+                    // agent could drive modelling but had no way to produce a
+                    // film -- the thing the 2D half exists for.
+                    case 'loadFilm': {
+                        const studio = await this.filmStudio();
+                        const film = a.film ?? (a.url ? await (await fetch(a.url)).json() : null);
+                        if (!film) throw new Error('loadFilm needs `film` or `url`');
+                        this._film = film;
+                        const { compileFilm } = await import(coreUrl('./src/core/script/compile.js'));
+                        const compiled = compileFilm(film, {});
+                        return {
+                            title: film.meta?.title ?? null,
+                            duration: compiled.meta?.duration ?? 0,
+                            frames: compiled.meta?.frames ?? 0,
+                            scenes: (film.scenes ?? []).length,
+                            dialogue: compiled.lipsyncJobs?.length ?? 0,
+                            diagnostics: compiled.diagnostics
+                                .filter((d) => d.severity !== 'info')
+                                .map((d) => `${d.severity}: ${d.message}`),
+                        };
+                    }
+                    case 'renderFilm': {
+                        const film = a.film ?? this._film;
+                        if (!film) throw new Error('No film loaded; call loadFilm first');
+                        const studio = await this.filmStudio();
+                        // The canvas has to be in the document: MediaRecorder
+                        // captures a stream from it, and a detached canvas
+                        // produces an empty one.
+                        let canvas = document.getElementById('filmCanvas');
+                        if (!canvas) {
+                            canvas = document.createElement('canvas');
+                            canvas.id = 'filmCanvas';
+                            canvas.style.cssText = 'position:fixed;left:-10000px;top:0';
+                            document.body.appendChild(canvas);
+                        }
+                        const out = await studio.produce(film, {
+                            canvas,
+                            width: a.width, height: a.height, fps: a.fps,
+                            onProgress: (p) => { if (this.onFilmProgress) this.onFilmProgress(p); },
+                        });
+                        // The blob stays here. A finished film is megabytes,
+                        // and a data URL that size does not survive the trip
+                        // out of the page -- it comes back truncated, with no
+                        // error, and writes a file of a few bytes. Callers
+                        // pull it with readFilmChunk instead.
+                        this._lastFilm = out.blob;
+                        return {
+                            size: out.blob.size,
+                            type: out.blob.type,
+                            encoder: out.sink,
+                            duration: out.meta.duration,
+                            frames: Math.round(out.meta.duration * out.meta.fps),
+                            width: out.meta.width, height: out.meta.height,
+                            audio: !!out.prepared.audio,
+                            diagnostics: out.prepared.diagnostics
+                                .filter((d) => d.severity !== 'info').length,
+                        };
+                    }
+                    case 'readFilmChunk': {
+                        if (!this._lastFilm) throw new Error('No rendered film to read');
+                        const offset = a.offset || 0;
+                        const length = Math.min(a.length || 4194304, this._lastFilm.size - offset);
+                        if (length <= 0) return { offset, length: 0, base64: '', done: true };
+                        const slice = this._lastFilm.slice(offset, offset + length);
+                        const bytes = new Uint8Array(await slice.arrayBuffer());
+                        // Build the base64 in blocks: String.fromCharCode with
+                        // a megabyte of arguments blows the call stack.
+                        let binary = '';
+                        for (let i = 0; i < bytes.length; i += 8192) {
+                            binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+                        }
+                        return {
+                            offset, length, base64: btoa(binary),
+                            done: offset + length >= this._lastFilm.size,
+                            total: this._lastFilm.size,
+                        };
                     }
                     default:
                         throw new Error('Unknown op: ' + cmd.op);

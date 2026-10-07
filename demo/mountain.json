@@ -1,0 +1,162 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "The Tree on the Mountain",
+    "author": "jireX",
+    "description": "A boy at the foot of a mountain runs up to the lone tree on its shoulder.",
+    "fps": 24,
+    "width": 1280,
+    "height": 720
+  },
+
+  "voices": {
+    "boy_v": { "spec": "tts:en_GB-alba-medium" }
+  },
+
+  "palettes": {
+    "morning": {
+      "skin": "#e8b98f", "coat": "#d9533b", "hair": "#3a2a1d", "eye": "#2a2118",
+      "shoe": "#3b3027", "trouser": "#38506b",
+      "rock": "#6d6a73", "rock_hi": "#8e8a94", "rock_lo": "#4a4751",
+      "far": "#9aa6bd", "grass": "#5c8a4a", "grass_lo": "#3f6434",
+      "bark": "#4a3526", "leaf": "#3f7a3a", "leaf_hi": "#59a04d"
+    }
+  },
+
+  "characters": {
+    "boy": {
+      "palette": "morning",
+      "voice": "boy_v",
+      "generate": { "trouser": "trouser" },
+      "proportions": { "height": 132, "headRatio": 0.17, "shoulderWidth": 0.23 },
+      "poses": {
+        "stand":   { "torso": { "rot": 0 }, "head": { "rot": 0 },
+                     "armL": { "rot": 0.14 }, "armR": { "rot": -0.14 } },
+        "look_up": { "head": { "rot": -0.34 }, "torso": { "rot": -0.06 } },
+        "shade_eyes": { "head": { "rot": -0.3 }, "torso": { "rot": -0.05 },
+                        "armR": { "rot": -2.5 }, "foreR": { "rot": -1.0 } },
+        "lean":    { "torso": { "rot": -0.22 }, "head": { "rot": -0.1 } },
+        "reach_up":{ "torso": { "rot": -0.12 }, "head": { "rot": -0.4 },
+                     "armL": { "rot": 2.6 }, "foreL": { "rot": 0.3 },
+                     "armR": { "rot": -2.6 }, "foreR": { "rot": -0.3 } }
+      }
+    }
+  },
+
+  "scenes": [
+    {
+      "id": "foot",
+      "palette": "morning",
+      "background": {
+        "color": "#bcd4e6",
+        "gradient": { "from": [0, -360, 0, 360],
+                      "stops": [[0, "#7fa8d4"], [0.55, "#bcd4e6"], [1, "#e7dcc4"]] }
+      },
+      "transitionIn": { "kind": "fade", "from": "#ffffff", "duration": 1.0 },
+      "scenery": [
+        { "id": "sun", "shape": { "kind": "ellipse", "rx": 54, "ry": 54 }, "at": [1050, 150],
+          "fill": "#fff3cf", "alpha": 0.85, "z": -890 },
+
+        { "id": "far_l", "shape": { "kind": "path",
+            "d": "M-520,210 L-230,-150 L-40,60 L130,-80 L380,210 Z" },
+          "at": [300, 430], "fill": "far", "alpha": 0.55, "z": -860, "parallax": 0.2 },
+        { "id": "far_r", "shape": { "kind": "path",
+            "d": "M-300,210 L-60,-110 L170,110 L400,-40 L620,210 Z" },
+          "at": [1080, 440], "fill": "far", "alpha": 0.45, "z": -860, "parallax": 0.2 },
+
+        { "id": "mountain", "shape": { "kind": "path",
+            "d": "M-760,330 L-250,-130 L-40,60 L210,-250 L760,330 Z" },
+          "at": [760, 470], "fill": "rock", "z": -700 },
+        { "id": "mountain_lit", "shape": { "kind": "path",
+            "d": "M210,-250 L760,330 L300,330 Z" },
+          "at": [760, 470], "fill": "rock_hi", "alpha": 0.5, "z": -690 },
+        { "id": "mountain_shade", "shape": { "kind": "path",
+            "d": "M210,-250 L-40,60 L-250,-130 L-760,330 L300,330 Z" },
+          "at": [760, 470], "fill": "rock_lo", "alpha": 0.35, "z": -690 },
+
+        { "id": "ledge", "shape": { "kind": "path",
+            "d": "M-150,0 Q-40,-26 70,-10 Q150,0 190,16 L190,46 L-150,46 Z" },
+          "at": [905, 268], "fill": "grass_lo", "z": -620 },
+
+        { "id": "trunk", "shape": { "kind": "path",
+            "d": "M-9,0 Q-4,-54 -13,-104 L11,-104 Q4,-54 9,0 Z" },
+          "at": [905, 258], "fill": "bark", "z": -600 },
+        { "id": "branch_l", "shape": { "kind": "path", "d": "M0,0 L-30,-26" },
+          "at": [899, 206], "stroke": "bark", "strokeWidth": 7, "z": -600 },
+        { "id": "branch_r", "shape": { "kind": "path", "d": "M0,0 L26,-22" },
+          "at": [911, 220], "stroke": "bark", "strokeWidth": 6, "z": -600 },
+        { "id": "canopy_a", "shape": { "kind": "ellipse", "rx": 62, "ry": 46 },
+          "at": [880, 112], "fill": "leaf", "z": -590 },
+        { "id": "canopy_b", "shape": { "kind": "ellipse", "rx": 54, "ry": 42 },
+          "at": [940, 128], "fill": "leaf", "z": -590 },
+        { "id": "canopy_c", "shape": { "kind": "ellipse", "rx": 48, "ry": 38 },
+          "at": [908, 82], "fill": "leaf_hi", "z": -585 },
+
+        { "id": "slope_grass", "shape": { "kind": "path",
+            "d": "M-700,0 Q-300,-28 60,-66 Q300,-96 520,-150 L520,120 L-700,120 Z" },
+          "at": [640, 620], "fill": "grass", "z": -500 },
+        { "id": "ground", "shape": { "kind": "rect", "w": 2600, "h": 240, "cx": true },
+          "at": [640, 660], "fill": "grass_lo", "z": -480 },
+
+        { "id": "rock_a", "shape": { "kind": "ellipse", "rx": 26, "ry": 13 },
+          "at": [330, 648], "fill": "rock_lo", "alpha": 0.7, "z": -470 },
+        { "id": "rock_b", "shape": { "kind": "ellipse", "rx": 17, "ry": 9 },
+          "at": [690, 606], "fill": "rock_lo", "alpha": 0.6, "z": -470 }
+      ],
+
+      "cast": [
+        { "character": "boy", "as": "boy", "at": [250, 539], "scale": 1.0, "z": 20 }
+      ],
+
+      "shots": [
+        { "id": "f1", "duration": 5.0,
+          "camera": { "from": { "x": 0, "y": 0, "zoom": 1.0 },
+                      "to": { "x": 30, "y": -10, "zoom": 1.05 }, "ease": "smooth" },
+          "actions": [
+            { "target": "boy", "do": "play", "action": "breathe" },
+            { "target": "boy", "do": "play", "action": "blink" },
+            { "target": "boy", "do": "pose", "pose": "stand", "at": 0 },
+            { "target": "boy", "do": "pose", "pose": "shade_eyes", "at": 1.4, "for": 0.9 },
+            { "target": "boy", "do": "pose", "pose": "look_up", "at": 3.8, "for": 0.7 }
+          ] },
+
+        { "id": "f2", "duration": 5.2,
+          "camera": { "to": { "x": 60, "y": -40, "zoom": 1.15 }, "ease": "smooth" },
+          "actions": [
+            { "target": "boy", "do": "play", "action": "breathe" },
+            { "target": "boy", "do": "play", "action": "blink" },
+            { "target": "boy", "do": "pose", "pose": "look_up", "at": 0 },
+            { "target": "boy", "do": "pose", "pose": "stand", "at": 3.9, "for": 0.6 }
+          ],
+          "dialogue": [
+            { "speaker": "boy", "at": 0.5,
+              "text": "I'm gonna climb the tree and see the whole world.",
+              "lipsync": true, "subtitle": true }
+          ] },
+
+        { "id": "f3", "duration": 7.0,
+          "camera": { "from": { "x": 60, "y": -40, "zoom": 1.15 },
+                      "to": { "x": 160, "y": -50, "zoom": 1.15 }, "ease": "smooth" },
+          "actions": [
+            { "target": "boy", "do": "pose", "pose": "lean", "at": 0, "for": 0.5 },
+            { "target": "boy", "do": "play", "action": "walk", "speed": 2.1, "at": 0.2, "for": 6.4 },
+            { "target": "boy", "do": "move", "to": [700, 491], "at": 0.2, "for": 6.4,
+              "ease": "smooth" }
+          ] },
+
+        { "id": "f4", "duration": 6.0,
+          "camera": { "from": { "x": 160, "y": -50, "zoom": 1.15 },
+                      "to": { "x": 240, "y": -195, "zoom": 1.45 }, "ease": "smooth" },
+          "actions": [
+            { "target": "boy", "do": "play", "action": "walk", "speed": 1.8, "at": 0, "for": 3.2 },
+            { "target": "boy", "do": "move", "to": [848, 185], "at": 0, "for": 3.2, "ease": "smooth" },
+            { "target": "boy", "do": "pose", "pose": "stand", "at": 3.2, "for": 0.5 },
+            { "target": "boy", "do": "play", "action": "breathe", "at": 3.3 },
+            { "target": "boy", "do": "play", "action": "blink", "at": 3.3 },
+            { "target": "boy", "do": "pose", "pose": "reach_up", "at": 4.2, "for": 1.2 }
+          ] }
+      ],
+      "transitionOut": { "kind": "fade", "duration": 1.2 }
+    }
+  ]
+}

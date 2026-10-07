@@ -64,19 +64,21 @@ const vec3 = z.array(z.number()).length(3);
 
 server.tool(
   'run_script',
-  'Run a batch of raw engine commands ([{op, args}]). Ops: createObject, createLight, setMaterial, transform, subdivide, createAnimation, selectAnimation, addKeyframe, play, pause, stop, setTime, getScene, clear, exportVideo, exportGif.',
+  'Run a batch of raw engine commands ([{op, args}]). Ops: createObject, createLight, setMaterial, resize, transform, subdivide, createAnimation, selectAnimation, addKeyframe, setInterpolation, toggleSkeleton, listBones, listMorphs, ikReach, setMorph, setTexture, setEnvironment, createCamera, listCameras, activateCamera, setCameraProps, setPostFX, play, pause, stop, setTime, getScene, loadScene, clear, exportVideo, exportGif, exportSequence, loadFilm, renderFilm.',
   { commands: z.array(z.object({ op: z.string(), args: z.record(z.any()).optional() })) },
   async ({ commands }) => asText(await runCommands(commands))
 );
 
 server.tool(
   'create_object',
-  'Add a primitive (cube, sphere, cylinder, cone, torus, tetrahedron). Returns its uuid.',
+  'Add a primitive (cube, sphere, cylinder, cone, torus, tetrahedron). `dims` takes the geometry parameters by name (width/height/depth, radius, tube, ...). Returns its uuid and the dimensions it was built with.',
   {
     kind: z.enum(['cube', 'sphere', 'cylinder', 'cone', 'torus', 'tetrahedron']),
     name: z.string().optional(),
     position: vec3.optional(),
     color: z.union([z.string(), z.number()]).optional(),
+    dims: z.record(z.number()).optional(),
+    material: z.record(z.any()).optional(),
   },
   async (args) => asText(await runOne('createObject', args))
 );
@@ -107,6 +109,51 @@ server.tool(
   'Return the current project (objects, lights, animations) as JSON.',
   {},
   async () => asText((await runOne('getScene', {}))[0]?.value)
+);
+
+// ---- 2D film pipeline ----
+// The tools above drive the 3D editor. These two reach the 2D film pipeline,
+// which is what produces a finished film from a single declarative document.
+
+server.tool(
+  'load_film',
+  'Load a `jirex.film/1` document into the browser and compile it. Returns the derived duration, frame count and any diagnostics, without rendering.',
+  { film: z.record(z.any()).optional(), url: z.string().optional() },
+  async (args) => asText((await runCommands([{ op: 'loadFilm', args }], 120000))[0]?.value)
+);
+
+server.tool(
+  'render_film',
+  'Render the loaded film (or one passed inline) to a WebM with audio, lipsync and subtitles. If `path` is given the file is pulled from the browser in chunks and written on this machine; otherwise only a summary is returned, because a two-minute film is tens of megabytes.',
+  {
+    film: z.record(z.any()).optional(),
+    path: z.string().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    fps: z.number().optional(),
+  },
+  async ({ path, ...args }) => {
+    // A paced render runs in real time, so the timeout has to cover the film.
+    const result = (await runCommands([{ op: 'renderFilm', args }], 1800000))[0];
+    if (!result?.ok) throw new Error(result?.error || 'render failed');
+    const summary = result.value;
+    if (!path) return asText(summary);
+
+    // Pulled in chunks: a finished film is megabytes, and a data URL that size
+    // comes back truncated with no error.
+    const parts = [];
+    for (let offset = 0; offset < summary.size; ) {
+      const chunk = (await runCommands(
+        [{ op: 'readFilmChunk', args: { offset, length: 4194304 } }], 120000))[0];
+      if (!chunk?.ok) throw new Error(chunk?.error || 'could not read the rendered film');
+      parts.push(Buffer.from(chunk.value.base64, 'base64'));
+      offset += chunk.value.length;
+      if (chunk.value.done) break;
+    }
+    const file = Buffer.concat(parts);
+    writeFileSync(path, file);
+    return asText({ savedTo: path, bytesWritten: file.length, ...summary });
+  }
 );
 
 // Record/encode the selected animation and optionally save it to disk.

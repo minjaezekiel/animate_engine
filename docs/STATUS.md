@@ -83,6 +83,15 @@ The file is not committed — it is gitignored and reproducible from source.
   OPFS, so a fresh browser profile pays the cost again.
 - **A paced render takes as long as the film** and needs the tab visible. The
   WebCodecs path removes both constraints but needs a muxer wired in.
+- **A MediaRecorder WebM carries no Cues index, so it is not seekable.**
+  Playback is fine and the duration is right, but `currentTime = t` silently
+  does not move — a player scrubs badly, and anything verifying the file has to
+  play it through rather than seek it. The WebCodecs path writes proper cues;
+  this is the strongest practical argument for wiring a muxer in.
+- **A finished film cannot be returned as a data URL.** Several megabytes of
+  string do not survive the trip out of the page: it arrives truncated, with no
+  error, and writes a file of a few bytes. `renderFilm` keeps the blob and
+  callers pull it with `readFilmChunk`.
 - ~~**No 2D editor UI.**~~ Shipped in Phase 2 as `studio.html`.
 - ~~**No IK.**~~ Shipped in Phase 2 as `core/rig/IK2D.js` and the `reach` verb.
 - **Image assets are declared but not loaded** by the studio UI; scenery is

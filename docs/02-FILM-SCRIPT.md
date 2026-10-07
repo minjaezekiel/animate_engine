@@ -242,6 +242,26 @@ a word-count estimate. `retimeToAudio` then corrects them once the lines have
 actually been voiced — otherwise a shot shorter than its dialogue would cut
 the speech off.
 
+## Driving it from an agent
+
+Two ops reach the 2D pipeline from `runCommands`, which is what the MCP server
+relays to — so an agent can produce a finished film without touching the
+editor UI:
+
+| op | what it does |
+|---|---|
+| `loadFilm` | `{film}` or `{url}` — compiles and reports the derived duration, frame count and diagnostics, without rendering |
+| `renderFilm` | renders to WebM with audio, lipsync and subtitles; returns a summary and keeps the blob |
+| `readFilmChunk` | `{offset, length}` — pulls the rendered bytes as base64 |
+
+The MCP tools `load_film` and `render_film` wrap these; `render_film` with a
+`path` does the chunked pull and writes the file.
+
+`readFilmChunk` exists because a finished film cannot cross the page boundary
+as a data URL. Several megabytes of string arrives **truncated with no error**,
+writing a file of a few bytes — which looks like a successful render until you
+open it.
+
 ## Driving it programmatically
 
 `engine.runCommands([{op, args}])` on the legacy 3D engine is imperative and

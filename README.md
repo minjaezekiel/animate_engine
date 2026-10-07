@@ -140,6 +140,9 @@ Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
 - **MP4 needs a muxer**; WebM works with no dependencies.
 - **The legacy 3D editor's DOM is still hardwired** to 181 element ids, so it
   only runs inside its own `index.html`.
+- **The 3D editor animates rigged characters but cannot rig one.** Import a
+  rigged character (glTF or FBX) and retarget animations onto it; building a
+  skeleton for an unrigged mesh is not implemented.
 - **GIF and PNG-sequence export still hold every frame in memory**, so a long
   sequence will not complete. WebM export does not — it was moved onto the
   frame-stepped renderer in Phase 3.

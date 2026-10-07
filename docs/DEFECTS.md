@@ -254,6 +254,16 @@ new form — and this time with no `lossy` flag to catch it.
 A geometry now stops being parametric at the moment its vertices stop being
 described by the parameters, which is where sculpting begins.
 
+### Skin weights and morph targets were dropped on save — **fixed (4)**
+
+The same shape as the sculpt bug: `BufferGeometry.toJSON` short-circuits on
+`parameters` and writes only those, so any attribute added to a primitive
+geometry — `skinIndex`, `skinWeight`, `morphAttributes` — was discarded. A
+rigged character built on a primitive came back unrigged, silently.
+
+Found by the first test that ever asserted a `SkinnedMesh` survives a round
+trip.
+
 ### An editor drag snapped back on release — **fixed (2)**
 
 `studio.html` wrote a dragged pose as an action starting **at** the playhead
@@ -273,9 +283,9 @@ the written action's arrival time, not just that an action was written.
   chain with one-shot CCD, but it **constructs nothing**: there is no
   `THREE.Bone`, `Skeleton` or `SkinnedMesh` anywhere, no skin weights and no
   auto-rig. Bones are also unpickable in the viewport, having no geometry.
-- Colour is the **only** editable material property.
-- All six primitives have hardcoded dimensions; the MCP `create_object` tool
-  cannot pass a size.
+- ~~Colour is the only editable material property.~~ Fixed in Phase 6.
+- ~~All six primitives have hardcoded dimensions.~~ Fixed in Phase 6; the
+  command API takes `dims` and there is a `resize` op.
 - `README.md` is stale in both directions — it claims IK, bones and morphs are
   future work when `RigManager` exists.
 - 2D IK solves against the chain's **rest pose**, so an animated torso moves

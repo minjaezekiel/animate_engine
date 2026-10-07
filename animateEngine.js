@@ -376,9 +376,14 @@
                         };
                         const fn = makers[a.kind || 'cube'];
                         if (!fn) throw new Error('Unknown kind: ' + a.kind);
-                        const obj = sm[fn](a.name);
+                        // `dims` and `material` reach the primitive now, so an
+                        // agent can ask for a 3x1x2 box in one call instead of
+                        // getting a unit cube and scaling it.
+                        const obj = sm[fn](a.name, {}, a.dims || {},
+                            a.color != null ? { ...a.material, color: a.color } : (a.material || {}));
                         applyTransform(obj);
-                        return { uuid: obj.uuid, name: obj.name };
+                        return { uuid: obj.uuid, name: obj.name,
+                                 dims: { ...obj.geometry.parameters } };
                     }
                     case 'createLight': {
                         const light = sm.createLight(a.type || 'point', a.name);
@@ -389,8 +394,18 @@
                     }
                     case 'setMaterial': {
                         const obj = sm.getObjectByUUID(a.uuid);
-                        if (obj && obj.material && a.color != null) obj.material.color.set(a.color);
+                        if (!obj) throw new Error('No object: ' + a.uuid);
+                        const { uuid, ...props } = a;
+                        sm.setMaterialProperties(obj, props);
                         return { uuid: a.uuid };
+                    }
+                    case 'resize': {
+                        const obj = sm.getObjectByUUID(a.uuid);
+                        if (!obj) throw new Error('No object: ' + a.uuid);
+                        if (!sm.resizePrimitive(obj, a.dims || {})) {
+                            throw new Error('Not a resizable primitive: ' + a.uuid);
+                        }
+                        return { uuid: a.uuid, dims: { ...obj.geometry.parameters } };
                     }
                     case 'transform': {
                         const obj = sm.getObjectByUUID(a.uuid);
@@ -583,6 +598,55 @@
             return plain;
         }
 
+        /**
+         * Default intensity for point and spot lights.
+         *
+         * Three r155 made punctual lights physical: intensity is candela and
+         * decay is quadratic by default, so the old intensity of 1 renders a
+         * point light barely above the background. 4*PI is the conversion the
+         * migration notes give for preserving the pre-r155 appearance --
+         * measured here as a cube at luma 43 against a background of 20, where
+         * intensity 1 gave 25.
+         */
+        const PUNCTUAL_INTENSITY = 4 * Math.PI;
+
+        const DEFAULT_MATERIAL = { color: 0x4fc3f7, metalness: 0.2, roughness: 0.5 };
+
+        /**
+         * The primitives, as data: the geometry class, its constructor
+         * parameters in order, and the defaults. `params` names them so a
+         * caller can pass {width: 3} without knowing the argument order, and
+         * so `geometry.parameters` round-trips through a resize.
+         */
+        const PRIMITIVES = {
+            cube: { geometry: 'BoxGeometry',
+                    params: ['width', 'height', 'depth', 'widthSegments', 'heightSegments', 'depthSegments'],
+                    defaults: { width: 1, height: 1, depth: 1,
+                                widthSegments: 1, heightSegments: 1, depthSegments: 1 } },
+            sphere: { geometry: 'SphereGeometry',
+                      params: ['radius', 'widthSegments', 'heightSegments'],
+                      defaults: { radius: 0.5, widthSegments: 32, heightSegments: 32 } },
+            cylinder: { geometry: 'CylinderGeometry',
+                        params: ['radiusTop', 'radiusBottom', 'height', 'radialSegments'],
+                        defaults: { radiusTop: 0.5, radiusBottom: 0.5, height: 1, radialSegments: 32 } },
+            cone: { geometry: 'ConeGeometry',
+                    params: ['radius', 'height', 'radialSegments'],
+                    defaults: { radius: 0.5, height: 1, radialSegments: 32 } },
+            torus: { geometry: 'TorusGeometry',
+                     params: ['radius', 'tube', 'radialSegments', 'tubularSegments'],
+                     defaults: { radius: 0.5, tube: 0.2, radialSegments: 16, tubularSegments: 100 } },
+            tetrahedron: { geometry: 'TetrahedronGeometry',
+                           params: ['radius', 'detail'],
+                           defaults: { radius: 0.7, detail: 0 } },
+        };
+
+        /** Material properties the editor and the command API can set. */
+        const MATERIAL_PROPS = new Set([
+            'color', 'emissive', 'emissiveIntensity', 'metalness', 'roughness',
+            'opacity', 'transparent', 'wireframe', 'flatShading', 'side',
+            'depthWrite', 'envMapIntensity',
+        ]);
+
         const HANDLE_SIZE = 12;
         const HANDLE_REACH = 50;
 
@@ -618,6 +682,27 @@
 
         const TEXTURE_SLOTS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'];
 
+        /**
+         * Attributes a geometry's own `parameters` do not describe.
+         *
+         * BufferGeometry.toJSON short-circuits on `parameters` and writes only
+         * those, discarding every attribute. Skin weights, skin indices and
+         * morph targets attached to a primitive are therefore lost on save
+         * unless the geometry stops claiming to be parametric for the
+         * duration of the write.
+         */
+        function keepExtraAttributes(geometry) {
+            if (!geometry.parameters) return [];
+            const extra = geometry.attributes.skinIndex || geometry.attributes.skinWeight
+                || (geometry.morphAttributes && Object.keys(geometry.morphAttributes).length);
+            if (!extra) return [];
+            const parameters = geometry.parameters;
+            delete geometry.parameters;
+            const type = geometry.type;
+            geometry.type = 'BufferGeometry';   // or ObjectLoader rebuilds the primitive
+            return [() => { geometry.parameters = parameters; geometry.type = type; }];
+        }
+
         /** Detach a material's texture maps for the duration of a save. */
         function detachTextures(material) {
             const undos = [];
@@ -649,6 +734,10 @@
                 this._suspendChange = false; // true while importing a project
                 this.onModelImported = null; // set by AnimationEngine (rig extraction)
                 this.envURL = null;          // current environment/HDRI source
+                // Source AnimationClips per imported model root, kept because
+                // retargeting works on clips and the engine converts them to
+                // keyframes as soon as they are adopted.
+                this.importedClips = new Map();
             }
 
             // Notify listeners that the scene mutated (drives undo history / autosave).
@@ -786,13 +875,17 @@
             }
 
             addDefaultLights() {
-                // Ambient light
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                // Raised with the r155 lighting change, which dropped the
+                // legacy intensity scaling. Measured on the default cube
+                // (albedo luma 166): 0.5/0.8 lit its brightest face to 93,
+                // 1.0/1.8 to about 125, 1.4/2.2 to 150 and nearly flat. The
+                // middle one reads as lit without blowing out.
+                const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
                 this.scene.add(ambientLight);
                 this.lights.set(ambientLight.uuid, ambientLight);
                 
                 // Directional light
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.8);
                 directionalLight.position.set(5, 10, 7);
                 directionalLight.castShadow = true;
                 directionalLight.shadow.mapSize.width = 1024;
@@ -925,7 +1018,8 @@
                 if (!valid.includes(slot)) throw new Error('Bad texture slot: ' + slot);
                 return new Promise((resolve, reject) => {
                     new THREE.TextureLoader().load(url, (tex) => {
-                        if (slot === 'map' || slot === 'emissiveMap') tex.encoding = THREE.sRGBEncoding;
+                        // r152 replaced texture.encoding with colorSpace.
+                        if (slot === 'map' || slot === 'emissiveMap') tex.colorSpace = THREE.SRGBColorSpace;
                         obj.material[slot] = tex;
                         if (slot === 'emissiveMap') obj.material.emissive = new THREE.Color(0xffffff);
                         obj.material.needsUpdate = true;
@@ -981,82 +1075,96 @@
                 object.uuid = newUuid;
             }
 
-            createCube(name, properties = {}) {
-                const geometry = new THREE.BoxGeometry(1, 1, 1);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0x4fc3f7,
-                    metalness: 0.2,
-                    roughness: 0.5
-                });
-                const cube = new THREE.Mesh(geometry, material);
-                cube.castShadow = true;
-                cube.receiveShadow = true;
-                return this.addObject(cube, name, properties);
+            /**
+             * Make a primitive.
+             *
+             * `dims` are the geometry's own parameters, by name, so a caller
+             * can ask for a 3x1x2 box instead of getting the hardcoded unit
+             * cube and having to scale it -- which is not the same thing,
+             * because scaling distorts a subsequent sculpt and the physics
+             * shape. Six near-identical builders differing only in these
+             * numbers is why there was no way to pass a size at all, including
+             * from the MCP `create_object` tool.
+             */
+            createPrimitive(kind, name, properties = {}, dims = {}, material = {}) {
+                const spec = PRIMITIVES[kind];
+                if (!spec) throw new Error(`Unknown primitive: ${kind}`);
+                const args = spec.params.map((param) => dims[param] ?? spec.defaults[param]);
+                const mesh = new THREE.Mesh(
+                    new THREE[spec.geometry](...args),
+                    new THREE.MeshStandardMaterial({ ...DEFAULT_MATERIAL, ...material }));
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                return this.addObject(mesh, name, properties);
             }
 
-            createSphere(name, properties = {}) {
-                const geometry = new THREE.SphereGeometry(0.5, 32, 32);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0x4fc3f7,
-                    metalness: 0.2,
-                    roughness: 0.5
-                });
-                const sphere = new THREE.Mesh(geometry, material);
-                sphere.castShadow = true;
-                sphere.receiveShadow = true;
-                return this.addObject(sphere, name, properties);
+            createCube(name, properties, dims, material) {
+                return this.createPrimitive('cube', name, properties, dims, material);
+            }
+            createSphere(name, properties, dims, material) {
+                return this.createPrimitive('sphere', name, properties, dims, material);
+            }
+            createCylinder(name, properties, dims, material) {
+                return this.createPrimitive('cylinder', name, properties, dims, material);
+            }
+            createCone(name, properties, dims, material) {
+                return this.createPrimitive('cone', name, properties, dims, material);
+            }
+            createTorus(name, properties, dims, material) {
+                return this.createPrimitive('torus', name, properties, dims, material);
+            }
+            createTetrahedron(name, properties, dims, material) {
+                return this.createPrimitive('tetrahedron', name, properties, dims, material);
             }
 
-            createCylinder(name, properties = {}) {
-                const geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0x4fc3f7,
-                    metalness: 0.2,
-                    roughness: 0.5
-                });
-                const cylinder = new THREE.Mesh(geometry, material);
-                cylinder.castShadow = true;
-                cylinder.receiveShadow = true;
-                return this.addObject(cylinder, name, properties);
+            /**
+             * Rebuild a primitive's geometry with new dimensions, in place.
+             *
+             * The alternative is scaling, which is not the same thing: a
+             * scaled mesh sculpts and collides wrong. Only works while the
+             * geometry is still parametric -- once sculpted it is not, and
+             * saying so beats silently discarding the sculpt.
+             */
+            resizePrimitive(object, dims) {
+                if (!object || !object.isMesh || !object.geometry.parameters) return false;
+                const kind = Object.keys(PRIMITIVES)
+                    .find((k) => PRIMITIVES[k].geometry === object.geometry.type);
+                if (!kind) return false;
+                const spec = PRIMITIVES[kind];
+                const current = object.geometry.parameters;
+                const args = spec.params.map((p) => dims[p] ?? current[p] ?? spec.defaults[p]);
+                object.geometry.dispose();
+                object.geometry = new THREE[spec.geometry](...args);
+                this.markChanged();
+                return true;
             }
 
-            createCone(name, properties = {}) {
-                const geometry = new THREE.ConeGeometry(0.5, 1, 32);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0x4fc3f7,
-                    metalness: 0.2,
-                    roughness: 0.5
-                });
-                const cone = new THREE.Mesh(geometry, material);
-                cone.castShadow = true;
-                cone.receiveShadow = true;
-                return this.addObject(cone, name, properties);
-            }
-
-            createTorus(name, properties = {}) {
-                const geometry = new THREE.TorusGeometry(0.5, 0.2, 16, 100);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0x4fc3f7,
-                    metalness: 0.2,
-                    roughness: 0.5
-                });
-                const torus = new THREE.Mesh(geometry, material);
-                torus.castShadow = true;
-                torus.receiveShadow = true;
-                return this.addObject(torus, name, properties);
-            }
-
-            createTetrahedron(name, properties = {}) {
-                const geometry = new THREE.TetrahedronGeometry(0.7, 0);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0x4fc3f7,
-                    metalness: 0.2,
-                    roughness: 0.5
-                });
-                const tetrahedron = new THREE.Mesh(geometry, material);
-                tetrahedron.castShadow = true;
-                tetrahedron.receiveShadow = true;
-                return this.addObject(tetrahedron, name, properties);
+            /**
+             * Set material properties by name.
+             *
+             * Colour used to be the only one reachable, so every object in a
+             * scene had the same finish no matter what it was meant to be.
+             */
+            setMaterialProperties(object, props = {}) {
+                const material = object && object.material;
+                if (!material) return false;
+                for (const [key, value] of Object.entries(props)) {
+                    if (!MATERIAL_PROPS.has(key)) continue;
+                    if (key === 'color' || key === 'emissive') {
+                        if (typeof value === 'number') material[key].setHex(value);
+                        else material[key].set(value);
+                    } else {
+                        material[key] = value;
+                    }
+                }
+                // Opacity does nothing unless the material is transparent, and
+                // forgetting that is the usual reason "opacity doesn't work".
+                if (props.opacity != null && props.transparent == null) {
+                    material.transparent = props.opacity < 1;
+                }
+                material.needsUpdate = true;
+                this.markChanged();
+                return true;
             }
 
             createLight(type, name, properties = {}) {
@@ -1064,12 +1172,12 @@
                 
                 switch (type) {
                     case 'point':
-                        light = new THREE.PointLight(0xffffff, 1, 100);
+                        light = new THREE.PointLight(0xffffff, PUNCTUAL_INTENSITY, 100);
                         light.position.set(0, 3, 0);
                         light.castShadow = true;
                         break;
                     case 'spot':
-                        light = new THREE.SpotLight(0xffffff, 1);
+                        light = new THREE.SpotLight(0xffffff, PUNCTUAL_INTENSITY);
                         light.position.set(0, 5, 0);
                         light.angle = Math.PI / 6;
                         light.penumbra = 0.1;
@@ -1084,7 +1192,7 @@
                         light = new THREE.AmbientLight(0xffffff, 0.5);
                         break;
                     default:
-                        light = new THREE.PointLight(0xffffff, 1, 100);
+                        light = new THREE.PointLight(0xffffff, PUNCTUAL_INTENSITY, 100);
                         light.position.set(0, 3, 0);
                         light.castShadow = true;
                 }
@@ -1194,6 +1302,11 @@
                 // detach the maps and re-apply them on load.
                 this.objects.forEach((object) => {
                     if (object.material) restore.push(...detachTextures(object.material));
+                    // Same trap as a sculpt, one level up: a geometry that
+                    // still claims to be parametric serializes as its
+                    // parameters, so skin weights and morph targets added to a
+                    // primitive are silently dropped on save.
+                    if (object.geometry) restore.push(...keepExtraAttributes(object.geometry));
                 });
 
                 let three;
@@ -1338,49 +1451,52 @@
             }
 
             // Import 3D model
+            /**
+             * Import a model. glTF/GLB and FBX, routed by extension.
+             *
+             * FBX matters because it is what Mixamo hands you, and Mixamo is
+             * how most people get a rigged character and a library of
+             * animations for it without rigging anything themselves.
+             */
             importModel(file, callback) {
                 const reader = new FileReader();
+                const name = file.name.replace(/\.[^/.]+$/, '');
+                const isFBX = /\.fbx$/i.test(file.name);
+
+                const adopt = (model, animations) => {
+                    this.addObject(model, name);
+                    model.traverse((child) => {
+                        if (!child.isMesh) return;
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        this.objects.set(child.uuid, child);
+                        if (!this.objectProperties.has(child.uuid)) {
+                            this.objectProperties.set(child.uuid,
+                                { visible: true, locked: false, physicsEnabled: false });
+                        }
+                    });
+                    // Keep the source clips: retargeting needs the clip, and
+                    // the engine converts clips to keyframes on adoption.
+                    this.importedClips.set(model.uuid, animations || []);
+                    if (this.onModelImported) {
+                        this.onModelImported(model, { animations: animations || [] });
+                    }
+                    callback(true, model);
+                };
+
                 reader.onload = (event) => {
                     const contents = event.target.result;
-                    
-                    // Use GLTFLoader to load the model
-                    const loader = new THREE.GLTFLoader();
-                    
                     try {
-                        loader.parse(contents, '', (gltf) => {
-                            const model = gltf.scene;
-                            
-                            // Add model to scene
-                            this.addObject(model, file.name.replace(/\.[^/.]+$/, ""));
-                            
-                            // Animations go to whoever owns both managers.
-                            // This used to call `this.animationManager`, a
-                            // field SceneManager never defines, so importing
-                            // any glTF WITH animation threw and took the whole
-                            // import down with it.
-                            
-                            // Set up model properties
-                            model.traverse((child) => {
-                                if (child.isMesh) {
-                                    child.castShadow = true;
-                                    child.receiveShadow = true;
-                                    
-                                    // Add to objects map
-                                    this.objects.set(child.uuid, child);
-                                    
-                                    // Set default properties
-                                    this.objectProperties.set(child.uuid, {
-                                        visible: true,
-                                        locked: false,
-                                        physicsEnabled: false
-                                    });
-                                }
-                            });
-
-                            if (this.onModelImported) this.onModelImported(model, gltf);
-                            callback(true, model);
+                        if (isFBX) {
+                            if (!THREE.FBXLoader) throw new Error('FBXLoader is not loaded');
+                            const model = new THREE.FBXLoader().parse(contents, '');
+                            adopt(model, model.animations);
+                            return;
+                        }
+                        new THREE.GLTFLoader().parse(contents, '', (gltf) => {
+                            adopt(gltf.scene, gltf.animations);
                         }, (error) => {
-                            console.error('Error parsing GLTF:', error);
+                            console.error('Error parsing model:', error);
                             callback(false, null);
                         });
                     } catch (error) {
@@ -4210,6 +4326,96 @@
             }
 
             // Cyclic-Coordinate-Descent IK over a bone chain (root -> end effector).
+            /**
+             * The skinned mesh under a model root, which retargeting needs.
+             */
+            findSkinnedMesh(root) {
+                let found = null;
+                root.traverse?.((node) => { if (!found && node.isSkinnedMesh) found = node; });
+                return found;
+            }
+
+            /**
+             * Copy an animation from one rigged character onto another.
+             *
+             * This is the whole reason Mixamo is useful: one character, a
+             * library of animations built for a different skeleton. Three's
+             * SkeletonUtils does the maths -- rest-pose compensation and
+             * per-bone remapping -- so the job here is finding the two skinned
+             * meshes and supplying a name map.
+             *
+             * ponytail: stdlib. A hand-written retargeter is a bone-name map
+             * plus two quaternion conversions that are easy to get subtly
+             * wrong, and Three already ships a tested one.
+             */
+            retarget(sourceRootUuid, targetRootUuid, { clipName = null, names = null } = {}) {
+                const utils = THREE.SkeletonUtils;
+                if (!utils || !utils.retargetClip) throw new Error('SkeletonUtils is not loaded');
+
+                const sourceRoot = this.sceneManager.getObjectByUUID(sourceRootUuid);
+                const targetRoot = this.sceneManager.getObjectByUUID(targetRootUuid);
+                if (!sourceRoot || !targetRoot) throw new Error('Unknown model root');
+
+                const source = this.findSkinnedMesh(sourceRoot);
+                const target = this.findSkinnedMesh(targetRoot);
+                if (!source || !target) {
+                    throw new Error('Both models need a skinned mesh; retargeting needs two skeletons');
+                }
+
+                const clips = this.sceneManager.importedClips.get(sourceRootUuid) || [];
+                const clip = clipName ? clips.find((c) => c.name === clipName) : clips[0];
+                if (!clip) throw new Error(`No clip "${clipName ?? '(first)'}" on that model`);
+
+                // A Mixamo rig prefixes every bone with "mixamorig". Stripping
+                // it is the whole mapping for most characters, so build it from
+                // the bones actually present rather than shipping a fixed list
+                // that goes stale.
+                // SkeletonUtils keys `names` by the TARGET bone and yields the
+                // SOURCE bone -- the opposite of the direction that reads
+                // naturally -- and silently produces an empty clip if you get
+                // it backwards.
+                const map = names ?? this.boneNameMap(target, source);
+                const retargeted = utils.retargetClip(target, source, clip, {
+                    hip: this.guessHipBone(target),
+                    names: map,
+                });
+                retargeted.name = `${clip.name || 'clip'} -> ${targetRoot.name}`;
+                return retargeted;
+            }
+
+            /**
+             * `{ targetBoneName: sourceBoneName }`, matched by normalising
+             * both: drop a "mixamorig" prefix, separators and case.
+             *
+             * Built from the bones actually present rather than a fixed table,
+             * which would go stale the first time a character used slightly
+             * different names.
+             */
+            boneNameMap(target, source) {
+                const normal = (n) => String(n)
+                    .replace(/^mixamorig[:_]?/i, '')
+                    .replace(/[\s_:.-]/g, '')
+                    .toLowerCase();
+                const sourceByNormal = new Map();
+                for (const bone of source.skeleton.bones) sourceByNormal.set(normal(bone.name), bone.name);
+
+                const names = {};
+                for (const bone of target.skeleton.bones) {
+                    const match = sourceByNormal.get(normal(bone.name));
+                    if (match) names[bone.name] = match;
+                }
+                return names;
+            }
+
+            /** The root of the bone hierarchy, which retargeting treats specially. */
+            guessHipBone(skinnedMesh) {
+                const bones = skinnedMesh.skeleton.bones;
+                const named = bones.find((b) => /hips?$/i.test(b.name.replace(/^mixamorig[:_]?/i, '')));
+                if (named) return named.name;
+                const root = bones.find((b) => !b.parent || !b.parent.isBone);
+                return root ? root.name : (bones[0] && bones[0].name);
+            }
+
             ikReach(boneUuids, target, iterations = 10) {
                 const bones = (boneUuids || [])
                     .map(u => this.bones.get(u) || this.sceneManager.getObjectByUUID(u))
@@ -4236,6 +4442,79 @@
                 }
                 this.sceneManager.markChanged();
                 return { end: end.getWorldPosition(new THREE.Vector3()).toArray() };
+            }
+
+            /**
+             * Which morph target plays each viseme.
+             *
+             * The lipsync tiers already produce viseme NAMES and the evaluator
+             * already writes `morph.<name>` channels; the only thing missing
+             * for a 3D face was the mapping between the two. Built from the
+             * morph targets a mesh actually has, because every character names
+             * them differently.
+             */
+            visemeMorphMap(meshUuid) {
+                const mesh = this.morphMeshes.get(meshUuid);
+                if (!mesh || !mesh.morphTargetDictionary) return null;
+                const have = Object.keys(mesh.morphTargetDictionary);
+                const normal = (n) => n.toLowerCase().replace(/[^a-z]/g, '');
+                const byNormal = new Map(have.map((n) => [normal(n), n]));
+                const pick = (...candidates) => {
+                    for (const c of candidates) {
+                        const hit = byNormal.get(normal(c));
+                        if (hit) return hit;
+                    }
+                    for (const c of candidates) {
+                        const hit = have.find((n) => normal(n).includes(normal(c)));
+                        if (hit) return hit;
+                    }
+                    return null;
+                };
+                // The six visemes the 2D path produces, against the names ARKit
+                // and the common Mixamo/ReadyPlayerMe sets use.
+                const map = {
+                    closed: pick('viseme_sil', 'sil', 'mouthClose', 'closed'),
+                    mid: pick('viseme_aa', 'aa', 'mouthOpen', 'jawOpen', 'mid'),
+                    open: pick('viseme_O', 'jawOpen', 'mouthOpen', 'open'),
+                    round: pick('viseme_U', 'ou', 'mouthPucker', 'round'),
+                    wide: pick('viseme_I', 'ih', 'mouthSmile', 'wide'),
+                    teeth: pick('viseme_FF', 'ff', 'mouthFunnel', 'teeth'),
+                };
+                return Object.fromEntries(Object.entries(map).filter(([, v]) => v));
+            }
+
+            /**
+             * Key a lipsync viseme track onto a mesh's morph targets.
+             *
+             * `track` is a core discrete track of viseme names, exactly what
+             * `lipsyncLine` returns for the 2D path -- so a face rigged with
+             * morph targets is driven by the same lipsync the cutout mouths
+             * use, rather than by a second implementation.
+             */
+            keyVisemes(meshUuid, track, { map = null, hold = 0.04 } = {}) {
+                const mesh = this.morphMeshes.get(meshUuid);
+                const visemes = map ?? this.visemeMorphMap(meshUuid);
+                if (!mesh || !visemes || !track || !track.keys) return 0;
+                const shapes = [...new Set(Object.values(visemes))];
+                let written = 0;
+                for (const key of track.keys) {
+                    const active = visemes[key.v];
+                    const morphs = {};
+                    // Every shape is written at every key, not just the active
+                    // one: a morph left at 1 by the previous viseme would stack.
+                    for (const shape of shapes) morphs[shape] = shape === active ? 1 : 0;
+                    // A touch before the key holds the previous shape, so the
+                    // mouth snaps between visemes instead of sliding.
+                    if (hold > 0 && key.t > hold) {
+                        this.animationManager.addKeyframe(mesh, +(key.t - hold).toFixed(4),
+                            { morphs: this._lastMorphs ?? morphs, interp: 'step' });
+                    }
+                    this.animationManager.addKeyframe(mesh, key.t, { morphs, interp: 'step' });
+                    this._lastMorphs = morphs;
+                    written++;
+                }
+                this._lastMorphs = null;
+                return written;
             }
 
             setMorph(meshUuid, name, value) {

@@ -167,6 +167,38 @@ const perf=await pg.evaluate(()=>{
   const r={};
   const ms=(fn,n=1)=>{const t=performance.now();for(let i=0;i<n;i++)fn();return (performance.now()-t)/n;};
 
+  // --- the viewport is actually lit; nothing structural would catch a
+  // lighting regression from a Three upgrade ---
+  r.three=window.THREE.REVISION;
+  const litProbe=(()=>{
+    const gl=sm.renderer.domElement;
+    sm.scene.children.filter(c=>c.type==='GridHelper'||c.type==='AxesHelper')
+      .forEach(c=>{c.visible=false;});
+    const probe=sm.createCube('lit-probe');
+    probe.position.set(0,0,0);
+    sm.camera.position.set(3,3,3); sm.camera.lookAt(0,0,0);
+    sm.render();
+    const c=document.createElement('canvas'); c.width=64; c.height=36;
+    const cx=c.getContext('2d',{willReadFrequently:true});
+    const luma=(d,k)=>d[k]*0.299+d[k+1]*0.587+d[k+2]*0.114;
+    cx.drawImage(gl,0,0,64,36);
+    const mid=cx.getImageData(24,12,16,12).data;
+    // The brightest pixel on the cube, not the mean: the mean folds in the
+    // background and the shadowed faces, which is what made it look flat.
+    let lit=0; for(let k=0;k<mid.length;k+=4) lit=Math.max(lit,luma(mid,k));
+    // Reference is the scene's own background colour, not a sampled frame:
+    // the scene still holds objects from the blocks above, so hiding the probe
+    // does not leave an empty view.
+    const bgc=sm.scene.background;
+    r.bgLuma=+(bgc ? (bgc.r*0.299+bgc.g*0.587+bgc.b*0.114)*255 : 0).toFixed(1);
+    sm.removeObject(probe);
+    sm.scene.children.filter(c2=>c2.type==='GridHelper'||c2.type==='AxesHelper')
+      .forEach(c2=>{c2.visible=true;});
+    return +lit.toFixed(1);
+  })();
+  r.litLuma=litProbe;
+  r.pointIntensity=sm.createLight('point','probe-light').intensity;
+
   // --- the gizmo is built once, not sixty times a second ---
   const cube=sm.createCube('gizmo-target');
   sm.getSelectedObject=()=>cube;
@@ -225,6 +257,29 @@ const perf=await pg.evaluate(()=>{
     if(dx*dx+dy*dy+dz*dz<0.25)c++;}});
   r.oldScanAllMs=+(oneScan*n).toFixed(0);
 
+  // --- Phase 6: primitives take dimensions, materials take properties ---
+  const box=sm.createCube('sized',{},{width:3,height:1,depth:2});
+  r.boxDims=(({width,height,depth})=>({width,height,depth}))(box.geometry.parameters);
+  r.boxNotScaled=box.scale.x===1&&box.scale.y===1&&box.scale.z===1;
+  sm.resizePrimitive(box,{width:5});
+  r.resized=box.geometry.parameters.width;
+  r.resizeKeptDepth=box.geometry.parameters.depth;
+  const ring=sm.createTorus('ring',{},{radius:2,tube:0.3});
+  r.torusDims=[ring.geometry.parameters.radius,ring.geometry.parameters.tube];
+  sm.setMaterialProperties(box,{roughness:0.1,metalness:0.9,emissive:0x112233,
+                                opacity:0.4,wireframe:true,flatShading:true});
+  r.material={roughness:box.material.roughness, metalness:box.material.metalness,
+              emissive:box.material.emissive.getHex(), opacity:box.material.opacity,
+              transparent:box.material.transparent, wireframe:box.material.wireframe,
+              flatShading:box.material.flatShading};
+  // a resize must survive a save, which it only can because dimensions are
+  // geometry parameters rather than a scale
+  const savedBox=box.uuid;
+  sm.importScene(sm.exportScene());
+  const back=sm.getObjectByUUID(savedBox);
+  r.dimsSurvived=back?back.geometry.parameters.width:null;
+  r.materialSurvived=back?back.material.roughness:null;
+
   // --- history coalesces a burst into one snapshot ---
   h.flush();
   const before=h.stack.length;
@@ -251,6 +306,14 @@ if(!(exports_.gifBytes>500)) fails.push(`GIF is ${exports_.gifBytes} bytes; it h
 if(JSON.stringify(exports_.zipMagic)!=='[80,75,3,4]') fails.push('PNG sequence is not a zip');
 if(!(exports_.zipBytes>1000)) fails.push(`zip is ${exports_.zipBytes} bytes; it has no frames`);
 if(!exports_.captureFramesGone) fails.push('captureFrames is still there, still holding every frame');
+if(Number(perf.three)<150) fails.push(`still on Three r${perf.three}`);
+// Against the background, not an absolute number: this guards "the scene is
+// lit", which a Three upgrade can silently break, without pretending to judge
+// how it looks.
+if(!(perf.litLuma > perf.bgLuma*2)) fails.push(
+  `the lit cube reads ${perf.litLuma} against a background of ${perf.bgLuma}; the scene is unlit`);
+if(!(perf.pointIntensity>10)) fails.push(
+  `a new point light has intensity ${perf.pointIntensity}, invisible under physical units`);
 if(perf.handles!==7) fails.push(`move gizmo built ${perf.handles} handles, want 7`);
 if(!perf.handlesReused) fails.push('the gizmo is still rebuilt every frame');
 if(!perf.rebuiltOnToolChange) fails.push('the gizmo did not rebuild when the tool changed');
@@ -266,6 +329,19 @@ if(Math.abs(perf.axisDragKeptZ)>1e-6) fails.push('an x drag moved z');
 if(perf.avgNeighbors>200) fails.push(`smooth averages ${perf.avgNeighbors} neighbours; the radius is not scaled`);
 if(!(perf.queryAllMs*8<perf.oldScanAllMs)) fails.push(
   `spatial hash (${perf.queryAllMs}ms) is not meaningfully faster than the full scan (${perf.oldScanAllMs}ms)`);
+if(JSON.stringify(perf.boxDims)!=='{"width":3,"height":1,"depth":2}')
+  fails.push(`createCube ignored its dimensions: ${JSON.stringify(perf.boxDims)}`);
+if(!perf.boxNotScaled) fails.push('dimensions were faked with a scale');
+if(perf.resized!==5) fails.push(`resize gave width ${perf.resized}`);
+if(perf.resizeKeptDepth!==2) fails.push(`resize clobbered depth: ${perf.resizeKeptDepth}`);
+if(JSON.stringify(perf.torusDims)!=='[2,0.3]') fails.push(`torus dims ${JSON.stringify(perf.torusDims)}`);
+if(perf.material?.roughness!==0.1||perf.material?.metalness!==0.9)
+  fails.push(`PBR properties not set: ${JSON.stringify(perf.material)}`);
+if(perf.material?.emissive!==0x112233) fails.push('emissive not set');
+if(!perf.material?.transparent) fails.push('opacity set without enabling transparency does nothing');
+if(!perf.material?.wireframe||!perf.material?.flatShading) fails.push('wireframe/flatShading not set');
+if(perf.dimsSurvived!==5) fails.push(`dimensions lost on save: ${perf.dimsSurvived}`);
+if(perf.materialSurvived!==0.1) fails.push(`material lost on save: ${perf.materialSurvived}`);
 if(perf.snapshotsDuringBurst!==0) fails.push(`25 mutations took ${perf.snapshotsDuringBurst} snapshots mid-burst`);
 if(perf.snapshotsAfterFlush!==1) fails.push(`a burst produced ${perf.snapshotsAfterFlush} snapshots, want 1`);
 if(Math.abs(out.xAt1s-5)>0.01) fails.push(`position at 1s is ${out.xAt1s}, want 5`);
@@ -281,4 +357,4 @@ console.log(`PASS: scrubs after a load, slerps rotation, honours step, animates 
   + `GIF ${(exports_.gifBytes/1024).toFixed(0)}KB and zip ${(exports_.zipBytes/1024).toFixed(0)}KB streamed; `
   + `gizmo ${perf.frameMs}ms/frame reused, drags follow the cursor, `
   + `smooth ${perf.oldScanAllMs}ms -> ${perf.queryAllMs}ms at ${perf.verts} verts, `
-  + `25 mutations -> 1 snapshot`);
+  + `25 mutations -> 1 snapshot; Three r${perf.three}, lit ${perf.litLuma} vs bg ${perf.bgLuma}`);

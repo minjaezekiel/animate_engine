@@ -154,24 +154,35 @@ edited vertices on a parametric geometry.
 
 ---
 
-## Phase 4 — real 3D rigging and skinning
+## Phase 4 — real 3D rigging and skinning — *shipped, partial*
 
-**Budget the prerequisite explicitly: getting off Three r128 CDN globals onto
-ES-module Three r150+.** r128's `examples/js` `FBXLoader` drags fflate and
-NURBS in as globals, its skinning and colour management are four years stale,
-and `GLTFExporter` is not even loaded today. There is no sensible way to do
-Mixamo retargeting on r128 globals, so treat the upgrade as its own sub-phase
-rather than discovering it mid-flight.
+**The prerequisite is done:** Three r128 `examples/js` globals → **r169 ES
+modules**, via an import map plus a shim that publishes a `THREE` global for
+the classic engine script and injects the engine afterwards so it cannot run
+first.
 
-Then: `THREE.Bone`/`Skeleton`/`SkinnedMesh` construction; skin weight painting
-or heat-diffusion auto-weights; auto-rig by bounding-volume skeleton fit; bone
-constraints (look-at, limit-rotation, copy-rotation, two-bone IK); retargeting
-by bone-name mapping with a Mixamo preset; FBX import; a pose library; 3D
-viseme lipsync through morph targets (`setMorph` and morph tracks already
-exist).
+**Delivered:** FBX import (which is what Mixamo hands you) · retargeting with a
+bone-name map derived from the bones present · skinned meshes surviving
+save/load · 3D viseme lipsync onto morph targets, driven by the same tracks
+the 2D mouths use.
 
-**Verify:** retargeting is a pure bone-name and rest-pose transform problem —
-unit-test it in core; golden-frame renders for skinning.
+**Skipped, with reasons in [STATUS.md](STATUS.md):** building a `SkinnedMesh`
+from an unrigged mesh, auto-rig and weight painting, bone constraints beyond
+the CCD `ikReach` that already exists.
+
+Retargeting is `SkeletonUtils.retargetClip`, not a hand-written one: Three
+already ships rest-pose compensation and per-bone remapping, and a hand-rolled
+version is two quaternion conversions that are easy to get subtly wrong. Its
+`names` option is keyed by the **target** bone and yields the **source** bone,
+and gets it wrong by returning an empty clip rather than by failing.
+
+**Verified:** `npm run test:rig` builds a two-bone skinned mesh, bends it
+(2.84 units of deformation), round-trips it through save/load with its weights,
+retargets a clip onto a differently-named skeleton, refuses a plain mesh with a
+useful message, and drives morph targets from a viseme track.
+
+That test found a real defect: **skin weights and morph targets were dropped on
+save**, the same `BufferGeometry.toJSON` trap as the Phase 3 sculpt bug.
 
 ---
 
@@ -199,12 +210,21 @@ worker.
 
 ---
 
-## Phase 6 — modeling and material parity
+## Phase 6 — modeling and material parity — *shipped, partial*
 
-Parametric primitive arguments (all six are hardcoded, and the MCP
-`create_object` tool cannot pass a size) · full PBR material properties
-(colour is currently the only editable one) · more post-FX ·
-boolean/mirror/array modifiers · extrude, bevel and loop cut.
+**Delivered:** parametric primitives (six near-identical builders became one
+data table, which is why no size could be passed at all, including from the MCP
+`create_object` tool) · `resizePrimitive`, which rebuilds the geometry rather
+than scaling it, because a scaled mesh sculpts and collides wrong · full PBR
+material properties, where colour had been the only one reachable.
+
+**Not done:** more post-FX (only bloom is wired), mirror and array modifiers,
+extrude/bevel/loop-cut. **Skipped:** booleans — a CSG library is a dependency
+and a correctness surface of its own.
+
+**Verified** in `npm run test:legacy`: a 3×1×2 box is actually 3×1×2 rather
+than a scaled unit cube, a resize keeps the dimensions it was not given, and
+both dimensions and material properties survive a save.
 
 ---
 

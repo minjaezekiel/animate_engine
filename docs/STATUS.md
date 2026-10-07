@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-06 (end of Phase 5).
+Last updated: 2026-10-07 (end of Phases 4 and 6).
 
 Legend: **done** · *partial* · — not started
 
@@ -210,16 +210,53 @@ Each was silent — nothing in the page reported them. See
   geometry, serializing its parameters instead. Sculpting a primitive and
   saving gave back a pristine primitive.
 
-## Phase 4 — real 3D rigging and skinning — **not started**
+## Phase 4 — real 3D rigging and skinning — *partial*
 
-Phase 3 cleared its prerequisites on the animation side: imported clips are
-already core tracks, so retargeting has a target format to retarget *into*.
-The Three r128 → r150+ ES-module upgrade is still unbudgeted.
+| Item | State |
+|---|---|
+| Three r128 globals → **r169 ES modules** | **done** — an import map plus a shim that publishes a THREE global for the classic engine script |
+| `FBXLoader` | **done** — routed by extension, as a module rather than a global with fflate alongside it |
+| `GLTFExporter`, `SkeletonUtils` available | **done** — loaded through the same import map |
+| Retargeting with a Mixamo name preset | **done** — `RigManager.retarget`, built on `SkeletonUtils.retargetClip` |
+| Bone-name mapping | **done** — derived from the bones present (strip `mixamorig`, separators, case), not a fixed table that goes stale |
+| Skinned meshes survive save/load | **done** — they did not; see below |
+| 3D viseme lipsync via morph targets | **done** — `visemeMorphMap` + `keyVisemes`, driven by the same lipsync tracks the 2D mouths use |
+| `SkinnedMesh` / `Skeleton` construction from scratch | **not done** — the engine binds and animates skinned meshes, but does not build one from an unrigged mesh |
+| Auto-rig and skin weight painting | **skipped** — Mixamo gives you a rigged character, and auto-rigging an arbitrary mesh well is a research problem. A bad auto-rig is worse than none |
+| Bone constraints (lookAt, limit-rotation, copy-rotation) | **not done** — `ikReach` (CCD) already exists |
 
-**Prerequisite: get off Three r128 CDN globals onto ES-module Three r150+.**
-Then Bone/Skeleton/SkinnedMesh construction, skin weights or auto-weights,
-auto-rig, bone constraints, Mixamo retargeting, FBX, 3D viseme lipsync via
-morph targets.
+### Why retargeting was the right rung
+
+Three ships `SkeletonUtils.retargetClip`, which handles rest-pose compensation
+and per-bone remapping. Writing one by hand is a bone-name map plus two
+quaternion conversions that are easy to get subtly wrong. The work here was
+the name map and finding the two skinned meshes.
+
+One trap worth recording: `retargetClip`'s `names` option is keyed by the
+**target** bone and yields the **source** bone — the opposite of the direction
+that reads naturally — and gets it wrong by returning a clip with zero tracks
+rather than by failing.
+
+### A defect the rigging test found
+
+**Skin weights and morph targets were dropped on save.** Same shape as the
+sculpt bug from Phase 3: `BufferGeometry.toJSON` short-circuits on
+`parameters` and writes only those, so any attribute added to a primitive —
+`skinIndex`, `skinWeight`, morph attributes — vanished. A geometry carrying
+attributes its parameters do not describe now stops claiming to be parametric
+for the duration of the write.
+
+### What the upgrade changed, measured
+
+Three r155 made punctual lights physical, so a `PointLight` at intensity 1
+renders barely above the background. The default is `4π` now, which is the
+documented conversion. Default scene lights went from 0.5/0.8 to 1.0/1.8:
+measured on the default cube (albedo luma 166), its brightest lit face reads
+**134** against a background of **4**, where 0.5/0.8 gave 93 and 1.4/2.2 gave
+150 and looked flat.
+
+`npm run test:legacy` now asserts the viewport is lit relative to the scene
+background, because nothing structural catches a lighting regression.
 
 ## Phase 5 — performance — *partial*
 
@@ -261,10 +298,21 @@ hundred KB synchronously during unload. Dropped. The worst case is losing 350 ms
 of autosave with the previous snapshot still in storage, which is a far better
 trade than blocking a tab from closing.
 
-## Phase 6 — modeling and material parity — **not started**
+## Phase 6 — modeling and material parity — *partial*
 
-Parametric primitives · full PBR properties (colour is currently the only
-editable one) · more post-FX · boolean/mirror/array modifiers.
+| Item | State |
+|---|---|
+| Parametric primitives | **done** — `createPrimitive(kind, name, props, dims, material)`; six near-identical builders became one data table |
+| Resize in place | **done** — `resizePrimitive` rebuilds the geometry rather than scaling it, which is not the same thing: a scaled mesh sculpts and collides wrong |
+| Dimensions reachable from the command API | **done** — `createObject` takes `dims` and `material`; a new `resize` op |
+| Full PBR material properties | **done** — `setMaterialProperties`: metalness, roughness, emissive, emissiveIntensity, opacity, transparent, wireframe, flatShading, side, depthWrite, envMapIntensity. Colour had been the only one reachable |
+| More post-FX | **not done** — `OutputPass` is loaded; only bloom is wired |
+| Boolean modifiers | **skipped** — needs a CSG library, which is a dependency and a correctness surface of its own |
+| Mirror / array modifiers | **not done** |
+| Extrude / bevel / loop-cut | **not done** — real modelling tools, each a feature |
+
+Opacity now implies `transparent` unless stated, because forgetting that is the
+usual reason "opacity does nothing".
 
 ## Phase 7 — PWA and CDN hardening — *partial, pulled forward*
 

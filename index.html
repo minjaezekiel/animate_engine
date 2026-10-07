@@ -717,23 +717,53 @@
     <!-- Import file input (hidden) -->
     <input type="file" id="fileInput" style="display: none;" accept=".json">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
-    <!-- Post-processing (bloom) — loaded as globals like the loaders above -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/MaskPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <!--
+      Three is loaded as ES modules (r169), not as the r128 `examples/js`
+      globals. That path was removed from the Three package years ago, its
+      colour management is four releases stale, and FBXLoader there drags
+      fflate and NURBS in as further globals.
+
+      animateEngine.js is still a classic script, so the shim below publishes a
+      THREE global for it -- including the addons, which a module namespace
+      object cannot take by assignment because it is not extensible. The engine
+      is injected afterwards so it cannot run before THREE exists.
+    -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+      import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+      import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+      import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+      import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+      import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+      import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+      import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+      import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+
+      window.THREE = Object.assign({ ...THREE }, {
+        OrbitControls, GLTFLoader, GLTFExporter, FBXLoader, RGBELoader,
+        EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, OutputPass,
+        SkeletonUtils,
+      });
+
+      const engine = document.createElement('script');
+      engine.src = './animateEngine.js';
+      document.body.appendChild(engine);
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
     
 <!-- animateEngine.js self-initializes against #viewport and exposes the global
      `AnimationEngine` namespace: window.AnimationEngine.animationEngine is the
      live instance; window.AnimationEngine.AnimationEngine is the class. -->
-<script src="./animateEngine.js"></script>
 </body>
 </html>

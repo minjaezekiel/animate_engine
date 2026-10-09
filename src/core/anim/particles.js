@@ -97,6 +97,13 @@ export function createEmitter(spec = {}) {
         stagger: spec.stagger ?? 0,
         spin: spec.spin ?? 0,
         seed: spec.seed ?? 1,
+        // Shutter time in seconds. Non-zero makes a particle report the
+        // distance it travels while the shutter is open, which is how a
+        // supersonic round is drawn honestly: a point moving 715 m/s cannot
+        // be a sphere in one frame, it is a streak as long as its own
+        // displacement. This is motion blur for a point, solved rather than
+        // accumulated over sub-frames.
+        shutter: spec.shutter ?? 0,
         // Fade as a power of remaining life. 1 is linear; >1 holds bright
         // then drops away, which is how a flash and a spark actually read.
         fade: spec.fade ?? 1,
@@ -122,12 +129,17 @@ export function emitterState(emitter, tSec) {
         const life = lerp(e.life[0], e.life[1], rand(e.seed, i, 3));
         const age = tSec - birth;
         if (age < 0 || age >= life) {
-            out.push({ visible: false, x: 0, y: 0, z: 0, size: 0, alpha: 0, spin: 0, age: 0, life });
+            out.push({ visible: false, x: 0, y: 0, z: 0, size: 0, alpha: 0, spin: 0,
+                       vx: 0, vy: 0, vz: 0, stretch: 0, age: 0, life });
             continue;
         }
         const speed = lerp(e.speed[0], e.speed[1], rand(e.seed, i, 4));
         const [dx, dy, dz] = coneDir(e.dir, e.spread, e.seed, i);
         const u = age / life;
+        // v(t) = dir*speed + g*age, the derivative of the position above.
+        const vx = dx * speed + e.gravity[0] * age;
+        const vy = dy * speed + e.gravity[1] * age;
+        const vz = dz * speed + e.gravity[2] * age;
         out.push({
             visible: true,
             x: e.origin[0] + dx * speed * age + 0.5 * e.gravity[0] * age * age,
@@ -136,6 +148,10 @@ export function emitterState(emitter, tSec) {
             size: lerp(e.size[0], e.size[1], u),
             alpha: Math.pow(1 - u, e.fade),
             spin: e.spin ? (rand(e.seed, i, 5) - 0.5) * 2 * e.spin * age : 0,
+            vx, vy, vz,
+            // Length of the streak in world units. Zero means "draw me as I
+            // am"; the adapter only orients and stretches when it is set.
+            stretch: e.shutter ? Math.hypot(vx, vy, vz) * e.shutter : 0,
             age, life,
         });
     }

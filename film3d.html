@@ -21,6 +21,8 @@ import { samplePose } from './src/core/anim/Evaluator.js';
 import { renderOffline } from './src/render/OfflineRenderer.js';
 import { MediaRecorderSink } from './src/render/sinks/MediaRecorderSink.js';
 import { MemorySink } from './src/render/sinks/MemorySink.js';
+import { loadAudioAssets } from './src/core/art/AssetRegistry.js';
+import { renderMix, decodeAudio } from './src/audio/OfflineMixer.js';
 
 /**
  * Render a 3D film script to a video, headless.
@@ -42,7 +44,7 @@ window.render3d = async function render3d(film, opts = {}) {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.88;
+    renderer.toneMappingExposure = 1.0;
     document.body.append(renderer.domElement);
 
     const built = buildScene3D(THREE, compiled, { width, height });
@@ -80,6 +82,25 @@ window.render3d = async function render3d(film, opts = {}) {
         timeline: compiled.timeline, resolve: built.resolve, samplePose,
     });
 
+    // Exposure can only be measured on real pixels -- it depends on lights,
+    // materials and tone mapping. Measured tiny (160x90 is 1/72 the pixels)
+    // and judged by a pure function in core.
+    if (opts.check) {
+        const { lumaStats } = await import('./src/core/script/staging3d.js');
+        const out = [];
+        for (const { t, shotId } of opts.check) {
+            poser.reset(); poser.apply(t); built.step(t);
+            sceneManager.render();
+            const small = document.createElement('canvas');
+            small.width = 160; small.height = 90;
+            const c2 = small.getContext('2d');
+            c2.drawImage(renderer.domElement, 0, 0, 160, 90);
+            out.push({ t, shotId, ...lumaStats(c2.getImageData(0, 0, 160, 90).data) });
+        }
+        poser.reset();
+        return { samples: out, duration: compiled.duration, diagnostics: compiled.diagnostics };
+    }
+
     // Grab single frames at given times. The cheapest way to check that a
     // model looks like the thing it is meant to be, which no measurement does.
     if (opts.grab) {
@@ -93,9 +114,30 @@ window.render3d = async function render3d(film, opts = {}) {
         return { frames: out, duration: compiled.duration, diagnostics: compiled.diagnostics };
     }
 
+    // The 2D path's mixer, unchanged. MediaRecorderSink already accepts an
+    // audioBuffer and rides it on the same wall clock as the video track, so
+    // sound on the 3D path cost a cue list and these eight lines.
+    let audioBuffer = null;
+    let audioContext = null;
+    if (compiled.audioCues?.length && !opts.probe && !opts.silent) {
+        const { buffers, diagnostics } = await loadAudioAssets(film, { decode: decodeAudio });
+        for (const d of diagnostics) report(`[audio] ${d.message}`);
+        audioBuffer = await renderMix({ cues: compiled.audioCues, buffers,
+                                        durationSec: compiled.duration });
+        // The context is created and resumed HERE, before the recorder wants
+        // it, rather than inside the sink mid-render. Left to the sink, the
+        // stream's audio track produced nothing in headless and MediaRecorder
+        // stalled waiting for it -- emitting a 110-byte header and no frames.
+        audioContext = new AudioContext({ sampleRate: audioBuffer.sampleRate });
+        if (audioContext.state === 'suspended') await audioContext.resume();
+        report(`audio: ${compiled.audioCues.length} cues, `
+             + `${audioBuffer.duration.toFixed(2)}s, ctx ${audioContext.state}`);
+    }
+
     const sink = opts.probe
         ? new MemorySink()
-        : new MediaRecorderSink({ videoBitsPerSecond: opts.bitrate ?? 12_000_000 });
+        : new MediaRecorderSink({ videoBitsPerSecond: opts.bitrate ?? 12_000_000, audioContext });
+    sink.audioBuffer = audioBuffer;
 
     const blob = await renderOffline({
         scene: compiled.scene, timeline: compiled.timeline, backend,
@@ -118,6 +160,8 @@ window.render3d = async function render3d(film, opts = {}) {
         tracks: compiled.timeline.tracks.length,
         particles: [...compiled.emitters.values()].reduce((a, e) => a + e.emitter.count, 0),
         diagnostics: compiled.diagnostics,
+        cues: compiled.audioCues?.length ?? 0,
+        audioSec: audioBuffer ? +audioBuffer.duration.toFixed(2) : 0,
         size: blob?.size ?? 0,
         dataUrl: blob && !opts.probe ? await new Promise((res) => {
             const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob);

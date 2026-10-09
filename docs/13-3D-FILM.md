@@ -145,15 +145,129 @@ Two honest limits:
 
 ---
 
-## 7. Still missing
+## 7. Closing the four limits
+
+The gaps §6 and the first pass left open, and what each cost.
+
+### Staging and exposure — the largest gap
+
+`staging3d.js`. Framing is solved **analytically**: project a cast member's
+world bounds through the camera and measure what fraction of frame height
+they cover. No renderer, no GPU, no pixels, so it runs in Node in
+milliseconds and can gate a build.
+
+```
+CHECK=1 npm run produce:3d
+  compile: 0 · framing: 0 · exposure: 0 (over 34 samples)
+  luma: darkest 0.068 (03-receiver), brightest 0.271 (15-fire)
+```
+
+Three design points earned by being wrong first:
+
+- **All eight corners, not the centre.** A long object seen end-on has a
+  centre comfortably in frame while both ends run off it.
+- **A shot that does not declare a subject may legitimately not contain
+  one.** Cutting to the wall is a cut. Only a shot that says it is `on`
+  something must show it — the same exemption the 2D check makes.
+- **A band is tested against the range a shot sweeps, not against each
+  sample.** A shot is a *move*; a push-in is wide at its head and close at
+  its tail. Requiring every sample to sit in one band calls every push-in an
+  error, and three samples of a fast one step straight over the band it
+  certainly passes through — measured 29% then 94%, with the whole medium
+  band in between unsampled.
+
+`on` may name a part (`ak/chargingHandle`), because measuring a macro of a
+30 mm handle against the whole 880 mm rifle reports an overflowing frame when
+the shot is doing exactly what a detail shot should.
+
+Exposure **cannot** be analytic — it depends on lights, materials and tone
+mapping. So the harness measures luma on real frames at 160×90 (1/72 the
+pixels) and a pure `checkExposure` judges them, keeping the judgement
+testable while the measurement stays where the pixels are.
+
+**What it caught immediately**, none of which any existing test saw: two
+shots rendering at 1.7% mean luma with 95% of pixels crushed to black; a
+magazine insert at 293% of the magazine's own height, with the magwell it
+was seating into out of shot; and a real compiler bug —
+
+> A cut is two camera positions at one instant, and a track cannot hold two
+> values at one time: `key` **replaces**. The incoming shot's `from` landed on
+> exactly the same time as the outgoing shot's final key and overwrote it, so
+> the firing shot spent its whole five seconds drifting toward the *next*
+> shot's camera. By the end the rifle was behind the camera during its own
+> firing shot. Found by the check, not by eye.
+
+### Audio
+
+`compile3d` emits an `audioCues` list and a `sound` verb; the harness runs the
+2D path's `OfflineMixer` and hands the buffer to `MediaRecorderSink`, which
+already accepted one and already rides it on the same wall clock as the video
+track. Sound on the 3D path cost a cue list and eight lines of wiring — it was
+never missing machinery, only the list.
+
+The ad now carries 62 cues: a bed, a clack as each of 29 parts seats, the
+charging handle, 17 reports at 600 rpm and 14 concrete impacts. All four
+assets are synthesized in `make-ak47-audio.mjs` and seeded, so the audio is as
+reproducible as the frames.
+
+Two things had to be true about the browser, and neither was obvious from a
+silent render working:
+
+- Headless needs `--autoplay-policy=no-user-gesture-required`, which
+  `produce.mjs` had and `produce3d.mjs` did not.
+- **The AudioContext must exist and be running before `MediaRecorder` starts.**
+  Left to the sink to create mid-render, the stream's audio track produced
+  nothing and the recorder stalled waiting for it, emitting a 110-byte WebM
+  header and no video frames at all. The failure looked like a *video* bug,
+  which is what made it worth writing down.
+
+### Geometry — lathe and extrude-along-path
+
+Not CSG, which is a dependency and a correctness surface of its own. Three
+already ships `LatheGeometry` and `ExtrudeGeometry`, and `ExtrudeGeometry`
+takes an `extrudePath` — which is precisely "sweep a section along a curve",
+the thing the magazine wanted.
+
+The magazine is now **one swept profile** instead of four rotated slabs, and
+the seams are gone. A lathe covers every turned part — a muzzle nut, a gas
+piston, a case — where stacked cylinders are what make a model read as blocks.
+
+### The bullet
+
+A round at 715 m/s crosses the 2.4 m to the wall in 3.4 ms, an eighth of one
+frame. That has not changed and cannot: a real bullet is not photographable
+in flight, and none is drawn.
+
+What *is* drawn is a tracer, and the engine can now draw it honestly.
+Particles report their analytic velocity — `v(t) = dir·speed + g·age`, the
+derivative of the position they already solve — and a `shutter` setting
+stretches each one to the distance it covers while the shutter is open. That
+is motion blur for a point, solved rather than accumulated over sub-frames.
+The round is slowed to stay on screen for about a frame, which every firearms
+film does; the streak's **length** is measured rather than guessed.
+
+One contract came out of getting it wrong: `lookAt` aims an object's +Z, but
+a cylinder, capsule and cone all run along +Y, so the first tracer rendered
+as a bar *across* the flight path. The adapter now rotates the geometry once
+at build time, so "long axis on +Z" holds for any primitive instead of being
+a rule each film has to rediscover.
+
+---
+
+## 8. Still missing
 
 | Gap | Note |
 |---|---|
-| **No 3D staging check** | The largest remaining gap, and the cause of most of §5. Framing, exposure and contrast are all unverified; 2D measures framing in head heights and motion in world positions |
-| **No audio on the 3D path** | `compile3d` emits no audio cues, so the ad is silent. The 2D path's whole voice, music and mix pipeline is unreachable from here |
-| **Six primitives, no modelling** | No extrude, lathe, CSG, bevel or loop cut. Anything curved is segmented by hand |
+Measured against Blender, this is still a small toolset. The honest list:
+
+| Gap | Note |
+|---|---|
+| **No CSG, bevel, loop cut or subdivision** | `lathe` and `extrude` cover swept and turned shapes, which is most of a mechanical model, but nothing cuts a hole in a solid. A magwell is a gap between parts, not an opening |
+| **No UV mapping or texturing on the 3D film path** | Materials are untextured PBR. No wood grain, no stamped markings, no wear |
 | **No "spawn"** | Scaling from zero is the only way to bring geometry into existence; the bullet craters use it |
-| **Particles cannot collide** | Inherent to the closed-form solution, and the right trade |
-| **No motion blur** | Which is why a supersonic round cannot be drawn in flight |
+| **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |
+| **No per-object motion blur** | Particles stretch by velocity; meshes do not. A fast-moving bolt carrier is sharp when it should smear |
 | **No dependency between actions** | A crater cannot say "open when this round lands"; both are timed independently against the same clock, and nothing checks they agree |
-| **Shadow and contact quality** | One shadow-casting light, 1024 map, no contact shadows or AO |
+| **Shadow and contact quality** | One shadow-casting light, a 1024 map, no contact shadows, no ambient occlusion, no area lights |
+| **Exposure is sampled, not continuous** | Two frames per shot. A one-second blown highlight between samples is invisible to the check |
+| **Framing ignores rotation** | Bounds are axis-aligned and can only overstate, which is the safe direction — it will not pass a clipped shot, but it will occasionally complain about a tight one |

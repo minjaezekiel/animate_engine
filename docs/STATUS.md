@@ -754,8 +754,8 @@ Built from the AK-47 live test. Full findings:
 | Camera `lookAt` as a driven target node | **done** — baking a rotation would interpolate Euler between two aim directions and swing wide |
 | `film3d.html` + `scripts/produce3d.mjs` | **done** — render and frame-grab (`GRAB=12,40.3`), no UI |
 | `demo/ak47.json` from a dimension table | **done** — 32 rifle parts at real dimensions, 17 shots, 50.0 s |
-| Audio on the 3D path | **not done** — `compile3d` emits no audio cues, so the ad is silent. The 2D voice/music/mix pipeline is unreachable from 3D |
-| 3D staging and exposure checks | **not done** — **the largest gap.** Every framing, lighting and geometry fault in the test was found by looking at a frame |
+| Audio on the 3D path | **done** — see Phase 15 |
+| 3D staging and exposure checks | **done** — see Phase 15 |
 
 ### What the test found, beyond the missing compiler
 
@@ -771,3 +771,38 @@ Built from the AK-47 live test. Full findings:
   moment a generator did it by hand.
 - Written output was seven bytes. `dataUrl.split(',')[1]` splits on the first
   comma, and the mime type `video/webm;codecs=vp9,opus` contains one.
+
+---
+
+## Phase 15 — closing the 3D film's four limits — **done**
+
+The four gaps Phase 14 reported. Full detail:
+[13-3D-FILM.md](13-3D-FILM.md#7-closing-the-four-limits).
+
+| Item | State |
+|---|---|
+| `staging3d` — analytic framing check | **done** — projects a cast member's world bounds through the camera; no renderer, no GPU, runs in Node in milliseconds. All eight corners, because a long object seen end-on has a centre in frame and both ends off it |
+| `on` may name a part | **done** — a macro of a 30 mm handle is measured against the handle, not the 880 mm rifle it belongs to |
+| A declared band is tested against the swept range | **done** — a shot is a *move*; requiring every sample in one band calls every push-in an error, and three samples of a fast one step over the band entirely |
+| A shot need not contain an undeclared subject | **done** — cutting to the wall is a cut. The 2D check makes the same exemption |
+| `checkExposure` + `lumaStats` | **done** — exposure depends on lights and materials, so it cannot be analytic. Measured on real frames at 160×90, judged by a pure function |
+| `CHECK=1 npm run produce:3d` | **done** — compile, framing and exposure in one pass; exits non-zero on any finding |
+| Audio on the 3D path | **done** — `audioCues` from the compiler plus a `sound` verb; the harness runs the 2D `OfflineMixer` and `MediaRecorderSink` already accepted a buffer. 62 cues on the ad: bed, a clack per part seating, the charge, 17 reports at 600 rpm, 14 impacts |
+| Four synthesized audio assets, seeded | **done** — `make-ak47-audio.mjs`; no licensed media in the repo and the audio is as reproducible as the frames |
+| `lathe` and `extrude` geometry, with `extrudePath` | **done** — not CSG, which is a dependency and a correctness surface of its own. Three already ships both; the magazine is now one swept profile instead of four rotated slabs, and the seams are gone |
+| Velocity-stretched particles | **done** — particles report analytic velocity and a `shutter` stretches each to the distance it covers while the shutter is open. Motion blur for a point, solved rather than accumulated |
+
+### What the new checks found on their first run
+
+- Two shots rendering at **1.7% mean luma with 95% of pixels crushed to black**.
+- A magazine insert at **293% of the magazine's own height**, with the magwell
+  it was seating into out of shot.
+- A compiler bug: **a cut overwrote the outgoing shot's final camera key.**
+  Two camera positions at one instant, and `key` replaces, so the firing shot
+  spent five seconds drifting toward the next shot's camera and ended with the
+  rifle behind it. Found by the check, not by eye.
+- And one in the fix itself: `lookAt` aims +Z while a cylinder runs along +Y,
+  so the first tracer rendered as a bar *across* the flight path rather than
+  along it.
+
+198 unit tests pass.

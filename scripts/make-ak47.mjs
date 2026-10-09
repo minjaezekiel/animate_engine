@@ -125,29 +125,26 @@ part('buttPlate', { geometry: { kind: 'cube', width: 0.008, height: 0.074, depth
                     material: 'steel', at: [STOCK_REAR + 0.003, -0.056, 0], rot: [0, 0, -5] });
 
 /**
- * The curved 30-round magazine, as four stacked slabs each rotated a little
- * further forward.
+ * The curved 30-round magazine, as one profile swept along a curve.
  *
- * The banana curve is the one shape on the rifle that cannot be a primitive.
- * It wants an extrusion along a path, which the engine has no geometry for --
- * so it is segmented. Four slabs read as a curve at any framing this film
- * uses; the seams would show on a macro shot.
+ * This was four rotated slabs, because the engine had six primitives and no
+ * way to sweep a section along a path. It now has `extrude` with a path, so
+ * the banana curve is the curve rather than an approximation of it, and the
+ * seams between the slabs are gone.
+ *
+ * The section is 75 mm front-to-back -- a 7.62x39 round is 56 mm long and
+ * sits crosswise -- by 25 mm across the staggered stack.
  */
-const MAG_SEGS = 4;
-for (let i = 0; i < MAG_SEGS; i++) {
-    const t = i / (MAG_SEGS - 1);
-    const lean = 4 + t * 20;                        // degrees, accumulating forward
-    const h = 0.050;
-    const drop = -0.058 - i * h * 0.92;
-    part(`magazine${i}`, {
-        // Front-to-back, not side-to-side: at 30 mm the magazine rendered as a
-        // thin dark blade. A 30-round AK magazine is about 75 mm deep.
-        geometry: { kind: 'cube', width: 0.078 - t * 0.010, height: h, depth: 0.025 },
-        material: 'mag',
-        at: [MAG_X + Math.sin(lean * Math.PI / 180) * (i * 0.034), drop, 0],
-        rot: [0, 0, lean],
-    });
-}
+part('magazine', {
+    geometry: {
+        kind: 'extrude',
+        shape: [[-0.0125, -0.0375], [0.0125, -0.0375], [0.0125, 0.0375], [-0.0125, 0.0375]],
+        path: [[0, 0, 0], [0.006, -0.052, 0], [0.024, -0.101, 0],
+               [0.050, -0.146, 0], [0.084, -0.186, 0]],
+        steps: 40, bevel: true, bevelSize: 0.0015, bevelThickness: 0.0015,
+    },
+    material: 'mag', at: [MAG_X, -0.056, 0],
+});
 
 part('cleaningRod', { ...alongX(0.265, 0.0024), material: 'bright', at: [0.288, -0.016, 0] });
 part('slingLoop', { geometry: { kind: 'torus', radius: 0.009, tube: 0.0022, radialSegments: 8, tubularSegments: 16 },
@@ -181,10 +178,18 @@ for (let i = 0; i < IMPACTS; i++) {
 const film = {
     version: 'jirex.film3d/1',
     meta: { title: 'AK-47 — Assembly', fps: 24, width: 1280, height: 720,
-            background: '#0d1014',
+            background: '#1b222c',
             // Threshold high enough that only the flash blooms. At 0.72 the
             // lit steel bloomed too and the whole frame went milky.
             bloom: { strength: 0.6, radius: 0.45, threshold: 0.88 } },
+    assets: {
+        bed: { kind: 'audio', src: 'demo/assets/ak-bed.wav' },
+        clack: { kind: 'audio', src: 'demo/assets/ak-clack.wav' },
+        charge: { kind: 'audio', src: 'demo/assets/ak-charge.wav' },
+        shot: { kind: 'audio', src: 'demo/assets/ak-shot.wav' },
+        impact: { kind: 'audio', src: 'demo/assets/ak-impact.wav' },
+    },
+    audio: [{ asset: 'bed', at: 0, gain: 0.55, fadeIn: 2.5, fadeOut: 3.5, bus: 'music' }],
     materials: {
         steel: { color: '#4b5058', metalness: 0.88, roughness: 0.38 },
         bright: { color: '#7d848e', metalness: 0.94, roughness: 0.22 },
@@ -205,7 +210,7 @@ const film = {
         debris: { color: '#6d675d', roughness: 0.95 },
     },
     lights: [
-        { id: 'amb', type: 'ambient', color: '#6b7684', intensity: 1.15 },
+        { id: 'amb', type: 'ambient', color: '#7a8698', intensity: 1.55 },
         { id: 'key', type: 'directional', color: '#fff6e8', intensity: 3.6, at: [1.6, 2.4, 2.2], castShadow: true },
         { id: 'fill', type: 'directional', color: '#9fc4ff', intensity: 1.5, at: [-2.2, 0.6, 1.8] },
         { id: 'rim', type: 'directional', color: '#8ec0ff', intensity: 2.4, at: [-1.8, 1.2, -2.4] },
@@ -231,7 +236,9 @@ const film = {
 
 // Stage and craters are cast as a second, static assembly.
 film.assemblies.set = { parts: [...stage, ...craters] };
-film.cast.push({ assembly: 'set', as: 'set', at: [0, 0, 0] });
+// `set: true` keeps the 9-metre wall and floor out of the framing check; a
+// subject-sized measurement is meaningless against set dressing.
+film.cast.push({ assembly: 'set', as: 'set', at: [0, 0, 0], set: true });
 
 // ========================================================= the fifty seconds
 
@@ -268,18 +275,22 @@ const pull = (cam, k) => {
 };
 
 function beat({ id, duration, fit, camera, step, lead = 0.25, gap = 0.16, span = 0.62,
-                reach = 1.45 }) {
+                reach = 1.45, on = null, framing = null }) {
     const actions = [];
     for (const [k, pid] of fit.entries()) {
         const i = partIndex.get(pid);
+        const arrive = +(lead + k * gap).toFixed(3);
         actions.push({
             do: 'fly', target: `ak/${pid}`,
             from: flyFrom(i, N), fromRot: tumble(i),
-            at: +(lead + k * gap).toFixed(3), for: span,
-            ease: 'smooth', overshoot: 0.14,
+            at: arrive, for: span, ease: 'smooth', overshoot: 0.14,
         });
+        // The clack lands when the part seats, not when it sets off.
+        actions.push({ do: 'sound', asset: 'clack',
+                       at: +(arrive + span).toFixed(3), gain: 0.5 });
     }
-    return { id, duration, camera: pull(camera, reach), ...(step ? { step } : {}), actions };
+    return { id, duration, camera: pull(camera, reach), ...(on ? { on } : {}),
+             ...(framing ? { framing } : {}), ...(step ? { step } : {}), actions };
 }
 
 // ---- firing timing: 600 rpm is one round every 0.1 s --------------------
@@ -318,6 +329,19 @@ const buildEmitters = () => ({
               origin: [0.055, 0.012, 0.022], spin: 24,
               geometry: { kind: 'cylinder', radiusTop: 0.0056, radiusBottom: 0.0062, height: 0.039 },
               material: 'brass', seed: 47 },
+    // A round at 715 m/s crosses the 2.4 m to the wall in 3.4 ms -- an eighth
+    // of one frame -- so a real bullet cannot be photographed in flight and
+    // is not drawn. This is a tracer: slowed to stay on screen for about a
+    // frame, which every firearms film does, but with its streak LENGTH
+    // solved from velocity x shutter rather than guessed. Geometry for a
+    // stretched emitter has its long axis on +Z.
+    tracer: { count: ROUNDS, at: roundTimes, life: [0.055, 0.055], speed: [46, 50],
+              size: [1, 1], dir: [1, 0.02, 0], spread: 0.012, origin: MUZZLE,
+              shutter: 1 / 48,
+              geometry: { kind: 'cylinder', radiusTop: 0.0075, radiusBottom: 0.0075,
+                          height: 1, radialSegments: 6 },
+              material: 'spark', blending: 'additive', fade: 0.4, seed: 71 },
+
     debris: { count: 60, at: roundTimes.slice(0, IMPACTS), life: [0.7, 1.5],
               speed: [1.0, 3.6], size: [1, 0.4], dir: [-1, 0.35, 0], spread: 0.7,
               gravity: [0, -9.81, 0], origin: [WALL_X - 0.12, -0.15, 0.3],
@@ -330,7 +354,7 @@ const buildEmitters = () => ({
             blending: 'normal', fade: 1.5, seed: 67 },
 });
 
-const MAG = ['magazine0', 'magazine1', 'magazine2', 'magazine3'];
+const MAG = ['magazine'];
 
 const shots = [
     // ---- Act 1: the exploded reveal -----------------------------------
@@ -375,15 +399,26 @@ const shots = [
            camera: { from: { at: [-0.1, 0.34, 0.44], look: [-0.02, 0.01, 0] },
                      to: { at: [-0.08, 0.1, 0.52], look: [-0.03, -0.01, 0], fov: 34 } } }),
     // The magazine rocks in as one piece: four slabs, no stagger between them.
-    beat({ id: '12-mag', duration: 3, fit: MAG,
+    // Measured on the magazine, which is what this beat is about.
+    // Pulled back until the magazine meets the magwell in frame. At the
+    // original reach the check measured 293% of the magazine's own height --
+    // a slab of metal filling the screen, with the thing it was seating into
+    // out of shot.
+    beat({ id: '12-mag', duration: 3, fit: MAG, on: 'ak/magazine', framing: 'close', reach: 2.6,
            camera: { from: { at: [-0.08, 0.1, 0.52], look: [-0.03, -0.01, 0] },
                      to: { at: [0.1, -0.22, 0.46], look: [0.01, -0.09, 0], fov: 33 } },
            lead: 0.55, gap: 0.015, span: 0.75 }),
 
     // ---- Act 3: charge, then fire -------------------------------------
-    { id: '13-charge', duration: 2.5,
-      camera: { from: { at: [0.1, -0.22, 0.46], look: [0.01, -0.09, 0] },
-                to: { at: [0.1, 0.12, 0.34], look: [0.02, 0.01, 0], fov: 30 } },
+    // Declared, because the crop is the point: this is the charging handle.
+    // `on` names the handle, not the rifle, so the check measures what the
+    // shot is about: a macro of a 30 mm part is not an overflowing shot of an
+    // 880 mm one. No `framing` band is claimed, because the handle TRAVELS
+    // 68 mm here and the shot has to hold both ends of the stroke -- the
+    // undeclared overflow and too-small guards still apply.
+    { id: '13-charge', duration: 2.5, on: 'ak/chargingHandle',
+      camera: { from: { at: [0.0118, -0.0164, 0.1298], look: [0.005, 0.004, 0.015] },
+                to: { at: [0.0017, 0.0372, 0.1060], look: [0, 0.004, 0.015], fov: 32 } },
       actions: [
           // Pulled fully to the rear, held, then released to slam forward.
           { do: 'move', target: 'ak/boltCarrier', to: [-0.098, 0.004, 0], at: 0.35, for: 0.45,
@@ -391,6 +426,8 @@ const shots = [
           { do: 'move', target: 'ak/boltCarrier', to: [-0.030, 0.004, 0], at: 1.05, for: 0.1,
             ease: 'smooth', overshoot: 0.22 },
           { do: 'turn', target: 'ak/selector', to: [0, 0, -16], at: 1.5, for: 0.35 },
+          { do: 'sound', asset: 'charge', at: 0.3, gain: 0.85 },
+          { do: 'sound', asset: 'clack', at: 1.52, gain: 0.4 },
       ] },
     { id: '14-shoulder', duration: 2,
       camera: { from: { at: [0.1, 0.12, 0.34], look: [0.02, 0.01, 0], fov: 30 },
@@ -423,6 +460,15 @@ film.emitters = buildEmitters();
 // over two frames reads as the hole punching through.
 const craterShot = shots.find((s) => s.id === FIRE_SHOT);
 craterShot.actions = craterShot.actions ?? [];
+// One report per round, one concrete crack per impact.
+for (const t of roundTimes) {
+    craterShot.actions.push({ do: 'sound', asset: 'shot', gain: 0.95,
+                              at: +(t - shotStart(FIRE_SHOT)).toFixed(3) });
+}
+for (const [i] of craters.entries()) {
+    craterShot.actions.push({ do: 'sound', asset: 'impact', gain: 0.5,
+                              at: +(roundTimes[i] + 0.004 - shotStart(FIRE_SHOT)).toFixed(3) });
+}
 for (const [i, c] of craters.entries()) {
     craterShot.actions.push({ do: 'grow', target: `set/${c.id}`, to: 1,
                               at: +(roundTimes[i] - shotStart(FIRE_SHOT)).toFixed(3),

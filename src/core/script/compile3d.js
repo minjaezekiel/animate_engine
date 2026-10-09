@@ -3,6 +3,7 @@ import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
 import { createClip } from '../anim/Clip.js';
 import { createTrack, setKey } from '../anim/Track.js';
 import { createEmitter, emitterSpan } from '../anim/particles.js';
+import { createCue } from '../audio/cues.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
 
 /**
@@ -168,21 +169,42 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
         }
     }
 
+    // ------------------------------------------------------------- audio
+    // Cues, not a mixer. The 2D path already owns the mixing, the buses and
+    // the fades; 3D was silent only because nothing here emitted the cue
+    // list it consumes.
+    const audioCues = [];
+    const addCue = (spec, at, where) => {
+        if (!spec?.asset) return warn('audio needs an `asset`', where);
+        if (!film.assets?.[spec.asset]) warn(`unknown audio asset '${spec.asset}'`, where);
+        audioCues.push(createCue({
+            id: `${where}:${audioCues.length}`, assetId: spec.asset,
+            at: +(at + (spec.at ?? 0)).toFixed(4),
+            gain: spec.gain ?? 1, fadeIn: spec.fadeIn ?? 0, fadeOut: spec.fadeOut ?? 0,
+            offset: spec.offset ?? 0, duration: spec.duration ?? null,
+            bus: spec.bus ?? 'sfx',
+        }));
+    };
+    for (const [i, spec] of (film.audio ?? []).entries()) addCue(spec, 0, `audio[${i}]`);
+
     let prevCamera = null;
     const clipSeq = { n: 0 };
     for (const s of shots) {
         prevCamera = buildCamera3D({ timeline, cameraId, lookId, shot: s.shot,
                                      start: s.start, duration: s.duration, prevCamera, warn,
                                      shotId: s.shotId });
+        for (const [ai, spec] of (s.shot.audio ?? []).entries()) {
+            addCue(spec, s.start, `${s.shotId}.audio[${ai}]`);
+        }
         for (const [ai, action] of (s.shot.actions ?? []).entries()) {
             buildAction3D({ scene, timeline, action, castMap, emitters, shot: s,
-                            cameraId, warn, clipSeq,
+                            cameraId, warn, clipSeq, audioCues,
                             location: `${s.shotId}.actions[${ai}]` });
         }
     }
 
     return { scene, timeline, emitters, meta, cameraId, lookId, shots,
-             duration, diagnostics };
+             duration, audioCues, diagnostics };
 }
 
 /**
@@ -214,7 +236,14 @@ function buildCamera3D({ timeline, cameraId, lookId, shot, start, duration, prev
     };
     const ease = cam.ease ?? 'smooth';
     const span = Math.min(cam.for ?? duration, duration);
-    const moveStart = start + (cam.at ?? 0);
+    // A cut is two camera positions at one instant, and a track cannot hold
+    // two values at one time -- `key` replaces. Without this nudge the
+    // incoming shot's `from` overwrote the outgoing shot's final key, and the
+    // outgoing shot spent its whole duration drifting toward the NEXT shot's
+    // camera instead of holding its own. The framing check caught it: the
+    // rifle ended up behind the camera during its own firing shot.
+    const CUT = 1e-4;
+    const moveStart = start + (cam.at ?? 0) + (prevCamera && (cam.at ?? 0) === 0 ? CUT : 0);
 
     writeVec(timeline, cameraId, 'position', from.at, moveStart, null, ease);
     writeVec(timeline, lookId, 'position', from.look, moveStart, null, ease);
@@ -313,7 +342,8 @@ function lastValueBefore3D(timeline, target, path, t) {
     return found;
 }
 
-function buildAction3D({ scene, timeline, action, castMap, emitters, shot, cameraId, warn, clipSeq, location }) {
+function buildAction3D({ scene, timeline, action, castMap, emitters, shot, cameraId,
+                        warn, clipSeq, audioCues, location }) {
     const at = shot.start + (action.at ?? 0);
     const span = action.for ?? 0;
     const ease = action.ease ?? 'smooth';
@@ -414,6 +444,16 @@ function buildAction3D({ scene, timeline, action, castMap, emitters, shot, camer
             } else {
                 key(timeline, id, action.channel, at, action.value, { type, ease: 'step' });
             }
+            return;
+        }
+
+        case 'sound': {
+            audioCues.push(createCue({
+                id: `${location}:sfx`, assetId: action.asset,
+                at: +at.toFixed(4), gain: action.gain ?? 1,
+                fadeIn: action.fadeIn ?? 0, fadeOut: action.fadeOut ?? 0,
+                offset: action.offset ?? 0, bus: action.bus ?? 'sfx',
+            }));
             return;
         }
 

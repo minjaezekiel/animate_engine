@@ -38,7 +38,9 @@
     "test:roundtrip": "node test/e2e/legacy-roundtrip.mjs",
     "test:rig": "node test/e2e/rig-3d.mjs",
     "produce:3d": "node scripts/produce3d.mjs",
-    "make:ak47": "node scripts/make-ak47.mjs"
+    "make:ak47": "node scripts/make-ak47.mjs",
+    "check:3d": "CHECK=1 node scripts/produce3d.mjs",
+    "make:ak47-audio": "node scripts/make-ak47-audio.mjs"
   },
   "keywords": [
     "animation",

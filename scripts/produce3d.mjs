@@ -19,6 +19,7 @@ const OUT = process.env.OUT ?? 'demo/out/ak47.webm';
 const WIDTH = Number(process.env.WIDTH ?? 1280);
 const HEIGHT = Number(process.env.HEIGHT ?? 720);
 const PROBE = process.env.PROBE === '1';
+const SILENT = process.env.SILENT === '1';
 // GRAB=1,34.4,40 writes a PNG per time instead of a video. Looking at the
 // thing is the only check that catches a model not looking like a rifle.
 const GRAB = process.env.GRAB ? process.env.GRAB.split(',').map(Number) : null;
@@ -42,6 +43,10 @@ const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true, protocolTimeout: 2_400_000,
     args: ['--no-sandbox', '--enable-unsafe-swiftshader',
+           // Without this the AudioContext stays suspended in headless, the
+           // mix never reaches the recorder's audio track, and MediaRecorder
+           // stalls waiting for it -- emitting a WebM header and no frames.
+           '--autoplay-policy=no-user-gesture-required',
            '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
            '--use-angle=metal'],
 });
@@ -54,10 +59,36 @@ await page.goto(`${base}/film3d.html`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.ready3d === true, { timeout: 60_000 });
 
 const film = JSON.parse(await readFile(join(ROOT, FILM), 'utf8'));
+
+// CHECK=1 runs the staging pass: framing analytically in Node, exposure from
+// real pixels sampled tiny. Nothing is encoded.
+if (process.env.CHECK === '1') {
+    const { compileFilm3D } = await import(new URL('../src/core/script/compile3d.js', import.meta.url));
+    const { checkFraming3D, checkExposure } = await import(
+        new URL('../src/core/script/staging3d.js', import.meta.url));
+    const compiled = compileFilm3D(film);
+    const framing = checkFraming3D(compiled, film);
+    const times = compiled.shots.flatMap((s) => [0.25, 0.75].map(
+        (u) => ({ t: +(s.start + s.duration * u).toFixed(2), shotId: s.shotId })));
+    const { samples } = await page.evaluate((f, o) => window.render3d(f, o), film,
+        { width: 960, height: 540, check: times });
+    const exposure = checkExposure(samples);
+    console.log(`\n  compile: ${compiled.diagnostics.length} · framing: ${framing.length} `
+                + `· exposure: ${exposure.length} (over ${samples.length} samples)`);
+    for (const d of [...compiled.diagnostics, ...framing, ...exposure]) {
+        console.log(`  [${d.severity}] ${d.message}`);
+    }
+    const worst = samples.reduce((a, b) => (a.mean < b.mean ? a : b));
+    const best = samples.reduce((a, b) => (a.mean > b.mean ? a : b));
+    console.log(`  luma: darkest ${worst.mean.toFixed(3)} (${worst.shotId}), `
+                + `brightest ${best.mean.toFixed(3)} (${best.shotId})`);
+    await browser.close(); server.close();
+    process.exit(compiled.diagnostics.length + framing.length + exposure.length ? 1 : 0);
+}
 console.log(`rendering ${FILM} at ${WIDTH}x${HEIGHT}${PROBE ? ' (probe, no encode)' : ''}`);
 const t0 = Date.now();
 const out = await page.evaluate((f, o) => window.render3d(f, o), film,
-    { width: WIDTH, height: HEIGHT, probe: PROBE, durationSec: DURATION, grab: GRAB });
+    { width: WIDTH, height: HEIGHT, probe: PROBE, durationSec: DURATION, grab: GRAB, silent: SILENT });
 
 if (out.frames) {
     await mkdir(join(ROOT, dirname(OUT)), { recursive: true });
@@ -70,6 +101,7 @@ if (out.frames) {
     process.exit(0);
 }
 console.log(`\n  mime=${out.mime} chunks=${out.chunks} supported=[${out.supported}]`);
+console.log(`  audio: ${out.cues} cues, ${out.audioSec}s`);
 console.log(`  ${out.duration}s · ${out.nodes} nodes · ${out.tracks} tracks `
             + `· ${out.particles} particles · ${((Date.now() - t0) / 1000).toFixed(1)}s wall`);
 for (const d of out.diagnostics) console.log(`  [${d.severity}] ${d.message}`);

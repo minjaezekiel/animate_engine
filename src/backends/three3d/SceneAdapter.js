@@ -35,6 +35,37 @@ const GEOMETRY = {
     plane: (T, g) => new T.PlaneGeometry(g.width ?? 1, g.height ?? 1,
                                          g.widthSegments ?? 1, g.heightSegments ?? 1),
     tetrahedron: (T, g) => new T.TetrahedronGeometry(g.radius ?? 0.5, g.detail ?? 0),
+
+    /**
+     * A profile revolved around Y. Every turned part on a machine -- a muzzle
+     * nut, a gas piston, a case -- is a lathe, and approximating one with
+     * stacked cylinders is what makes a model read as blocks.
+     */
+    lathe: (T, g) => new T.LatheGeometry(
+        (g.points ?? [[0, 0], [1, 0], [1, 1]]).map(([x, y]) => new T.Vector2(x, y)),
+        g.segments ?? 24, g.phiStart ?? 0, g.phiLength ?? Math.PI * 2),
+
+    /**
+     * A 2D profile swept along a 3D path -- the thing the AK magazine wanted
+     * and could not have, so it was built as four rotated slabs with visible
+     * seams. With `path` this is a true curved extrusion; without, a straight
+     * one of `depth`.
+     */
+    extrude: (T, g) => {
+        const shape = new T.Shape((g.shape ?? [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]])
+            .map(([x, y]) => new T.Vector2(x, y)));
+        const options = { bevelEnabled: g.bevel ?? false, curveSegments: g.curveSegments ?? 8,
+                          bevelSize: g.bevelSize ?? 0.002, bevelThickness: g.bevelThickness ?? 0.002,
+                          bevelSegments: g.bevelSegments ?? 2 };
+        if (g.path) {
+            options.extrudePath = new T.CatmullRomCurve3(
+                g.path.map(([x, y, z]) => new T.Vector3(x, y, z ?? 0)));
+            options.steps = g.steps ?? Math.max(8, g.path.length * 6);
+        } else {
+            options.depth = g.depth ?? 1;
+        }
+        return new T.ExtrudeGeometry(shape, options);
+    },
 };
 
 const BLENDING = { additive: 'AdditiveBlending', normal: 'NormalBlending', multiply: 'MultiplyBlending' };
@@ -142,10 +173,19 @@ export function buildScene3D(T, compiled, { width, height } = {}) {
     // ponytail: pool of Meshes; move to InstancedMesh with a shader if a film
     // ever needs thousands of particles at once.
     const pools = [];
+    const Y_AXIS = new Set(['cylinder', 'capsule', 'cone']);
     for (const spec of emitters.values()) {
         const build = GEOMETRY[spec.geometry.kind] ?? GEOMETRY.sphere;
         const baseOpacity = spec.material.opacity ?? 1;
         const geometry = build(T, spec.geometry);
+        // A stretched particle is oriented with lookAt, which aims +Z -- but
+        // a cylinder, capsule and cone all run along +Y. Rotating the
+        // geometry once at build time makes "long axis on +Z" true for every
+        // primitive, rather than leaving each film to discover that its
+        // tracer renders as a bar across the flight path instead of along it.
+        if (spec.emitter.shutter && Y_AXIS.has(spec.geometry.kind)) {
+            geometry.rotateX(Math.PI / 2);
+        }
         const parent = (spec.parent && registry.get(spec.parent)) || root;
         const meshes = [];
         for (let i = 0; i < spec.emitter.count; i++) {
@@ -177,8 +217,16 @@ export function buildScene3D(T, compiled, { width, height } = {}) {
                 mesh.visible = p.visible;
                 if (!p.visible) continue;
                 mesh.position.set(p.x, p.y, p.z);
-                mesh.scale.setScalar(p.size);
-                mesh.rotation.z = p.spin;
+                if (p.stretch > 0) {
+                    // Point +Z down the velocity and stretch to the distance
+                    // covered while the shutter is open. Geometry for a
+                    // stretched emitter must have its long axis on +Z.
+                    mesh.lookAt(p.x + p.vx, p.y + p.vy, p.z + p.vz);
+                    mesh.scale.set(p.size, p.size, Math.max(p.size, p.stretch));
+                } else {
+                    mesh.scale.setScalar(p.size);
+                    mesh.rotation.z = p.spin;
+                }
                 // Scale the authored opacity rather than replacing it. Writing
                 // the alpha straight in made every smoke puff fully opaque at
                 // birth, so a 0.5-opacity material rendered as a solid ball.

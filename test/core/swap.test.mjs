@@ -210,8 +210,17 @@ test('a part declares swap sets through the film script', () => {
     };
     const { scene } = compileFilm(film, {});
     const head = scene.get('s1/hero/head');
-    assert.equal(head.props.view, 'profile', 'the declared default is the starting channel value');
+    // The declared default sits BESIDE the set, not on `props.view`. Stamping
+    // it on the node would make the node its own nearest declaration of the
+    // channel, so a `view` set once on the cast root could never reach it.
+    assert.equal(head.props.view, undefined, 'the default does not shadow an inherited value');
+    assert.equal(head.props.swapDefaults.view, 'profile', 'the declared default is recorded');
     applySwapSets(scene);
-    assert.equal(head.kind, 'path');
+    assert.equal(head.kind, 'path', 'the default member is what gets applied');
     assert.equal(head.props.fill, '#eca', 'the part keeps its own paint across a swap');
+
+    // An ancestor's value overrides the default, which is the whole point.
+    scene.get('s1/hero').props.view = 'front';
+    applySwapSets(scene);
+    assert.equal(head.kind, 'ellipse', 'an inherited channel value wins over the default');
 });

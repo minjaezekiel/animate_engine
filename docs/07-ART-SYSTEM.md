@@ -245,110 +245,138 @@ than vanishing.
 
 ---
 
-## Phase 10 — the procedural art provider
+## Phase 10 — the procedural art provider — *shipped*
 
 The big one, and the one whose quality is bounded by art direction rather than
-by code.
+by code. What follows is what was actually built and what the design got
+wrong, kept together because the corrections are the useful part.
 
-### What `generate.js` lacks for a drawn look
+### The five gaps, and how each closed
 
-Measured against the reference, five things:
+1. **Limbs were stroked lines.** Now filled tapered paths with rounded ends
+   (`limbPath`), each taking a `stroke` as well — which *is* the line work.
+   The design said Canvas2D cannot do variable-width strokes so an outline had
+   to be built as a filled shape. True for variable width; false for the
+   uniform cel line weight limited animation actually uses. So the planned
+   three layers per part became **two**: a filled base that strokes itself,
+   plus an optional shade layer. Less code than designed, for the same result.
 
-1. **Limbs are stroked lines.** `arm{L,R}`, `thigh{L,R}` and friends are
-   2-point paths with `strokeWidth`. A stroke has no silhouette, no taper and
-   no outline — this alone is why the output reads as clip-art.
-2. **The face is two ellipses.** No brows, nose, ears or cheek line. Brows
-   carry most of the expression in cel animation.
-3. **One view.** A side-on paper doll cannot turn its head. You do not rotate a
-   2D face; you swap to a drawn three-quarter view.
-4. **One tone.** Cel shading is a second, hard-edged tone drawn as its own
-   shape — not a gradient and not a filter.
-5. **No line art.** Canvas2D cannot stroke with variable width, so the outline
-   has to be built as a filled shape.
+2. **The face was two ellipses.** Now `src/core/art/face.js`: an enumerated
+   kit of jaws, eyes, brows, noses, lips, ears and hair, assembled into nine
+   head parts.
 
-### Design
+3. **One view.** Now three — `front`, `threeQuarter`, `profile` — as swap sets
+   on each feature, driven by one inherited `view` channel.
 
-**Proportions in head-heights**, the unit animators actually use, rather than
-fractions of total height. A 6-head adult and a 4-head child then differ by one
-number and stay internally consistent.
+4. **One tone.** Now a flat base plus a hard-edged shade shape, with the shade
+   drawn to fit inside the silhouette rather than clipped to it.
 
-**Views** — `front`, `threeQuarter`, `profile`, each mirrorable. Each view
-supplies its own geometry for every part; a discrete `props.view` channel swaps
-between them through Phase 9.
+5. **No line art.** `stroke` on the filled shape, at a width scaled to the
+   figure.
 
-**Three layers per part** — `base` (flat fill), `shade` (shadow shape), `line`
-(outline as fill). Emitted as a group with three children.
+### What the design did not anticipate
 
-**An enumerated face kit** — this is the AI-affordance, so it has to be a
-closed vocabulary:
+**The head had to become a group.** `drawOrder` walks depth-first, so a child
+always draws over its parent and `z` only sorts siblings. Anything behind the
+skull — the hair mass, the far ear — must therefore be the skull's *sibling*
+while still turning with the head. `head` is now a group with `skull`,
+`hairBack`, `earFar`, `eyes`, `pupils`, `brows`, `nose`, `earNear` and `hair`
+under it.
 
-```
-jaw:   round | square | tapered | heavy
-eyes:  round | hooded | narrow | wide | closed-happy
-brow:  flat | arched | heavy | thin | angled
-nose:  button | straight | broad | hooked
-lips:  full | thin | wide
-ears:  small | round | pointed
-hair:  afro-large | afro-short | braids | short-fade | locs | wrap | bald
-```
+**Hair is two pieces.** The mass goes behind the skull; the front is only a
+hairline cap. A first attempt drew an afro as one circle at the top of the
+z-order and it covered the entire face — correct silhouette, no character.
 
-**Expressions** as named overrides of brow/eye/mouth: `neutral`, `angry`,
-`surprised`, `smug`, `weary`, `delighted`.
+**Two channels could not both own `d`.** A blink, an expression and a view all
+want to rewrite the same eye geometry. Resolved with two mechanisms:
 
-**Palette derivation.** An author picks one skin colour and one cloth colour;
-the provider derives the shade and line tones by a fixed HSL delta. Three
-colours per material authored by hand is three chances to make a character
-look wrong.
+- an **empty member** writes no props, so `expression: 'neutral'` and
+  `eyes: 'open'` leave the view's geometry standing;
+- a **view-qualified member** (`angry@profile`, `closed@threeQuarter`) is
+  preferred by `resolveSwap` when a view is in effect, so a second channel can
+  override geometry *without* throwing away the turn.
 
-So a character becomes:
+Before this, a blink reverted a turned head to front-facing on every open
+frame, and the mouth chart ignored the view entirely.
+
+**Swap defaults could not live on the node.** `swapProps` stamped
+`props[channel] = default` onto every part, which made each part its own
+nearest declaration of the channel — so a `view` written once on the cast root
+could never reach the dozen head parts that have to turn with it. Defaults now
+sit in `props.swapDefaults`, and precedence runs **author > part default >
+first member**.
+
+**Palette derivation had to leave HSL.** Holding HSL saturation while dropping
+lightness grows chroma, so `#e8b98f` shaded to `#e0ae6a` — pale skin turning
+yellow. A per-channel RGB multiply preserves hue exactly, and keeping blue's
+multiplier highest is what makes the shadow read cool.
+
+**`hair` meant two things.** It was the palette key and became the style name,
+which produced `fill: "afro-largeShade"` — not a colour, so the canvas kept
+whatever fill the previous node left and the hair rendered in skin tone with
+no error anywhere. Split into `hair` (style) and `hairColor` (palette key).
+
+**`measureCharacter` only read `part.shape`.** Every head feature now draws
+through a swap set, so the rig measured as a headless body and every staging
+check that used it was wrong by a head.
+
+**`buildClipFromAction` split the channel at the LAST dot**, which made its
+own `props.` branch unreachable — a generated action could only ever key a
+transform. Splitting at the first dot is what let a blink be a swap.
+
+### What it costs to author
 
 ```json
 "huey": {
-  "art": "procedural",
-  "build": { "heads": 5.5, "weight": "slim" },
-  "face": { "jaw": "round", "eyes": "hooded", "brow": "heavy", "nose": "small" },
-  "hair": "afro-large",
-  "palette": "dusk"
+  "generate": { "build": "slim", "hair": "afro-large",
+                "face": { "jaw": "round", "eyes": "hooded", "brow": "heavy" } },
+  "proportions": { "height": 210 }
 }
 ```
 
-~50 tokens, deterministic, riggable, and consistent across every shot.
+~45 tokens, deterministic, riggable, three views, consistent across every
+shot. The full vocabulary is [08-ART-VOCABULARY.md](08-ART-VOCABULARY.md).
 
-### Two deliberate omissions
+### Two deliberate omissions, both still deliberate
 
-**Clipping.** Hair over a forehead and a shadow inside a silhouette both
-suggest clip paths, and the backend cannot do it — the draw loop is flat with
-no `save`/`restore` stack (`Canvas2DBackend.js:184-205`). **Do not add it.**
-Real cel animation draws the shadow to fit; the shape is authored inside the
-silhouette rather than clipped to it. Revisit only if a specific effect needs
-it.
+**Clipping.** The draw loop is flat with no `save`/`restore` stack. Shadows are
+authored inside the silhouette, which is what cel animation does anyway.
 
-**Gradients beyond `rect`.** `resolveFill` is only called from the `rect` case
-(`shapes.js:59`); `ellipse` and `path` read `p.fill` directly. Extending it is
-a two-line change at `shapes.js:70` and `:81` and is worth doing for skies —
-but cel shading should stay hard-edged shapes, not gradients.
+**Gradients beyond `rect`.** `ellipse` and `path` still read `fill` directly.
+Gradients *did* gain palette resolution this phase — naming a palette colour
+in a stop used to throw inside `addColorStop` and take the whole frame down.
 
 ---
 
-## Phase 11 — scenery templates
+## Phase 11 — scenery templates — *shipped*
 
-Scenery is **40% of the mountain film's bytes** (2,427 of 6,118) and all of it
-is hand-placed coordinates. The same treatment as characters applies:
+`src/core/art/scenery.js`. Five templates — `living-room`, `kitchen`,
+`street`, `hillside`, `interior-wide` — nine props, four times of day.
 
 ```json
-"background": {
-  "template": "living-room",
-  "time": "afternoon",
-  "props": ["window-left", "framed-picture", "cabinet-right"]
-}
+"template": { "template": "living-room", "time": "evening",
+              "props": ["window@0.18", "sofa@0.55", "plant@0.88"] }
 ```
 
-A template is a pure function returning scenery entries **and a ground
-definition**, exactly as `generateCharacterParts` returns parts. Templates to
-start with: `living-room`, `kitchen`, `street`, `hillside`, `interior-wide`.
+Three decisions worth recording:
 
-This is what makes a dialogue-scene background cost ~20 tokens instead of
-2,400 bytes.
+**The template returns its ground.** This matters more than the saved bytes. A
+`move` with one coordinate derives its `y` from the floor the set was drawn
+from, so the art, the walk and the staging check cannot disagree — which is
+exactly how `demo/mountain.json` put a boy 109 px below a hand-computed slope.
+
+**It lives at `scene.template`, not `background.template`** as the design
+sketched. A template produces scenery *and* a ground, both scene-level;
+`background` is specifically the backdrop fill.
+
+**`time` is a palette overlay, not a filter.** It recolours and changes no
+geometry, which the test asserts by comparing serialized scenery between
+times. A night version costs one word.
+
+Prop anchors are fractions of frame width (`"sofa@0.55"`), never pixels, so
+the same line works at any resolution and an author never computes one.
+Authored `scenery` appends to the template's and anything the scene declares
+itself wins.
 
 ---
 
@@ -405,8 +433,8 @@ Each phase lands with a check that fails if the thing regresses.
 | 8a | Node: an atlas sub-rect reaches `drawImage` with 9 args via `RecordingContext`; a missing asset is a diagnostic, never a throw. Browser: `demo/` film with a real background PNG renders it, and `npm run produce` works headless. |
 | 8b | Node: `analyseStaging` on a film with a cast member off-frame reports it; the mountain film's three original bugs each reproduce as a diagnostic. This is the regression test for the bugs that cost four contact sheets. |
 | 9 | Node: a swap from a `path` shape to an `image` shape leaves no stale `d`; per-set fallbacks degrade rather than vanish. |
-| 10 | Node: the same character spec yields byte-identical parts twice. Browser: one contact sheet, reviewed once — the only place looking is still worth it. |
-| 11 | Node: a template returns scenery plus a ground, and the ground agrees with the scenery it drew. |
+| 10 | Node: the same character spec yields byte-identical parts twice; every enumerated name produces geometry in every view; a blink leaves a turned head turned. Browser: contact sheets, reviewed — which took **seven passes**, and every fault they caught (hair over the face, the ear walking across the cheek, the nose as a floating blob, googly eyes) was invisible to every unit test. Looking is still the only way to find those. |
+| 11 | Node: every template returns scenery plus a ground, the ground lands inside the frame, templates scale to the frame rather than assuming 720p, and a time of day changes zero geometry. |
 | 12 | The reference film renders, and its authoring cost is measured and recorded here. |
 
 Follow the existing idiom: `test/core/compile.test.mjs:157` is the pattern for

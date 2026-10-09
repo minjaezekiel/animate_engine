@@ -40,6 +40,20 @@ export { AssetRegistry, loadAssets } from './art/AssetRegistry.js';
 export { UrlProvider } from './art/providers/UrlProvider.js';
 export { FileProvider } from './art/providers/FileProvider.js';
 
+// procedural art: the enumerated vocabulary, the palettes derived from it,
+// and the scenery templates that place a set without coordinates
+export {
+    headParts, FACE_KITS, EXPRESSIONS, VIEWS, DEFAULT_FACE,
+    JAWS, EYES, BROWS, NOSES, LIPS, EARS, HAIRS, smoothClosed,
+} from './art/face.js';
+export {
+    derivePalette, DEFAULT_PALETTE, shadeOf, lineOf, mixColor, scaleColor, parseHex,
+} from './art/palette.js';
+export {
+    buildSceneryTemplate, SCENERY_TEMPLATES, TEMPLATE_NAMES,
+    PROPS, PROP_NAMES, TIMES, TIME_NAMES,
+} from './art/scenery.js';
+
 // audio analysis + lipsync (pure; no Web Audio)
 export { createCue, cueSampleWindow, mixDuration, cueGainAt } from './audio/cues.js';
 export { envelope, voicedSpans, normalize } from './audio/envelope.js';
@@ -62,8 +76,16 @@ export { validateFilm, validateAssets, hasFatal, hasError } from './script/valid
 export { analyseStaging, measureCharacter, groundAt } from './script/staging.js';
 export { parseScreenplay, estimateSeconds, retimeToAudio } from './script/screenplay.js';
 export {
-    generateCharacterParts, generateMouth, generateActions, DEFAULT_PROPORTIONS,
+    generateCharacterParts, generateMouth, generateActions,
+    DEFAULT_PROPORTIONS, BUILDS, resolveProportions,
 } from './script/generate.js';
+
+// the four principles that needed an affordance rather than a keyframe
+export {
+    anticipationValue, overshootValue, arcMidpoint,
+    overlapDelays, applyOverlap, squashKeys,
+    ANTICIPATION_SHARE, OVERSHOOT_AT,
+} from './anim/principles.js';
 export { FILM_VERSION, DEFAULTS, KNOWN, DO_VERBS, TRANSITION_KINDS } from './script/schema.js';
 
 // util

@@ -163,7 +163,9 @@ test('generated mouths and actions line up with the generated rig', () => {
     for (const [name, action] of Object.entries(generateActions())) {
         assert.ok(action.duration > 0, `${name} has a duration`);
         for (const channel of Object.keys(action.keys)) {
-            const part = channel.slice(0, channel.lastIndexOf('.'));
+            // A channel is `<partId>.<rest>`, and `rest` may itself contain a
+            // dot (`props.eyes`), so the part id ends at the FIRST one.
+            const part = channel.slice(0, channel.indexOf('.'));
             assert.ok(ids.has(part), `${name} animates a real part (${part})`);
         }
     }

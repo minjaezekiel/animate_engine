@@ -28,7 +28,7 @@
     "mara": {
       "palette": "dusk",
       "voice": "mara_v",
-      "generate": { "cloth": "coat", "trouser": "trouser", "hair": "hair" },
+      "generate": { "cloth": "coat", "trouser": "trouser", "hair": "braids" },
       "proportions": { "height": 196 },
       "poses": {
         "stand":   { "torso": { "rot": 0 },      "armL": { "rot": 0.10 }, "armR": { "rot": -0.10 }, "head": { "rot": 0 } },
@@ -42,7 +42,7 @@
     "jonas": {
       "palette": "dusk",
       "voice": "jonas_v",
-      "generate": { "cloth": "coat2", "trouser": "trouser", "hair": "hair" },
+      "generate": { "cloth": "coat2", "trouser": "trouser", "hair": "short-fade" },
       "proportions": { "height": 208 },
       "poses": {
         "stand": { "torso": { "rot": 0 },     "armL": { "rot": -0.10 }, "armR": { "rot": 0.10 }, "head": { "rot": 0 } },

@@ -12,6 +12,12 @@ import { castVoices } from '../voice/synthesize.js';
 import { generateCharacterParts, generateMouth, generateActions } from './generate.js';
 import { solveChain, chainFromParts, chainRootOffset } from '../rig/IK2D.js';
 import { groundAt, measureCharacter } from './staging.js';
+import {
+    anticipationValue, overshootValue, arcMidpoint, overlapDelays, applyOverlap,
+    ANTICIPATION_SHARE, OVERSHOOT_AT,
+} from '../anim/principles.js';
+import { derivePalette } from '../art/palette.js';
+import { buildSceneryTemplate } from '../art/scenery.js';
 
 /**
  * compileFilm: declarative film -> core Scene + Timeline + audio cues +
@@ -98,8 +104,15 @@ export function compileFilm(film, { assets = {} } = {}) {
             key(timeline, groupId, 'props.alpha', sceneEnd, 0, { type: 'number', ease: 'step' });
         }
 
-        buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics);
-        buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics);
+        // A named set expands into the same scenery, ground and background an
+        // author could have written by hand -- so nothing downstream has to
+        // know a template was involved, and authored entries still win.
+        const spec = expandTemplate(sceneSpec, meta, palettes, diagnostics);
+
+        const scenePalette = derivePalette(palettes[spec.palette] ?? {});
+        buildBackground(scene, timeline, spec, groupId, meta, assets, diagnostics,
+                        (c) => (c == null ? null : (scenePalette[c] ?? c)));
+        buildScenery(scene, spec, groupId, palettes, meta, assets, diagnostics);
 
         // --- cast: instantiate each character's part tree
         const castMap = new Map();
@@ -111,7 +124,7 @@ export function compileFilm(film, { assets = {} } = {}) {
             const rootId = `${sceneId}/${as}`;
             instantiateCharacter({
                 scene, char, charName, as, rootId, parentId: groupId,
-                entry, palettes, diagnostics, assets,
+                entry, palettes, diagnostics, assets, scenePalette: spec.palette,
             });
             castMap.set(as, { rootId, char, charName, entry });
         }
@@ -147,7 +160,7 @@ export function compileFilm(film, { assets = {} } = {}) {
             for (const action of shot.actions ?? []) {
                 buildAction({
                     scene, timeline, action, castMap, shotStart, shotEnd,
-                    sceneId, characters, diagnostics, ground: sceneSpec.ground ?? null,
+                    sceneId, characters, diagnostics, ground: spec.ground ?? null,
                 });
             }
 
@@ -210,9 +223,23 @@ function resolveImageProps(props, assets, diagnostics, path) {
     return props;
 }
 
+/**
+ * Resolve a gradient's stops through the palette.
+ *
+ * Without this a stop could only ever be a literal colour: naming one throws
+ * inside `ctx.addColorStop`, which takes the whole frame down rather than
+ * drawing the wrong colour. Everything else a scene paints already resolves
+ * through `colorOf`, so this was a hole in an otherwise consistent rule.
+ */
+function resolveGradient(gradient, colorOf) {
+    if (!gradient?.stops) return gradient ?? null;
+    return { ...gradient, stops: gradient.stops.map(([at, c]) => [at, colorOf(c)]) };
+}
+
 // ---------------------------------------------------------------- background
 
-function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics) {
+function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics,
+                         colorOf = (c) => c) {
     const bg = sceneSpec.background;
     if (!bg) return;
     const id = `${groupId}/bg`;
@@ -232,7 +259,8 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
                 // exactly the film's aspect ratio.
                 ? { image, w: meta.width, h: meta.height, cx: true, cy: true,
                     fit: bg.fit ?? 'cover', screenSpace: true }
-                : { w: meta.width, h: meta.height, fill: bg.color ?? '#111317', screenSpace: true },
+                : { w: meta.width, h: meta.height, fill: colorOf(bg.color) ?? '#111317',
+                    screenSpace: true },
             transform: image ? { x: meta.width / 2, y: meta.height / 2 } : undefined,
             z: -1000,
         }, groupId);
@@ -241,8 +269,8 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
             id, kind: 'rect',
             props: {
                 w: meta.width, h: meta.height,
-                fill: bg.color ?? '#111317',
-                gradient: bg.gradient ?? null,
+                fill: colorOf(bg.color) ?? '#111317',
+                gradient: resolveGradient(bg.gradient, colorOf),
                 screenSpace: true,
             },
             z: -1000,
@@ -259,10 +287,40 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
  * the whole thing inside the ordinary transform hierarchy instead of needing
  * a special case in the renderer.
  */
+/**
+ * Resolve `scene.template` into a plain scene spec.
+ *
+ * The template supplies the floor the set was drawn from, which is the point:
+ * `do:'move'` and the staging check then read the SAME declaration the art
+ * used, instead of an author re-deriving a slope by hand and getting it wrong.
+ * Anything the scene declares itself wins -- a template is a starting point,
+ * never a cage.
+ */
+function expandTemplate(sceneSpec, meta, palettes, diagnostics) {
+    if (!sceneSpec.template) return sceneSpec;
+    const built = buildSceneryTemplate(sceneSpec.template, meta, diagnostics,
+                                       `scenes.${sceneSpec.id}.template`);
+    if (!built) return sceneSpec;
+    // A time of day is a palette overlay, not a filter, so it recolours the
+    // set without touching any geometry -- and an authored palette still wins.
+    if (built.palette && sceneSpec.palette) {
+        palettes[sceneSpec.palette] = { ...built.palette, ...palettes[sceneSpec.palette] };
+    } else if (built.palette) {
+        palettes[`__t_${sceneSpec.id}`] = built.palette;
+    }
+    return {
+        ...sceneSpec,
+        palette: sceneSpec.palette ?? (built.palette ? `__t_${sceneSpec.id}` : undefined),
+        background: sceneSpec.background ?? built.background,
+        ground: sceneSpec.ground ?? built.ground,
+        scenery: [...built.scenery, ...(sceneSpec.scenery ?? [])],
+    };
+}
+
 function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics) {
     const items = sceneSpec.scenery ?? [];
     if (!items.length) return;
-    const palette = palettes[sceneSpec.palette] ?? {};
+    const palette = derivePalette(palettes[sceneSpec.palette] ?? {});
     const colorOf = (c) => (c == null ? null : (palette[c] ?? c));
 
     items.forEach((item, i) => {
@@ -280,7 +338,7 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnos
                 fill: colorOf(item.fill),
                 stroke: colorOf(item.stroke),
                 strokeWidth: item.strokeWidth,
-                gradient: item.gradient ?? null,
+                gradient: resolveGradient(item.gradient, colorOf),
                 alpha: item.alpha ?? 1,
                 screenSpace: item.screenSpace ?? false,
             }, assets, diagnostics, `scenes.${sceneSpec.id}.scenery.${item.id ?? i}`),
@@ -323,8 +381,17 @@ export function shotAt(film, t) {
 // ----------------------------------------------------------------- character
 
 function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
-                               entry, palettes, diagnostics, assets = {} }) {
-    const palette = { ...(palettes[char.palette] ?? {}), ...(entry.palette ?? {}) };
+                               entry, palettes, diagnostics, assets = {}, scenePalette }) {
+    // Derived, so a part can name `skinShade` and `skinLine` without the
+    // author having picked three tones per material -- and so a generated
+    // character renders at all with no palette declared, instead of sending
+    // the literal string "skin" to the canvas as a fill.
+    // A character with no palette of its own takes the SCENE's. Without the
+    // fallback a cast member silently renders in default colours while every
+    // piece of scenery around it uses the declared palette, which looks like
+    // a colour bug rather than a missing key.
+    const named = palettes[char.palette] ?? palettes[scenePalette] ?? {};
+    const palette = derivePalette({ ...named, ...(entry.palette ?? {}) });
     const colorOf = (c) => (c == null ? null : (palette[c] ?? c));
     const scale = entry.scale ?? 1;
     const at = entry.at ?? [0, 0];
@@ -332,7 +399,19 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
     scene.add({
         id: rootId, kind: 'group',
         transform: { x: at[0], y: at[1], sx: scale, sy: scale },
-        props: { alpha: entry.alpha ?? 1 },
+        // `view` and `expression` live on the root and are read by every
+        // feature below it through ancestor lookup, so one `set` turns a head
+        // whose dozen parts would otherwise need a dozen identical writes.
+        // Declared ONLY when the author asked for one. A blanket `view:
+        // 'front'` here would be the nearest declaration for every part below
+        // it, which silently overrides a part's own declared default -- the
+        // precedence has to run author > part default > first member.
+        props: {
+            alpha: entry.alpha ?? 1,
+            ...(entry.view ?? char.view ? { view: entry.view ?? char.view } : {}),
+            ...(entry.expression ?? char.expression
+                ? { expression: entry.expression ?? char.expression } : {}),
+        },
         z: entry.z ?? 0,
         tags: ['cast', charName],
     }, parentId);
@@ -353,7 +432,11 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
         const layers = Array.isArray(part.shapes) ? part.shapes : null;
         scene.add({
             id: nodeId,
-            kind: layers ? 'group' : (part.shape?.kind ?? 'group'),
+            // A part with BOTH a shape and layers keeps its own shape: the
+            // layers are children, and children draw over their parent, which
+            // is exactly base-then-shade. Forcing `group` whenever layers
+            // existed silently dropped the base drawing.
+            kind: part.shape?.kind ?? 'group',
             name: part.id,
             // The pivot is the joint: a limb rotates about where it attaches,
             // which is the whole trick behind a cutout rig reading correctly.
@@ -397,7 +480,7 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
     // Mouth: one node whose shape is swapped by the viseme track. Keeping all
     // shapes on a single node means lipsync writes one discrete channel.
     const mouthSpec = char.mouth
-        ?? (char.generate ? generateMouth(char.proportions) : null);
+        ?? (char.generate ? generateMouth(char.proportions, char.generate) : null);
     if (mouthSpec) {
         const m = mouthSpec;
         const shapes = {};
@@ -447,13 +530,24 @@ function swapProps(part, colorOf) {
     const spec = part.swap;
     if (!spec) return {};
     const swapSets = {};
-    const props = {};
+    const swapDefaults = {};
     for (const [channel, set] of Object.entries(spec)) {
         const shapes = set.shapes ?? set;
-        swapSets[channel] = shapes;
-        props[channel] = set.default ?? Object.keys(shapes)[0];
+        // A member may declare its own fill or stroke -- a closed eyelid is
+        // dark where an open eye is white -- so those resolve through the
+        // palette like any other colour.
+        swapSets[channel] = Object.fromEntries(Object.entries(shapes).map(([k, v]) => [k,
+            (v && (v.fill != null || v.stroke != null))
+                ? { ...v, ...(v.fill != null && { fill: colorOf(v.fill) }),
+                          ...(v.stroke != null && { stroke: colorOf(v.stroke) }) }
+                : v]));
+        // The default goes BESIDE the set, never onto `props[channel]`.
+        // Stamping it on the node made the node its own nearest declaration of
+        // the channel, so a `view` written once on the cast root could never
+        // reach the dozen head parts that have to turn with it.
+        swapDefaults[channel] = set.default ?? Object.keys(shapes)[0];
     }
-    return { swapSets, ...props };
+    return { swapSets, swapDefaults };
 }
 
 function shapeProps(shape) {
@@ -520,7 +614,8 @@ function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamer
  * previous value held at the start or the ramp begins from the default. Both
  * `pose` and `reach` need exactly this, so it lives in one place.
  */
-function writeChannel({ timeline, target, channel, value, at, span, ease, h }) {
+function writeChannel({ timeline, target, channel, value, at, span, ease, h,
+                       anticipate = 0, overshoot = 0 }) {
     const path = `transform.${channel}`;
     if (span == null) {
         key(timeline, target, path, at, value, { type: 'number', ease, h });
@@ -528,6 +623,17 @@ function writeChannel({ timeline, target, channel, value, at, span, ease, h }) {
     }
     const prev = lastValueBefore(timeline, target, path, at) ?? defaultChannel(channel);
     key(timeline, target, path, at, prev, { type: 'number', ease, h });
+    // Anticipation and follow-through both live here rather than in each
+    // verb, because `pose`, `move` and `reach` all write through this one
+    // function -- so one number on an action buys both for all three.
+    if (anticipate) {
+        key(timeline, target, path, at + span * ANTICIPATION_SHARE,
+            anticipationValue(prev, value, anticipate), { type: 'number', ease: 'smooth' });
+    }
+    if (overshoot) {
+        key(timeline, target, path, at + span * OVERSHOOT_AT,
+            overshootValue(prev, value, overshoot), { type: 'number', ease: 'smooth' });
+    }
     key(timeline, target, path, at + span, value, { type: 'number' });
 }
 
@@ -548,6 +654,8 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
     const span = action.for ?? null;
     const ease = action.ease ?? 'smooth';
     const h = action.h;
+    const anticipate = action.anticipate ?? 0;
+    const overshoot = action.overshoot ?? 0;
 
     switch (action.do) {
         case 'pose': {
@@ -557,7 +665,7 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             for (const [partId, channels] of Object.entries(pose)) {
                 for (const [channel, value] of Object.entries(channels)) {
                     writeChannel({ timeline, target: `${rootId}/${partId}`,
-                                   channel, value, at, span, ease, h });
+                                   channel, value, at, span, ease, h, anticipate, overshoot });
                 }
             }
             break;
@@ -577,9 +685,33 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             const prevY = lastValueBefore(timeline, rootId, 'transform.y', at)
                 ?? scene.get(rootId)?.transform.y ?? 0;
             const end = at + (span ?? (shotEnd - at));
+            const dur = end - at;
             key(timeline, rootId, 'transform.x', at, prevX, { type: 'number', ease, h });
-            key(timeline, rootId, 'transform.x', end, to[0], { type: 'number' });
             key(timeline, rootId, 'transform.y', at, prevY, { type: 'number', ease, h });
+            // Arcs. Two keys interpolate along a ruled straight line, which is
+            // the one path nothing alive ever travels. `arc` bows the middle
+            // of it; a jump, a thrown object and a shoulder-led step all need
+            // this and none of them can express it with two keys.
+            if (action.arc && dur > 0) {
+                const [mx, my] = arcMidpoint([prevX, prevY], [to[0], to[1]], action.arc);
+                key(timeline, rootId, 'transform.x', at + dur / 2, mx, { type: 'number', ease: 'smooth' });
+                key(timeline, rootId, 'transform.y', at + dur / 2, my, { type: 'number', ease: 'smooth' });
+            }
+            if (anticipate && dur > 0) {
+                const t = at + dur * ANTICIPATION_SHARE;
+                key(timeline, rootId, 'transform.x', t, anticipationValue(prevX, to[0], anticipate),
+                    { type: 'number', ease: 'smooth' });
+                key(timeline, rootId, 'transform.y', t, anticipationValue(prevY, to[1], anticipate),
+                    { type: 'number', ease: 'smooth' });
+            }
+            if (overshoot && dur > 0) {
+                const t = at + dur * OVERSHOOT_AT;
+                key(timeline, rootId, 'transform.x', t, overshootValue(prevX, to[0], overshoot),
+                    { type: 'number', ease: 'smooth' });
+                key(timeline, rootId, 'transform.y', t, overshootValue(prevY, to[1], overshoot),
+                    { type: 'number', ease: 'smooth' });
+            }
+            key(timeline, rootId, 'transform.x', end, to[0], { type: 'number' });
             key(timeline, rootId, 'transform.y', end, to[1], { type: 'number' });
             break;
         }
@@ -628,7 +760,8 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             });
             chain.bones.forEach((bone, i) => {
                 writeChannel({ timeline, target: `${rootId}/${bone.id}`,
-                               channel: 'rot', value: solved.rots[i], at, span, ease, h });
+                               channel: 'rot', value: solved.rots[i], at, span, ease, h,
+                               anticipate, overshoot });
             });
             if (solved.clamped) {
                 diagnostics.push({
@@ -662,14 +795,28 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
 
 function buildClipFromAction(clipId, name, spec) {
     const tracks = [];
-    for (const [channelPath, keys] of Object.entries(spec.keys ?? {})) {
-        const dot = channelPath.lastIndexOf('.');
+    // Overlapping action: parts further down a chain arrive late. `lag` is
+    // either a per-part map or one number plus an ordered `chain`, and
+    // without it an author has to hand-offset every key of every trailing
+    // part -- which is why a rig that CAN overlap usually does not.
+    const keyed = applyOverlap(spec.keys ?? {},
+                               overlapDelays(spec.lag, spec.chain ?? []));
+    for (const [channelPath, keys] of Object.entries(keyed)) {
+        // Split at the FIRST dot: a part id never contains one, but a channel
+        // can be `props.eyes`, and splitting at the last dot made the
+        // `props.` branch below unreachable -- so a generated action could
+        // only ever key a transform.
+        const dot = channelPath.indexOf('.');
         const partId = dot < 0 ? channelPath : channelPath.slice(0, dot);
         const channel = dot < 0 ? 'y' : channelPath.slice(dot + 1);
+        const first = Array.isArray(keys?.[0]) ? keys[0][1] : keys?.[0]?.v;
         const track = createTrack({
             target: partId,
             path: channel.startsWith('props.') ? channel : `transform.${channel}`,
-            type: 'number',
+            // A generated action may key a named shape rather than a number --
+            // a blink is a swap, not a scale -- and interpolating between two
+            // strings as numbers yields NaN.
+            type: typeof first === 'string' ? 'discrete' : 'number',
         });
         for (const entry of keys) {
             const [t, v, ease, h] = Array.isArray(entry) ? entry : [entry.t, entry.v, entry.ease, entry.h];

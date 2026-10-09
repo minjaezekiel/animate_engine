@@ -41,13 +41,38 @@ export const SWAP_FALLBACK = {
     },
 };
 
-/** The best available name in a set, given a channel's preference order. */
-export function resolveSwap(channel, wanted, shapes) {
-    if (shapes[wanted]) return wanted;
-    for (const candidate of SWAP_FALLBACK[channel]?.[wanted] ?? []) {
-        if (shapes[candidate]) return candidate;
+/**
+ * The best available name in a set, given a channel's preference order.
+ *
+ * `variant` is the current view. A member may be declared view-qualified as
+ * `open@profile`, which is how the one node that needs two channels to agree
+ * on the same geometry -- the mouth, whose chart both foreshortens with the
+ * head and changes with the viseme -- expresses the combination without a
+ * second channel fighting the first for `d`.
+ */
+export function resolveSwap(channel, wanted, shapes, variant = null) {
+    const order = [wanted, ...(SWAP_FALLBACK[channel]?.[wanted] ?? [])];
+    if (variant) {
+        for (const name of order) if (shapes[`${name}@${variant}`]) return `${name}@${variant}`;
     }
+    for (const name of order) if (shapes[name]) return name;
     return Object.keys(shapes)[0] ?? null;
+}
+
+/**
+ * A channel's value, inherited from the nearest ancestor that declares one.
+ *
+ * A head is a dozen nodes -- skull, ears, eyes, pupils, brows, nose, hair --
+ * and every one of them turns together or none of them does. Without
+ * inheritance an author would write a dozen identical `set` actions and a
+ * future thirteenth feature would silently stay facing front.
+ */
+function channelValue(scene, node, channel) {
+    for (let n = node; n; n = n.parentId ? scene.byId.get(n.parentId) : null) {
+        const v = n.props?.[channel];
+        if (v != null) return v;
+    }
+    return undefined;
 }
 
 /**
@@ -75,8 +100,11 @@ export function applySwapSets(scene) {
         const applied = node._swapNames ??= {};
         let changed = false;
         const wanted = {};
+        const view = channels.view ? null : channelValue(scene, node, 'view');
         for (const [channel, shapes] of Object.entries(channels)) {
-            const name = resolveSwap(channel, node.props[channel] ?? firstKey(shapes), shapes);
+            const asked = channelValue(scene, node, channel)
+                ?? node.props.swapDefaults?.[channel] ?? firstKey(shapes);
+            const name = resolveSwap(channel, asked, shapes, channel === 'view' ? null : view);
             wanted[channel] = name;
             if (applied[channel] !== name) changed = true;
         }

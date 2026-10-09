@@ -42,14 +42,35 @@ export function measureCharacter(parts) {
     };
 
     let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
-    for (const part of parts) {
-        const [ox, oy] = offsetOf(part);
-        const e = shapeExtent(part.shape, part.strokeWidth ?? 0);
-        if (!e) continue;
+    const take = (ox, oy, e) => {
+        if (!e) return;
         left = Math.min(left, ox + e.left);
         right = Math.max(right, ox + e.right);
         top = Math.min(top, oy + e.top);
         bottom = Math.max(bottom, oy + e.bottom);
+    };
+    for (const part of parts) {
+        const [ox, oy] = offsetOf(part);
+        const sw = part.strokeWidth ?? 0;
+        take(ox, oy, shapeExtent(part.shape, sw));
+        // A part may draw through a swap set instead of a single `shape` --
+        // every procedural head feature does -- and through stacked layers for
+        // cel tones. Measuring only `part.shape` lost the whole head, so the
+        // rig measured as a headless body and every frame check that used it
+        // was wrong by a head.
+        for (const set of Object.values(part.swap ?? {})) {
+            for (const shape of Object.values(set.shapes ?? set)) {
+                take(ox, oy, shapeExtent(shape, sw));
+            }
+        }
+        for (const layer of part.shapes ?? []) {
+            const lx = ox + (layer.at?.[0] ?? 0), ly = oy + (layer.at?.[1] ?? 0);
+            const lsw = layer.strokeWidth ?? sw;
+            take(lx, ly, shapeExtent(layer.shape, lsw));
+            for (const set of Object.values(layer.swap ?? {})) {
+                for (const shape of Object.values(set.shapes ?? set)) take(lx, ly, shapeExtent(shape, lsw));
+            }
+        }
     }
     if (!Number.isFinite(top)) return { top: 0, bottom: 0, left: 0, right: 0 };
     return { top, bottom, left, right };

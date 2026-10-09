@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-07 (end of Phase 9).
+Last updated: 2026-10-09 (end of Phases 10 and 11, plus the animation-principles audit).
 
 Legend: **done** · *partial* · — not started
 
@@ -418,6 +418,146 @@ line work — and `instantiateCharacter` was one part, one shape, one node. A
 part with `shapes: [...]` is now a group with layered children, which is the
 prerequisite for anything in Phase 10 that reads as drawn rather than as
 clip-art.
+
+---
+
+## Phase 10 — the procedural art provider — **done**
+
+Design and the corrections to it: [07-ART-SYSTEM.md](07-ART-SYSTEM.md).
+Vocabulary: [08-ART-VOCABULARY.md](08-ART-VOCABULARY.md).
+
+| Item | State |
+|---|---|
+| Enumerated face kit | **done** — `src/core/art/face.js`: 4 jaws, 5 eyes, 5 brows, 5 noses, 4 lip widths, 4 ear types, 7 hair styles |
+| Three views per feature | **done** — `front`, `threeQuarter`, `profile`, lerped from two authored outlines so they stay consistent |
+| Expressions | **done** — 6, as named geometry overrides rather than rotations |
+| Filled tapered limbs replacing strokes | **done** — `limbPath`, with `stroke` carrying the line work |
+| Two tones per part | **done** — flat base plus a hard-edged shade layer |
+| Line art | **done** — uniform-weight `stroke`, which is what limited animation draws with |
+| Proportions in head-heights | **done** — `heads`, plus 5 named builds; `headRatio` still wins when given |
+| Palette derivation | **done** — one colour per material yields `<name>Shade` and `<name>Line` |
+| Swap-channel inheritance | **done** — one `view` on the cast root turns a dozen head parts |
+| View-qualified swap members | **done** — `angry@profile`, `closed@threeQuarter`; lets two channels own the same `d` without fighting |
+| Vocabulary validated with named diagnostics | **done** — a typo reports the valid set and renders the default |
+| An external image-model provider | — not started, and still the right call: consistency across views is the known hard problem |
+
+### Seven contact sheets, and why that number matters
+
+Every fault worth fixing was invisible to the unit tests and visible
+immediately in a render: hair drawn over the whole face, the ear walking
+across the cheek as the head turned, the nose as a floating blob beside the
+eye, near-circular googly eyes, a shadow that swamped a turned head. The tests
+assert that the vocabulary is closed and deterministic, which they should.
+**They cannot assert that it looks right, and nothing cheap can.** Budget for
+looking.
+
+### Six defects this phase found in existing code
+
+Four were latent and would have bitten whoever came next.
+
+1. **`buildClipFromAction` split the channel at the LAST dot**, so its own
+   `props.` branch was unreachable — a generated action could only ever key a
+   transform, never a discrete swap.
+2. **A part with both `shape` and `shapes` lost its base drawing.** `kind` was
+   forced to `group` whenever layers existed.
+3. **`measureCharacter` read only `part.shape`**, so a rig whose head draws
+   through swap sets measured as a headless body — and every staging check
+   that used it was wrong by a head.
+4. **Gradient stops were never resolved through the palette.** Naming a colour
+   threw inside `ctx.addColorStop` and took the whole frame down.
+5. **A scene's palette never reached its cast**, so characters silently
+   rendered in default colours surrounded by correctly-coloured scenery.
+6. **`swapProps` stamped the default onto the node**, making every part its
+   own nearest declaration of the channel.
+
+### Format change: `hair`
+
+`generate.hair` named a palette key and now names a **style**; the colour is
+`generate.hairColor`, defaulting to the `hair` palette entry. A film still
+saying `"hair": "hair"` renders with a default cap and gets a warning naming
+the fix. `demo/film.json` and `demo/mountain.json` are migrated.
+
+### Known limits
+
+- An expression override is drawn per view, but not art-directed per view per
+  slot: an angry brow in profile is the angry brow's profile member.
+- A near arm raised above the shoulder draws over the head. Arms are the
+  neck's siblings under the torso and `z` only sorts siblings.
+- No clipping, deliberately. The draw loop is flat with no `save`/`restore`
+  stack, and cel shadows are authored to fit rather than clipped.
+- Gradients still only reach `rect` and the background.
+
+---
+
+## Phase 11 — scenery templates — **done**
+
+| Item | State |
+|---|---|
+| Templates | **done** — `living-room`, `kitchen`, `street`, `hillside`, `interior-wide` |
+| Props placed by name | **done** — 9, anchored by fraction of frame width (`"sofa@0.55"`), never pixels |
+| Times of day | **done** — 4, as a palette overlay that changes zero geometry |
+| A template returns its ground | **done** — so the art, `do:'move'` and the staging check read one declaration |
+| Authored scenery still wins | **done** — a template is a starting point, not a cage |
+| Templates scale to the frame | **done** — asserted at 640×360 and 1920×1080 |
+
+Lives at `scene.template`, not `background.template` as the design sketched:
+a template produces scenery *and* a ground, both scene-level, while
+`background` is specifically the backdrop fill.
+
+---
+
+## The twelve principles of animation — **audited, four built**
+
+Full audit: [09-PRINCIPLES.md](09-PRINCIPLES.md).
+
+Eight were already expressible; four could not be expressed without
+hand-writing extra keyframes every time, which in practice means they went
+unused. Those four are now one number on an action, in
+`src/core/anim/principles.js`.
+
+| Principle | Affordance | State |
+|---|---|---|
+| Anticipation | `anticipate` on `pose` · `move` · `reach` | **done** — one place, because all three write through `writeChannel` |
+| Follow through | `overshoot` on the same three | **done** |
+| Overlapping action | `lag` + `chain` on an action definition | **done** — the generated `walk` and `idle` use it |
+| Arcs | `arc` on `move` | **done** — bows the midpoint perpendicular to travel |
+| Squash and stretch | `squashKeys`, the `squash` action | **done** — volume-preserving; `breathe` corrected to match |
+| Staging · slow in/out · secondary action · timing · pose-to-pose · solid drawing · appeal | existing features, now named | **done** |
+| Exaggeration | `overshoot` + `squash` + head-heights | *partial* — no multiplier over an existing performance, and no reason yet to add one |
+
+Each of the four is asserted on the **compiled timeline**, not on the helper
+alone: a helper nothing calls is not an affordance.
+
+---
+
+### An operational trap, measured
+
+`npm run test:all` launches Chrome with a **throwaway** profile, so every e2e
+suite that voices dialogue re-downloads both Piper voice models — about
+**120 MB** — from scratch. Measured on a clean run: 26 s for the first model,
+48.7 s before `prepare` returns, against 0.25 ms/frame for the actual render.
+
+Two consequences worth knowing before debugging a "hang":
+
+- the suite is **network-bound**, not CPU-bound, and a stalled run sits at
+  **0% CPU** while it downloads;
+- running suites concurrently makes it look broken. Three overlapping Chrome
+  instances each pulling 120 MB turned a 48-second run into 15 minutes with no
+  output, which is indistinguishable from a deadlock until you check CPU.
+
+The fix, when it is worth it, is a persistent `userDataDir` so the models
+cache across runs. Not done: it touches all seven e2e harnesses and trades a
+known cost for profile-state flakiness. Measure before taking that trade.
+
+---
+
+## Phase 12 — the vocabulary document — *partial*
+
+| Item | State |
+|---|---|
+| `docs/08-ART-VOCABULARY.md` | **done** — every enum, every template, every prop, a complete worked scene, and an explicit list of what the system cannot do |
+| A reference two-hander dialogue film | — not started |
+| Authoring cost measured against the 57k baseline | — not measured; needs the reference film |
 
 ---
 

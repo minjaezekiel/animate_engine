@@ -27,7 +27,7 @@
     "boy": {
       "palette": "morning",
       "voice": "boy_v",
-      "generate": { "trouser": "trouser" },
+      "generate": { "trouser": "trouser", "hair": "afro-short" },
       "proportions": { "height": 132, "headRatio": 0.17, "shoulderWidth": 0.23 },
       "poses": {
         "stand":   { "torso": { "rot": 0 }, "head": { "rot": 0 },

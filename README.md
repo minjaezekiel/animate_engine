@@ -122,6 +122,9 @@ recovers both from the encoded file.
 | [docs/03-VOICE.md](docs/03-VOICE.md) | voice providers, casting, lipsync tiers |
 | [docs/04-RENDER-EXPORT.md](docs/04-RENDER-EXPORT.md) | the render loop, the MediaRecorder timing trap, frame budget, fallbacks |
 | [docs/05-PHASES.md](docs/05-PHASES.md) | roadmap |
+| [docs/07-ART-SYSTEM.md](docs/07-ART-SYSTEM.md) | the art system's design, and the corrections measurement forced on it |
+| [docs/08-ART-VOCABULARY.md](docs/08-ART-VOCABULARY.md) | **every name the procedural art accepts** — read this to author cheaply |
+| [docs/09-PRINCIPLES.md](docs/09-PRINCIPLES.md) | the twelve principles of animation, and the feature carrying each |
 | [docs/STATUS.md](docs/STATUS.md) | **implemented vs not** |
 | [docs/DEFECTS.md](docs/DEFECTS.md) | defect register — the legacy 3D engine, and what tests found in the new code |
 | [docs/CDN-AND-PWA.md](docs/CDN-AND-PWA.md) | library use, installing, offline |

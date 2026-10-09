@@ -1,6 +1,8 @@
 import { FILM_VERSION, KNOWN, DO_VERBS, TRANSITION_KINDS, KNOWN_SCENERY,
          ASSET_KINDS, SHAPE_KINDS } from './schema.js';
-import { generateActions } from './generate.js';
+import { generateActions, BUILDS } from './generate.js';
+import { FACE_KITS } from '../art/face.js';
+import { TEMPLATE_NAMES, TIME_NAMES, PROP_NAMES } from '../art/scenery.js';
 
 const GENERATED_ACTIONS = Object.keys(generateActions());
 
@@ -34,6 +36,7 @@ export function validateFilm(film) {
         if (!char.parts?.length && !char.generate) {
             warn(`characters.${name}`, 'No parts and no generate block; nothing will be drawn.');
         }
+        if (char.generate) validateGenerate(`characters.${name}.generate`, char.generate, warn);
         const ids = new Set();
         for (const part of char.parts ?? []) {
             unknown(`characters.${name}.parts.${part.id}`, part, KNOWN.part, warn);
@@ -60,12 +63,23 @@ export function validateFilm(film) {
                 warn(`${sp}.${t}.kind`, `Unknown transition "${kind}"; treated as fade.`);
             }
         }
+        if (scene.template) validateTemplate(`${sp}.template`, scene.template, warn);
         const castNames = new Set();
         for (const c of scene.cast ?? []) {
             const as = c.as ?? c.character;
             castNames.add(as);
+            unknown(`${sp}.cast.${as}`, c, KNOWN.cast, warn);
             if (!characters[c.character]) {
                 err(`${sp}.cast`, `Character "${c.character}" is not defined.`);
+            }
+            // `view` and `expression` are the two channels a cast entry can
+            // seed, and both are closed sets -- so a typo should name the set
+            // rather than silently stage the character facing the wrong way.
+            for (const [key, kit] of [['view', FACE_KITS.view], ['expression', FACE_KITS.expression]]) {
+                if (c[key] != null && !kit.includes(c[key])) {
+                    warn(`${sp}.cast.${as}.${key}`,
+                         `Unknown ${key} "${c[key]}". Known: ${kit.join(', ')}.`);
+                }
             }
         }
         if (!scene.shots?.length) warn(`${sp}.shots`, 'Scene has no shots; it will take no time.');
@@ -146,6 +160,52 @@ export function validateFilm(film) {
     });
 
     return d;
+}
+
+/**
+ * The procedural vocabulary is a closed set, so a typo is reportable rather
+ * than silently rendered as the default face. That reportability is the whole
+ * argument for enumerating it in the first place: an author who cannot see
+ * their own output needs the engine to say "that is not a jaw".
+ */
+function validateGenerate(path, generate, warn) {
+    unknown(path, generate, KNOWN.generate, warn);
+    if (generate.build != null && typeof generate.build === 'string'
+        && !(generate.build in BUILDS)) {
+        warn(`${path}.build`, `Unknown build "${generate.build}". `
+            + `Known: ${Object.keys(BUILDS).join(', ')}.`);
+    }
+    if (generate.hair != null && !FACE_KITS.hair.includes(generate.hair)) {
+        warn(`${path}.hair`, `Unknown hair "${generate.hair}"; a default cap is drawn. `
+            + `Known: ${FACE_KITS.hair.join(', ')}.`);
+    }
+    if (generate.face) {
+        unknown(`${path}.face`, generate.face, KNOWN.face, warn);
+        for (const [slot, value] of Object.entries(generate.face)) {
+            const kit = FACE_KITS[slot === 'brow' ? 'brow' : slot];
+            if (kit && value != null && !kit.includes(value)) {
+                warn(`${path}.face.${slot}`,
+                     `Unknown ${slot} "${value}"; the default is used. Known: ${kit.join(', ')}.`);
+            }
+        }
+    }
+}
+
+function validateTemplate(path, template, warn) {
+    const spec = typeof template === 'string' ? { template } : template;
+    unknown(path, spec, KNOWN.template, warn);
+    if (!TEMPLATE_NAMES.includes(spec.template)) {
+        warn(path, `Unknown scenery template "${spec.template}". Known: ${TEMPLATE_NAMES.join(', ')}.`);
+    }
+    if (spec.time != null && !TIME_NAMES.includes(spec.time)) {
+        warn(`${path}.time`, `Unknown time "${spec.time}". Known: ${TIME_NAMES.join(', ')}.`);
+    }
+    for (const entry of spec.props ?? []) {
+        const name = String(entry).split('@')[0];
+        if (!PROP_NAMES.includes(name)) {
+            warn(`${path}.props`, `Unknown prop "${name}". Known: ${PROP_NAMES.join(', ')}.`);
+        }
+    }
 }
 
 function unknown(path, obj, known, warn) {

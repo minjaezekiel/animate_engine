@@ -88,7 +88,13 @@ if (process.env.CHECK === '1') {
 console.log(`rendering ${FILM} at ${WIDTH}x${HEIGHT}${PROBE ? ' (probe, no encode)' : ''}`);
 const t0 = Date.now();
 const out = await page.evaluate((f, o) => window.render3d(f, o), film,
-    { width: WIDTH, height: HEIGHT, probe: PROBE, durationSec: DURATION, grab: GRAB, silent: SILENT });
+    { width: WIDTH, height: HEIGHT, probe: PROBE, durationSec: DURATION, grab: GRAB, silent: SILENT,
+      where: process.env.WHERE ? process.env.WHERE.split(',') : null, at: Number(process.env.AT ?? 0) });
+
+if (out.where) {
+    for (const [k, v] of Object.entries(out.where)) console.log(`  ${k.padEnd(18)} ${JSON.stringify(v)}`);
+    await browser.close(); server.close(); process.exit(0);
+}
 
 if (out.frames) {
     await mkdir(join(ROOT, dirname(OUT)), { recursive: true });

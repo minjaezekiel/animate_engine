@@ -806,3 +806,36 @@ The four gaps Phase 14 reported. Full detail:
   along it.
 
 198 unit tests pass.
+
+---
+
+## Phase 16 — characters in 3D — **done**
+
+A presenter explaining order blocks, with a screen, a rig, lipsync and facial
+performance. Full findings: [14-CHARACTER-3D.md](14-CHARACTER-3D.md).
+
+| Item | State |
+|---|---|
+| `SkinnedMesh` / `Skeleton` construction from scratch | **done** — this was the open half of Phase 4. 25 bones, automatic weights, built from a pure data table |
+| Swept elliptical surfaces with profile curves | **done** — circular cross-sections and linear tapers are what make a figure read as plumbing; a chest is two thirds as deep as it is wide and a calf bulges a third of the way down |
+| Procedural clothing | **done** — the body's own segments inflated, so a garment cannot clip through the body it is derived from |
+| A generated head from a ring stack | **done** — chin, jaw angle, cheekbones, braincase and crown, rather than a sphere |
+| 24 procedural blendshapes, ARKit-named | **done** — `morph.<name>` had worked since Phase 3 and nothing had ever built a target, so the channel was unreachable |
+| Lipsync onto a 3D face | **done** — the 2D viseme track read through `VISEME_SHAPES`, with no two visemes opening the jaw the same amount |
+| Expressions, blinks, saccades | **done** — asymmetric blinks (80 ms closed, 150 ms open), jittered intervals, 7°/3° saccade thresholds, all from the literature |
+| `express` and `nudge` verbs | **done** — `nudge` offsets from the bind pose, because `move` on a bone destroys it |
+| Canvas text textures | **done** — the 3D path had no texturing, so a presenter could stand in front of a screen that could not say anything |
+| TTS on the 3D path | **done** — and it had been failing silently; `film3d.html`'s import map was missing `onnxruntime-web` |
+| Sculpting, UVs, textures, SSS, hair, cloth sim, IK, correctives | **not done** — see [the ceiling](14-CHARACTER-3D.md#6-the-ceiling-honestly) |
+
+### Defects this test found
+
+Twelve, including four that only a rendered frame could catch: a skeleton
+whose surfaces stole each other's bones; inverse bind matrices computed
+against an un-updated `matrixWorld`; distance-based skin weights binding a hip
+to a forearm and a thigh to a fingertip; and inverted winding that left the
+body showing the inside of its far wall while every garment over it was
+culled. Plus a flaw in Phase 15's own camera-cut fix, which carried its nudge
+into the arrival key and so collided all over again.
+
+213 unit tests pass.

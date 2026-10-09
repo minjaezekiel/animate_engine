@@ -1,4 +1,5 @@
 import { trackValueAt } from '../anim/Track.js';
+import { humanoidSpec, bindPose } from '../art/humanoid3d.js';
 
 /**
  * Does the 3D camera actually see what the shot is about, and is the frame
@@ -72,6 +73,24 @@ export function castBounds(scene, rootId) {
     const hi = [-Infinity, -Infinity, -Infinity];
     let found = false;
     scene.walk((node) => {
+        // A humanoid carries no geometry in the core scene -- the backend
+        // skins it from a bone table -- so measuring only `mesh` nodes
+        // measured a presenter by his eyes and his tie. The rig's own bind
+        // pose is the body.
+        if (node.kind === 'humanoid') {
+            const spec = humanoidSpec({ outfit: node.props?.outfit, height: node.props?.height });
+            const pose = bindPose(spec.bones);
+            const origin = worldAt(scene, node);
+            const pad = 0.16 * spec.scale;
+            for (const at of pose.values()) {
+                for (let i = 0; i < 3; i++) {
+                    lo[i] = Math.min(lo[i], origin[i] + at[i] - pad);
+                    hi[i] = Math.max(hi[i], origin[i] + at[i] + pad);
+                }
+            }
+            found = true;
+            return;
+        }
         if (node.kind !== 'mesh') return;
         const at = worldAt(scene, node);
         const e = extentOf(node.props?.geometry);

@@ -1,0 +1,7298 @@
+{
+ "version": "jirex.film3d/1",
+ "meta": {
+  "title": "Order Blocks, explained",
+  "fps": 24,
+  "width": 1280,
+  "height": 720,
+  "background": "#0a0e14",
+  "bloom": {
+   "strength": 0.35,
+   "radius": 0.5,
+   "threshold": 0.9
+  }
+ },
+ "materials": {
+  "skin": {
+   "color": "#d8a584",
+   "metalness": 0,
+   "roughness": 0.78
+  },
+  "eyeWhite": {
+   "color": "#f6f8fa",
+   "metalness": 0,
+   "roughness": 0.28
+  },
+  "iris": {
+   "color": "#3d6f9e",
+   "metalness": 0,
+   "roughness": 0.3
+  },
+  "pupil": {
+   "color": "#0d1116",
+   "metalness": 0,
+   "roughness": 0.2
+  },
+  "lip": {
+   "color": "#bd7a70",
+   "metalness": 0,
+   "roughness": 0.6
+  },
+  "mouth": {
+   "color": "#43222a",
+   "metalness": 0,
+   "roughness": 0.85
+  },
+  "hair": {
+   "color": "#473425",
+   "metalness": 0,
+   "roughness": 0.82
+  },
+  "jacket": {
+   "color": "#46536a",
+   "metalness": 0,
+   "roughness": 0.74
+  },
+  "shirt": {
+   "color": "#e9eef4",
+   "metalness": 0,
+   "roughness": 0.66
+  },
+  "tie": {
+   "color": "#8d313c",
+   "metalness": 0.05,
+   "roughness": 0.58
+  },
+  "trouser": {
+   "color": "#3b4557",
+   "metalness": 0,
+   "roughness": 0.78
+  },
+  "shoe": {
+   "color": "#17191e",
+   "metalness": 0.2,
+   "roughness": 0.45
+  },
+  "floor": {
+   "color": "#13171e",
+   "metalness": 0.35,
+   "roughness": 0.55
+  },
+  "backdrop": {
+   "color": "#1b232e",
+   "metalness": 0,
+   "roughness": 0.95
+  },
+  "glow": {
+   "color": "#2a68c8",
+   "emissive": "#2a68c8",
+   "emissiveIntensity": 1.6,
+   "roughness": 1
+  },
+  "bezel": {
+   "color": "#1b2029",
+   "metalness": 0.6,
+   "roughness": 0.4
+  },
+  "panel": {
+   "color": "#0b1119",
+   "metalness": 0,
+   "roughness": 0.9
+  },
+  "bull": {
+   "color": "#3ecf8e",
+   "emissive": "#1d6c49",
+   "emissiveIntensity": 0.5,
+   "roughness": 0.6
+  },
+  "bear": {
+   "color": "#e85d5d",
+   "emissive": "#7a2626",
+   "emissiveIntensity": 0.5,
+   "roughness": 0.6
+  },
+  "obCandle": {
+   "color": "#ffb33c",
+   "emissive": "#c06f10",
+   "emissiveIntensity": 1.1,
+   "roughness": 0.5
+  },
+  "obZone": {
+   "color": "#ffb33c",
+   "emissive": "#8a5a12",
+   "emissiveIntensity": 0.5,
+   "opacity": 0.22,
+   "transparent": true,
+   "roughness": 1
+  },
+  "entry": {
+   "color": "#59a7ff",
+   "emissive": "#2f6bb5",
+   "emissiveIntensity": 1.2,
+   "roughness": 0.6
+  },
+  "stop": {
+   "color": "#ff6b6b",
+   "emissive": "#a52f2f",
+   "emissiveIntensity": 1.2,
+   "roughness": 0.6
+  },
+  "target": {
+   "color": "#3ecf8e",
+   "emissive": "#1d6c49",
+   "emissiveIntensity": 1.2,
+   "roughness": 0.6
+  }
+ },
+ "voices": {
+  "host": {
+   "spec": "tts:en_GB-northern_english_male-medium"
+  }
+ },
+ "lights": [
+  {
+   "id": "amb",
+   "type": "ambient",
+   "color": "#8d9cb0",
+   "intensity": 1.9
+  },
+  {
+   "id": "key",
+   "type": "directional",
+   "color": "#fff4e6",
+   "intensity": 3.4,
+   "at": [
+    -2.2,
+    3,
+    4
+   ],
+   "castShadow": true
+  },
+  {
+   "id": "fill",
+   "type": "directional",
+   "color": "#a8c8ff",
+   "intensity": 1.7,
+   "at": [
+    2.6,
+    1.6,
+    3.2
+   ]
+  },
+  {
+   "id": "face",
+   "type": "point",
+   "color": "#ffeedd",
+   "intensity": 0.35,
+   "at": [
+    -0.55,
+    1.58,
+    2.1
+   ],
+   "distance": 4
+  },
+  {
+   "id": "rim",
+   "type": "directional",
+   "color": "#8fb6ff",
+   "intensity": 2.1,
+   "at": [
+    0.6,
+    2.4,
+    -2.6
+   ]
+  },
+  {
+   "id": "screenSpill",
+   "type": "point",
+   "color": "#3f8cff",
+   "intensity": 2.2,
+   "at": [
+    0.42000000000000004,
+    1.33,
+    0.5
+   ],
+   "distance": 4.5
+  }
+ ],
+ "characters": {
+  "presenter": {
+   "rig": "humanoid",
+   "height": 1.82,
+   "outfit": "suit",
+   "voice": "host",
+   "skin": "skin",
+   "jacket": "jacket",
+   "shirt": "shirt",
+   "trouser": "trouser",
+   "shoe": "shoe",
+   "parts": [
+    {
+     "id": "cheekL",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.026
+     },
+     "material": "skin",
+     "at": [
+      0.049,
+      0.012,
+      0.05
+     ],
+     "scale": [
+      1,
+      0.62,
+      0.62
+     ]
+    },
+    {
+     "id": "cheekR",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.026
+     },
+     "material": "skin",
+     "at": [
+      -0.049,
+      0.012,
+      0.05
+     ],
+     "scale": [
+      1,
+      0.62,
+      0.62
+     ]
+    },
+    {
+     "id": "eyeL",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0142
+     },
+     "material": "eyeWhite",
+     "at": [
+      0.033,
+      0.0465,
+      0.0735
+     ]
+    },
+    {
+     "id": "eyeR",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0142
+     },
+     "material": "eyeWhite",
+     "at": [
+      -0.033,
+      0.0465,
+      0.0735
+     ]
+    },
+    {
+     "id": "irisL",
+     "parent": "eyeL",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0063
+     },
+     "material": "iris",
+     "at": [
+      0,
+      0,
+      0.0092
+     ]
+    },
+    {
+     "id": "irisR",
+     "parent": "eyeR",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0063
+     },
+     "material": "iris",
+     "at": [
+      0,
+      0,
+      0.0092
+     ]
+    },
+    {
+     "id": "pupilL",
+     "parent": "irisL",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0029
+     },
+     "material": "pupil",
+     "at": [
+      0,
+      0,
+      0.0046
+     ]
+    },
+    {
+     "id": "pupilR",
+     "parent": "irisR",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0029
+     },
+     "material": "pupil",
+     "at": [
+      0,
+      0,
+      0.0046
+     ]
+    },
+    {
+     "id": "lidL",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0151
+     },
+     "material": "skin",
+     "at": [
+      0.033,
+      0.0495,
+      0.073
+     ],
+     "scale": [
+      1,
+      0.1,
+      1
+     ]
+    },
+    {
+     "id": "lidR",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0151
+     },
+     "material": "skin",
+     "at": [
+      -0.033,
+      0.0495,
+      0.073
+     ],
+     "scale": [
+      1,
+      0.1,
+      1
+     ]
+    },
+    {
+     "id": "browL",
+     "parent": "head",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.03,
+      "height": 0.0062,
+      "depth": 0.011
+     },
+     "material": "hair",
+     "at": [
+      0.033,
+      0.068,
+      0.081
+     ],
+     "rot": [
+      0,
+      0,
+      -7
+     ]
+    },
+    {
+     "id": "browR",
+     "parent": "head",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.03,
+      "height": 0.0062,
+      "depth": 0.011
+     },
+     "material": "hair",
+     "at": [
+      -0.033,
+      0.068,
+      0.081
+     ],
+     "rot": [
+      0,
+      0,
+      7
+     ]
+    },
+    {
+     "id": "noseBridge",
+     "parent": "head",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.016,
+      "height": 0.044,
+      "depth": 0.02
+     },
+     "material": "skin",
+     "at": [
+      0,
+      0.038,
+      0.0805
+     ],
+     "rot": [
+      -10,
+      0,
+      0
+     ]
+    },
+    {
+     "id": "noseTip",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0132
+     },
+     "material": "skin",
+     "at": [
+      0,
+      0.014,
+      0.0885
+     ],
+     "scale": [
+      1.08,
+      0.86,
+      1
+     ]
+    },
+    {
+     "id": "nostrilL",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0066
+     },
+     "material": "skin",
+     "at": [
+      0.0118,
+      0.0104,
+      0.0835
+     ]
+    },
+    {
+     "id": "nostrilR",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0066
+     },
+     "material": "skin",
+     "at": [
+      -0.0118,
+      0.0104,
+      0.0835
+     ]
+    },
+    {
+     "id": "mouth",
+     "parent": "jaw",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.034,
+      "height": 0.008,
+      "depth": 0.014
+     },
+     "material": "mouth",
+     "at": [
+      0,
+      -0.0325,
+      0.0665
+     ]
+    },
+    {
+     "id": "lipUpper",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0215
+     },
+     "material": "lip",
+     "at": [
+      0,
+      -0.0225,
+      0.0695
+     ],
+     "scale": [
+      1,
+      0.3,
+      0.42
+     ]
+    },
+    {
+     "id": "lipLower",
+     "parent": "jaw",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0205
+     },
+     "material": "lip",
+     "at": [
+      0,
+      -0.0415,
+      0.068
+     ],
+     "scale": [
+      1,
+      0.34,
+      0.42
+     ]
+    },
+    {
+     "id": "chin",
+     "parent": "jaw",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.03
+     },
+     "material": "skin",
+     "at": [
+      0,
+      -0.0605,
+      0.0455
+     ],
+     "scale": [
+      1.18,
+      0.8,
+      0.86
+     ]
+    },
+    {
+     "id": "hair",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0995
+     },
+     "material": "hair",
+     "at": [
+      0,
+      0.0825,
+      -0.0145
+     ],
+     "scale": [
+      1.01,
+      0.92,
+      1
+     ]
+    },
+    {
+     "id": "hairBack",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.088
+     },
+     "material": "hair",
+     "at": [
+      0,
+      0.028,
+      -0.034
+     ],
+     "scale": [
+      1.03,
+      1,
+      0.9
+     ]
+    },
+    {
+     "id": "earL",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0175
+     },
+     "material": "skin",
+     "at": [
+      0.0815,
+      0.03,
+      0.004
+     ],
+     "scale": [
+      0.42,
+      1.25,
+      0.92
+     ]
+    },
+    {
+     "id": "earR",
+     "parent": "head",
+     "geometry": {
+      "kind": "sphere",
+      "radius": 0.0175
+     },
+     "material": "skin",
+     "at": [
+      -0.0815,
+      0.03,
+      0.004
+     ],
+     "scale": [
+      0.42,
+      1.25,
+      0.92
+     ]
+    },
+    {
+     "id": "collar",
+     "parent": "chest",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.078,
+      "radiusBottom": 0.09,
+      "height": 0.07
+     },
+     "material": "shirt",
+     "at": [
+      0,
+      0.135,
+      0.004
+     ]
+    },
+    {
+     "id": "tie",
+     "parent": "chest",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.042,
+      "height": 0.26,
+      "depth": 0.02
+     },
+     "material": "tie",
+     "at": [
+      0,
+      0,
+      0.125
+     ],
+     "rot": [
+      -6,
+      0,
+      0
+     ]
+    }
+   ]
+  }
+ },
+ "assemblies": {
+  "set": {
+   "parts": [
+    {
+     "id": "floor",
+     "geometry": {
+      "kind": "cube",
+      "width": 12,
+      "height": 0.1,
+      "depth": 10
+     },
+     "material": "floor",
+     "at": [
+      0,
+      -0.05,
+      -1.5
+     ]
+    },
+    {
+     "id": "backdrop",
+     "geometry": {
+      "kind": "cube",
+      "width": 12,
+      "height": 5,
+      "depth": 0.1
+     },
+     "material": "backdrop",
+     "at": [
+      0,
+      2.4,
+      -2.2
+     ]
+    },
+    {
+     "id": "deskGlow",
+     "geometry": {
+      "kind": "cube",
+      "width": 3.4,
+      "height": 0.02,
+      "depth": 1.2
+     },
+     "material": "glow",
+     "at": [
+      0.3,
+      0.012,
+      0.5
+     ]
+    },
+    {
+     "id": "bezel",
+     "geometry": {
+      "kind": "cube",
+      "width": 2.5100000000000002,
+      "height": 1.44,
+      "depth": 0.05
+     },
+     "material": "bezel",
+     "at": [
+      0.92,
+      1.33,
+      -0.32
+     ]
+    },
+    {
+     "id": "panel",
+     "geometry": {
+      "kind": "cube",
+      "width": 2.45,
+      "height": 1.38,
+      "depth": 0.02
+     },
+     "material": "panel",
+     "at": [
+      0.92,
+      1.33,
+      -0.3
+     ]
+    },
+    {
+     "id": "stand",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.04,
+      "radiusBottom": 0.07,
+      "height": 0.6300000000000001
+     },
+     "material": "bezel",
+     "at": [
+      0.92,
+      0.31500000000000006,
+      -0.32
+     ]
+    },
+    {
+     "id": "wick0",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.0742105263157895,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      -0.0607692307692308,
+      1.0950000000000002,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle0",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.02473684210526314,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      -0.0607692307692308,
+      1.0950000000000002,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick1",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.0742105263157895,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      0.017692307692307785,
+      1.0950000000000002,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle1",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.02473684210526314,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      0.017692307692307785,
+      1.0950000000000002,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick2",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.07421052631578948,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      0.09615384615384615,
+      1.070263157894737,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle2",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.024736842105263168,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      0.09615384615384615,
+      1.070263157894737,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick3",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.07421052631578948,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      0.17461538461538462,
+      1.070263157894737,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle3",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.024736842105263168,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      0.17461538461538462,
+      1.070263157894737,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick4",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.07421052631578948,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      0.2530769230769231,
+      1.070263157894737,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle4",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.049473684210526336,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      0.2530769230769231,
+      1.0578947368421052,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick5",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.0742105263157895,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      0.33153846153846156,
+      1.0455263157894739,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle5",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.024736842105263168,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      0.33153846153846156,
+      1.0455263157894739,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick6",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.0742105263157895,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      0.41000000000000003,
+      1.0455263157894739,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle6",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.024736842105263168,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      0.41000000000000003,
+      1.0455263157894739,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick7",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.09894736842105262,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      0.4884615384615384,
+      1.0084210526315789,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle7",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.04947368421052628,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      0.4884615384615384,
+      1.0084210526315789,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick8",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.09894736842105256,
+      "depth": 0.008
+     },
+     "material": "obCandle",
+     "at": [
+      0.566923076923077,
+      0.9589473684210528,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle8",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.06431578947368427,
+      "depth": 0.016
+     },
+     "material": "obCandle",
+     "at": [
+      0.566923076923077,
+      0.9515263157894738,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick9",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.1632631578947369,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      0.6453846153846153,
+      1.0010000000000001,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle9",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.1459473684210526,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      0.6453846153846153,
+      0.9972894736842106,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick10",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.14842105263157895,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      0.7238461538461539,
+      1.1321052631578947,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle10",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.12121052631578949,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      0.7238461538461539,
+      1.1308684210526316,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick11",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.12368421052631579,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      0.8023076923076923,
+      1.243421052631579,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle11",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.10389473684210532,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      0.8023076923076923,
+      1.243421052631579,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick12",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.07421052631578945,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      0.8807692307692309,
+      1.3176315789473685,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle12",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.0395789473684211,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      0.8807692307692309,
+      1.3151578947368423,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick13",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.11378947368421055,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      0.9592307692307694,
+      1.2879473684210527,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle13",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.09400000000000014,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      0.9592307692307694,
+      1.2879473684210527,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick14",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.12368421052631573,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      1.037692307692308,
+      1.1939473684210526,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle14",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.10142105263157897,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      1.037692307692308,
+      1.1902368421052631,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick15",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.12368421052631579,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      1.1161538461538463,
+      1.095,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle15",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.09647368421052627,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      1.1161538461538463,
+      1.0912894736842107,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick16",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.10884210526315785,
+      "depth": 0.008
+     },
+     "material": "bear",
+     "at": [
+      1.1946153846153846,
+      1.0034736842105265,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle16",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.07915789473684204,
+      "depth": 0.016
+     },
+     "material": "bear",
+     "at": [
+      1.1946153846153846,
+      1.0034736842105265,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick17",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.09399999999999986,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.2730769230769234,
+      0.9861578947368422,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle17",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.05936842105263157,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.2730769230769234,
+      0.9935789473684212,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick18",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.12368421052631584,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.3515384615384618,
+      1.070263157894737,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle18",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.09894736842105262,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.3515384615384618,
+      1.0727368421052632,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick19",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.12368421052631581,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.4300000000000002,
+      1.1692105263157895,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle19",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.09399999999999992,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.4300000000000002,
+      1.1692105263157895,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick20",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.12368421052631579,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.5084615384615385,
+      1.2681578947368422,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle20",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.10142105263157897,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.5084615384615385,
+      1.266921052631579,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick21",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.12368421052631584,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.5869230769230769,
+      1.3671052631578948,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle21",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.09647368421052649,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.5869230769230769,
+      1.3658684210526317,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick22",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.12368421052631573,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.6653846153846157,
+      1.4660526315789475,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle22",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.09399999999999986,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.6653846153846157,
+      1.461105263157895,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick23",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.10884210526315807,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.743846153846154,
+      1.5476842105263158,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle23",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.0791578947368422,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.743846153846154,
+      1.547684210526316,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick24",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.09894736842105267,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.8223076923076924,
+      1.626842105263158,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle24",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.07915789473684187,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.8223076923076924,
+      1.626842105263158,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "wick25",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.007783384615384616,
+      "height": 0.09894736842105267,
+      "depth": 0.008
+     },
+     "material": "bull",
+     "at": [
+      1.9007692307692308,
+      1.7010526315789474,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "candle25",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.048646153846153846,
+      "height": 0.06926315789473703,
+      "depth": 0.016
+     },
+     "material": "bull",
+     "at": [
+      1.9007692307692308,
+      1.7010526315789474,
+      -0.284
+     ],
+     "scale": 0
+    },
+    {
+     "id": "obZone",
+     "geometry": {
+      "kind": "cube",
+      "width": 1.4217230769230769,
+      "height": 0.09894736842105256,
+      "depth": 0.006
+     },
+     "material": "obZone",
+     "scale": 0,
+     "at": [
+      1.2413,
+      0.9589473684210528,
+      -0.27999999999999997
+     ]
+    },
+    {
+     "id": "entryLine",
+     "geometry": {
+      "kind": "cube",
+      "width": 1.4217230769230769,
+      "height": 0.007,
+      "depth": 0.004
+     },
+     "material": "entry",
+     "scale": 0,
+     "at": [
+      1.2413,
+      1.0084210526315789,
+      -0.27199999999999996
+     ]
+    },
+    {
+     "id": "stopLine",
+     "geometry": {
+      "kind": "cube",
+      "width": 1.4217230769230769,
+      "height": 0.007,
+      "depth": 0.004
+     },
+     "material": "stop",
+     "scale": 0,
+     "at": [
+      1.2413,
+      0.8797894736842106,
+      -0.27199999999999996
+     ]
+    },
+    {
+     "id": "targetLine",
+     "geometry": {
+      "kind": "cube",
+      "width": 1.4217230769230769,
+      "height": 0.007,
+      "depth": 0.004
+     },
+     "material": "target",
+     "scale": 0,
+     "at": [
+      1.2413,
+      1.6763157894736844,
+      -0.27199999999999996
+     ]
+    },
+    {
+     "id": "slideTitle",
+     "geometry": {
+      "kind": "plane",
+      "width": 2.45,
+      "height": 1.38
+     },
+     "material": {
+      "text": {
+       "lines": [
+        {
+         "text": "ORDER BLOCKS",
+         "size": 86,
+         "color": "#ffffff"
+        },
+        {
+         "text": "where institutions left their footprint",
+         "size": 42,
+         "color": "#8fb2d9"
+        },
+        {
+         "text": "",
+         "size": 30
+        },
+        {
+         "text": "A practical walkthrough",
+         "size": 38,
+         "color": "#3f8cff"
+        }
+       ],
+       "background": "#0b1119",
+       "accent": "#3f8cff",
+       "top": 0.22
+      }
+     },
+     "at": [
+      0.92,
+      1.33,
+      -0.27
+     ],
+     "scale": 0
+    },
+    {
+     "id": "slideDefine",
+     "geometry": {
+      "kind": "plane",
+      "width": 2.45,
+      "height": 1.38
+     },
+     "material": {
+      "text": {
+       "lines": [
+        {
+         "text": "WHAT IS IT?",
+         "size": 46,
+         "color": "#3f8cff"
+        },
+        {
+         "text": "",
+         "size": 18
+        },
+        {
+         "text": "The last opposing candle",
+         "size": 62
+        },
+        {
+         "text": "before a strong move.",
+         "size": 62
+        },
+        {
+         "text": "",
+         "size": 18
+        },
+        {
+         "text": "Down candle → up move  =  bullish OB",
+         "size": 36,
+         "color": "#57d6a0"
+        },
+        {
+         "text": "Up candle → down move  =  bearish OB",
+         "size": 36,
+         "color": "#ff6b6b"
+        }
+       ],
+       "background": "#0b1119",
+       "accent": "#3f8cff",
+       "top": 0.1
+      }
+     },
+     "at": [
+      0.92,
+      1.33,
+      -0.27
+     ],
+     "scale": 0
+    },
+    {
+     "id": "slideRules",
+     "geometry": {
+      "kind": "plane",
+      "width": 2.45,
+      "height": 1.38
+     },
+     "material": {
+      "text": {
+       "lines": [
+        {
+         "text": "THE THREE RULES",
+         "size": 46,
+         "color": "#3f8cff"
+        },
+        {
+         "text": "",
+         "size": 20
+        },
+        {
+         "text": "1.  Wait for the displacement",
+         "size": 54
+        },
+        {
+         "text": "2.  Mark the zone",
+         "size": 54
+        },
+        {
+         "text": "3.  Only take the retest",
+         "size": 54
+        }
+       ],
+       "background": "#0b1119",
+       "accent": "#3f8cff",
+       "top": 0.14
+      }
+     },
+     "at": [
+      0.92,
+      1.33,
+      -0.27
+     ],
+     "scale": 0
+    },
+    {
+     "id": "slideRisk",
+     "geometry": {
+      "kind": "plane",
+      "width": 2.45,
+      "height": 1.38
+     },
+     "material": {
+      "text": {
+       "lines": [
+        {
+         "text": "RISK",
+         "size": 46,
+         "color": "#ff6b6b"
+        },
+        {
+         "text": "",
+         "size": 20
+        },
+        {
+         "text": "Order blocks fail.",
+         "size": 62
+        },
+        {
+         "text": "Size the position so that",
+         "size": 46,
+         "color": "#b9c7d6"
+        },
+        {
+         "text": "when one does, you are still",
+         "size": 46,
+         "color": "#b9c7d6"
+        },
+        {
+         "text": "trading tomorrow.",
+         "size": 46,
+         "color": "#b9c7d6"
+        }
+       ],
+       "background": "#0b1119",
+       "accent": "#3f8cff",
+       "top": 0.12
+      }
+     },
+     "at": [
+      0.92,
+      1.33,
+      -0.27
+     ],
+     "scale": 0
+    }
+   ]
+  }
+ },
+ "cast": [
+  {
+   "character": "presenter",
+   "as": "host",
+   "at": [
+    -0.78,
+    0,
+    0.25
+   ],
+   "rot": [
+    0,
+    14,
+    0
+   ],
+   "voice": "host"
+  },
+  {
+   "assembly": "set",
+   "as": "set",
+   "at": [
+    0,
+    0,
+    0
+   ],
+   "set": true
+  }
+ ],
+ "scenes": [
+  {
+   "id": "main",
+   "shots": [
+    {
+     "id": "01-open",
+     "duration": 7.5,
+     "framing": "medium",
+     "on": "host",
+     "camera": {
+      "from": {
+       "at": [
+        -0.28,
+        1.83,
+        4.45
+       ],
+       "look": [
+        -0.55,
+        1.42,
+        0
+       ],
+       "fov": 36
+      },
+      "to": {
+       "at": [
+        0.04,
+        1.67,
+        3.51
+       ],
+       "look": [
+        -0.5,
+        1.4,
+        0
+       ],
+       "fov": 38
+      },
+      "ease": "smooth"
+     },
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "Right. Order blocks. Let us clear this up, step by step.",
+       "at": 0.45
+      }
+     ],
+     "actions": [
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        -4,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        -1.4,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -34,
+        0,
+        -14
+       ],
+       "at": 0.6,
+       "for": 0.7,
+       "ease": "smooth",
+       "anticipate": 0.18,
+       "overshoot": 0.12
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -30,
+        0,
+        0
+       ],
+       "at": 0.69,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        -10.5,
+        0,
+        0
+       ],
+       "at": 0.78,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.2
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -6,
+        0,
+        -6
+       ],
+       "at": 3.4,
+       "for": 0.65,
+       "ease": "smooth",
+       "anticipate": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -14,
+        0,
+        0
+       ],
+       "at": 3.48,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        0,
+        0,
+        0
+       ],
+       "at": 3.56,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "nudge",
+       "target": "host/hips",
+       "by": [
+        0.015,
+        0,
+        0
+       ],
+       "at": 5.2,
+       "for": 1.3,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/chest",
+       "to": [
+        0,
+        0,
+        -3.3
+       ],
+       "at": 5.32,
+       "for": 1.3,
+       "ease": "smooth",
+       "overshoot": 0.1
+      },
+      {
+       "do": "grow",
+       "target": "set/slideTitle",
+       "to": 1,
+       "at": 0.3,
+       "for": 0.3,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "warm",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.4,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.54,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.4,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.54,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.707,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 2.847,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.707,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 2.847,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.035,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.175,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.035,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.175,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.98,
+        -6.95,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.98,
+        -6.95,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.61,
+        -1.85,
+        0
+       ],
+       "at": 1.214,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.61,
+        -1.85,
+        0
+       ],
+       "at": 1.214,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.2,
+        3.26,
+        0
+       ],
+       "at": 2.29,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.2,
+        3.26,
+        0
+       ],
+       "at": 2.29,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.79,
+        -5.64,
+        0
+       ],
+       "at": 3.428,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.79,
+        -5.64,
+        0
+       ],
+       "at": 3.428,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.38,
+        -0.54,
+        0
+       ],
+       "at": 4.628,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.38,
+        -0.54,
+        0
+       ],
+       "at": 4.628,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        0.97,
+        4.56,
+        0
+       ],
+       "at": 5.89,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        0.97,
+        4.56,
+        0
+       ],
+       "at": 5.89,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        0.56,
+        -4.33,
+        0
+       ],
+       "at": 7.214,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        0.56,
+        -4.33,
+        0
+       ],
+       "at": 7.214,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "02-define",
+     "duration": 9.5,
+     "camera": {
+      "from": {
+       "at": [
+        0.04,
+        1.67,
+        3.51
+       ],
+       "look": [
+        -0.5,
+        1.4,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        0.25,
+        1.62,
+        3.55
+       ],
+       "look": [
+        0.3,
+        1.38,
+        0
+       ],
+       "fov": 42
+      },
+      "ease": "smooth"
+     },
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "An order block is the last opposing candle before a strong move. That is where the big institutional orders went in.",
+       "at": 0.45
+      }
+     ],
+     "actions": [
+      {
+       "do": "grow",
+       "target": "set/slideTitle",
+       "to": 0,
+       "at": 0.1,
+       "for": 0.25,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/slideDefine",
+       "to": 1,
+       "at": 0.45,
+       "for": 0.3,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        26,
+        0
+       ],
+       "at": 0.5,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        9.1,
+        0
+       ],
+       "at": 0.5,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -62,
+        0,
+        -14
+       ],
+       "at": 0.7,
+       "for": 0.7,
+       "ease": "smooth",
+       "anticipate": 0.18,
+       "overshoot": 0.12
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -26,
+        0,
+        0
+       ],
+       "at": 0.79,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        -9.1,
+        0,
+        0
+       ],
+       "at": 0.88,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.2
+      },
+      {
+       "do": "nudge",
+       "target": "host/hips",
+       "by": [
+        -0.02,
+        0,
+        0
+       ],
+       "at": 2.6,
+       "for": 1.3,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/chest",
+       "to": [
+        0,
+        0,
+        4.4
+       ],
+       "at": 2.72,
+       "for": 1.3,
+       "ease": "smooth",
+       "overshoot": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -6,
+        0,
+        -6
+       ],
+       "at": 6.4,
+       "for": 0.65,
+       "ease": "smooth",
+       "anticipate": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -14,
+        0,
+        0
+       ],
+       "at": 6.48,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        0,
+        0,
+        0
+       ],
+       "at": 6.56,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        -2,
+        0
+       ],
+       "at": 6.6,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        -0.7,
+        0
+       ],
+       "at": 6.6,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "explain",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.5,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.64,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.5,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.64,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.844,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 2.984,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.844,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 2.984,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.21,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.35,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.21,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.35,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.89,
+        -6.75,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.89,
+        -6.75,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.7,
+        -1.65,
+        0
+       ],
+       "at": 1.272,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.7,
+        -1.65,
+        0
+       ],
+       "at": 1.272,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.29,
+        3.46,
+        0
+       ],
+       "at": 2.406,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.29,
+        3.46,
+        0
+       ],
+       "at": 2.406,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.88,
+        -5.44,
+        0
+       ],
+       "at": 3.602,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.88,
+        -5.44,
+        0
+       ],
+       "at": 3.602,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.46,
+        -0.34,
+        0
+       ],
+       "at": 4.86,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.46,
+        -0.34,
+        0
+       ],
+       "at": 4.86,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.05,
+        4.77,
+        0
+       ],
+       "at": 6.18,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.05,
+        4.77,
+        0
+       ],
+       "at": 6.18,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        0.64,
+        -4.13,
+        0
+       ],
+       "at": 7.562,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        0.64,
+        -4.13,
+        0
+       ],
+       "at": 7.562,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        0.23,
+        0.97,
+        0
+       ],
+       "at": 9.006,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        0.23,
+        0.97,
+        0
+       ],
+       "at": 9.006,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "03-chart",
+     "duration": 8.5,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "Here is the chart. Watch the shape, not the noise.",
+       "at": 0.45
+      }
+     ],
+     "camera": {
+      "from": {
+       "at": [
+        0.25,
+        1.55,
+        2.95
+       ],
+       "look": [
+        0.3,
+        1.38,
+        0
+       ],
+       "fov": 42
+      },
+      "to": {
+       "at": [
+        0.72,
+        1.44,
+        2.35
+       ],
+       "look": [
+        0.9,
+        1.33,
+        0
+       ],
+       "fov": 40
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "grow",
+       "target": "set/slideDefine",
+       "to": 0,
+       "at": 0.1,
+       "for": 0.25,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        26,
+        0
+       ],
+       "at": 0.3,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        9.1,
+        0
+       ],
+       "at": 0.3,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -70,
+        0,
+        -14
+       ],
+       "at": 0.5,
+       "for": 0.7,
+       "ease": "smooth",
+       "anticipate": 0.18,
+       "overshoot": 0.12
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -20,
+        0,
+        0
+       ],
+       "at": 0.59,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        -7,
+        0,
+        0
+       ],
+       "at": 0.68,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.2
+      },
+      {
+       "do": "grow",
+       "target": "set/wick0",
+       "to": 1,
+       "at": 0.9,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle0",
+       "to": 1,
+       "at": 0.93,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick1",
+       "to": 1,
+       "at": 1.06,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle1",
+       "to": 1,
+       "at": 1.09,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick2",
+       "to": 1,
+       "at": 1.22,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle2",
+       "to": 1,
+       "at": 1.25,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick3",
+       "to": 1,
+       "at": 1.38,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle3",
+       "to": 1,
+       "at": 1.41,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick4",
+       "to": 1,
+       "at": 1.54,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle4",
+       "to": 1,
+       "at": 1.57,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick5",
+       "to": 1,
+       "at": 1.7,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle5",
+       "to": 1,
+       "at": 1.73,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick6",
+       "to": 1,
+       "at": 1.86,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle6",
+       "to": 1,
+       "at": 1.89,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick7",
+       "to": 1,
+       "at": 2.02,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle7",
+       "to": 1,
+       "at": 2.05,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick8",
+       "to": 1,
+       "at": 2.18,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle8",
+       "to": 1,
+       "at": 2.21,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick9",
+       "to": 1,
+       "at": 2.34,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle9",
+       "to": 1,
+       "at": 2.37,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick10",
+       "to": 1,
+       "at": 2.5,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle10",
+       "to": 1,
+       "at": 2.53,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick11",
+       "to": 1,
+       "at": 2.66,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle11",
+       "to": 1,
+       "at": 2.69,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "grow",
+       "target": "set/wick12",
+       "to": 1,
+       "at": 2.82,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle12",
+       "to": 1,
+       "at": 2.85,
+       "for": 0.16,
+       "ease": "smooth",
+       "overshoot": 0.3
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "explain",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.6,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.74,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.6,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.74,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.981,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.121,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.981,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.121,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.385,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.525,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.385,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.525,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.81,
+        -6.54,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.81,
+        -6.54,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.78,
+        -1.44,
+        0
+       ],
+       "at": 1.33,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.78,
+        -1.44,
+        0
+       ],
+       "at": 1.33,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.37,
+        3.66,
+        0
+       ],
+       "at": 2.522,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.37,
+        3.66,
+        0
+       ],
+       "at": 2.522,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.96,
+        -5.24,
+        0
+       ],
+       "at": 3.776,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.96,
+        -5.24,
+        0
+       ],
+       "at": 3.776,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.55,
+        -0.13,
+        0
+       ],
+       "at": 5.092,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.55,
+        -0.13,
+        0
+       ],
+       "at": 5.092,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.14,
+        4.97,
+        0
+       ],
+       "at": 6.47,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.14,
+        4.97,
+        0
+       ],
+       "at": 6.47,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        0.73,
+        -3.93,
+        0
+       ],
+       "at": 7.91,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        0.73,
+        -3.93,
+        0
+       ],
+       "at": 7.91,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "04-ob",
+     "duration": 8.5,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "This red candle is the order block. The final down candle before price rips higher.",
+       "at": 0.45
+      }
+     ],
+     "camera": {
+      "from": {
+       "at": [
+        0.72,
+        1.44,
+        2.35
+       ],
+       "look": [
+        0.9,
+        1.33,
+        0
+       ],
+       "fov": 40
+      },
+      "to": {
+       "at": [
+        0.58,
+        1.36,
+        1.55
+       ],
+       "look": [
+        0.52,
+        1.24,
+        0
+       ],
+       "fov": 34
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "grow",
+       "target": "set/obZone",
+       "to": 1,
+       "at": 1.5,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "grow",
+       "target": "set/candle8",
+       "to": [
+        1.5,
+        1.12,
+        2.2
+       ],
+       "at": 0.9,
+       "for": 0.35,
+       "ease": "smooth",
+       "overshoot": 0.25
+      },
+      {
+       "do": "grow",
+       "target": "set/candle8",
+       "to": [
+        1.25,
+        1.06,
+        1.8
+       ],
+       "at": 1.5,
+       "for": 0.4
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "emphasis",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.7,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.84,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.7,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.84,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.119,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.259,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.119,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.259,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.559,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.699,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.559,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.699,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.72,
+        -6.34,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.72,
+        -6.34,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.87,
+        -1.24,
+        0
+       ],
+       "at": 1.388,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.87,
+        -1.24,
+        0
+       ],
+       "at": 1.388,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.46,
+        3.86,
+        0
+       ],
+       "at": 2.638,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.46,
+        3.86,
+        0
+       ],
+       "at": 2.638,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.05,
+        -5.03,
+        0
+       ],
+       "at": 3.95,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.05,
+        -5.03,
+        0
+       ],
+       "at": 3.95,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.64,
+        0.07,
+        0
+       ],
+       "at": 5.324,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.64,
+        0.07,
+        0
+       ],
+       "at": 5.324,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.23,
+        5.17,
+        0
+       ],
+       "at": 6.76,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.23,
+        5.17,
+        0
+       ],
+       "at": 6.76,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        0.82,
+        -3.72,
+        0
+       ],
+       "at": 8.258,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        0.82,
+        -3.72,
+        0
+       ],
+       "at": 8.258,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "05-footprint",
+     "duration": 8.5,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "That one candle is the footprint. Institutions filled their buy orders there, then left.",
+       "at": 0.45
+      }
+     ],
+     "framing": "medium",
+     "on": "host/head",
+     "camera": {
+      "from": {
+       "at": [
+        -0.54,
+        1.66,
+        1.18
+       ],
+       "look": [
+        -0.76,
+        1.6,
+        0.28
+       ],
+       "fov": 30
+      },
+      "to": {
+       "at": [
+        -0.49,
+        1.63,
+        1.02
+       ],
+       "look": [
+        -0.76,
+        1.59,
+        0.28
+       ],
+       "fov": 30
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        -4,
+        0
+       ],
+       "at": 0.3,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        -1.4,
+        0
+       ],
+       "at": 0.3,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/armL",
+       "to": [
+        -44,
+        0,
+        14
+       ],
+       "at": 0.6,
+       "for": 0.7,
+       "ease": "smooth",
+       "anticipate": 0.18,
+       "overshoot": 0.12
+      },
+      {
+       "do": "turn",
+       "target": "host/foreL",
+       "to": [
+        -48,
+        0,
+        0
+       ],
+       "at": 0.69,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/handL",
+       "to": [
+        -16.799999999999997,
+        0,
+        0
+       ],
+       "at": 0.78,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.2
+      },
+      {
+       "do": "nudge",
+       "target": "host/hips",
+       "by": [
+        0.02,
+        0,
+        0
+       ],
+       "at": 2.4,
+       "for": 1.3,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/chest",
+       "to": [
+        0,
+        0,
+        -4.4
+       ],
+       "at": 2.52,
+       "for": 1.3,
+       "ease": "smooth",
+       "overshoot": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/armL",
+       "to": [
+        -6,
+        0,
+        6
+       ],
+       "at": 5.2,
+       "for": 0.65,
+       "ease": "smooth",
+       "anticipate": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/foreL",
+       "to": [
+        -14,
+        0,
+        0
+       ],
+       "at": 5.28,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/handL",
+       "to": [
+        0,
+        0,
+        0
+       ],
+       "at": 5.36,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "explain",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.8,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.94,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.8,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.94,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.256,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.396,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.256,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.396,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.734,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.874,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 7.734,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 7.874,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.63,
+        -6.14,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.63,
+        -6.14,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.96,
+        -1.04,
+        0
+       ],
+       "at": 1.446,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.96,
+        -1.04,
+        0
+       ],
+       "at": 1.446,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.55,
+        4.07,
+        0
+       ],
+       "at": 2.754,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.55,
+        4.07,
+        0
+       ],
+       "at": 2.754,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.14,
+        -4.83,
+        0
+       ],
+       "at": 4.124,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.14,
+        -4.83,
+        0
+       ],
+       "at": 4.124,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.72,
+        0.27,
+        0
+       ],
+       "at": 5.556,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.72,
+        0.27,
+        0
+       ],
+       "at": 5.556,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.31,
+        5.38,
+        0
+       ],
+       "at": 7.05,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.31,
+        5.38,
+        0
+       ],
+       "at": 7.05,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "06-retest",
+     "duration": 9,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "Now the part that matters. Price usually comes back to retest that zone.",
+       "at": 0.45
+      }
+     ],
+     "camera": {
+      "from": {
+       "at": [
+        -0.12,
+        1.62,
+        2.75
+       ],
+       "look": [
+        -0.35,
+        1.42,
+        0
+       ],
+       "fov": 40
+      },
+      "to": {
+       "at": [
+        0.8,
+        1.48,
+        2.6
+       ],
+       "look": [
+        0.95,
+        1.32,
+        0
+       ],
+       "fov": 40
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        26,
+        0
+       ],
+       "at": 0.4,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        9.1,
+        0
+       ],
+       "at": 0.4,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -66,
+        0,
+        -14
+       ],
+       "at": 0.6,
+       "for": 0.7,
+       "ease": "smooth",
+       "anticipate": 0.18,
+       "overshoot": 0.12
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -18,
+        0,
+        0
+       ],
+       "at": 0.69,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        -6.3,
+        0,
+        0
+       ],
+       "at": 0.78,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.2
+      },
+      {
+       "do": "grow",
+       "target": "set/wick13",
+       "to": 1,
+       "at": 1.6,
+       "for": 0.14,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle13",
+       "to": 1,
+       "at": 1.64,
+       "for": 0.2,
+       "ease": "smooth",
+       "overshoot": 0.25
+      },
+      {
+       "do": "grow",
+       "target": "set/wick14",
+       "to": 1,
+       "at": 2.02,
+       "for": 0.14,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle14",
+       "to": 1,
+       "at": 2.06,
+       "for": 0.2,
+       "ease": "smooth",
+       "overshoot": 0.25
+      },
+      {
+       "do": "grow",
+       "target": "set/wick15",
+       "to": 1,
+       "at": 2.44,
+       "for": 0.14,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle15",
+       "to": 1,
+       "at": 2.48,
+       "for": 0.2,
+       "ease": "smooth",
+       "overshoot": 0.25
+      },
+      {
+       "do": "grow",
+       "target": "set/wick16",
+       "to": 1,
+       "at": 2.86,
+       "for": 0.14,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle16",
+       "to": 1,
+       "at": 2.9,
+       "for": 0.2,
+       "ease": "smooth",
+       "overshoot": 0.25
+      },
+      {
+       "do": "grow",
+       "target": "set/wick17",
+       "to": 1,
+       "at": 3.28,
+       "for": 0.14,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle17",
+       "to": 1,
+       "at": 3.32,
+       "for": 0.2,
+       "ease": "smooth",
+       "overshoot": 0.25
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "emphasis",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.35,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.49,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.35,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.49,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.844,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 2.984,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.844,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 2.984,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.159,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.299,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.159,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.299,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.54,
+        -5.94,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.54,
+        -5.94,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.96,
+        -0.83,
+        0
+       ],
+       "at": 1.504,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.96,
+        -0.83,
+        0
+       ],
+       "at": 1.504,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.63,
+        4.27,
+        0
+       ],
+       "at": 2.87,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.63,
+        4.27,
+        0
+       ],
+       "at": 2.87,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.22,
+        -4.63,
+        0
+       ],
+       "at": 4.298,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.22,
+        -4.63,
+        0
+       ],
+       "at": 4.298,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.81,
+        0.48,
+        0
+       ],
+       "at": 5.788,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.81,
+        0.48,
+        0
+       ],
+       "at": 5.788,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.4,
+        5.58,
+        0
+       ],
+       "at": 7.34,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.4,
+        5.58,
+        0
+       ],
+       "at": 7.34,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        0.99,
+        -3.32,
+        0
+       ],
+       "at": 8.954,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        0.99,
+        -3.32,
+        0
+       ],
+       "at": 8.954,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "07-entry",
+     "duration": 8.5,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "The retest is your entry. You are buying where the institutions bought.",
+       "at": 0.45
+      }
+     ],
+     "camera": {
+      "from": {
+       "at": [
+        0.8,
+        1.42,
+        2.1
+       ],
+       "look": [
+        0.95,
+        1.32,
+        0
+       ],
+       "fov": 38
+      },
+      "to": {
+       "at": [
+        0.66,
+        1.37,
+        1.6
+       ],
+       "look": [
+        0.72,
+        1.28,
+        0
+       ],
+       "fov": 35
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "grow",
+       "target": "set/entryLine",
+       "to": 1,
+       "at": 0.9,
+       "for": 0.35,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "grow",
+       "target": "set/wick18",
+       "to": 1,
+       "at": 3.4,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle18",
+       "to": 1,
+       "at": 3.43,
+       "for": 0.18,
+       "ease": "smooth",
+       "overshoot": 0.28
+      },
+      {
+       "do": "grow",
+       "target": "set/wick19",
+       "to": 1,
+       "at": 3.74,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle19",
+       "to": 1,
+       "at": 3.77,
+       "for": 0.18,
+       "ease": "smooth",
+       "overshoot": 0.28
+      },
+      {
+       "do": "grow",
+       "target": "set/wick20",
+       "to": 1,
+       "at": 4.08,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle20",
+       "to": 1,
+       "at": 4.11,
+       "for": 0.18,
+       "ease": "smooth",
+       "overshoot": 0.28
+      },
+      {
+       "do": "grow",
+       "target": "set/wick21",
+       "to": 1,
+       "at": 4.42,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle21",
+       "to": 1,
+       "at": 4.45,
+       "for": 0.18,
+       "ease": "smooth",
+       "overshoot": 0.28
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "warm",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.45,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.59,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.45,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.59,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.981,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.121,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 2.981,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.121,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.334,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.474,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.334,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.474,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.46,
+        -5.73,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.46,
+        -5.73,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.87,
+        -0.63,
+        0
+       ],
+       "at": 1.562,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.87,
+        -0.63,
+        0
+       ],
+       "at": 1.562,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.72,
+        4.47,
+        0
+       ],
+       "at": 2.986,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.72,
+        4.47,
+        0
+       ],
+       "at": 2.986,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.31,
+        -4.42,
+        0
+       ],
+       "at": 4.472,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.31,
+        -4.42,
+        0
+       ],
+       "at": 4.472,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.9,
+        0.68,
+        0
+       ],
+       "at": 6.02,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.9,
+        0.68,
+        0
+       ],
+       "at": 6.02,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.49,
+        5.78,
+        0
+       ],
+       "at": 7.63,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.49,
+        5.78,
+        0
+       ],
+       "at": 7.63,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "08-stop",
+     "duration": 9,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "Your stop goes below the low of the block. If price closes under it, the idea is invalid.",
+       "at": 0.45
+      }
+     ],
+     "camera": {
+      "from": {
+       "at": [
+        0.66,
+        1.37,
+        1.6
+       ],
+       "look": [
+        0.72,
+        1.28,
+        0
+       ],
+       "fov": 35
+      },
+      "to": {
+       "at": [
+        0.9,
+        1.33,
+        1.95
+       ],
+       "look": [
+        0.95,
+        1.2,
+        0
+       ],
+       "fov": 38
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "grow",
+       "target": "set/stopLine",
+       "to": 1,
+       "at": 1.1,
+       "for": 0.35,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "grow",
+       "target": "set/targetLine",
+       "to": 1,
+       "at": 4.2,
+       "for": 0.35,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "grow",
+       "target": "set/wick22",
+       "to": 1,
+       "at": 4.6,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle22",
+       "to": 1,
+       "at": 4.63,
+       "for": 0.18,
+       "ease": "smooth",
+       "overshoot": 0.28
+      },
+      {
+       "do": "grow",
+       "target": "set/wick23",
+       "to": 1,
+       "at": 4.92,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle23",
+       "to": 1,
+       "at": 4.95,
+       "for": 0.18,
+       "ease": "smooth",
+       "overshoot": 0.28
+      },
+      {
+       "do": "grow",
+       "target": "set/wick24",
+       "to": 1,
+       "at": 5.24,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle24",
+       "to": 1,
+       "at": 5.27,
+       "for": 0.18,
+       "ease": "smooth",
+       "overshoot": 0.28
+      },
+      {
+       "do": "grow",
+       "target": "set/wick25",
+       "to": 1,
+       "at": 5.56,
+       "for": 0.12,
+       "ease": "smooth",
+       "overshoot": 0
+      },
+      {
+       "do": "grow",
+       "target": "set/candle25",
+       "to": 1,
+       "at": 5.59,
+       "for": 0.18,
+       "ease": "smooth",
+       "overshoot": 0.28
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "serious",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.55,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.69,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.55,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.69,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.118,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.258,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.118,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.258,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.509,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.649,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.509,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.649,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.37,
+        -5.53,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.37,
+        -5.53,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.78,
+        -0.43,
+        0
+       ],
+       "at": 1.62,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.78,
+        -0.43,
+        0
+       ],
+       "at": 1.62,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.81,
+        4.68,
+        0
+       ],
+       "at": 3.102,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.81,
+        4.68,
+        0
+       ],
+       "at": 3.102,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.4,
+        -4.22,
+        0
+       ],
+       "at": 4.646,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.4,
+        -4.22,
+        0
+       ],
+       "at": 4.646,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.99,
+        0.88,
+        0
+       ],
+       "at": 6.252,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.99,
+        0.88,
+        0
+       ],
+       "at": 6.252,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.57,
+        5.98,
+        0
+       ],
+       "at": 7.92,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.57,
+        5.98,
+        0
+       ],
+       "at": 7.92,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "09-bearish",
+     "duration": 9.5,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "A bearish order block is the mirror image. The last green candle before a sharp drop. You sell the retest.",
+       "at": 0.45
+      }
+     ],
+     "camera": {
+      "from": {
+       "at": [
+        0.9,
+        1.33,
+        1.95
+       ],
+       "look": [
+        0.95,
+        1.2,
+        0
+       ],
+       "fov": 38
+      },
+      "to": {
+       "at": [
+        -0.12,
+        1.6,
+        2.55
+       ],
+       "look": [
+        -0.48,
+        1.4,
+        0
+       ],
+       "fov": 38
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        -4,
+        0
+       ],
+       "at": 0.5,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        -1.4,
+        0
+       ],
+       "at": 0.5,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/armL",
+       "to": [
+        -40,
+        0,
+        14
+       ],
+       "at": 0.8,
+       "for": 0.7,
+       "ease": "smooth",
+       "anticipate": 0.18,
+       "overshoot": 0.12
+      },
+      {
+       "do": "turn",
+       "target": "host/foreL",
+       "to": [
+        -42,
+        0,
+        0
+       ],
+       "at": 0.89,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/handL",
+       "to": [
+        -14.7,
+        0,
+        0
+       ],
+       "at": 0.98,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.2
+      },
+      {
+       "do": "nudge",
+       "target": "host/hips",
+       "by": [
+        -0.018,
+        0,
+        0
+       ],
+       "at": 3,
+       "for": 1.3,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/chest",
+       "to": [
+        0,
+        0,
+        3.9599999999999995
+       ],
+       "at": 3.12,
+       "for": 1.3,
+       "ease": "smooth",
+       "overshoot": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/armL",
+       "to": [
+        -6,
+        0,
+        6
+       ],
+       "at": 6,
+       "for": 0.65,
+       "ease": "smooth",
+       "anticipate": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/foreL",
+       "to": [
+        -14,
+        0,
+        0
+       ],
+       "at": 6.08,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/handL",
+       "to": [
+        0,
+        0,
+        0
+       ],
+       "at": 6.16,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "explain",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.65,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.79,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.65,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.79,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.256,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.396,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.256,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.396,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.683,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.823,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.683,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.823,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.28,
+        -5.33,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.28,
+        -5.33,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.69,
+        -0.22,
+        0
+       ],
+       "at": 1.678,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.69,
+        -0.22,
+        0
+       ],
+       "at": 1.678,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.9,
+        4.88,
+        0
+       ],
+       "at": 3.218,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.9,
+        4.88,
+        0
+       ],
+       "at": 3.218,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.48,
+        -4.02,
+        0
+       ],
+       "at": 4.82,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.48,
+        -4.02,
+        0
+       ],
+       "at": 4.82,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.07,
+        1.09,
+        0
+       ],
+       "at": 6.484,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.07,
+        1.09,
+        0
+       ],
+       "at": 6.484,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.66,
+        6.19,
+        0
+       ],
+       "at": 8.21,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.66,
+        6.19,
+        0
+       ],
+       "at": 8.21,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "10-rules",
+     "duration": 9,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "Three rules. Wait for the displacement. Mark the zone. Only take the retest.",
+       "at": 0.45
+      }
+     ],
+     "camera": {
+      "from": {
+       "at": [
+        -0.12,
+        1.6,
+        2.55
+       ],
+       "look": [
+        -0.48,
+        1.4,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        0.3,
+        1.54,
+        3
+       ],
+       "look": [
+        0.32,
+        1.37,
+        0
+       ],
+       "fov": 44
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "grow",
+       "target": "set/slideRules",
+       "to": 1,
+       "at": 0.5,
+       "for": 0.3,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        13,
+        0
+       ],
+       "at": 0.6,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        4.55,
+        0
+       ],
+       "at": 0.6,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -52,
+        0,
+        -14
+       ],
+       "at": 0.9,
+       "for": 0.7,
+       "ease": "smooth",
+       "anticipate": 0.18,
+       "overshoot": 0.12
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -30,
+        0,
+        0
+       ],
+       "at": 0.99,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        -10.5,
+        0,
+        0
+       ],
+       "at": 1.08,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.2
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -6,
+        0,
+        -6
+       ],
+       "at": 6.2,
+       "for": 0.65,
+       "ease": "smooth",
+       "anticipate": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -14,
+        0,
+        0
+       ],
+       "at": 6.28,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        0,
+        0,
+        0
+       ],
+       "at": 6.36,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "emphasis",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.75,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.89,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.75,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.89,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.393,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.533,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.393,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.533,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.858,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.998,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 5.858,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 5.998,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.2,
+        -5.12,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.2,
+        -5.12,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.61,
+        -0.02,
+        0
+       ],
+       "at": 1.736,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.61,
+        -0.02,
+        0
+       ],
+       "at": 1.736,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.98,
+        5.08,
+        0
+       ],
+       "at": 3.334,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.98,
+        5.08,
+        0
+       ],
+       "at": 3.334,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.57,
+        -3.81,
+        0
+       ],
+       "at": 4.994,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.57,
+        -3.81,
+        0
+       ],
+       "at": 4.994,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.16,
+        1.29,
+        0
+       ],
+       "at": 6.716,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.16,
+        1.29,
+        0
+       ],
+       "at": 6.716,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.75,
+        6.39,
+        0
+       ],
+       "at": 8.5,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.75,
+        6.39,
+        0
+       ],
+       "at": 8.5,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "11-risk",
+     "duration": 10,
+     "dialogue": [
+      {
+       "speaker": "host",
+       "text": "And none of this is a guarantee. Order blocks fail. Size your risk so that when one does, you are still trading tomorrow.",
+       "at": 0.45
+      }
+     ],
+     "camera": {
+      "from": {
+       "at": [
+        0.3,
+        1.54,
+        3
+       ],
+       "look": [
+        0.32,
+        1.37,
+        0
+       ],
+       "fov": 44
+      },
+      "to": {
+       "at": [
+        -0.2,
+        1.63,
+        2.35
+       ],
+       "look": [
+        -0.5,
+        1.42,
+        0
+       ],
+       "fov": 36
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "grow",
+       "target": "set/slideRules",
+       "to": 0,
+       "at": 0.2,
+       "for": 0.25,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/slideRisk",
+       "to": 1,
+       "at": 0.7,
+       "for": 0.3,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/head",
+       "to": [
+        0,
+        -4,
+        0
+       ],
+       "at": 0.5,
+       "for": 0.6,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "turn",
+       "target": "host/neck",
+       "to": [
+        0,
+        -1.4,
+        0
+       ],
+       "at": 0.5,
+       "for": 0.6,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -30,
+        0,
+        -14
+       ],
+       "at": 1.1,
+       "for": 0.7,
+       "ease": "smooth",
+       "anticipate": 0.18,
+       "overshoot": 0.12
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -34,
+        0,
+        0
+       ],
+       "at": 1.19,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.16
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        -11.899999999999999,
+        0,
+        0
+       ],
+       "at": 1.28,
+       "for": 0.7,
+       "ease": "smooth",
+       "overshoot": 0.2
+      },
+      {
+       "do": "nudge",
+       "target": "host/hips",
+       "by": [
+        0.012,
+        0,
+        0
+       ],
+       "at": 3.4,
+       "for": 1.3,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/chest",
+       "to": [
+        0,
+        0,
+        -2.64
+       ],
+       "at": 3.52,
+       "for": 1.3,
+       "ease": "smooth",
+       "overshoot": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/armR",
+       "to": [
+        -6,
+        0,
+        -6
+       ],
+       "at": 6.6,
+       "for": 0.65,
+       "ease": "smooth",
+       "anticipate": 0.1
+      },
+      {
+       "do": "turn",
+       "target": "host/foreR",
+       "to": [
+        -14,
+        0,
+        0
+       ],
+       "at": 6.68,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/handR",
+       "to": [
+        0,
+        0,
+        0
+       ],
+       "at": 6.76,
+       "for": 0.65,
+       "ease": "smooth"
+      },
+      {
+       "do": "express",
+       "target": "host",
+       "expression": "concern",
+       "amount": 0.9,
+       "at": 0.25,
+       "for": 0.45
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.85,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.99,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 0.85,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 0.99,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.531,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.671,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 3.531,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 3.671,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 6.033,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 6.173,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 6.033,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 6.173,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 8.357,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidL",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 8.497,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        1.05,
+        1
+       ],
+       "at": 8.357,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "host/lidR",
+       "to": [
+        1,
+        0.08,
+        1
+       ],
+       "at": 8.497,
+       "for": 0.15,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.11,
+        -4.92,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.11,
+        -4.92,
+        0
+       ],
+       "at": 0.2,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.52,
+        0.18,
+        0
+       ],
+       "at": 1.794,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.52,
+        0.18,
+        0
+       ],
+       "at": 1.794,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        -2.93,
+        5.28,
+        0
+       ],
+       "at": 3.45,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        -2.93,
+        5.28,
+        0
+       ],
+       "at": 3.45,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.66,
+        -3.61,
+        0
+       ],
+       "at": 5.168,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.66,
+        -3.61,
+        0
+       ],
+       "at": 5.168,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        2.25,
+        1.49,
+        0
+       ],
+       "at": 6.948,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        2.25,
+        1.49,
+        0
+       ],
+       "at": 6.948,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeL",
+       "to": [
+        1.84,
+        6.59,
+        0
+       ],
+       "at": 8.79,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "turn",
+       "target": "host/eyeR",
+       "to": [
+        1.84,
+        6.59,
+        0
+       ],
+       "at": 8.79,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

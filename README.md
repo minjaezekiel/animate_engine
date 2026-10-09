@@ -129,6 +129,7 @@ recovers both from the encoded file.
 | [docs/11-MOTION-SYSTEM.md](docs/11-MOTION-SYSTEM.md) | layering, on-twos, smears and the motion-graphics draw layer |
 | [docs/12-MOCAP.md](docs/12-MOCAP.md) | *assessment, unbuilt* — rigging a character from a webcam, and what it would cost |
 | [docs/13-3D-FILM.md](docs/13-3D-FILM.md) | the 3D film script, particles, and what an AK-47 ad found |
+| [docs/14-CHARACTER-3D.md](docs/14-CHARACTER-3D.md) | **building, rigging and skinning a character from code** — and where it stops |
 | [docs/STATUS.md](docs/STATUS.md) | **implemented vs not** |
 | [docs/DEFECTS.md](docs/DEFECTS.md) | defect register — the legacy 3D engine, and what tests found in the new code |
 | [docs/CDN-AND-PWA.md](docs/CDN-AND-PWA.md) | library use, installing, offline |

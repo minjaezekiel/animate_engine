@@ -105,6 +105,7 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [11-MOTION-SYSTEM.md](11-MOTION-SYSTEM.md) | layering, timing texture, smears, motion graphics |
 | [12-MOCAP.md](12-MOCAP.md) | *assessment, unbuilt* — webcam motion capture, scoped and costed |
 | [13-3D-FILM.md](13-3D-FILM.md) | declarative 3D films, analytic particles, the 3D live test |
+| [14-CHARACTER-3D.md](14-CHARACTER-3D.md) | procedural rig, skinning, blendshapes, and the honest ceiling |
 | [STATUS.md](STATUS.md) | **what is implemented and what is not** |
 | [DEFECTS.md](DEFECTS.md) | the defect register for the legacy 3D engine |
 | [CDN-AND-PWA.md](CDN-AND-PWA.md) | loading from a CDN, installing, offline |

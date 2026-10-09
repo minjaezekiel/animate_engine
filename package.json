@@ -40,7 +40,8 @@
     "produce:3d": "node scripts/produce3d.mjs",
     "make:ak47": "node scripts/make-ak47.mjs",
     "check:3d": "CHECK=1 node scripts/produce3d.mjs",
-    "make:ak47-audio": "node scripts/make-ak47-audio.mjs"
+    "make:ak47-audio": "node scripts/make-ak47-audio.mjs",
+    "make:orderblock": "node scripts/make-orderblock.mjs"
   },
   "keywords": [
     "animation",

@@ -5,7 +5,8 @@
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+  "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/+esm"
 } }
 </script>
 <script type="module">
@@ -14,6 +15,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { compileFilm3D } from './src/core/script/compile3d.js';
 import { buildScene3D } from './src/backends/three3d/SceneAdapter.js';
 import { createThreePoser } from './src/backends/three3d/Three3DBackend.js';
@@ -23,6 +25,11 @@ import { MediaRecorderSink } from './src/render/sinks/MediaRecorderSink.js';
 import { MemorySink } from './src/render/sinks/MemorySink.js';
 import { loadAudioAssets } from './src/core/art/AssetRegistry.js';
 import { renderMix, decodeAudio } from './src/audio/OfflineMixer.js';
+import { VoiceRegistry } from './src/core/voice/VoiceRegistry.js';
+import { TtsVitsProvider } from './src/core/voice/providers/TtsVitsProvider.js';
+import { synthesizeDialogue } from './src/core/voice/synthesize.js';
+import { applyLipsync } from './src/core/art/humanoid3d.js';
+import { key as writeKey } from './src/core/anim/Timeline.js';
 
 /**
  * Render a 3D film script to a video, headless.
@@ -47,7 +54,7 @@ window.render3d = async function render3d(film, opts = {}) {
     renderer.toneMappingExposure = 1.0;
     document.body.append(renderer.domElement);
 
-    const built = buildScene3D(THREE, compiled, { width, height });
+    const built = buildScene3D(THREE, compiled, { width, height, mergeGeometries });
     built.camera.aspect = width / height;
 
     // Bloom is what makes an emissive muzzle flash read as light rather than
@@ -78,9 +85,77 @@ window.render3d = async function render3d(film, opts = {}) {
         canvas: () => renderer.domElement,
     };
 
+
+    // The 2D path's mixer, unchanged. MediaRecorderSink already accepts an
+    // audioBuffer and rides it on the same wall clock as the video track, so
+    // sound on the 3D path cost a cue list and these eight lines.
+    // Dialogue: synthesize, then read the viseme track the same lipsync stack
+    // the 2D films use already produces, and drive the jaw with it.
+    const cues = [...(compiled.audioCues ?? [])];
+    let voiceBuffers = {};
+    if (compiled.lipsyncJobs?.length && !opts.probe && !opts.silent && !opts.mute
+        && !opts.grab && !opts.check) {
+        const registry = new VoiceRegistry();
+        registry.register(new TtsVitsProvider({
+            decode: (b) => decodeAudio(b, 48000), sampleRate: 48000,
+            onProgress: (p) => report(`voice model: ${p.loaded ?? ''}/${p.total ?? ''} ${p.url ?? ''}`),
+        }));
+        const voiced = await synthesizeDialogue({
+            lipsyncJobs: compiled.lipsyncJobs, registry, fps: compiled.meta.fps,
+            onProgress: (p) => report(`voice ${p.done}/${p.total}: ${String(p.text).slice(0, 40)}`),
+        });
+        for (const d of voiced.diagnostics) report(`[voice] ${d.message}`);
+        cues.push(...voiced.cues);
+        voiceBuffers = voiced.buffers;
+        const n = applyLipsync(compiled.timeline, voiced.tracks, writeKey);
+        report(`lipsync: ${voiced.tracks.length} lines, ${n} mouth keys`);
+    }
+
+    let audioBuffer = null;
+    let audioContext = null;
+    if (cues.length && !opts.probe && !opts.silent) {
+        const { buffers, diagnostics } = await loadAudioAssets(film, { decode: decodeAudio });
+        for (const d of diagnostics) report(`[audio] ${d.message}`);
+        audioBuffer = await renderMix({ cues, buffers: { ...buffers, ...voiceBuffers },
+                                        durationSec: compiled.duration });
+        // The context is created and resumed HERE, before the recorder wants
+        // it, rather than inside the sink mid-render. Left to the sink, the
+        // stream's audio track produced nothing in headless and MediaRecorder
+        // stalled waiting for it -- emitting a 110-byte header and no frames.
+        audioContext = new AudioContext({ sampleRate: audioBuffer.sampleRate });
+        if (audioContext.state === 'suspended') await audioContext.resume();
+        report(`audio: ${cues.length} cues, `
+             + `${audioBuffer.duration.toFixed(2)}s, ctx ${audioContext.state}`);
+    }
+
+    // Built AFTER lipsync has written its tracks: the poser snapshots the
+    // channel list and each channel's authored value when it is created, so
+    // a jaw track added later would never be reset between frames and frame
+    // N would stop being a pure function of N for exactly the channels that
+    // move most.
     const poser = createThreePoser({
         timeline: compiled.timeline, resolve: built.resolve, samplePose,
     });
+
+
+    // Where the backend actually put things, for when the analytic checks and
+    // the rendered frame disagree about what is on screen.
+    if (opts.where) {
+        poser.reset();
+        poser.apply(opts.at ?? 0);
+        built.step(opts.at ?? 0);
+        built.root.updateMatrixWorld(true);
+        const v = new THREE.Vector3();
+        const out = {};
+        for (const id of opts.where) {
+            const o = built.resolve(id);
+            out[id] = o ? o.getWorldPosition(v).toArray().map((n) => +n.toFixed(3)) : null;
+        }
+        out['#camera'] = built.camera.getWorldPosition(v).toArray().map((n) => +n.toFixed(3));
+        out['#look'] = built.lookTarget.getWorldPosition(v).toArray().map((n) => +n.toFixed(3));
+        poser.reset();
+        return { where: out, duration: compiled.duration, diagnostics: [] };
+    }
 
     // Exposure can only be measured on real pixels -- it depends on lights,
     // materials and tone mapping. Measured tiny (160x90 is 1/72 the pixels)
@@ -114,26 +189,6 @@ window.render3d = async function render3d(film, opts = {}) {
         return { frames: out, duration: compiled.duration, diagnostics: compiled.diagnostics };
     }
 
-    // The 2D path's mixer, unchanged. MediaRecorderSink already accepts an
-    // audioBuffer and rides it on the same wall clock as the video track, so
-    // sound on the 3D path cost a cue list and these eight lines.
-    let audioBuffer = null;
-    let audioContext = null;
-    if (compiled.audioCues?.length && !opts.probe && !opts.silent) {
-        const { buffers, diagnostics } = await loadAudioAssets(film, { decode: decodeAudio });
-        for (const d of diagnostics) report(`[audio] ${d.message}`);
-        audioBuffer = await renderMix({ cues: compiled.audioCues, buffers,
-                                        durationSec: compiled.duration });
-        // The context is created and resumed HERE, before the recorder wants
-        // it, rather than inside the sink mid-render. Left to the sink, the
-        // stream's audio track produced nothing in headless and MediaRecorder
-        // stalled waiting for it -- emitting a 110-byte header and no frames.
-        audioContext = new AudioContext({ sampleRate: audioBuffer.sampleRate });
-        if (audioContext.state === 'suspended') await audioContext.resume();
-        report(`audio: ${compiled.audioCues.length} cues, `
-             + `${audioBuffer.duration.toFixed(2)}s, ctx ${audioContext.state}`);
-    }
-
     const sink = opts.probe
         ? new MemorySink()
         : new MediaRecorderSink({ videoBitsPerSecond: opts.bitrate ?? 12_000_000, audioContext });
@@ -160,7 +215,8 @@ window.render3d = async function render3d(film, opts = {}) {
         tracks: compiled.timeline.tracks.length,
         particles: [...compiled.emitters.values()].reduce((a, e) => a + e.emitter.count, 0),
         diagnostics: compiled.diagnostics,
-        cues: compiled.audioCues?.length ?? 0,
+        cues: cues.length,
+        lines: compiled.lipsyncJobs?.length ?? 0,
         audioSec: audioBuffer ? +audioBuffer.duration.toFixed(2) : 0,
         size: blob?.size ?? 0,
         dataUrl: blob && !opts.probe ? await new Promise((res) => {

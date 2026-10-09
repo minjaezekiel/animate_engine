@@ -4,6 +4,8 @@ import { createClip } from '../anim/Clip.js';
 import { createTrack, setKey } from '../anim/Track.js';
 import { createEmitter, emitterSpan } from '../anim/particles.js';
 import { createCue } from '../audio/cues.js';
+import { HUMANOID_BONES } from '../art/humanoid3d.js';
+import { EXPRESSIONS } from '../art/face3d.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
 
 /**
@@ -94,9 +96,81 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
 
     // ----------------------------------------------------------------- cast
     const castMap = new Map();
+    const characters = new Map();
     for (const entry of film.cast ?? []) {
+        const as = entry.as ?? entry.character ?? entry.assembly;
+
+        // A character is a rig, not a parts list: the backend builds its
+        // bones and skins a surface over them. Its extra geometry -- eyes,
+        // hair, a pointer in the hand -- parents to a BONE by name, which the
+        // adapter registers under the character's namespace.
+        if (entry.character) {
+            const char = film.characters?.[entry.character];
+            if (!char) { warn(`unknown character '${entry.character}'`, `cast.${as}`); continue; }
+            scene.add({
+                id: as, kind: 'humanoid',
+                props: {
+                    outfit: char.outfit ?? 'suit', height: char.height ?? 1.8,
+                    skin: resolveMaterial(char.skin ?? 'skin', `${as}.skin`),
+                    jacket: resolveMaterial(char.jacket ?? 'jacket', `${as}.jacket`),
+                    shirt: resolveMaterial(char.shirt ?? char.jacket ?? 'shirt', `${as}.shirt`),
+                    trouser: resolveMaterial(char.trouser ?? 'trouser', `${as}.trouser`),
+                    shoe: resolveMaterial(char.shoe ?? 'shoe', `${as}.shoe`),
+                    at: vec3(entry.at ?? [0, 0, 0]),
+                    rot: vec3(entry.rot ?? [0, 0, 0]).map((d) => d * DEG),
+                    scale: vec3(entry.scale ?? 1, 1),
+                },
+            });
+            // The bones exist in the core scene too, not only in the
+            // backend. A part that parents to `head` needs a node to parent
+            // TO, the staging check needs something to measure, and the
+            // adapter skips any node already in its registry -- which the
+            // humanoid's own bones are, by the time its children are walked.
+            const parts = new Map();
+            const scale = (char.height ?? 1.8) / 1.8;
+            for (const bone of HUMANOID_BONES) {
+                scene.add({
+                    id: `${as}/${bone.id}`, kind: 'bone',
+                    parentId: bone.parent ? `${as}/${bone.parent}` : as,
+                    props: { at: bone.at.map((v) => v * scale), bone: bone.id },
+                }, bone.parent ? `${as}/${bone.parent}` : as);
+                parts.set(bone.id, `${as}/${bone.id}`);
+            }
+            // The face mesh, which is what carries the blendshapes. Declared
+            // here so a film can write `morph.<name>` onto `<as>/face` the
+            // same way it writes any other channel.
+            scene.add({ id: `${as}/face`, kind: 'face', parentId: `${as}/head`,
+                        props: { at: [0, 0, 0] } }, `${as}/head`);
+            parts.set('face', `${as}/face`);
+            for (const part of char.parts ?? []) {
+                const nodeId = `${as}/${part.id}`;
+                // `parent` may name a bone ('head') or an earlier part.
+                const parentId = part.parent ? `${as}/${part.parent}` : as;
+                if (part.parent && !parts.has(part.parent)) {
+                    warn(`part '${part.id}' parents to '${part.parent}', which is neither `
+                         + 'a bone nor an earlier part', nodeId);
+                    continue;
+                }
+                scene.add({
+                    id: nodeId, kind: 'mesh', parentId,
+                    props: {
+                        geometry: { ...(part.geometry ?? { kind: 'sphere', radius: 0.01 }) },
+                        material: resolveMaterial(part.material, nodeId),
+                        at: vec3(part.at ?? [0, 0, 0]),
+                        rot: vec3(part.rot ?? [0, 0, 0]).map((d) => d * DEG),
+                        scale: vec3(part.scale ?? 1, 1),
+                        blending: part.blending ?? null,
+                        attachTo: part.parent ?? null,
+                    },
+                }, parentId);
+                parts.set(part.id, nodeId);
+            }
+            castMap.set(as, { rootId: as, parts, assembly: char, character: true });
+            characters.set(as, { name: entry.character, spec: char, voice: entry.voice ?? char.voice });
+            continue;
+        }
+
         const assembly = film.assemblies?.[entry.assembly];
-        const as = entry.as ?? entry.assembly;
         if (!assembly) { warn(`unknown assembly '${entry.assembly}'`, `cast.${as}`); continue; }
         const rootId = as;
         scene.add({ id: rootId, kind: 'group',
@@ -173,7 +247,27 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
     // Cues, not a mixer. The 2D path already owns the mixing, the buses and
     // the fades; 3D was silent only because nothing here emitted the cue
     // list it consumes.
+    /**
+     * A character names a voice from the film's `voices` block; that block
+     * maps the name to a provider spec. Passing the NAME straight through as
+     * if it were a spec is silent: the provider finds no such voice, falls
+     * back to whatever is first in its list, and the presenter delivers an
+     * English script in an Arabic voice without anything reporting a problem.
+     */
+    const resolveVoice = (ref, where) => {
+        if (!ref) return null;
+        const declared = film.voices?.[ref];
+        if (declared) return declared.spec ?? declared;
+        if (String(ref).includes(':')) return ref;      // already a provider spec
+        warn(`unknown voice '${ref}'; declare it under \`voices\``, where);
+        return null;
+    };
+
     const audioCues = [];
+    // Dialogue produces JOBS, not audio: synthesis needs a browser, and the
+    // samples it returns are what lipsync reads. Identical in shape to the 2D
+    // compiler's jobs, so `synthesizeDialogue` consumes them unchanged.
+    const lipsyncJobs = [];
     const addCue = (spec, at, where) => {
         if (!spec?.asset) return warn('audio needs an `asset`', where);
         if (!film.assets?.[spec.asset]) warn(`unknown audio asset '${spec.asset}'`, where);
@@ -189,6 +283,9 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
 
     let prevCamera = null;
     const clipSeq = { n: 0 };
+    // What each face is currently holding, so the next expression knows which
+    // shapes to release rather than leaving a brow raised for the whole film.
+    const expressionHold = new Map();
     for (const s of shots) {
         prevCamera = buildCamera3D({ timeline, cameraId, lookId, shot: s.shot,
                                      start: s.start, duration: s.duration, prevCamera, warn,
@@ -196,15 +293,31 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
         for (const [ai, spec] of (s.shot.audio ?? []).entries()) {
             addCue(spec, s.start, `${s.shotId}.audio[${ai}]`);
         }
+        for (const [di, line] of (s.shot.dialogue ?? []).entries()) {
+            const who = characters.get(line.speaker);
+            if (!who) { warn(`unknown speaker '${line.speaker}'`, `${s.shotId}.dialogue[${di}]`); continue; }
+            lipsyncJobs.push({
+                nodeId: line.speaker, speaker: line.speaker, text: line.text ?? null,
+                at: +(s.start + (line.at ?? 0)).toFixed(4),
+                voiceSpec: resolveVoice(line.voice ?? who.voice,
+                                        `${s.shotId}.dialogue[${di}]`),
+                audioAssetId: line.audio ?? null,
+                lipsync: line.lipsync !== false,
+                gain: line.gain ?? 1,
+                durationSec: line.duration ?? null,
+                subtitle: line.subtitle !== false,
+                shotEnd: s.end,
+            });
+        }
         for (const [ai, action] of (s.shot.actions ?? []).entries()) {
             buildAction3D({ scene, timeline, action, castMap, emitters, shot: s,
-                            cameraId, warn, clipSeq, audioCues,
+                            cameraId, warn, clipSeq, audioCues, expressionHold,
                             location: `${s.shotId}.actions[${ai}]` });
         }
     }
 
     return { scene, timeline, emitters, meta, cameraId, lookId, shots,
-             duration, audioCues, diagnostics };
+             duration, audioCues, lipsyncJobs, characters, diagnostics };
 }
 
 /**
@@ -244,14 +357,21 @@ function buildCamera3D({ timeline, cameraId, lookId, shot, start, duration, prev
     // rifle ended up behind the camera during its own firing shot.
     const CUT = 1e-4;
     const moveStart = start + (cam.at ?? 0) + (prevCamera && (cam.at ?? 0) === 0 ? CUT : 0);
+    // The arrival key is measured from the shot's OWN start, not from the
+    // nudged one. Carrying the nudge into the end key put it at
+    // next_start + CUT -- exactly where the next shot's nudged `from` lands --
+    // so the two collided again and the outgoing shot spent its whole
+    // duration drifting into the next shot's framing. A close-up aimed at a
+    // face rendered as eight seconds of empty backdrop.
+    const moveEnd = start + (cam.at ?? 0) + span;
 
     writeVec(timeline, cameraId, 'position', from.at, moveStart, null, ease);
     writeVec(timeline, lookId, 'position', from.look, moveStart, null, ease);
     key(timeline, cameraId, 'fov', moveStart, from.fov, { type: 'number', ease });
     if (span > 0) {
-        writeVec(timeline, cameraId, 'position', to.at, moveStart + span, null, 'linear');
-        writeVec(timeline, lookId, 'position', to.look, moveStart + span, null, 'linear');
-        key(timeline, cameraId, 'fov', moveStart + span, to.fov, { type: 'number' });
+        writeVec(timeline, cameraId, 'position', to.at, moveEnd, null, 'linear');
+        writeVec(timeline, lookId, 'position', to.look, moveEnd, null, 'linear');
+        key(timeline, cameraId, 'fov', moveEnd, to.fov, { type: 'number' });
     }
     if (cam.shake) {
         buildShake3D({ timeline, cameraId, shake: cam.shake, start: moveStart,
@@ -343,7 +463,7 @@ function lastValueBefore3D(timeline, target, path, t) {
 }
 
 function buildAction3D({ scene, timeline, action, castMap, emitters, shot, cameraId,
-                        warn, clipSeq, audioCues, location }) {
+                        warn, clipSeq, audioCues, expressionHold, location }) {
     const at = shot.start + (action.at ?? 0);
     const span = action.for ?? 0;
     const ease = action.ease ?? 'smooth';
@@ -360,6 +480,28 @@ function buildAction3D({ scene, timeline, action, castMap, emitters, shot, camer
     };
 
     switch (action.do) {
+        /**
+         * Offset a node from its authored rest pose.
+         *
+         * `move` writes an ABSOLUTE position, which is right for a prop and
+         * catastrophic for a bone: a weight shift written as
+         * `move hips to [0.02, 0, 0]` does not shift the hips 20 mm sideways,
+         * it moves them to the floor and takes the whole skeleton with them.
+         * The head ended up at knee height and the close-up framed an empty
+         * backdrop. `nudge` is the verb that means what an animator means.
+         */
+        case 'nudge': {
+            const id = resolve(action.target);
+            if (!id) return warn(`unknown target '${action.target}'`, location);
+            const group = action.channel === 'rotation' ? 'rotation'
+                : action.channel === 'scale' ? 'scale' : 'position';
+            const rest = restVec(scene.get(id), group) ?? (group === 'scale' ? [1, 1, 1] : [0, 0, 0]);
+            const by = group === 'rotation' ? vec3(action.by).map((d) => d * DEG) : vec3(action.by);
+            const to = rest.map((v, i) => (group === 'scale' ? v * (by[i] || 1) : v + by[i]));
+            writeVec(timeline, id, group, to, at, span, ease, { ...opts, from: rest });
+            return;
+        }
+
         case 'move':
         case 'turn':
         case 'grow': {
@@ -444,6 +586,39 @@ function buildAction3D({ scene, timeline, action, castMap, emitters, shot, camer
             } else {
                 key(timeline, id, action.channel, at, action.value, { type, ease: 'step' });
             }
+            return;
+        }
+
+        /**
+         * An expression: one named set of blendshape weights.
+         *
+         * Production facial rigs give each system its own subset of shapes --
+         * the emotion layer owns brows and cheeks, lipsync owns the mouth --
+         * so the two never write the same channel and cannot fight. `express`
+         * writes only what its expression names, and clears what the previous
+         * expression set and this one does not.
+         */
+        case 'express': {
+            const cast = castMap.get(action.target);
+            const faceId = cast?.parts?.get('face');
+            if (!faceId) return warn(`'${action.target}' has no face to express with`, location);
+            const shape = EXPRESSIONS[action.expression];
+            if (!shape) {
+                return warn(`unknown expression '${action.expression}'. `
+                    + `Known: ${Object.keys(EXPRESSIONS).join(', ')}.`, location);
+            }
+            const amount = action.amount ?? 1;
+            const span = action.for ?? 0.4;
+            const held = expressionHold.get(faceId) ?? new Set();
+            const next = new Set(Object.keys(shape));
+            for (const name of held) {
+                if (!next.has(name)) writeScalar(timeline, faceId, `morph.${name}`, 0, at, span, ease);
+            }
+            for (const [name, w] of Object.entries(shape)) {
+                writeScalar(timeline, faceId, `morph.${name}`, w * amount, at, span, ease,
+                            { from: 0 });
+            }
+            expressionHold.set(faceId, next);
             return;
         }
 

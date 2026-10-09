@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-09 (Phase 13: the motion system, built from the fight live test's findings).
+Last updated: 2026-10-09 (Phase 13: the motion system, built from the fight live test's findings; camera mocap scoped in [12-MOCAP.md](12-MOCAP.md), not built).
 
 Legend: **done** · *partial* · — not started
 
@@ -706,3 +706,31 @@ worked** — see [DEFECTS.md](DEFECTS.md). Both causes are fixed.
 | `dist/` published with correct `exports` | **done** in Phase 1 |
 | Three as an optional peer resolved at `mount()` | **done** — the 2D path needs no Three.js at all; `jirex-core.esm.min.js` is 43.5 KB with zero dependencies |
 | Offline-mode e2e test | — not started |
+
+---
+
+## Camera motion capture — *requested, assessed, not started*
+
+Scoped in [12-MOCAP.md](12-MOCAP.md). Driving a character from a webcam
+reading a real person's movement.
+
+| Item | State |
+|---|---|
+| Landmark capture (Pose Landmarker, in-browser) | — not started |
+| Angle retarget — landmark pairs → 16 part rotations | — not started |
+| Jitter filter, visibility gating | — not started |
+| Keyframe decimation | — not started — **and no curve simplification exists anywhere in the repo yet** |
+| Root motion normalisation, facing classification | — not started |
+| Foreshortening | **blocked** on deformation, the same gap named in [11-MOTION-SYSTEM.md](11-MOTION-SYSTEM.md#deformation--the-largest-remaining-gap) |
+| Face capture → visemes (the higher-ROI cousin) | — not started |
+
+Two findings worth carrying forward even if the feature is never built:
+
+- It needs **no core change**. Capture is an authoring-time ingest that bakes
+  a Clip, because frame N must stay a pure function of N. Everything after
+  the camera is pure and testable in Node against a committed landmark
+  fixture.
+- Raw mocap **contradicts** the twelve principles — no anticipation, no
+  exaggeration, smooth on ones. It is only worth shipping as a base layer
+  under hand-authored exaggeration, which the Phase 13 additive system
+  already supports with no new code.

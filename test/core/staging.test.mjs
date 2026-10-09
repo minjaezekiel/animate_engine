@@ -217,3 +217,96 @@ test('an unresolved asset id never reaches the backend as a string', () => {
     assert.equal(node.props.asset, undefined);
     assert.ok(diagnostics.some((x) => /was not loaded/.test(x.message)));
 });
+
+// --------------------------------------------------------------- framing
+
+test('a declared framing is checked against the zoom actually in force', () => {
+    const film = {
+        version: 'jirex.film/1',
+        meta: { fps: 24, width: 1280, height: 720 },
+        characters: { a: { generate: {}, proportions: { height: 420 } } },
+        scenes: [{
+            id: 's1',
+            template: { template: 'living-room' },
+            cast: [{ character: 'a', as: 'a', at: [640] }],
+            shots: [
+                { id: 'wide', duration: 2, framing: 'wide',
+                  camera: { from: { x: 0, y: -25, zoom: 1 }, to: { x: 0, y: -25, zoom: 1 } } },
+                { id: 'fake-close', duration: 2, framing: 'close',
+                  camera: { from: { x: 0, y: -25, zoom: 1 }, to: { x: 0, y: -25, zoom: 1 } } },
+            ],
+        }],
+    };
+    const d = analyseStaging(compileFilm(film, {}), film, { trackValueAt });
+    const msgs = d.map((x) => x.message);
+    assert.ok(!msgs.some((m) => m.includes('wide')), 'the honest wide passes');
+    const bad = msgs.find((m) => m.includes('fake-close'));
+    assert.ok(bad, 'a close-up framed at wide-shot zoom is reported');
+    // The number to change it to, not just a complaint: an author who cannot
+    // see the frame has no other way to pick a zoom.
+    assert.match(bad, /Try zoom \d+\.\d+/);
+
+    // And following the advice fixes it, which is the only thing that makes
+    // the suggestion worth printing.
+    const zoom = Number(/Try zoom (\d+\.\d+)/.exec(bad)[1]);
+    film.scenes[0].shots[1].camera.from.zoom = zoom;
+    film.scenes[0].shots[1].camera.to.zoom = zoom;
+    const after = analyseStaging(compileFilm(film, {}), film, { trackValueAt })
+        .filter((x) => x.message.includes('Framing'));
+    assert.equal(after.length, 0, `following the suggested zoom clears it: ${after[0]?.message}`);
+});
+
+test('a shot that names its subject may exclude the rest of the cast', () => {
+    const film = {
+        version: 'jirex.film/1',
+        meta: { fps: 24, width: 1280, height: 720 },
+        characters: {
+            a: { generate: {}, proportions: { height: 420 } },
+            b: { generate: {}, proportions: { height: 420 } },
+        },
+        scenes: [{
+            id: 's1',
+            template: { template: 'living-room' },
+            cast: [{ character: 'a', as: 'a', at: [300] }, { character: 'b', as: 'b', at: [1000] }],
+            shots: [{ id: 'single', duration: 2, framing: 'close', on: 'a',
+                      camera: { from: { x: -340, y: -164, zoom: 4.7 },
+                                to: { x: -340, y: -164, zoom: 4.7 } } }],
+        }],
+    };
+    const d = analyseStaging(compileFilm(film, {}), film, { trackValueAt });
+    assert.equal(d.length, 0,
+        `shot/reverse-shot is the point of a single, not a staging error: ${d[0]?.message}`);
+
+    // The subject itself is still held to it.
+    film.scenes[0].shots[0].on = 'b';
+    const moved = analyseStaging(compileFilm(film, {}), film, { trackValueAt });
+    assert.ok(moved.some((x) => x.message.includes('"b"')),
+        'the named subject must still be in frame');
+});
+
+test('an unknown framing names the set rather than being ignored', () => {
+    const film = {
+        version: 'jirex.film/1',
+        meta: { fps: 24, width: 1280, height: 720 },
+        characters: { a: { generate: {}, proportions: { height: 420 } } },
+        scenes: [{
+            id: 's1', template: { template: 'living-room' },
+            cast: [{ character: 'a', as: 'a', at: [640] }],
+            shots: [{ id: 'x', duration: 2, framing: 'extreme-close',
+                      camera: { from: { x: 0, y: 0, zoom: 1 }, to: { x: 0, y: 0, zoom: 1 } } }],
+        }],
+    };
+    const d = analyseStaging(compileFilm(film, {}), film, { trackValueAt });
+    assert.match(d[0].message, /Known: wide, medium, close/);
+    assert.equal(d[0].severity, 'warning', 'never fatal');
+});
+
+test('the reference two-hander stages and frames clean', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const film = JSON.parse(await readFile(
+        new URL('../../demo/two-hander.json', import.meta.url), 'utf8'));
+    const compiled = compileFilm(film, {});
+    assert.equal(compiled.meta.duration, 55, 'durations still sum to 55s');
+    const d = analyseStaging(compiled, film, { trackValueAt });
+    assert.equal(d.length, 0, `reference film has staging problems: ${d[0]?.message}`);
+});

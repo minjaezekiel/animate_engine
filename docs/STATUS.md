@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-09 (end of Phases 10 and 11, plus the animation-principles audit).
+Last updated: 2026-10-09 (end of Phase 12 — the art system is complete).
 
 Legend: **done** · *partial* · — not started
 
@@ -551,13 +551,56 @@ known cost for profile-state flakiness. Measure before taking that trade.
 
 ---
 
-## Phase 12 — the vocabulary document — *partial*
+## Phase 12 — the vocabulary document — **done**
 
 | Item | State |
 |---|---|
-| `docs/08-ART-VOCABULARY.md` | **done** — every enum, every template, every prop, a complete worked scene, and an explicit list of what the system cannot do |
-| A reference two-hander dialogue film | — not started |
-| Authoring cost measured against the 57k baseline | — not measured; needs the reference film |
+| `docs/08-ART-VOCABULARY.md` | **done** — every enum, every template, every prop, a worked scene, and an explicit list of what the system cannot do |
+| A reference two-hander dialogue film | **done** — `demo/two-hander.json`: 55.0 s, 10 shots, 3 reused setups, 10 voiced lines, no hand-authored geometry |
+| Declared framing, checked | **done** — `wide`/`medium`/`close` + `on`, measured in head heights, with the corrective zoom in the diagnostic |
+| Authoring cost measured | **done** — see below |
+
+### Measured
+
+| | `mountain.json` | `two-hander.json` |
+|---|---|---|
+| duration | 23.2 s | 55.0 s |
+| script | ~1,505 tokens | ~1,708 tokens |
+| **per second of film** | **65 tok/s** | **31 tok/s** |
+| hand-placed scenery | 2,154 bytes | 4 bytes |
+| characters on screen | 1 | 2 |
+
+Twice the economy for twice the cast. The caveat from Phase 8 still stands and
+should not be lost: the script was never the expensive part — it was 3% of the
+mountain film's turn. The vocabulary document addresses the re-reading; the
+framing check addresses the looking.
+
+### What the reference film found
+
+It compiled clean, staged clean, and framed **every one of its five close-ups
+as a full-length two-shot**. The intent lived only in the shot ids and nothing
+compared it to the zoom; three contact sheets to notice.
+
+Two fixes, both in `staging.js`:
+
+- `framing` + `on` as a declaration, checked against the zoom in force,
+  measured in head heights because a close-up crops the body. The diagnostic
+  carries the corrective zoom, and a test follows that suggestion and asserts
+  it clears — a suggestion that does not work is worse than none.
+- the existing off-frame check no longer fires on non-subjects when a shot
+  names its subject. It had assumed every cast member belongs in frame at all
+  times, which is true of a one-character film and false of shot/reverse-shot.
+
+The general lesson: **a check can only verify intent that was written down.**
+Every unverifiable thing left in this system is something the author never got
+to declare.
+
+### Also this phase
+
+`cast.at` may give only an x and the character stands on the scene's declared
+ground, using the same helpers `do:'move'` already used. Previously an author
+computed the first y by hand or wrote a dummy one-frame `move` to snap it
+down — both the arithmetic the ground declaration exists to remove.
 
 ---
 

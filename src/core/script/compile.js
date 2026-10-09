@@ -124,7 +124,8 @@ export function compileFilm(film, { assets = {} } = {}) {
             const rootId = `${sceneId}/${as}`;
             instantiateCharacter({
                 scene, char, charName, as, rootId, parentId: groupId,
-                entry, palettes, diagnostics, assets, scenePalette: spec.palette,
+                entry: standOnGround(entry, char, spec.ground),
+                palettes, diagnostics, assets, scenePalette: spec.palette,
             });
             castMap.set(as, { rootId, char, charName, entry });
         }
@@ -635,6 +636,22 @@ function writeChannel({ timeline, target, channel, value, at, span, ease, h,
             overshootValue(prev, value, overshoot), { type: 'number', ease: 'smooth' });
     }
     key(timeline, target, path, at + span, value, { type: 'number' });
+}
+
+/**
+ * Place a cast member on the scene's floor when it gives only an x.
+ *
+ * `do:'move'` already derives y from the declared ground; staging a character
+ * did not, so an author had to compute the same number by hand for the first
+ * position and then never again -- or write a dummy one-frame `move` to snap
+ * it down. Both are the arithmetic the ground declaration exists to remove.
+ */
+function standOnGround(entry, char, ground) {
+    const at = entry.at;
+    if (!ground || !Array.isArray(at) || at[1] != null) return entry;
+    const gy = groundAt(ground, at[0] ?? 0);
+    if (gy == null) return entry;
+    return { ...entry, at: [at[0] ?? 0, gy - castFeet(char, entry)] };
 }
 
 /** How far a cast member's feet sit below its root, at its staged scale. */

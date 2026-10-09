@@ -42,7 +42,9 @@ export const KNOWN = {
            'strokeWidth', 'z', 'at', 'alpha'],
     scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
             'scenery', 'palette', 'ground', 'template'],
-    shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle'],
+    shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle',
+           // what the shot is MEANT to be, so the checker can say whether it is
+           'framing', 'on'],
     action: ['target', 'do', 'action', 'pose', 'to', 'at', 'for', 'ease', 'h', 'loop', 'speed', 'value', 'channel',
              'part', 'bones', 'bend',
              // the four principles that need a number rather than a keyframe

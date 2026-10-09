@@ -1,0 +1,180 @@
+{
+  "version": "jirex.film/1",
+
+  "meta": {
+    "title": "The Last Bus",
+    "description": "A two-hander in the limited-animation idiom: three reused camera setups, shot/reverse-shot, held poses, moving mouths.",
+    "fps": 24,
+    "width": 1280,
+    "height": 720
+  },
+
+  "voices": {
+    "nia_v": { "spec": "tts:en_GB-alba-medium" },
+    "marcus_v": { "spec": "tts:en_GB-alan-medium" }
+  },
+
+  "palettes": {
+    "evening": {
+      "skin": "#8c5a34", "coat": "#9c4330", "accent": "#3f5d72", "trouser": "#2d3440",
+      "hair": "#140e0b", "shoe": "#241c17", "wall": "#6e6253", "floor": "#4a3a2c",
+      "wood": "#4b3526", "light": "#ffd9a0", "foliage": "#3f6038", "clay": "#8a4a30"
+    }
+  },
+
+  "characters": {
+    "nia": {
+      "voice": "nia_v",
+      "proportions": { "height": 420 },
+      "generate": {
+        "build": "slim", "facing": 1, "cloth": "coat", "hair": "braids",
+        "face": { "jaw": "tapered", "eyes": "wide", "brow": "arched", "nose": "button", "lips": "full" }
+      }
+    },
+    "marcus": {
+      "voice": "marcus_v",
+      "proportions": { "height": 460 },
+      "generate": {
+        "build": "heavy", "facing": -1, "cloth": "accent", "hair": "short-fade",
+        "face": { "jaw": "heavy", "eyes": "hooded", "brow": "heavy", "nose": "broad", "ears": "small" }
+      }
+    }
+  },
+
+  "scenes": [{
+    "id": "s1",
+    "palette": "evening",
+    "template": { "template": "living-room", "time": "evening",
+                  "props": ["window@0.12", "sofa@0.5", "lamp@0.84", "plant@0.95"] },
+    "transitionIn": { "kind": "fade", "from": "#000000", "duration": 1.2 },
+    "transitionOut": { "kind": "fade", "duration": 1.4 },
+
+    "cast": [
+      { "character": "nia", "as": "nia", "at": [455], "view": "threeQuarter" },
+      { "character": "marcus", "as": "marcus", "at": [835], "view": "threeQuarter" }
+    ],
+
+    "shots": [
+      { "id": "1-wide", "duration": 6.0, "framing": "wide",
+        "camera": { "from": { "x": 5, "y": -25, "zoom": 1.00 }, "to": { "x": 5, "y": -25, "zoom": 1.04 }, "ease": "smooth" },
+        "actions": [
+          { "target": "nia", "do": "play", "action": "breathe" },
+          { "target": "nia", "do": "play", "action": "blink" },
+          { "target": "marcus", "do": "play", "action": "idle" },
+          { "target": "marcus", "do": "play", "action": "blink" }
+        ],
+        "dialogue": [
+          { "speaker": "nia", "at": 1.0, "lipsync": true, "subtitle": true,
+            "text": "You said you would be at the station." }
+        ] },
+
+      { "id": "2-nia", "duration": 5.0, "framing": "close", "on": "nia",
+        "camera": { "from": { "x": -185, "y": -164, "zoom": 4.70 }, "to": { "x": -185, "y": -164, "zoom": 4.80 }, "ease": "smooth" },
+        "actions": [
+          { "target": "nia", "do": "play", "action": "breathe" },
+          { "target": "nia", "do": "play", "action": "blink" }
+        ],
+        "dialogue": [
+          { "speaker": "nia", "at": 0.4, "lipsync": true, "subtitle": true,
+            "text": "I waited until the last bus went. Then I walked." }
+        ] },
+
+      { "id": "3-marcus", "duration": 5.5, "framing": "close", "on": "marcus",
+        "camera": { "from": { "x": 195, "y": -199, "zoom": 4.30 }, "to": { "x": 195, "y": -199, "zoom": 4.40 }, "ease": "smooth" },
+        "actions": [
+          { "target": "marcus", "do": "set", "channel": "props.expression", "value": "weary", "at": 0.1 },
+          { "target": "marcus", "do": "play", "action": "breathe" },
+          { "target": "marcus", "do": "play", "action": "blink" }
+        ],
+        "dialogue": [
+          { "speaker": "marcus", "at": 0.5, "lipsync": true, "subtitle": true,
+            "text": "The shift ran over. I could not just leave the floor." }
+        ] },
+
+      { "id": "4-nia", "duration": 4.5, "framing": "close", "on": "nia",
+        "camera": { "from": { "x": -185, "y": -164, "zoom": 4.80 }, "to": { "x": -185, "y": -164, "zoom": 4.95 }, "ease": "smooth" },
+        "actions": [
+          { "target": "nia", "do": "set", "channel": "props.expression", "value": "angry", "at": 0.2 },
+          { "target": "nia", "do": "play", "action": "breathe" }
+        ],
+        "dialogue": [
+          { "speaker": "nia", "at": 0.3, "lipsync": true, "subtitle": true,
+            "text": "It always runs over. Every single time." }
+        ] },
+
+      { "id": "5-marcus", "duration": 6.0, "framing": "close", "on": "marcus",
+        "camera": { "from": { "x": 195, "y": -199, "zoom": 4.40 }, "to": { "x": 195, "y": -199, "zoom": 4.30 }, "ease": "smooth" },
+        "actions": [
+          { "target": "marcus", "do": "play", "action": "breathe" },
+          { "target": "marcus", "do": "play", "action": "blink" },
+          { "target": "marcus", "do": "set", "channel": "props.expression", "value": "neutral", "at": 2.6 }
+        ],
+        "dialogue": [
+          { "speaker": "marcus", "at": 0.4, "lipsync": true, "subtitle": true,
+            "text": "I know. And you are right to be angry about it." }
+        ] },
+
+      { "id": "6-wide", "duration": 5.0, "framing": "wide",
+        "camera": { "from": { "x": 5, "y": -25, "zoom": 1.04 }, "to": { "x": 5, "y": -25, "zoom": 1.10 }, "ease": "smooth" },
+        "actions": [
+          { "target": "marcus", "do": "move", "to": [700], "for": 2.4, "at": 0.6, "ease": "smooth", "anticipate": 0.1 },
+          { "target": "marcus", "do": "play", "action": "walk", "at": 0.6, "for": 2.4 },
+          { "target": "marcus", "do": "play", "action": "idle", "at": 3.0 },
+          { "target": "nia", "do": "set", "channel": "props.view", "value": "profile", "at": 2.2 },
+          { "target": "nia", "do": "play", "action": "breathe" }
+        ],
+        "dialogue": [
+          { "speaker": "marcus", "at": 3.2, "lipsync": true, "subtitle": true,
+            "text": "Sit down. Please." }
+        ] },
+
+      { "id": "7-nia", "duration": 5.5, "framing": "close", "on": "nia",
+        "camera": { "from": { "x": -185, "y": -164, "zoom": 4.95 }, "to": { "x": -185, "y": -164, "zoom": 4.80 }, "ease": "smooth" },
+        "actions": [
+          { "target": "nia", "do": "set", "channel": "props.view", "value": "threeQuarter", "at": 0.1 },
+          { "target": "nia", "do": "set", "channel": "props.expression", "value": "neutral", "at": 1.4 },
+          { "target": "nia", "do": "play", "action": "breathe" },
+          { "target": "nia", "do": "play", "action": "blink" }
+        ],
+        "dialogue": [
+          { "speaker": "nia", "at": 0.5, "lipsync": true, "subtitle": true,
+            "text": "I am not angry. I am tired of guessing." }
+        ] },
+
+      { "id": "8-marcus", "duration": 5.0, "framing": "close", "on": "marcus",
+        "camera": { "from": { "x": 60, "y": -199, "zoom": 4.30 }, "to": { "x": 60, "y": -199, "zoom": 4.36 }, "ease": "smooth" },
+        "actions": [
+          { "target": "marcus", "do": "play", "action": "breathe" },
+          { "target": "marcus", "do": "play", "action": "blink" }
+        ],
+        "dialogue": [
+          { "speaker": "marcus", "at": 0.4, "lipsync": true, "subtitle": true,
+            "text": "Then stop guessing. Ask me, and I will tell you." }
+        ] },
+
+      { "id": "9-wide", "duration": 6.0, "framing": "wide",
+        "camera": { "from": { "x": 5, "y": -25, "zoom": 1.10 }, "to": { "x": 5, "y": -25, "zoom": 1.06 }, "ease": "smooth" },
+        "actions": [
+          { "target": "nia", "do": "play", "action": "idle" },
+          { "target": "nia", "do": "play", "action": "blink" },
+          { "target": "marcus", "do": "play", "action": "breathe" }
+        ],
+        "dialogue": [
+          { "speaker": "nia", "at": 0.8, "lipsync": true, "subtitle": true,
+            "text": "Will you be there on Thursday?" }
+        ] },
+
+      { "id": "10-marcus", "duration": 6.5, "framing": "close", "on": "marcus",
+        "camera": { "from": { "x": 60, "y": -199, "zoom": 4.36 }, "to": { "x": 60, "y": -199, "zoom": 4.85 }, "ease": "smooth" },
+        "actions": [
+          { "target": "marcus", "do": "set", "channel": "props.expression", "value": "delighted", "at": 2.4 },
+          { "target": "marcus", "do": "play", "action": "breathe" },
+          { "target": "marcus", "do": "play", "action": "blink" }
+        ],
+        "dialogue": [
+          { "speaker": "marcus", "at": 0.5, "lipsync": true, "subtitle": true,
+            "text": "I will be there. On the platform, before the bus." }
+        ] }
+    ]
+  }]
+}

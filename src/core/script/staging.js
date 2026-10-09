@@ -161,6 +161,35 @@ function cameraAt(timeline, t, meta, trackValueAt) {
  * `trackValueAt` is injected rather than imported to keep this module free of
  * a cycle with the animation layer.
  */
+
+/**
+ * Framing, measured the way a camera department measures it: how much of the
+ * visible frame height one head occupies.
+ *
+ * A shot declares what it is meant to be and the check says whether it is.
+ * Without this, "close-up" is an intention living only in a shot id -- the
+ * reference film declared five of them and every one compiled clean while
+ * actually framing both characters head to foot, because nothing compared the
+ * zoom against the subject.
+ *
+ * Head height rather than body height, because a close-up crops the body: a
+ * body-based ratio stops meaning anything exactly where it is needed most.
+ */
+export const FRAMINGS = {
+    wide:   { min: 0.04, max: 0.15, says: 'the whole figure with room around it' },
+    medium: { min: 0.13, max: 0.30, says: 'roughly waist up' },
+    close:  { min: 0.26, max: 0.75, says: 'head and shoulders filling the frame' },
+};
+export const FRAMING_NAMES = Object.keys(FRAMINGS);
+
+/** One head's height in scene units, from the proportions a character declares. */
+export function headHeight(char) {
+    const p = char?.proportions ?? {};
+    const height = p.height ?? 180;
+    const ratio = p.headRatio ?? (1 / (p.heads ?? (char?.generate?.build === 'child' ? 4.8 : 6.2)));
+    return height * ratio;
+}
+
 export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt } = {}) {
     const d = [];
     if (!compiled?.scene || !compiled.timeline || !trackValueAt) return d;
@@ -189,6 +218,7 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
 
     const seenOffFrame = new Set();
     const seenGround = new Set();
+    const seenFraming = new Set();
 
     try {
         for (const span of shots) {
@@ -213,6 +243,68 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
                 const onScreen = new Map();
                 for (const { node, alpha } of scene.drawOrder()) onScreen.set(node.id, alpha);
 
+                // Declared framing, checked against the zoom that is actually
+                // in force. `on` names the subject; with one cast member in
+                // frame it is unambiguous and may be left out.
+                const wanted = span.shot?.framing;
+                if (wanted && !seenFraming.has(span.shotId)) {
+                    const band = FRAMINGS[wanted];
+                    if (!band) {
+                        seenFraming.add(span.shotId);
+                        d.push({
+                            severity: 'warning', path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+                            message: `Framing: unknown framing "${wanted}" in shot ${span.shotId}. `
+                                + `Known: ${FRAMING_NAMES.join(', ')}.`,
+                        });
+                    } else {
+                        // With no `on`, measure the LARGEST head in frame. For
+                        // a wide that is the right question anyway -- "is even
+                        // the nearest figure small?" -- so only a shot that
+                        // genuinely needs to name its subject has to.
+                        const inScene = casts.filter((c) => c.sceneId === span.sceneId
+                            && (onScreen.get(c.node.id) ?? 0) >= 0.5);
+                        const headOf = (c) => headHeight(film.characters?.[c.charName])
+                            * (Math.abs(scene.worldMatrix(c.node.id)[0]) || 1);
+                        const subject = span.shot.on
+                            ? inScene.find((c) => c.as === span.shot.on)
+                            : inScene.slice().sort((a, b) => headOf(b) - headOf(a))[0];
+                        const subjectName = subject?.as ?? span.shot.on;
+                        if (span.shot.on && !subject) {
+                            seenFraming.add(span.shotId);
+                            d.push({
+                                severity: 'warning', path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+                                message: `Framing: shot ${span.shotId} is framed on "${span.shot.on}", `
+                                    + `who is not on screen here.`,
+                            });
+                        } else if (subject) {
+                            const scale = Math.abs(scene.worldMatrix(subject.node.id)[0]) || 1;
+                            const head = headHeight(film.characters?.[subject.charName]) * scale;
+                            const visible = frame.bottom - frame.top;
+                            const ratio = visible > 0 ? head / visible : 0;
+                            if (ratio < band.min || ratio > band.max) {
+                                seenFraming.add(span.shotId);
+                                // The zoom that WOULD land it, placed low in
+                                // the band rather than at its centre: an
+                                // author who cannot see the frame needs a
+                                // number to use, and the middle of "close" is
+                                // a tighter shot than anyone means by it.
+                                const target = band.min + (band.max - band.min) * 0.3;
+                                const suggest = (meta.height * target) / head;
+                                d.push({
+                                    severity: 'warning',
+                                    path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+                                    message: `Framing: shot ${span.shotId} declares "${wanted}" `
+                                        + `(${band.says}) on "${subjectName}", but one head is `
+                                        + `${(ratio * 100).toFixed(0)}% of the frame height at `
+                                        + `${t.toFixed(1)}s -- "${wanted}" wants `
+                                        + `${(band.min * 100).toFixed(0)}-${(band.max * 100).toFixed(0)}%. `
+                                        + `Try zoom ${suggest.toFixed(2)}.`,
+                                });
+                            }
+                        }
+                    }
+                }
+
                 for (const { node, charName, sceneId, as } of casts) {
                     // Only this shot's own scene. During a crossfade two
                     // scenes share one camera, so the incoming cast is on
@@ -234,6 +326,15 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
 
                     const outside = box.right < frame.left || box.left > frame.right
                         || box.bottom < frame.top || box.top > frame.bottom;
+                    // A shot that names its subject is allowed to exclude
+                    // everyone else -- that is what a close-up IS, and
+                    // shot/reverse-shot is the dominant idiom of dialogue
+                    // animation. Without this the reference two-hander
+                    // reported four "errors" for working exactly as written.
+                    const subjectOnly = span.shot?.on ?? (span.shot?.framing === 'close'
+                        || span.shot?.framing === 'medium');
+                    const isSubject = span.shot?.on ? as === span.shot.on : false;
+                    if (subjectOnly && !isSubject) continue;
                     const key = `${span.shotId}:${node.id}`;
                     if (outside && !seenOffFrame.has(key)) {
                         seenOffFrame.add(key);

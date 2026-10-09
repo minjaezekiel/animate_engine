@@ -208,6 +208,48 @@ that declares one:
 `facing` mirrors the whole character; `view` turns the head within it. A
 character facing left in profile looks left.
 
+---
+
+## Framing
+
+A shot says what it is meant to be, and the checker says whether it is.
+
+```json
+{ "id": "3-marcus", "duration": 5.5, "framing": "close", "on": "marcus",
+  "camera": { "from": { "x": 195, "y": -199, "zoom": 4.30 },
+              "to":   { "x": 195, "y": -199, "zoom": 4.40 }, "ease": "smooth" } }
+```
+
+| framing | one head occupies | means |
+|---|---|---|
+| `wide` | 4–15% of frame height | the whole figure with room around it |
+| `medium` | 13–30% | roughly waist up |
+| `close` | 26–75% | head and shoulders filling the frame |
+
+Measured in **head heights**, not body heights, because a close-up crops the
+body — a body-based ratio stops meaning anything exactly where it is needed
+most.
+
+`on` names the subject. Leave it out and the largest head in frame is
+measured, which is the right question for a wide anyway. Naming a subject also
+tells the checker that **everyone else is meant to be out of frame** — that is
+what a single is, and without saying so a shot/reverse-shot scene reports one
+"cast off-frame" warning per cut.
+
+When a shot misses its declared band the diagnostic carries the zoom that
+would fix it:
+
+```
+Framing: shot 2-nia declares "close" (head and shoulders filling the frame)
+on "nia", but one head is 8% of the frame height at 6.5s -- "close" wants
+26-75%. Try zoom 9.72.
+```
+
+This is the single most useful number in the system for an author who cannot
+see the frame. It was added after the reference film compiled completely clean
+while framing every one of its five "close-ups" as a full-length two-shot —
+the intent existed only in the shot ids, and nothing compared it to the zoom.
+
 ### Why the shot/reverse-shot idiom is cheap here
 
 The reference clip this engine was measured against is 54.6 s with 10 cuts —
@@ -253,6 +295,24 @@ Stack them — `breathe` + `blink` + `walk` run together as separate clip
 instances. That is secondary action, and it costs three lines.
 
 ---
+
+## The reference film
+
+[`demo/two-hander.json`](../demo/two-hander.json) is a complete 55-second
+dialogue scene written with nothing but this vocabulary: one `template`, two
+`generate` blocks, three reused camera setups, ten shots, ten voiced lines.
+It contains **no hand-authored geometry at all** — 4 bytes of `scenery` and 7
+of `parts`, both of which are the empty brackets of the JSON around them.
+
+| | mountain.json | two-hander.json |
+|---|---|---|
+| duration | 23.2 s | 55.0 s |
+| script | ~1,505 tokens | ~1,708 tokens |
+| **per second of film** | **65 tok/s** | **31 tok/s** |
+| hand-placed scenery | 2,154 bytes | 4 bytes |
+| characters on screen | 1 | 2 |
+
+Read it before writing your own; it is shorter than this document.
 
 ## A complete scene, in about 40 lines
 

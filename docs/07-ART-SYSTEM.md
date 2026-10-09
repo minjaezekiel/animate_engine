@@ -380,19 +380,67 @@ itself wins.
 
 ---
 
-## Phase 12 — the vocabulary document
+## Phase 12 — the vocabulary document — *shipped*
 
-`docs/08-ART-VOCABULARY.md`: every enum, every template, every prop name, with
-one worked example per kind.
+[08-ART-VOCABULARY.md](08-ART-VOCABULARY.md): every enum, every template,
+every prop, a complete worked scene, and an explicit list of what the system
+cannot do. Reading it once is ~3.5k tokens; after that a character costs ~45
+and a background ~20.
 
-This is the direct fix for the largest measured cost. Reading it once is ~3k
-tokens; after that a character costs ~50 and a background ~20. Without it, an
-agent re-derives the same facts from source every session — which is what
-actually happened.
+Shipped alongside it: [`demo/two-hander.json`](../demo/two-hander.json), a
+55-second dialogue scene in the reference idiom — two characters, three reused
+camera setups, shot/reverse-shot, ten shots, ten voiced lines — written with
+**no hand-authored geometry at all**.
 
-Ship a reference film alongside it: one two-hander dialogue scene in the
-reference's idiom — two characters, three reused camera setups, shot/reverse-
-shot, ~55 s — so the idiom is demonstrated and not merely described.
+### Measured
+
+| | `mountain.json` | `two-hander.json` |
+|---|---|---|
+| duration | 23.2 s | 55.0 s |
+| script | ~1,505 tokens | ~1,708 tokens |
+| **per second** | **65 tok/s** | **31 tok/s** |
+| hand-placed scenery | 2,154 bytes | 4 bytes |
+| characters | 1 | 2 |
+
+Twice the economy for twice the cast and a harder form. But the honest caveat
+stands: the script was never the expensive part. It was 3% of the mountain
+film's turn, and the other 97% was re-reading source and looking at renders.
+This document fixes the first. The framing check below is what fixes the
+second.
+
+### What the reference film found: framing was unverifiable
+
+The film compiled clean, staged clean, and framed **every one of its five
+close-ups as a full-length two-shot**. The intent existed only in the shot ids
+(`3-marcus`), and nothing compared it to the zoom. It took three contact
+sheets to notice.
+
+So framing became a declaration:
+
+```json
+{ "id": "3-marcus", "framing": "close", "on": "marcus", "camera": { ... } }
+```
+
+| framing | one head occupies |
+|---|---|
+| `wide` | 4–15% of frame height |
+| `medium` | 13–30% |
+| `close` | 26–75% |
+
+Measured in head heights, not body heights, because a close-up crops the body.
+A miss reports the measured percentage **and the zoom that would fix it** —
+and a test asserts that following the suggestion actually clears the
+diagnostic, because a suggestion that does not work is worse than none.
+
+`on` also tells the checker that everyone else is meant to be out of frame.
+Without that, the existing "cast off-frame" check fired once per cut on a
+shot/reverse-shot scene — it had assumed every cast member belongs in frame at
+all times, which is true of a one-character film and false of the dominant
+idiom of dialogue animation.
+
+**This is the general lesson of the phase.** A check can only verify intent
+that was written down. Every unverifiable thing in this system is a thing the
+author never got to declare.
 
 ---
 
@@ -435,7 +483,7 @@ Each phase lands with a check that fails if the thing regresses.
 | 9 | Node: a swap from a `path` shape to an `image` shape leaves no stale `d`; per-set fallbacks degrade rather than vanish. |
 | 10 | Node: the same character spec yields byte-identical parts twice; every enumerated name produces geometry in every view; a blink leaves a turned head turned. Browser: contact sheets, reviewed — which took **seven passes**, and every fault they caught (hair over the face, the ear walking across the cheek, the nose as a floating blob, googly eyes) was invisible to every unit test. Looking is still the only way to find those. |
 | 11 | Node: every template returns scenery plus a ground, the ground lands inside the frame, templates scale to the frame rather than assuming 720p, and a time of day changes zero geometry. |
-| 12 | The reference film renders, and its authoring cost is measured and recorded here. |
+| 12 | The reference film compiles to exactly 55 s, stages clean and frames clean, asserted in `test/core/staging.test.mjs`. A declared framing that misses its band reports the zoom that fixes it, and a test follows that suggestion and asserts it clears. Authoring cost measured above. |
 
 Follow the existing idiom: `test/core/compile.test.mjs:157` is the pattern for
 "unknown fields and bad references are diagnostics, never throws".

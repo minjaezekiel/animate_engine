@@ -30,25 +30,29 @@ export const DEFAULTS = {
 /** Known keys per level, used to report (not reject) anything unrecognized. */
 export const KNOWN = {
     root: ['version', 'meta', 'voices', 'assets', 'palettes', 'characters', 'scenes'],
-    meta: ['title', 'fps', 'width', 'height', 'author', 'description', 'duration', 'estimatedTiming'],
+    meta: ['title', 'fps', 'width', 'height', 'author', 'description', 'duration',
+           'estimatedTiming', 'step'],
     character: ['palette', 'voice', 'parts', 'mouth', 'poses', 'actions', 'proportions',
                 'generate', 'view', 'expression'],
     generate: ['skin', 'cloth', 'trouser', 'hair', 'hairColor', 'eye', 'white', 'shoe',
                'face', 'build', 'facing'],
     face: ['jaw', 'eyes', 'brow', 'nose', 'lips', 'ears'],
-    cast: ['character', 'as', 'at', 'scale', 'z', 'alpha', 'palette', 'view', 'expression', 'facing'],
+    cast: ['character', 'as', 'at', 'scale', 'z', 'alpha', 'palette', 'view', 'expression',
+           'facing', 'echo'],
     template: ['template', 'time', 'props'],
     part: ['id', 'parent', 'pivot', 'shape', 'shapes', 'swap', 'fill', 'stroke',
-           'strokeWidth', 'z', 'at', 'alpha'],
+           'strokeWidth', 'z', 'at', 'alpha',
+           // draw-level: compositing, glow, trimmed strokes, repeaters
+           'blend', 'glow', 'trim', 'repeat', 'gradient'],
     scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
             'scenery', 'palette', 'ground', 'template'],
-    shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle',
+    shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle', 'step',
            // what the shot is MEANT to be, so the checker can say whether it is
            'framing', 'on'],
     action: ['target', 'do', 'action', 'pose', 'to', 'at', 'for', 'ease', 'h', 'loop', 'speed', 'value', 'channel',
              'part', 'bones', 'bend',
              // the four principles that need a number rather than a keyframe
-             'anticipate', 'overshoot', 'arc'],
+             'anticipate', 'overshoot', 'arc', 'weight'],
     dialogue: ['speaker', 'at', 'text', 'audio', 'voice', 'lipsync', 'subtitle', 'gain', 'duration'],
     camera: ['from', 'to', 'ease', 'h', 'at', 'for', 'shake'],
     audioCue: ['asset', 'at', 'gain', 'fadeIn', 'fadeOut', 'offset', 'duration', 'bus'],
@@ -59,7 +63,8 @@ export const KNOWN = {
 export const ASSET_KINDS = ['image', 'audio'];
 
 export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidth', 'z',
-                             'alpha', 'parallax', 'gradient', 'screenSpace', 'sx', 'sy', 'rot'];
+                             'alpha', 'parallax', 'gradient', 'screenSpace', 'sx', 'sy', 'rot',
+                             'blend', 'glow', 'trim', 'repeat'];
 
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];
 export const TRANSITION_KINDS = ['fade', 'crossfade', 'none'];

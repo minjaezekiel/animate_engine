@@ -386,11 +386,13 @@ test('motion is measured on the cast, where the camera cannot flatter it', async
     assert.ok(!notes.some((x) => x.message.includes('alive')), 'the moving one is not');
 });
 
-test('a pose and a cycle on the same channel collide, and the pose wins forever', () => {
-    // Documented as a FAILING property, not a desired one: this is root cause
-    // 1 in docs/10-ACTION-GAPS.md and the reason a sixty-second fight rendered
-    // 77% frozen. The assertion exists so that Phase 13's additive layering
-    // has something to flip.
+test('a cycle layers over a pose instead of being silenced by it', () => {
+    // This was root cause 1 in docs/10-ACTION-GAPS.md: a pose compiled to
+    // absolute keys, a cycle was a clip instance on the same channel, the pose
+    // won -- and because a track reads as its first key at every earlier time
+    // and its last at every later one, ONE pose silenced the cycle for the
+    // whole film, before and after it. A sixty-second fight rendered 77%
+    // frozen. `breathe` is additive now, so it layers.
     const film = {
         version: 'jirex.film/1',
         meta: { fps: 24, width: 1280, height: 720 },
@@ -412,20 +414,41 @@ test('a pose and a cycle on the same channel collide, and the pose wins forever'
         applyPose(scene, samplePose(timeline, t));
         return scene.get('s1/a/torso').transform.sy;
     };
-    // Worse than "the pose wins after it happens": a track reads as its first
-    // key at every EARLIER time too, so one pose at t=0.5 pins the channel for
-    // the whole film, before and after.
-    assert.equal(syAt(0.3), 1, 'the cycle is dead before the pose as well');
-    assert.equal(syAt(2.5), 1, 'and after it');
+    assert.notEqual(syAt(0.3), 1, 'breathing before the pose');
+    assert.notEqual(syAt(2.5), 1, 'and still breathing well after it');
 
-    // Without the pose, the same cycle moves -- which is what proves the
-    // collision rather than a broken clip.
-    const alone = structuredClone(film);
-    alone.scenes[0].shots[0].actions.pop();
-    const solo = compileFilm(alone, {});
-    const soloBase = createPoseBaseline(solo.scene, solo.timeline);
-    resetPose(solo.scene, soloBase);
-    applyPose(solo.scene, samplePose(solo.timeline, 1.0));
-    assert.notEqual(solo.scene.get('s1/a/torso').transform.sy, 1,
-        'the breathe cycle does move a channel nothing else claims');
+    // The pose is still obeyed on the channels it owns.
+    const rot = (t) => {
+        resetPose(scene, baseline);
+        applyPose(scene, samplePose(timeline, t));
+        return scene.get('s1/a/torso').transform.rot;
+    };
+    assert.equal(typeof rot(2.5), 'number');
+});
+
+test('an additive clip is a delta around its own rest pose, scaled by weight', async () => {
+    const { createClip } = await import('../../src/core/anim/Clip.js');
+    const { createTrack, setKey } = await import('../../src/core/anim/Track.js');
+    const { createTimeline, addClip, addInstance } = await import('../../src/core/anim/Timeline.js');
+    const { Scene } = await import('../../src/core/scene/Scene.js');
+
+    const make = (weight) => {
+        const t = createTrack({ target: 'arm', path: 'transform.rot', type: 'number' });
+        setKey(t, 0, 0.5); setKey(t, 1, 1.5);          // authored as ABSOLUTE numbers
+        const tl = createTimeline({ duration: 2 });
+        addClip(tl, createClip({ id: 'c', duration: 1, loop: 'repeat', tracks: [t], blend: 'add' }));
+        addInstance(tl, { clipId: 'c', start: 0, end: 2, scopeId: 'a', weight });
+        const sc = new Scene();
+        sc.add({ id: 'a', kind: 'group' });
+        sc.add({ id: 'a/arm', kind: 'rect', transform: { rot: 2 } }, 'a');
+        // Sampled mid-cycle, not on the loop boundary: a repeating clip is at
+        // its own local zero there, so the delta is legitimately nothing.
+        applyPose(sc, samplePose(tl, 0.5));
+        return sc.get('a/arm').transform.rot;
+    };
+    // The reference is the clip's value at its own local zero (0.5). At local
+    // 0.5 the track reads 1.0, so the delta is +0.5 over the node's authored 2.
+    assert.ok(Math.abs(make(1) - 2.5) < 1e-9, `full weight, got ${make(1)}`);
+    assert.ok(Math.abs(make(0.5) - 2.25) < 1e-9, `half weight, got ${make(0.5)}`);
+    assert.ok(Math.abs(make(0) - 2) < 1e-9, 'zero weight contributes nothing');
 });

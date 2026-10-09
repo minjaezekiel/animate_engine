@@ -404,27 +404,40 @@ export function analyseMotion(compiled, film, { fps = null, visibleMove = 0.3 } 
         .map((n) => n.id);
     if (!ids.length || frames < 2) return { frames: 0, shots: [], frozen: 0, moving: 0 };
 
+    // Compare DRAWINGS, not frames. On twos every second frame is identical by
+    // construction, so a frame-based measure would score the anime standard as
+    // 50% frozen and punish exactly the texture it is there to encourage.
+    const steps = timeline.steps ?? [];
+    const globalStep = timeline.step ?? 0;
+    const stepAt = (t) => {
+        for (const span of steps) if (t >= span.start && t < span.end) return span.step ?? 0;
+        return globalStep;
+    };
     const perFrame = [];
     let prev = null;
+    let lastDrawn = null;
     for (let f = 0; f < frames; f++) {
+        const t = f / rate;
+        const step = stepAt(t);
+        const drawing = step > 1 ? Math.floor(f / step) : f;
+        if (lastDrawn === drawing) continue;
+        lastDrawn = drawing;
         resetPose(scene, baseline);
-        applyPose(scene, samplePose(timeline, f / rate));
+        applyPose(scene, samplePose(timeline, t));
         const cur = ids.map((id) => applyToPoint(scene.worldMatrix(id), 0, 0));
         if (prev) {
             let sum = 0;
             for (let i = 0; i < cur.length; i++) {
                 sum += Math.hypot(cur[i][0] - prev[i][0], cur[i][1] - prev[i][1]);
             }
-            perFrame.push(sum / cur.length);
+            perFrame.push({ t, v: sum / cur.length });
         }
         prev = cur;
     }
-    const frozen = perFrame.filter((v) => v < 1e-3).length / perFrame.length;
-    const moving = perFrame.filter((v) => v >= visibleMove).length / perFrame.length;
+    const frozen = perFrame.filter((x) => x.v < 1e-3).length / perFrame.length;
+    const moving = perFrame.filter((x) => x.v >= visibleMove).length / perFrame.length;
     const shots = filmShots(film).map((sh) => {
-        const a = Math.max(0, Math.floor(sh.start * rate));
-        const b = Math.min(perFrame.length, Math.floor(sh.end * rate));
-        const seg = perFrame.slice(a, b);
+        const seg = perFrame.filter((x) => x.t >= sh.start && x.t < sh.end).map((x) => x.v);
         if (!seg.length) return { shotId: sh.shotId, frozen: 1, moving: 0, median: 0 };
         const sorted = [...seg].sort((x, y) => x - y);
         return {

@@ -51,6 +51,12 @@ export class RecordingContext {
     measureText(t) { return { width: String(t).length * 6 }; }
     drawImage(img, ...rest) { this._rec('drawImage', img?.id ?? img?.src ?? 'img', ...rest); }
     createLinearGradient() { return { addColorStop: () => {}, _gradient: true }; }
+    createRadialGradient() { return { addColorStop: () => {}, _gradient: true }; }
+    // Recorded, not ignored: a trim is the difference between a line that
+    // draws itself on and one that is simply there, and a golden draw-call
+    // list that cannot see it would pass either way.
+    setLineDash(pattern) { this._rec('setLineDash', ...pattern); }
+    getLineDash() { return []; }
 
     /** Call list as compact strings, for golden comparison. */
     log() { return this.calls.map((c) => c.join(' ')); }

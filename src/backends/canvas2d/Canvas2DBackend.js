@@ -99,13 +99,46 @@ export class Canvas2DBackend {
             const m = node.props.screenSpace
                 ? scene.worldMatrix(node.id)
                 : multiply(view, scene.worldMatrix(node.id));
-            ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
-            // `alpha` is the inherited product, so a group's opacity reaches
-            // its children rather than being dropped at the group.
-            drawShape(ctx, node, { Path2DImpl: this.Path2DImpl, alpha });
+            // A repeater draws the same node several times with an
+            // accumulating transform -- the motion-graphics primitive behind
+            // speed lines, radiating bursts, ladders and rows. One node and
+            // five numbers instead of twenty hand-placed copies, and because
+            // it is a draw-time loop the copies cost no scene nodes and no
+            // tracks.
+            const rep = node.props.repeat;
+            const copies = rep ? Math.max(1, Math.min(64, Math.round(rep.count ?? 1))) : 1;
+            for (let i = 0; i < copies; i++) {
+                const t = rep ? repeatStep(rep, i) : null;
+                const mm = t ? multiply(m, t) : m;
+                ctx.setTransform(mm[0], mm[1], mm[2], mm[3], mm[4], mm[5]);
+                // `alpha` is the inherited product, so a group's opacity
+                // reaches its children rather than being dropped at the group.
+                const a = rep ? alpha * Math.pow(rep.alpha ?? 1, i) : alpha;
+                drawShape(ctx, node, { Path2DImpl: this.Path2DImpl, alpha: a });
+            }
         }
 
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         return this;
     }
+}
+
+/**
+ * The i-th copy's offset transform for a repeater.
+ *
+ * Offsets accumulate: copy 3 is three steps of rotation, translation and
+ * scale from the original, which is what makes a burst radiate evenly and a
+ * row space evenly with one number each.
+ */
+function repeatStep(rep, i) {
+    if (i === 0 && !rep.from) return null;
+    const k = i + (rep.from ?? 0);
+    return fromTransform({
+        x: (rep.x ?? 0) * k,
+        y: (rep.y ?? 0) * k,
+        rot: (rep.rot ?? 0) * k,
+        sx: Math.pow(rep.sx ?? 1, k),
+        sy: Math.pow(rep.sy ?? 1, k),
+        ox: 0, oy: 0,
+    });
 }

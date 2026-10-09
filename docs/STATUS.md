@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-09 (Phase 12 complete; live-tested against a fight brief, which found the action gaps).
+Last updated: 2026-10-09 (Phase 13: the motion system, built from the fight live test's findings).
 
 Legend: **done** · *partial* · — not started
 
@@ -601,6 +601,50 @@ to declare.
 ground, using the same helpers `do:'move'` already used. Previously an author
 computed the first y by hand or wrote a dummy one-frame `move` to snap it
 down — both the arithmetic the ground declaration exists to remove.
+
+---
+
+## Phase 13 — the motion system — **done**
+
+Built from the fight live test's findings. Design and measurements:
+[11-MOTION-SYSTEM.md](11-MOTION-SYSTEM.md); the gaps that prompted it:
+[10-ACTION-GAPS.md](10-ACTION-GAPS.md).
+
+| Item | State |
+|---|---|
+| Layered evaluation: `Clip.blend`, `Clip.mask`, instance `weight` | **done** — additive applies the clip's own rest-pose inverse, so cycles stay authored as absolute numbers and become deltas with no re-authoring |
+| `breathe` and `idle` additive | **done** — `walk` and `squash` stay override; they are whole-body actions, not overlays |
+| On twos: `meta.step`, `shot.step` | **done** — cast held for N frames, `__camera` and `__subtitle` exempt by name |
+| Motion measured per drawing, not per frame | **done** — otherwise the anime standard scores as 50% frozen |
+| Smears (multiples): `cast.echo` | **done** — a compile pass that clones the subtree and time-shifts its tracks, so frame N stays a pure function of N; gated to named shots |
+| Blend modes | **done** — `add`/`screen`/`multiply`/`overlay`/`darken`/`lighten` |
+| Glow | **done** — `{ blur, color, x, y }` |
+| Trim paths | **done** — `{ start, end, offset }`, via the dash array because Canvas2D exposes path length nowhere |
+| Repeater | **done** — `{ count, x, y, rot, sx, sy, alpha }`; the fight's 18-ray speed-line burst is one node |
+| Gradients on `path` and `ellipse`, and radial | **done** — previously `rect` only |
+| Deformation (mesh/bend, smart bones) | — not started; the largest remaining gap |
+| Elongated smears, secondary motion, per-pose z, hit-stop | — not started |
+
+### Measured
+
+| | before | after |
+|---|---|---|
+| frames with no cast movement | **77%** | **0%** |
+| frames visibly moving | 21% | 34% |
+| "completely still" diagnostics | 7 | 0 |
+
+Drawing-to-drawing change, camera locked, against 0.85 for a dialogue scene
+in the reference clip: `12-giant` 0.00 → 2.7, `17-collide` 0.00 → 3.0/10.6/
+9.9/12.9.
+
+### Still a rigid cutout system
+
+Every part is a rigid transformed shape; a limb cannot bend. That is the next
+tier and the biggest one. The engine's art is vector paths rather than
+textures, which makes skinning *easier* than the texture case — transforming
+control points, drawn natively by Canvas2D with no UVs, no triangulation and
+no WebGL. Planned with per-point bone weights plus Moho-style driven
+correctives.
 
 ---
 

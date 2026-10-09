@@ -9,12 +9,22 @@ import { trackDuration } from './Track.js';
  * Clip track targets are *relative* part names ('torso', 'armL'); the
  * instance's scope prefix resolves them to real node ids at sample time.
  */
-export function createClip({ id, name = id, duration, loop = 'once', tracks = [] }) {
+export function createClip({ id, name = id, duration, loop = 'once', tracks = [],
+                             blend = 'override', mask = null }) {
     return {
         id,
         name,
         duration: duration ?? Math.max(0, ...tracks.map(trackDuration), 0),
         loop,                                  // once | repeat | pingpong
+        // 'override' replaces the channel; 'add' layers a DELTA over whatever
+        // the base already resolved to. Without the additive mode a pose and a
+        // cycle fight over the same channel and the pose wins for the whole
+        // film -- which is what left a sixty-second fight 77% frozen.
+        blend,
+        // Part names this clip is allowed to touch, or null for all of them.
+        // The equivalent of an avatar mask: an upper-body gesture should not
+        // be able to stop the legs walking.
+        mask: mask ? new Set(mask) : null,
         tracks,
     };
 }

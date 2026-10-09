@@ -261,7 +261,7 @@ export function generateActions(proportions = {}, generate = {}) {
     const bob = p.height * 0.016;
     return {
         breathe: {
-            duration: 3.4, loop: 'repeat',
+            duration: 3.4, loop: 'repeat', blend: 'add',
             // Volume-preserving: the chest widens as it shortens. A scale on
             // one axis alone reads as the character inflating.
             keys: {
@@ -314,8 +314,13 @@ export function generateActions(proportions = {}, generate = {}) {
                 },
             };
         })(),
+        // Additive, like `breathe`: an idle is a drift ON TOP of whatever the
+        // character is doing, not a replacement for it. Authored as absolute
+        // numbers and converted to deltas against its own rest pose, so the
+        // cycle reads the same whether it layers over a guard or a standing
+        // pose.
         idle: {
-            duration: 5.6, loop: 'repeat',
+            duration: 5.6, loop: 'repeat', blend: 'add',
             keys: {
                 'torso.rot': [[0, 0.008], [2.8, -0.008], [5.6, 0.008]],
                 'head.rot': [[0, -0.012], [2.1, 0.015], [4.2, -0.008], [5.6, -0.012]],

@@ -37,10 +37,78 @@ export function clearPathCache(Path2DImpl) {
 function resolveFill(ctx, node, w, h) {
     const g = node.props.gradient;
     if (!g) return node.props.fill;
+    if (g.kind === 'radial') {
+        const [cx, cy, r0, r1] = g.from ?? [0, 0, 0, Math.max(w, h) / 2];
+        const grad = ctx.createRadialGradient(cx, cy, r0, cx, cy, r1);
+        for (const [stop, color] of g.stops ?? []) grad.addColorStop(stop, color);
+        return grad;
+    }
     const [x0, y0, x1, y1] = g.from ?? [0, -h / 2, 0, h / 2];
     const grad = ctx.createLinearGradient(x0, y0, x1, y1);
     for (const [stop, color] of g.stops ?? []) grad.addColorStop(stop, color);
     return grad;
+}
+
+/**
+ * Compositing and glow.
+ *
+ * `blend` is the motion-graphics layer mode -- `add` is how every energy
+ * effect in this idiom is made, and Canvas2D spells it `lighter`. `glow` maps
+ * to the shadow machinery, which is the only blur Canvas2D offers without a
+ * second surface, and is enough for an aura or a hot edge.
+ *
+ * Returns true if anything was set, so the caller knows to reset: these are
+ * context-wide and leak into every later draw if left on.
+ */
+const BLEND = {
+    add: 'lighter', lighter: 'lighter', screen: 'screen', multiply: 'multiply',
+    overlay: 'overlay', darken: 'darken', lighten: 'lighten', normal: 'source-over',
+};
+export const BLEND_MODES = Object.keys(BLEND);
+
+function applyCompositing(ctx, p) {
+    let dirty = false;
+    if (p.blend && BLEND[p.blend]) { ctx.globalCompositeOperation = BLEND[p.blend]; dirty = true; }
+    if (p.glow) {
+        const g = typeof p.glow === 'object' ? p.glow : { blur: p.glow };
+        ctx.shadowColor = g.color ?? p.fill ?? p.stroke ?? '#ffffff';
+        ctx.shadowBlur = g.blur ?? 12;
+        ctx.shadowOffsetX = g.x ?? 0;
+        ctx.shadowOffsetY = g.y ?? 0;
+        dirty = true;
+    }
+    return dirty;
+}
+
+function clearCompositing(ctx) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowColor = 'rgba(0,0,0,0)';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+}
+
+/**
+ * Trim a stroked path to a fraction of its length.
+ *
+ * The motion-graphics staple: a line that draws itself on, an energy arc that
+ * races along a path, a speed line that enters and leaves. Implemented with
+ * the dash array rather than by splitting the path, because Canvas2D gives
+ * exact path length nowhere -- a dash of `len` on, `len` off, offset by the
+ * start, reproduces it for any `len` large enough to cover the shape.
+ */
+function applyTrim(ctx, p, trim) {
+    const start = trim.start ?? 0;
+    const end = trim.end ?? 1;
+    const offset = trim.offset ?? 0;
+    const span = Math.max(0, Math.min(1, end) - Math.max(0, start));
+    if (span >= 1 && !offset) return false;
+    if (span <= 0) return null;                       // nothing to draw
+    // A length longer than any path this engine draws, so one dash covers it.
+    const L = trim.length ?? 8000;
+    ctx.setLineDash([span * L, L]);
+    ctx.lineDashOffset = -(start + offset) * L;
+    return true;
 }
 
 /**
@@ -84,6 +152,7 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
     const a = alpha ?? p.alpha ?? 1;
     if (a <= 0) return;
     ctx.globalAlpha = a;
+    const composited = applyCompositing(ctx, p);
 
     switch (node.kind) {
         case 'rect': {
@@ -99,26 +168,37 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
             break;
         }
         case 'ellipse': {
+            const rx = Math.abs(p.rx ?? 1), ry = Math.abs(p.ry ?? 1);
             ctx.beginPath();
-            ctx.ellipse(0, 0, Math.abs(p.rx ?? 1), Math.abs(p.ry ?? 1), 0, 0, Math.PI * 2);
-            if (p.fill) { ctx.fillStyle = p.fill; ctx.fill(); }
+            ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+            const fill = resolveFill(ctx, node, rx * 2, ry * 2);
+            if (fill) { ctx.fillStyle = fill; ctx.fill(); }
             if (p.stroke) {
-                ctx.strokeStyle = p.stroke;
-                ctx.lineWidth = p.strokeWidth ?? 1;
-                ctx.stroke();
+                const trimmed = p.trim ? applyTrim(ctx, p, p.trim) : false;
+                if (trimmed !== null) {
+                    ctx.strokeStyle = p.stroke;
+                    ctx.lineWidth = p.strokeWidth ?? 1;
+                    ctx.stroke();
+                }
+                if (trimmed) { ctx.setLineDash([]); ctx.lineDashOffset = 0; }
             }
             break;
         }
         case 'path': {
             if (!p.d) break;
             const path = getPath(p.d, Path2DImpl);
-            if (p.fill) { ctx.fillStyle = p.fill; ctx.fill(path); }
+            const fill = resolveFill(ctx, node, p.w ?? 100, p.h ?? 100);
+            if (fill) { ctx.fillStyle = fill; ctx.fill(path); }
             if (p.stroke) {
-                ctx.strokeStyle = p.stroke;
-                ctx.lineWidth = p.strokeWidth ?? 1;
-                ctx.lineCap = p.lineCap ?? 'round';
-                ctx.lineJoin = p.lineJoin ?? 'round';
-                ctx.stroke(path);
+                const trimmed = p.trim ? applyTrim(ctx, p, p.trim) : false;
+                if (trimmed !== null) {
+                    ctx.strokeStyle = p.stroke;
+                    ctx.lineWidth = p.strokeWidth ?? 1;
+                    ctx.lineCap = p.lineCap ?? 'round';
+                    ctx.lineJoin = p.lineJoin ?? 'round';
+                    ctx.stroke(path);
+                }
+                if (trimmed) { ctx.setLineDash([]); ctx.lineDashOffset = 0; }
             }
             break;
         }
@@ -151,4 +231,5 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
             break;      // structural only: contributes a transform, draws nothing
     }
     ctx.globalAlpha = 1;
+    if (composited) clearCompositing(ctx);
 }

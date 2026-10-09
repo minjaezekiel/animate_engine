@@ -9,8 +9,61 @@ import { clipLocalTime } from './Clip.js';
  * Pose = Map<nodeId, Map<channelPath, value>>
  */
 
+/**
+ * A layered contribution: what to add to, or multiply into, whatever the base
+ * layer resolved this channel to.
+ *
+ * Carried in the Pose as a marker rather than a resolved number because
+ * `samplePose` has no scene -- the value it layers over may come from the
+ * node's own authored rest value, which only `applyPose` can see.
+ */
+export class Additive {
+    constructor(delta = 0, ratio = 1) { this.delta = delta; this.ratio = ratio; }
+    /** Resolve against the base this channel already holds. */
+    over(base) {
+        const b = typeof base === 'number' ? base : 0;
+        return b * this.ratio + this.delta;
+    }
+    add(other) { return new Additive(this.delta + other.delta, this.ratio * other.ratio); }
+}
+
+/** Channels where "more" means a ratio, not an offset. */
+const RATIO_CHANNELS = new Set(['transform.sx', 'transform.sy']);
+
+/**
+ * Hold cast drawings for `step` frames at a time -- "on twos".
+ *
+ * Anime is drawn at roughly twelve unique drawings a second against a
+ * twenty-four frame soundtrack, and the slight choppiness that produces is
+ * part of the idiom rather than a defect. Interpolating every frame smoothly
+ * is the wrong TEXTURE even where the motion itself is right.
+ *
+ * The camera is exempt by name. A pan quantised to twos judders horribly,
+ * which is exactly why a real production shoots the artwork on twos and moves
+ * the camera on ones.
+ */
+const SMOOTH_TARGETS = new Set(['__camera', '__subtitle']);
+
+function stepAt(timeline, tSec) {
+    for (const span of timeline.steps ?? []) {
+        if (tSec >= span.start && tSec < span.end) return span.step ?? 0;
+    }
+    return timeline.step ?? 0;
+}
+
+function quantise(tSec, step, fps) {
+    if (!step || step <= 1) return tSec;
+    const frame = Math.floor(tSec * fps + 1e-6);
+    return (Math.floor(frame / step) * step) / fps;
+}
+
 export function samplePose(timeline, tSec) {
     const pose = new Map();
+    const layered = [];
+    const step = stepAt(timeline, tSec);
+    const fps = timeline.fps || 24;
+    const held = quantise(tSec, step, fps);
+    const timeFor = (target) => (SMOOTH_TARGETS.has(String(target).split('/')[0]) ? tSec : held);
 
     const write = (target, path, value) => {
         if (value === undefined) return;
@@ -19,22 +72,52 @@ export function samplePose(timeline, tSec) {
         channels.set(path, value);
     };
 
-    // Clip instances first, so explicit timeline tracks win over cycles.
+    // 1. Base layer: override clips, then explicit timeline tracks, so a pose
+    //    still wins over a cycle that is trying to replace the same channel.
     for (const inst of timeline.instances) {
         const clip = timeline.clips.get(inst.clipId);
         if (!clip) continue;
         const start = inst.start ?? 0;
         const end = inst.end ?? timeline.duration;
         if (tSec < start || tSec > end) continue;
-        const local = clipLocalTime(clip, (tSec - start) * (inst.speed ?? 1));
+        const sampleAt = timeFor(inst.scopeId ?? '');
+        if (sampleAt < start || sampleAt > end) continue;
+        const local = clipLocalTime(clip, (sampleAt - start) * (inst.speed ?? 1));
+        const weight = inst.weight ?? 1;
+        if (weight <= 0) continue;
         for (const track of clip.tracks) {
+            if (clip.mask && !clip.mask.has(track.target)) continue;
             const target = inst.scopeId ? `${inst.scopeId}/${track.target}` : track.target;
-            write(target, track.path, trackValueAt(track, local));
+            const value = trackValueAt(track, local);
+            if (clip.blend !== 'add') { write(target, track.path, value); continue; }
+
+            // 2. Additive layer, deferred. The reference is the clip's own
+            //    value at its local zero, so a cycle authored as absolute
+            //    numbers (sy 1 -> 1.018 -> 1) becomes a delta around its own
+            //    rest pose with no re-authoring: reference-inverse times pose,
+            //    which is how layered skeletal animation does it everywhere.
+            if (typeof value !== 'number') continue;
+            const ref = trackValueAt(track, 0);
+            if (typeof ref !== 'number') continue;
+            const contribution = RATIO_CHANNELS.has(track.path)
+                ? new Additive(0, ref === 0 ? 1 : 1 + ((value / ref) - 1) * weight)
+                : new Additive((value - ref) * weight, 1);
+            layered.push([target, track.path, contribution]);
         }
     }
 
     for (const track of timeline.tracks) {
-        write(track.target, track.path, trackValueAt(track, tSec));
+        write(track.target, track.path, trackValueAt(track, timeFor(track.target)));
+    }
+
+    // 3. Fold the additive layer on top of the base.
+    for (const [target, path, contribution] of layered) {
+        let channels = pose.get(target);
+        if (!channels) pose.set(target, (channels = new Map()));
+        const base = channels.get(path);
+        channels.set(path, base instanceof Additive ? base.add(contribution)
+            : base === undefined ? contribution
+            : contribution.over(base));
     }
 
     return pose;
@@ -56,12 +139,15 @@ export function applyPose(scene, pose) {
             const group = path.slice(0, dot);
             const field = path.slice(dot + 1);
             if (group === 'transform') {
-                node.transform[field] = value;
+                node.transform[field] = value instanceof Additive
+                    ? value.over(node.transform[field]) : value;
                 transformTouched = true;
             } else if (group === 'props') {
-                node.props[field] = value;
+                node.props[field] = value instanceof Additive
+                    ? value.over(node.props[field]) : value;
             } else {
-                (node[group] ??= {})[field] = value;
+                const bag = (node[group] ??= {});
+                bag[field] = value instanceof Additive ? value.over(bag[field]) : value;
             }
         }
         if (transformTouched) scene.invalidate(nodeId);
@@ -141,6 +227,6 @@ export function resetPose(scene, baseline) {
 }
 
 export const Evaluator = {
-    sample: samplePose, apply: applyPose, trackValueAt,
+    sample: samplePose, apply: applyPose, trackValueAt, Additive,
     createBaseline: createPoseBaseline, reset: resetPose, channels: timelineChannels,
 };

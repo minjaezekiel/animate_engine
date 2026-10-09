@@ -18,6 +18,7 @@ import {
 } from '../anim/principles.js';
 import { derivePalette } from '../art/palette.js';
 import { buildSceneryTemplate } from '../art/scenery.js';
+import { buildEcho } from '../anim/echo.js';
 
 /**
  * compileFilm: declarative film -> core Scene + Timeline + audio cues +
@@ -48,11 +49,17 @@ export function compileFilm(film, { assets = {} } = {}) {
         fps: film.meta?.fps ?? DEFAULTS.fps,
         width: film.meta?.width ?? DEFAULTS.width,
         height: film.meta?.height ?? DEFAULTS.height,
+        // Frames per drawing for the cast: 2 is the anime standard, 1 is
+        // every frame. A shot may override it.
+        step: film.meta?.step ?? 0,
         version: FILM_VERSION,
     };
 
     const scene = new Scene();
     const timeline = createTimeline({ fps: meta.fps });
+    // Spans where the cast is held on twos or threes; the camera stays on ones.
+    timeline.steps = [];
+    timeline.step = meta.step ?? 0;
     const audioCues = [];
     const lipsyncJobs = [];
 
@@ -116,6 +123,8 @@ export function compileFilm(film, { assets = {} } = {}) {
 
         // --- cast: instantiate each character's part tree
         const castMap = new Map();
+        const echoes = [];
+        const shotSpans = [];
         for (const entry of sceneSpec.cast ?? []) {
             const charName = entry.character;
             const char = characters[charName];
@@ -128,6 +137,7 @@ export function compileFilm(film, { assets = {} } = {}) {
                 palettes, diagnostics, assets, scenePalette: spec.palette,
             });
             castMap.set(as, { rootId, char, charName, entry });
+            if (entry.echo) echoes.push([rootId, entry.echo]);
         }
 
         // --- scene-level audio (music beds)
@@ -175,8 +185,23 @@ export function compileFilm(film, { assets = {} } = {}) {
                 });
             }
 
+            shotSpans.push({ id: shot.id ?? `shot${hi}`, start: shotStart, end: shotEnd });
+
+            // "On twos": held drawings against a continuous camera.
+            const step = shot.step ?? meta.step ?? 0;
+            if (step > 1) timeline.steps.push({ start: shotStart, end: shotEnd, step });
+
             shotTime = shotEnd;
             if (hi === shots.length - 1) filmTime = shotEnd;
+        }
+
+        // After every shot, so the trail clones tracks that already exist.
+        for (const [rootId, spec] of echoes) {
+            const want = spec.shots ? new Set([].concat(spec.shots)) : null;
+            const spans = want
+                ? shotSpans.filter((sp) => want.has(sp.id)).map(({ start, end }) => ({ start, end }))
+                : null;
+            buildEcho({ scene, timeline, meta }, rootId, spec, spans);
         }
         filmTime = sceneEnd;
     }
@@ -344,6 +369,7 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnos
                 strokeWidth: item.strokeWidth,
                 gradient: resolveGradient(item.gradient, colorOf),
                 alpha: item.alpha ?? 1,
+                ...drawProps(item, colorOf),
                 screenSpace: item.screenSpace ?? false,
             }, assets, diagnostics, `scenes.${sceneSpec.id}.scenery.${item.id ?? i}`),
             z: item.z ?? -500,
@@ -455,6 +481,7 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
                 stroke: colorOf(part.stroke),
                 strokeWidth: part.strokeWidth,
                 alpha: part.alpha ?? 1,
+                ...drawProps(part, colorOf),
                 ...swapProps(part, colorOf),
             }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
             z: part.z ?? 0,
@@ -472,6 +499,7 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
                     stroke: colorOf(layer.stroke),
                     strokeWidth: layer.strokeWidth,
                     alpha: layer.alpha ?? 1,
+                    ...drawProps(layer, colorOf),
                     ...swapProps(layer, colorOf),
                 }, assets, diagnostics, `characters.${charName}.parts.${part.id}.${layer.id ?? i}`),
                 z: layer.z ?? i,
@@ -534,6 +562,28 @@ export function characterParts(char) {
  * The channel name is the key, because that is the prop a discrete track
  * writes -- `props.view` drives the `view` set, with no indirection between.
  */
+/**
+ * Draw-level properties: compositing, glow, trimmed strokes, repeaters.
+ *
+ * Kept separate from paint because they are the motion-graphics layer rather
+ * than the character layer -- the same five keys serve a speed-line burst, an
+ * energy beam and a lower third. Colours inside them resolve through the
+ * palette like every other colour in the film.
+ */
+function drawProps(part, colorOf) {
+    const out = {};
+    if (part.blend) out.blend = part.blend;
+    if (part.trim) out.trim = part.trim;
+    if (part.repeat) out.repeat = part.repeat;
+    if (part.gradient) out.gradient = resolveGradient(part.gradient, colorOf);
+    if (part.glow) {
+        out.glow = typeof part.glow === 'object'
+            ? { ...part.glow, ...(part.glow.color != null && { color: colorOf(part.glow.color) }) }
+            : part.glow;
+    }
+    return out;
+}
+
 function swapProps(part, colorOf) {
     const spec = part.swap;
     if (!spec) return {};
@@ -833,6 +883,7 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
                 start: at,
                 end: at + (span ?? (shotEnd - at)),
                 speed: action.speed ?? 1,
+                weight: action.weight ?? 1,
                 scopeId: rootId,
             });
             break;
@@ -914,6 +965,11 @@ function buildClipFromAction(clipId, name, spec) {
     // part -- which is why a rig that CAN overlap usually does not.
     const keyed = applyOverlap(spec.keys ?? {},
                                overlapDelays(spec.lag, spec.chain ?? []));
+    // `blend: 'add'` layers the cycle over whatever pose is in force instead
+    // of replacing it. An overlay -- breathing, a weight shift, hair settling
+    // -- must be additive or the first pose of the film silences it forever.
+    const blend = spec.blend ?? 'override';
+    const mask = spec.mask ?? null;
     for (const [channelPath, keys] of Object.entries(keyed)) {
         // Split at the FIRST dot: a part id never contains one, but a channel
         // can be `props.eyes`, and splitting at the last dot made the
@@ -937,7 +993,8 @@ function buildClipFromAction(clipId, name, spec) {
         }
         tracks.push(track);
     }
-    return createClip({ id: clipId, name, duration: spec.duration, loop: spec.loop ?? 'repeat', tracks });
+    return createClip({ id: clipId, name, duration: spec.duration,
+                       loop: spec.loop ?? 'repeat', tracks, blend, mask });
 }
 
 /** Last authored value strictly before t, so a transition starts where it is. */

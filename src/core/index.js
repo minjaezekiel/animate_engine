@@ -36,7 +36,7 @@ export {
 } from './rig/IK2D.js';
 
 // art assets (provider-based, same seam as voices)
-export { AssetRegistry, loadAssets } from './art/AssetRegistry.js';
+export { AssetRegistry, loadAssets, loadAudioAssets } from './art/AssetRegistry.js';
 export { UrlProvider } from './art/providers/UrlProvider.js';
 export { FileProvider } from './art/providers/FileProvider.js';
 
@@ -73,7 +73,10 @@ export { castVoices, synthesizeDialogue } from './voice/synthesize.js';
 // film script
 export { compileFilm, filmShots, shotAt, characterParts } from './script/compile.js';
 export { validateFilm, validateAssets, hasFatal, hasError } from './script/validate.js';
-export { analyseStaging, measureCharacter, groundAt } from './script/staging.js';
+export {
+    analyseStaging, measureCharacter, groundAt,
+    analyseMotion, checkMotion, FRAMINGS, headHeight,
+} from './script/staging.js';
 export { parseScreenplay, estimateSeconds, retimeToAudio } from './script/screenplay.js';
 export {
     generateCharacterParts, generateMouth, generateActions,

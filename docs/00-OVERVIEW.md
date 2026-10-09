@@ -101,6 +101,7 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [07-ART-SYSTEM.md](07-ART-SYSTEM.md) | how flat shapes become cel-shaded limited animation |
 | [08-ART-VOCABULARY.md](08-ART-VOCABULARY.md) | **every enumerated name**, with a complete worked scene |
 | [09-PRINCIPLES.md](09-PRINCIPLES.md) | the twelve principles of animation mapped to engine features |
+| [10-ACTION-GAPS.md](10-ACTION-GAPS.md) | **measured limits on action**, and the phases that address them |
 | [STATUS.md](STATUS.md) | **what is implemented and what is not** |
 | [DEFECTS.md](DEFECTS.md) | the defect register for the legacy 3D engine |
 | [CDN-AND-PWA.md](CDN-AND-PWA.md) | loading from a CDN, installing, offline |

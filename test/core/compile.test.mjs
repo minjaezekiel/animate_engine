@@ -206,3 +206,40 @@ test('the subtitle node exists and ignores the camera', () => {
     assert.equal(sub.props.screenSpace, true);
     assert.equal(sub.props.align, 'center');
 });
+
+test('a later set changes the channel rather than rewriting the whole film', () => {
+    const film = {
+        version: 'jirex.film/1',
+        meta: { fps: 24, width: 1280, height: 720 },
+        palettes: { p: { aura: '#ffd33a', spike: '#151014' } },
+        characters: {
+            a: { palette: 'p', proportions: { height: 300 },
+                 generate: { hair: 'spiky', hairColor: 'spike' } },
+            fx: { parts: [{ id: 's', shape: { kind: 'rect', w: 10, h: 10 }, fill: 'aura' }] },
+        },
+        scenes: [{
+            id: 's1', palette: 'p', template: { template: 'hillside' },
+            cast: [{ character: 'a', as: 'a', at: [640] },
+                   { character: 'fx', as: 'fx', at: [640, 300], alpha: 0 }],
+            shots: [{ id: 'x', duration: 4, actions: [
+                { target: 'a', do: 'set', part: 'hair', channel: 'props.fill', value: 'aura', at: 2 },
+                { target: 'fx', do: 'show', at: 2 },
+            ] }],
+        }],
+    };
+    const { timeline } = compileFilm(film, {});
+    const hair = timeline._index.get('s1/a/hair\u0000props.fill');
+    const alpha = timeline._index.get('s1/fx\u0000props.alpha');
+
+    // A track reads as its FIRST key before that key, so a lone `set` at t=2
+    // used to make the value true from frame one: a transformation that had
+    // already happened, and an effect on screen before it was shown.
+    assert.equal(trackValueAt(hair, 0.5), '#151014', 'the hair holds its own colour first');
+    assert.equal(trackValueAt(hair, 3.0), '#ffd33a', 'and still changes when told to');
+    assert.equal(trackValueAt(alpha, 0.5), 0, 'the effect stays hidden until shown');
+    assert.equal(trackValueAt(alpha, 3.0), 1);
+
+    // A palette NAME on a colour channel resolves, rather than reaching the
+    // canvas as the literal string "aura" and being silently ignored.
+    assert.match(trackValueAt(hair, 3.0), /^#/);
+});

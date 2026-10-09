@@ -61,6 +61,12 @@ const circle = (cx, cy, r, sides = 8) => smoothClosed(
     }),
 );
 
+/** A closed polygon with straight edges -- the one shape smoothing ruins. */
+export function polyPath(points) {
+    if (points.length < 3) return '';
+    return `M${points.map(pt).join(' L')} Z`;
+}
+
 const lerp = (a, b, t) => a + (b - a) * t;
 const lerpPts = (a, b, t) => a.map((p, i) => [lerp(p[0], b[i][0], t), lerp(p[1], b[i][1], t)]);
 
@@ -133,7 +139,8 @@ export const EXPRESSIONS = {
     delighted: { brow: 'arched', browRise: 0.06, eyes: 'closed-happy' },
 };
 
-export const HAIRS = ['afro-large', 'afro-short', 'braids', 'short-fade', 'locs', 'wrap', 'bald'];
+export const HAIRS = ['afro-large', 'afro-short', 'braids', 'short-fade', 'locs', 'wrap',
+                      'spiky', 'flame', 'bald'];
 
 /** The whole vocabulary, for validation and for the reference document. */
 export const FACE_KITS = {
@@ -280,6 +287,18 @@ function earPath(cx, cy, k, R, W, sgn) {
  */
 function hairFront(style, k, R, W, sgn, dir) {
     if (style === 'bald') return null;
+    // Standing spikes, barely swept: a martial artist's silhouette, where the
+    // shape plus one strong colour is the whole recognition.
+    if (style === 'spiky') {
+        return spikeCrown(R, W, sgn, dir,
+                          { tips: 9, out: 1.66, inner: 1.02, sweep: 0.05, wobble: 0.14 });
+    }
+    // The same construction swept hard backward and made uneven, which reads
+    // as flame rather than as hair.
+    if (style === 'flame') {
+        return spikeCrown(R, W, sgn, dir,
+                          { tips: 7, out: 1.80, inner: 1.04, sweep: 0.34, wobble: 0.22 });
+    }
     const o = lerpPts(frontOutline(k), profileOutline(k, NOSES.button), dir);
     const { grow, hairline } = HAIR_FRONT[style] ?? HAIR_FRONT['short-fade'];
     const edge = [12, 13, 0, 1, 2].map((i) => [o[i][0] * grow, o[i][1] * grow]);
@@ -293,12 +312,49 @@ function hairFront(style, k, R, W, sgn, dir) {
     return smoothClosed(scalePts([...edge, ...inner], W, R, sgn));
 }
 
+/**
+ * A crown of spikes over the skull.
+ *
+ * Built radially rather than from the outline, because spikes read by their
+ * ANGLE: every tip has to point away from the scalp or the head looks like it
+ * is wearing a crown. `sweep` tilts every tip backward by a fixed amount,
+ * which is the difference between standing spikes and flowing flame.
+ */
+function spikeCrown(R, W, sgn, dir, { tips = 9, out = 1.62, inner = 1.0,
+                                      sweep = 0, wobble = 0 } = {}) {
+    const pts = [];
+    const back = -sgn;                       // away from the facing direction
+    const lift = -0.05;
+    for (let i = 0; i <= tips; i++) {
+        const t = i / tips;
+        const a = Math.PI * (1 - t);         // 180deg (left) -> 0deg (right)
+        const cos = Math.cos(a), sin = Math.sin(a);
+        // the scalp point this tip grows out of
+        pts.push([cos * inner * W, (CY + lift - sin * inner) * R]);
+        if (i === tips) break;
+        // the tip itself, between this root and the next, pushed out along
+        // the radius and swept back
+        const am = Math.PI * (1 - (t + 0.5 / tips));
+        const cm = Math.cos(am), sm = Math.sin(am);
+        const grow = out + (wobble ? wobble * Math.sin(i * 2.4) : 0);
+        pts.push([(cm * grow + back * sweep) * W,
+                  (CY + lift - sm * grow - sweep * 0.35) * R]);
+    }
+    // close along the hairline, left to right under the roots
+    pts.push([inner * 0.96 * W, (CY - 0.34) * R]);
+    pts.push([0, (CY - 0.46) * R]);
+    pts.push([-inner * 0.96 * W, (CY - 0.34) * R]);
+    return polyPath(pts.map(([x, y]) => [x * (1 - 0.1 * dir), y]));
+}
+
 /** How far the cap grows past the skull, and how low the hairline sits. */
 const HAIR_FRONT = {
     'short-fade': { grow: 1.04, hairline: -0.50 },
     wrap:         { grow: 1.14, hairline: -0.38 },
     'afro-short': { grow: 1.12, hairline: -0.46 },
     'afro-large': { grow: 1.16, hairline: -0.44 },
+    spiky:        { grow: 1.04, hairline: -0.46 },
+    flame:        { grow: 1.06, hairline: -0.44 },
     braids:       { grow: 1.08, hairline: -0.46 },
     locs:         { grow: 1.10, hairline: -0.48 },
 };
@@ -312,6 +368,8 @@ function hairBackPath(style, k, R, W, sgn, dir) {
         case 'wrap': return circle(cx, (CY - 0.10) * R, W * 1.22, 10);
         case 'afro-short': return circle(cx, (CY - 0.22) * R, W * 1.34, 12);
         case 'afro-large': return circle(cx, (CY - 0.30) * R, W * 1.74, 14);
+        case 'spiky': return circle(cx, (CY - 0.16) * R, W * 1.18, 10);
+        case 'flame': return circle(cx - sgn * 0.12 * W, (CY - 0.18) * R, W * 1.26, 10);
         case 'braids': {
             const d = [circle(cx, (CY - 0.12) * R, W * 1.14, 10)];
             for (const side of [-1, 1]) {

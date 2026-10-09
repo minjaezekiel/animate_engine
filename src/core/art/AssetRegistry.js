@@ -82,3 +82,47 @@ export async function loadAssets(film, { registry, baseUrl = '', onProgress = nu
     }
     return { assets, diagnostics };
 }
+
+/**
+ * Load every AUDIO asset a film declares.
+ *
+ * `scene.audio` cues and `assets: { kind: "audio" }` have been in the schema
+ * since the first phase, `validate.js` checks that a cue names a declared
+ * asset, and `createCue` turns one into sample offsets -- but nothing ever
+ * fetched the file. `loadAssets` filters to `kind === 'image'`, and `prepare`
+ * only ever saw the buffers a caller passed in by hand. A film could declare
+ * a music bed, validate clean, and render silent.
+ *
+ * Audio is fetched rather than routed through the art providers: those return
+ * something `drawImage` accepts, which is the wrong contract entirely.
+ * Decoding is injected so core stays free of Web Audio.
+ */
+export async function loadAudioAssets(film, { baseUrl = '', decode, fetchImpl, onProgress } = {}) {
+    const buffers = {};
+    const diagnostics = [];
+    const declared = Object.entries(film?.assets ?? {})
+        .filter(([, a]) => a && a.kind === 'audio' && a.src);
+    if (!declared.length || !decode) return { buffers, diagnostics };
+
+    const get = fetchImpl ?? globalThis.fetch;
+    let done = 0;
+    for (const [id, asset] of declared) {
+        const url = /^(https?:|data:|blob:)/.test(asset.src) ? asset.src : `${baseUrl}${asset.src}`;
+        try {
+            const res = await get(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            buffers[id] = await decode(await res.arrayBuffer());
+        } catch (error) {
+            // Never fatal, for the same reason a missing picture is not: a
+            // film that renders without its music beats one that does not
+            // render.
+            diagnostics.push({
+                severity: 'warning', path: `assets.${id}`,
+                message: `Audio asset "${id}" failed to load from "${url}": ${error.message}.`
+                    + ' It will be silent.',
+            });
+        }
+        onProgress?.({ stage: 'audio', done: ++done, total: declared.length, id });
+    }
+    return { buffers, diagnostics };
+}

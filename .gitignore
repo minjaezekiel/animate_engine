@@ -3,3 +3,4 @@ demo/out
 *.webm
 *.log
 .DS_Store
+demo/assets/*.wav

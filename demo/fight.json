@@ -1,0 +1,2438 @@
+{
+ "version": "jirex.film/1",
+ "meta": {
+  "title": "Sun and Sky",
+  "fps": 24,
+  "width": 1280,
+  "height": 720,
+  "description": "Sixty seconds at full power. Two original fighters in the shonen idiom; see demo/fight-script.md."
+ },
+ "voices": {
+  "sora_v": {
+   "spec": "tts:en_GB-alan-medium"
+  },
+  "taiyo_v": {
+   "spec": "tts:en_GB-alba-medium"
+  }
+ },
+ "assets": {
+  "battle": {
+   "kind": "audio",
+   "src": "demo/assets/battle.wav"
+  }
+ },
+ "palettes": {
+  "dusk": {
+   "gi": "#ef7420",
+   "under": "#1f3fa0",
+   "spike": "#151014",
+   "skin": "#f0c08a",
+   "coat": "#f4f1ea",
+   "white": "#fbf7ef",
+   "sash": "#c4342c",
+   "tan": "#e2a56a",
+   "flash": "#fff6c8",
+   "beam": "#8fe6ff",
+   "aura": "#ffd33a",
+   "sky": "#2d3f6b",
+   "skyLow": "#e0794a",
+   "far": "#4a5578",
+   "foliage": "#3d5a46",
+   "bark": "#3a2a20",
+   "stone": "#6a6570"
+  }
+ },
+ "characters": {
+  "sora": {
+   "voice": "sora_v",
+   "palette": "dusk",
+   "proportions": {
+    "height": 330
+   },
+   "generate": {
+    "build": "athletic",
+    "facing": 1,
+    "hair": "spiky",
+    "hairColor": "spike",
+    "cloth": "gi",
+    "trouser": "gi",
+    "shoe": "under",
+    "skin": "skin",
+    "face": {
+     "jaw": "square",
+     "eyes": "narrow",
+     "brow": "angled",
+     "nose": "straight",
+     "ears": "small"
+    }
+   },
+   "poses": {
+    "guard": {
+     "armR": {
+      "rot": -0.55,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreR": {
+      "rot": 1.15,
+      "sx": 1,
+      "sy": 1
+     },
+     "armL": {
+      "rot": 0.45,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreL": {
+      "rot": 1.3,
+      "sx": 1,
+      "sy": 1
+     },
+     "torso": {
+      "rot": 0.08,
+      "sx": 1,
+      "sy": 1
+     },
+     "head": {
+      "rot": 0.05,
+      "sx": 1,
+      "sy": 1
+     },
+     "hips": {
+      "y": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "handL": {
+      "sx": 1,
+      "sy": 1
+     },
+     "handR": {
+      "sx": 1,
+      "sy": 1
+     }
+    },
+    "punchR": {
+     "armR": {
+      "rot": -1.48
+     },
+     "foreR": {
+      "rot": -0.12
+     },
+     "armL": {
+      "rot": 0.7
+     },
+     "foreL": {
+      "rot": 1.5
+     },
+     "torso": {
+      "rot": -0.18
+     },
+     "head": {
+      "rot": -0.06
+     }
+    },
+    "punchL": {
+     "armL": {
+      "rot": -1.42
+     },
+     "foreL": {
+      "rot": -0.1
+     },
+     "armR": {
+      "rot": 0.6
+     },
+     "foreR": {
+      "rot": 1.45
+     },
+     "torso": {
+      "rot": -0.12
+     }
+    },
+    "recoil": {
+     "torso": {
+      "rot": 0.34
+     },
+     "head": {
+      "rot": 0.38
+     },
+     "armL": {
+      "rot": 0.95
+     },
+     "armR": {
+      "rot": 0.55
+     },
+     "foreR": {
+      "rot": 0.9
+     },
+     "hips": {
+      "rot": 0.12
+     }
+    },
+    "kick": {
+     "thighR": {
+      "rot": -1.3
+     },
+     "shinR": {
+      "rot": 0.45
+     },
+     "thighL": {
+      "rot": 0.35
+     },
+     "torso": {
+      "rot": -0.22
+     },
+     "armL": {
+      "rot": 0.9
+     },
+     "armR": {
+      "rot": -0.5
+     }
+    },
+    "draw": {
+     "armR": {
+      "rot": 0.75
+     },
+     "foreR": {
+      "rot": 1.85
+     },
+     "armL": {
+      "rot": 0.85
+     },
+     "foreL": {
+      "rot": 1.8
+     },
+     "torso": {
+      "rot": 0.14
+     },
+     "head": {
+      "rot": -0.08
+     }
+    },
+    "push": {
+     "armR": {
+      "rot": -1.45
+     },
+     "foreR": {
+      "rot": 0.08
+     },
+     "armL": {
+      "rot": -1.38
+     },
+     "foreL": {
+      "rot": 0.1
+     },
+     "torso": {
+      "rot": -0.2
+     },
+     "head": {
+      "rot": -0.04
+     }
+    },
+    "land": {
+     "thighL": {
+      "rot": 0.5
+     },
+     "shinL": {
+      "rot": -0.85
+     },
+     "thighR": {
+      "rot": -0.5
+     },
+     "shinR": {
+      "rot": 0.85
+     },
+     "torso": {
+      "rot": 0.18
+     },
+     "hips": {
+      "sy": 0.78,
+      "sx": 1.28,
+      "y": 34
+     },
+     "armL": {
+      "rot": 0.8
+     },
+     "armR": {
+      "rot": -0.8
+     }
+    },
+    "stand": {
+     "armR": {
+      "rot": -0.12,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreR": {
+      "rot": 0.18,
+      "sx": 1,
+      "sy": 1
+     },
+     "armL": {
+      "rot": 0.12,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreL": {
+      "rot": 0.2,
+      "sx": 1,
+      "sy": 1
+     },
+     "torso": {
+      "rot": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "head": {
+      "rot": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "hips": {
+      "y": 0,
+      "rot": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "thighL": {
+      "rot": 0
+     },
+     "thighR": {
+      "rot": 0
+     },
+     "shinL": {
+      "rot": 0
+     },
+     "shinR": {
+      "rot": 0
+     },
+     "handL": {
+      "sx": 1,
+      "sy": 1
+     },
+     "handR": {
+      "sx": 1,
+      "sy": 1
+     }
+    }
+   }
+  },
+  "taiyo": {
+   "voice": "taiyo_v",
+   "palette": "dusk",
+   "proportions": {
+    "height": 320
+   },
+   "generate": {
+    "build": "slim",
+    "facing": -1,
+    "hair": "flame",
+    "hairColor": "white",
+    "cloth": "coat",
+    "trouser": "coat",
+    "shoe": "sash",
+    "skin": "tan",
+    "face": {
+     "jaw": "round",
+     "eyes": "wide",
+     "brow": "arched",
+     "nose": "button",
+     "lips": "wide"
+    }
+   },
+   "poses": {
+    "guard": {
+     "armL": {
+      "rot": 0.55,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreL": {
+      "rot": -1.15,
+      "sx": 1,
+      "sy": 1
+     },
+     "armR": {
+      "rot": -0.45,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreR": {
+      "rot": -1.3,
+      "sx": 1,
+      "sy": 1
+     },
+     "torso": {
+      "rot": -0.08,
+      "sx": 1,
+      "sy": 1
+     },
+     "hips": {
+      "y": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "handL": {
+      "sx": 1,
+      "sy": 1
+     },
+     "handR": {
+      "sx": 1,
+      "sy": 1
+     },
+     "head": {
+      "sx": 1,
+      "sy": 1
+     }
+    },
+    "block": {
+     "armL": {
+      "rot": 1.35,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreL": {
+      "rot": -1.55,
+      "sx": 1,
+      "sy": 1
+     },
+     "armR": {
+      "rot": -0.3,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreR": {
+      "rot": -1.1,
+      "sx": 1,
+      "sy": 1
+     },
+     "torso": {
+      "rot": -0.1,
+      "sx": 1,
+      "sy": 1
+     },
+     "head": {
+      "rot": -0.05,
+      "sx": 1,
+      "sy": 1
+     },
+     "hips": {
+      "y": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "handL": {
+      "sx": 1,
+      "sy": 1
+     },
+     "handR": {
+      "sx": 1,
+      "sy": 1
+     }
+    },
+    "stretchL": {
+     "armL": {
+      "rot": 1.52,
+      "sy": 5.2,
+      "sx": 0.46
+     },
+     "foreL": {
+      "rot": 0.05,
+      "sy": 1.6
+     },
+     "torso": {
+      "rot": -0.2
+     },
+     "head": {
+      "rot": -0.1
+     }
+    },
+    "giantL": {
+     "armL": {
+      "rot": 1.3,
+      "sx": 2.2,
+      "sy": 1.7
+     },
+     "foreL": {
+      "rot": 0.25,
+      "sx": 1.4,
+      "sy": 1.3
+     },
+     "handL": {
+      "sx": 2.1,
+      "sy": 2.0
+     },
+     "torso": {
+      "rot": -0.22
+     }
+    },
+    "squash": {
+     "torso": {
+      "sy": 0.66,
+      "sx": 1.46,
+      "rot": 0
+     },
+     "hips": {
+      "sy": 0.8,
+      "sx": 1.3
+     },
+     "head": {
+      "sy": 0.86,
+      "sx": 1.16
+     },
+     "armL": {
+      "rot": 1.0
+     },
+     "armR": {
+      "rot": -1.0
+     }
+    },
+    "spring": {
+     "torso": {
+      "sy": 1.26,
+      "sx": 0.82
+     },
+     "hips": {
+      "sy": 1.12,
+      "sx": 0.9
+     },
+     "head": {
+      "sy": 1.1,
+      "sx": 0.94
+     },
+     "armL": {
+      "rot": 0.3
+     },
+     "armR": {
+      "rot": -0.3
+     }
+    },
+    "catch": {
+     "armL": {
+      "rot": 1.45,
+      "sx": 2.4,
+      "sy": 2.2
+     },
+     "armR": {
+      "rot": -1.45,
+      "sx": 2.4,
+      "sy": 2.2
+     },
+     "handL": {
+      "sx": 2.2,
+      "sy": 2.2
+     },
+     "handR": {
+      "sx": 2.2,
+      "sy": 2.2
+     },
+     "torso": {
+      "sx": 1.2,
+      "sy": 1.1
+     }
+    },
+    "land": {
+     "thighL": {
+      "rot": 0.5
+     },
+     "shinL": {
+      "rot": -0.85
+     },
+     "thighR": {
+      "rot": -0.5
+     },
+     "shinR": {
+      "rot": 0.85
+     },
+     "hips": {
+      "sy": 0.74,
+      "sx": 1.34,
+      "y": 30
+     },
+     "torso": {
+      "rot": -0.15
+     }
+    },
+    "stand": {
+     "armL": {
+      "rot": 0.14,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreL": {
+      "rot": -0.2,
+      "sx": 1,
+      "sy": 1
+     },
+     "armR": {
+      "rot": -0.14,
+      "sx": 1,
+      "sy": 1
+     },
+     "foreR": {
+      "rot": -0.2,
+      "sx": 1,
+      "sy": 1
+     },
+     "torso": {
+      "rot": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "head": {
+      "rot": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "hips": {
+      "y": 0,
+      "sx": 1,
+      "sy": 1
+     },
+     "thighL": {
+      "rot": 0
+     },
+     "thighR": {
+      "rot": 0
+     },
+     "shinL": {
+      "rot": 0
+     },
+     "shinR": {
+      "rot": 0
+     },
+     "handL": {
+      "sx": 1,
+      "sy": 1
+     },
+     "handR": {
+      "sx": 1,
+      "sy": 1
+     }
+    }
+   }
+  },
+  "fx": {
+   "parts": [
+    {
+     "id": "star",
+     "shape": {
+      "kind": "path",
+      "d": "M0,-58 L17,-17 L58,0 L17,17 L0,58 L-17,17 L-58,0 L-17,-17 Z"
+     },
+     "fill": "flash",
+     "z": 60
+    }
+   ]
+  },
+  "bolt": {
+   "parts": [
+    {
+     "id": "ray",
+     "shape": {
+      "kind": "rect",
+      "w": 460,
+      "h": 40,
+      "cy": true
+     },
+     "fill": "beam",
+     "z": 55
+    }
+   ]
+  }
+ },
+ "scenes": [
+  {
+   "id": "s1",
+   "palette": "dusk",
+   "template": {
+    "template": "hillside",
+    "time": "evening",
+    "props": [
+     "rock@0.06",
+     "tree@0.97"
+    ]
+   },
+   "transitionIn": {
+    "kind": "fade",
+    "from": "#000000",
+    "duration": 0.6
+   },
+   "transitionOut": {
+    "kind": "fade",
+    "duration": 1.6
+   },
+   "audio": [
+    {
+     "asset": "battle",
+     "at": 0,
+     "gain": 0.34,
+     "fadeIn": 1.0,
+     "fadeOut": 3.0,
+     "bus": "music"
+    }
+   ],
+   "cast": [
+    {
+     "character": "sora",
+     "as": "sora",
+     "at": [
+      560
+     ],
+     "view": "threeQuarter"
+    },
+    {
+     "character": "taiyo",
+     "as": "taiyo",
+     "at": [
+      720
+     ],
+     "view": "threeQuarter",
+     "expression": "smug"
+    },
+    {
+     "character": "fx",
+     "as": "fx",
+     "at": [
+      640,
+      330
+     ],
+     "alpha": 0,
+     "z": 60
+    },
+    {
+     "character": "bolt",
+     "as": "bolt",
+     "at": [
+      500,
+      300
+     ],
+     "alpha": 0,
+     "z": 55
+    }
+   ],
+   "shots": [
+    {
+     "id": "01-clash",
+     "duration": 3.0,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.08
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.12
+      },
+      "ease": "smooth",
+      "shake": 26
+     },
+     "actions": [
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 0
+      },
+      {
+       "target": "bolt",
+       "do": "hide",
+       "at": 0
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "punchR",
+       "at": 0.02,
+       "for": 0.18,
+       "overshoot": 0.22
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "block",
+       "at": 0.02,
+       "for": 0.18
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        640,
+        300
+       ],
+       "at": 0.07999999999999999,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 0.12
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 0.12
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 0.12
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 1.6,
+       "at": 0.3
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.6,
+       "at": 0.3
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 0.42
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "guard",
+       "at": 1.5,
+       "for": 0.5
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "guard",
+       "at": 1.6,
+       "for": 0.5
+      }
+     ]
+    },
+    {
+     "id": "02-sora",
+     "duration": 2.0,
+     "framing": "close",
+     "on": "sora",
+     "camera": {
+      "from": {
+       "x": -80,
+       "y": -64,
+       "zoom": 5.2
+      },
+      "to": {
+       "x": -80,
+       "y": -64,
+       "zoom": 5.5
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "set",
+       "channel": "props.expression",
+       "value": "angry",
+       "at": 0.05
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "guard",
+       "at": 0,
+       "for": 0.3
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      }
+     ]
+    },
+    {
+     "id": "03-combo",
+     "duration": 2.5,
+     "framing": "medium",
+     "on": "sora",
+     "camera": {
+      "from": {
+       "x": -80,
+       "y": -23,
+       "zoom": 2.7
+      },
+      "to": {
+       "x": -80,
+       "y": -23,
+       "zoom": 2.8
+      },
+      "ease": "smooth",
+      "shake": 9
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "punchR",
+       "at": 0.05,
+       "for": 0.22,
+       "overshoot": 0.22
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "punchL",
+       "at": 0.45,
+       "for": 0.22,
+       "overshoot": 0.22
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "punchR",
+       "at": 0.85,
+       "for": 0.22,
+       "overshoot": 0.22
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "punchL",
+       "at": 1.25,
+       "for": 0.22,
+       "overshoot": 0.22
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "guard",
+       "at": 1.75,
+       "for": 0.35
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        660,
+        300
+       ],
+       "at": 0.19999999999999998,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 0.24
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 0.24
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 0.24
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.9,
+       "at": 0.42
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.9,
+       "at": 0.42
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 0.54
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        660,
+        340
+       ],
+       "at": 1.0,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 1.04
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 1.04
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 1.04
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.9,
+       "at": 1.22
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.9,
+       "at": 1.22
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 1.34
+      }
+     ]
+    },
+    {
+     "id": "04-taiyo",
+     "duration": 2.0,
+     "framing": "close",
+     "on": "taiyo",
+     "camera": {
+      "from": {
+       "x": 80,
+       "y": -94,
+       "zoom": 5.3
+      },
+      "to": {
+       "x": 80,
+       "y": -94,
+       "zoom": 5.6
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "block",
+       "at": 0,
+       "for": 0.25
+      },
+      {
+       "target": "taiyo",
+       "do": "set",
+       "channel": "props.expression",
+       "value": "delighted",
+       "at": 0.6
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      }
+     ],
+     "dialogue": [
+      {
+       "speaker": "taiyo",
+       "at": 0.15,
+       "text": "Is that everything you have?",
+       "lipsync": true,
+       "subtitle": true
+      }
+     ]
+    },
+    {
+     "id": "05-stretch",
+     "duration": 3.0,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.12
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.04
+      },
+      "ease": "smooth",
+      "shake": 11
+     },
+     "actions": [
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "stretchL",
+       "at": 0.25,
+       "for": 0.45,
+       "anticipate": 0.22,
+       "overshoot": 0.14
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "recoil",
+       "at": 0.95,
+       "for": 0.22
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        590,
+        300
+       ],
+       "at": 0.88,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 0.92
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 0.92
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 0.92
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 1.5,
+       "at": 1.1
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.5,
+       "at": 1.1
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 1.22
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "block",
+       "at": 2.1,
+       "for": 0.5
+      }
+     ]
+    },
+    {
+     "id": "06-impact",
+     "duration": 1.5,
+     "framing": "medium",
+     "on": "sora",
+     "camera": {
+      "from": {
+       "x": -80,
+       "y": -23,
+       "zoom": 2.95
+      },
+      "to": {
+       "x": -80,
+       "y": -23,
+       "zoom": 2.6
+      },
+      "ease": "smooth",
+      "shake": 36
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "recoil",
+       "at": 0,
+       "for": 0.14
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        560,
+        300
+       ],
+       "at": 0.010000000000000002,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 0.05
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 0.05
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 0.05
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 1.7,
+       "at": 0.22999999999999998
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.7,
+       "at": 0.22999999999999998
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 0.35
+      }
+     ]
+    },
+    {
+     "id": "07-skid",
+     "duration": 2.5,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": -40,
+       "y": 42,
+       "zoom": 1.04
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.0
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "move",
+       "to": [
+        300
+       ],
+       "at": 0,
+       "for": 0.65,
+       "overshoot": 0.16
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "guard",
+       "at": 0.75,
+       "for": 0.5
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "stand",
+       "at": 0,
+       "for": 0.45
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "breathe",
+       "at": 0.6
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "blink",
+       "at": 0.6
+      }
+     ]
+    },
+    {
+     "id": "08-charge",
+     "duration": 3.5,
+     "framing": "close",
+     "on": "sora",
+     "camera": {
+      "from": {
+       "x": -340,
+       "y": -64,
+       "zoom": 5.0
+      },
+      "to": {
+       "x": -340,
+       "y": -64,
+       "zoom": 5.8
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "draw",
+       "at": 0.2,
+       "for": 0.75,
+       "anticipate": 0.28
+      },
+      {
+       "target": "sora",
+       "do": "set",
+       "channel": "props.fill",
+       "value": "aura",
+       "at": 1.35,
+       "part": "hair"
+      },
+      {
+       "target": "sora",
+       "do": "set",
+       "channel": "props.fill",
+       "value": "aura",
+       "at": 1.35,
+       "part": "hairBack"
+      },
+      {
+       "target": "sora",
+       "do": "set",
+       "channel": "props.expression",
+       "value": "angry",
+       "at": 0.1
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "breathe",
+       "at": 1.8
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "blink",
+       "at": 1.8
+      }
+     ],
+     "dialogue": [
+      {
+       "speaker": "sora",
+       "at": 1.6,
+       "text": "Not even close.",
+       "lipsync": true,
+       "subtitle": true
+      }
+     ]
+    },
+    {
+     "id": "09-react",
+     "duration": 2.0,
+     "framing": "close",
+     "on": "taiyo",
+     "camera": {
+      "from": {
+       "x": 80,
+       "y": -94,
+       "zoom": 5.6
+      },
+      "to": {
+       "x": 80,
+       "y": -94,
+       "zoom": 5.2
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "taiyo",
+       "do": "set",
+       "channel": "props.expression",
+       "value": "surprised",
+       "at": 0.1
+      },
+      {
+       "target": "taiyo",
+       "do": "set",
+       "channel": "props.expression",
+       "value": "delighted",
+       "at": 1.1
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      }
+     ]
+    },
+    {
+     "id": "10-rush",
+     "duration": 2.5,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.0
+      },
+      "to": {
+       "x": 20,
+       "y": 42,
+       "zoom": 1.08
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "move",
+       "to": [
+        600,
+        300
+       ],
+       "at": 0.25,
+       "for": 0.85,
+       "arc": 0.3,
+       "anticipate": 0.14
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "kick",
+       "at": 0.55,
+       "for": 0.35,
+       "overshoot": 0.18
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        640,
+        320
+       ],
+       "at": 1.14,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 1.18
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 1.18
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 1.18
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 1.4,
+       "at": 1.3599999999999999
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.4,
+       "at": 1.3599999999999999
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 1.48
+      }
+     ]
+    },
+    {
+     "id": "11-absorb",
+     "duration": 3.0,
+     "framing": "medium",
+     "on": "taiyo",
+     "camera": {
+      "from": {
+       "x": 80,
+       "y": -53,
+       "zoom": 2.8
+      },
+      "to": {
+       "x": 80,
+       "y": -53,
+       "zoom": 2.9
+      },
+      "ease": "smooth",
+      "shake": 15
+     },
+     "actions": [
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "squash",
+       "at": 0.1,
+       "for": 0.1
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "spring",
+       "at": 0.32,
+       "for": 0.16
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "squash",
+       "at": 0.7,
+       "for": 0.1
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "spring",
+       "at": 0.92,
+       "for": 0.16
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "squash",
+       "at": 1.3,
+       "for": 0.1
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "block",
+       "at": 1.6,
+       "for": 0.35
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        680,
+        300
+       ],
+       "at": 0.04,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 0.08
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 0.08
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 0.08
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 1.0,
+       "at": 0.26
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.0,
+       "at": 0.26
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 0.38
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        680,
+        340
+       ],
+       "at": 0.64,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 0.68
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 0.68
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 0.68
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 1.0,
+       "at": 0.8600000000000001
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.0,
+       "at": 0.8600000000000001
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 0.98
+      }
+     ]
+    },
+    {
+     "id": "12-giant",
+     "duration": 2.5,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.08
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.02
+      },
+      "ease": "smooth",
+      "shake": 19
+     },
+     "actions": [
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "giantL",
+       "at": 0.25,
+       "for": 0.45,
+       "anticipate": 0.24
+      },
+      {
+       "target": "sora",
+       "do": "move",
+       "to": [
+        430
+       ],
+       "at": 0,
+       "for": 0.5
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "guard",
+       "at": 0.6,
+       "for": 0.3
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        540,
+        300
+       ],
+       "at": 1.26,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 1.3
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 1.3
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 1.3
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 1.6,
+       "at": 1.48
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.6,
+       "at": 1.48
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 1.6
+      }
+     ]
+    },
+    {
+     "id": "13-duck",
+     "duration": 2.0,
+     "framing": "medium",
+     "on": "sora",
+     "camera": {
+      "from": {
+       "x": -210,
+       "y": -23,
+       "zoom": 2.7
+      },
+      "to": {
+       "x": -210,
+       "y": -23,
+       "zoom": 2.9
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "land",
+       "at": 0.08,
+       "for": 0.18
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "guard",
+       "at": 0.95,
+       "for": 0.4
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "block",
+       "at": 0.5,
+       "for": 0.5
+      }
+     ]
+    },
+    {
+     "id": "14-draw",
+     "duration": 3.5,
+     "framing": "close",
+     "on": "sora",
+     "camera": {
+      "from": {
+       "x": -210,
+       "y": -64,
+       "zoom": 5.2
+      },
+      "to": {
+       "x": -210,
+       "y": -64,
+       "zoom": 6.0
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "draw",
+       "at": 0.05,
+       "for": 0.85,
+       "anticipate": 0.32
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "breathe",
+       "at": 1.4
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "blink",
+       "at": 1.4
+      },
+      {
+       "target": "bolt",
+       "do": "move",
+       "to": [
+        500,
+        300
+       ],
+       "at": 0,
+       "for": 0.01
+      },
+      {
+       "target": "bolt",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.04,
+       "at": 1.15
+      },
+      {
+       "target": "bolt",
+       "do": "show",
+       "at": 1.25
+      },
+      {
+       "target": "bolt",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.22,
+       "at": 3.3
+      }
+     ]
+    },
+    {
+     "id": "15-beam",
+     "duration": 3.0,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.02
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.0
+      },
+      "ease": "smooth",
+      "shake": 13
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "push",
+       "at": 0.12,
+       "for": 0.26,
+       "overshoot": 0.24
+      },
+      {
+       "target": "bolt",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.22,
+       "at": 0.1
+      },
+      {
+       "target": "bolt",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.72,
+       "at": 0.6
+      },
+      {
+       "target": "bolt",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.0,
+       "at": 0.1
+      },
+      {
+       "target": "bolt",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.4,
+       "at": 0.6
+      }
+     ]
+    },
+    {
+     "id": "16-catch",
+     "duration": 3.0,
+     "framing": "medium",
+     "on": "taiyo",
+     "camera": {
+      "from": {
+       "x": 80,
+       "y": -53,
+       "zoom": 2.9
+      },
+      "to": {
+       "x": 80,
+       "y": -53,
+       "zoom": 3.1
+      },
+      "ease": "smooth",
+      "shake": 17
+     },
+     "actions": [
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "catch",
+       "at": 0.1,
+       "for": 0.28,
+       "anticipate": 0.18,
+       "overshoot": 0.16
+      },
+      {
+       "target": "taiyo",
+       "do": "set",
+       "channel": "props.expression",
+       "value": "delighted",
+       "at": 0.1
+      },
+      {
+       "target": "bolt",
+       "do": "hide",
+       "at": 1.45
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        690,
+        300
+       ],
+       "at": 1.3599999999999999,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.4,
+       "at": 1.4
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.4,
+       "at": 1.4
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 1.4
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 1.5,
+       "at": 1.5799999999999998
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 1.5,
+       "at": 1.5799999999999998
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 1.7
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "block",
+       "at": 2.1,
+       "for": 0.5
+      }
+     ],
+     "dialogue": [
+      {
+       "speaker": "taiyo",
+       "at": 0.2,
+       "text": "My turn!",
+       "lipsync": true,
+       "subtitle": true
+      }
+     ]
+    },
+    {
+     "id": "17-collide",
+     "duration": 2.5,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.0
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.08
+      },
+      "ease": "smooth",
+      "shake": 42
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "push",
+       "at": 0,
+       "for": 0.2
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "catch",
+       "at": 0,
+       "for": 0.2
+      },
+      {
+       "target": "fx",
+       "do": "move",
+       "to": [
+        575,
+        300
+       ],
+       "at": 0,
+       "for": 0.01
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 0.5,
+       "at": 0.05
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 0.5,
+       "at": 0.05
+      },
+      {
+       "target": "fx",
+       "do": "show",
+       "at": 0.05
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sx",
+       "value": 2.1,
+       "at": 0.65
+      },
+      {
+       "target": "fx",
+       "do": "set",
+       "channel": "transform.sy",
+       "value": 2.1,
+       "at": 0.65
+      },
+      {
+       "target": "fx",
+       "do": "hide",
+       "at": 1.0
+      }
+     ]
+    },
+    {
+     "id": "18-apart",
+     "duration": 3.0,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.08
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.0
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "move",
+       "to": [
+        250,
+        320
+       ],
+       "at": 0,
+       "for": 0.85,
+       "arc": -0.26
+      },
+      {
+       "target": "taiyo",
+       "do": "move",
+       "to": [
+        1020,
+        300
+       ],
+       "at": 0,
+       "for": 0.85,
+       "arc": 0.26
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "recoil",
+       "at": 0,
+       "for": 0.3
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "squash",
+       "at": 0,
+       "for": 0.25
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "spring",
+       "at": 0.5,
+       "for": 0.3
+      }
+     ]
+    },
+    {
+     "id": "19-land",
+     "duration": 2.5,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.0
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.04
+      },
+      "ease": "smooth",
+      "shake": 15
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "move",
+       "to": [
+        380
+       ],
+       "at": 0.05,
+       "for": 0.3
+      },
+      {
+       "target": "taiyo",
+       "do": "move",
+       "to": [
+        900
+       ],
+       "at": 0.05,
+       "for": 0.3
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "land",
+       "at": 0.3,
+       "for": 0.12
+      },
+      {
+       "target": "sora",
+       "do": "pose",
+       "pose": "stand",
+       "at": 0.55,
+       "for": 0.4
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "land",
+       "at": 0.35,
+       "for": 0.12
+      },
+      {
+       "target": "taiyo",
+       "do": "pose",
+       "pose": "stand",
+       "at": 0.6,
+       "for": 0.4
+      }
+     ]
+    },
+    {
+     "id": "20-rise",
+     "duration": 4.0,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.04
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.12
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      },
+      {
+       "target": "sora",
+       "do": "set",
+       "channel": "props.expression",
+       "value": "neutral",
+       "at": 0.4
+      }
+     ],
+     "dialogue": [
+      {
+       "speaker": "sora",
+       "at": 0.8,
+       "text": "Then let us finish this.",
+       "lipsync": true,
+       "subtitle": true
+      }
+     ]
+    },
+    {
+     "id": "21-sora",
+     "duration": 2.5,
+     "framing": "close",
+     "on": "sora",
+     "camera": {
+      "from": {
+       "x": -260,
+       "y": -64,
+       "zoom": 5.4
+      },
+      "to": {
+       "x": -260,
+       "y": -64,
+       "zoom": 5.6
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      }
+     ]
+    },
+    {
+     "id": "22-taiyo",
+     "duration": 2.0,
+     "framing": "close",
+     "on": "taiyo",
+     "camera": {
+      "from": {
+       "x": 260,
+       "y": -94,
+       "zoom": 5.4
+      },
+      "to": {
+       "x": 260,
+       "y": -94,
+       "zoom": 5.7
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "taiyo",
+       "do": "set",
+       "channel": "props.expression",
+       "value": "delighted",
+       "at": 0.05
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      }
+     ]
+    },
+    {
+     "id": "23-out",
+     "duration": 2.0,
+     "framing": "wide",
+     "camera": {
+      "from": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.12
+      },
+      "to": {
+       "x": 0,
+       "y": 42,
+       "zoom": 1.0
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "sora",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "breathe",
+       "at": 0
+      },
+      {
+       "target": "taiyo",
+       "do": "play",
+       "action": "blink",
+       "at": 0
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

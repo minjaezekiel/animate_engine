@@ -373,3 +373,103 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
 
     return d;
 }
+
+/**
+ * How much the cast actually moves, shot by shot.
+ *
+ * Added after a sixty-second fight rendered with **77% of its frames exactly
+ * frozen** while every other check reported clean. The camera shake made the
+ * footage look busy -- raw frame-to-frame luma change during the punch combo
+ * measured 16.2, against 0.85 for a dialogue scene in the reference clip --
+ * but with the camera locked the characters' own median was 0.00. The film
+ * was a slideshow with a vibrating lens, and nothing in the engine said so.
+ *
+ * Measured on node world positions rather than pixels: it is exact, it needs
+ * no renderer, and it cannot be fooled by the camera, which is the entire
+ * point.
+ *
+ * `moving` counts frames where the average part travels at least
+ * `visibleMove` px. Below that a viewer reads the frame as held, whatever the
+ * numbers say.
+ */
+export function analyseMotion(compiled, film, { fps = null, visibleMove = 0.3 } = {}) {
+    const { scene, timeline, meta } = compiled ?? {};
+    if (!scene || !timeline) return { frames: 0, shots: [], frozen: 0, moving: 0 };
+    const rate = fps ?? meta?.fps ?? 24;
+    const frames = Math.round((meta?.duration ?? timeline.duration ?? 0) * rate);
+    const baseline = createPoseBaseline(scene, timeline);
+    const ids = [...scene.byId.values()]
+        .filter((n) => n.kind !== 'group' && n.kind !== 'camera'
+            && String(n.id).split('/').length >= 3 && !String(n.id).includes('/set'))
+        .map((n) => n.id);
+    if (!ids.length || frames < 2) return { frames: 0, shots: [], frozen: 0, moving: 0 };
+
+    const perFrame = [];
+    let prev = null;
+    for (let f = 0; f < frames; f++) {
+        resetPose(scene, baseline);
+        applyPose(scene, samplePose(timeline, f / rate));
+        const cur = ids.map((id) => applyToPoint(scene.worldMatrix(id), 0, 0));
+        if (prev) {
+            let sum = 0;
+            for (let i = 0; i < cur.length; i++) {
+                sum += Math.hypot(cur[i][0] - prev[i][0], cur[i][1] - prev[i][1]);
+            }
+            perFrame.push(sum / cur.length);
+        }
+        prev = cur;
+    }
+    const frozen = perFrame.filter((v) => v < 1e-3).length / perFrame.length;
+    const moving = perFrame.filter((v) => v >= visibleMove).length / perFrame.length;
+    const shots = filmShots(film).map((sh) => {
+        const a = Math.max(0, Math.floor(sh.start * rate));
+        const b = Math.min(perFrame.length, Math.floor(sh.end * rate));
+        const seg = perFrame.slice(a, b);
+        if (!seg.length) return { shotId: sh.shotId, frozen: 1, moving: 0, median: 0 };
+        const sorted = [...seg].sort((x, y) => x - y);
+        return {
+            shotId: sh.shotId, sceneId: sh.sceneId,
+            frozen: seg.filter((v) => v < 1e-3).length / seg.length,
+            moving: seg.filter((v) => v >= visibleMove).length / seg.length,
+            median: sorted[Math.floor(sorted.length / 2)],
+        };
+    });
+    return { frames: perFrame.length, frozen, moving, shots, perFrame };
+}
+
+/**
+ * Report shots that are held when they are meant to be moving.
+ *
+ * Deliberately conservative: a held drawing is correct in this idiom and most
+ * of a dialogue film is held. What is reported is a shot that is *entirely*
+ * frozen, because no drawing stays perfectly still in any animation worth the
+ * name -- the reference dialogue clip is frozen in 2% of its frames; the fight
+ * that prompted this was frozen in 77%.
+ */
+export function checkMotion(compiled, film, options = {}) {
+    const d = [];
+    // 0.95, not 1.0: a shot whose only movement is the single frame its pose
+    // lands on is a held shot, and that is exactly what a shaking camera over
+    // a static pose measures at.
+    const { frozenShot = 0.95 } = options;
+    const report = analyseMotion(compiled, film, options);
+    for (const shot of report.shots) {
+        if (shot.frozen >= frozenShot) {
+            d.push({
+                severity: 'warning', path: `scenes.${shot.sceneId}.shots.${shot.shotId}`,
+                message: `Motion: shot ${shot.shotId} is completely still -- `
+                    + `${(shot.frozen * 100).toFixed(0)}% of its frames have zero cast movement. `
+                    + 'A camera move or shake will make it look busy while nothing is animating. '
+                    + 'Give it an idle clip, or a pose that changes across the shot.',
+            });
+        }
+    }
+    if (report.frames && report.frozen >= 0.5) {
+        d.push({
+            severity: 'warning', path: 'scenes',
+            message: `Motion: ${(report.frozen * 100).toFixed(0)}% of the film's frames have no `
+                + 'cast movement at all. For comparison a held dialogue scene runs near 2%.',
+        });
+    }
+    return d;
+}

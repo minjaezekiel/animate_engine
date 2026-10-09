@@ -50,7 +50,7 @@ export const KNOWN = {
              // the four principles that need a number rather than a keyframe
              'anticipate', 'overshoot', 'arc'],
     dialogue: ['speaker', 'at', 'text', 'audio', 'voice', 'lipsync', 'subtitle', 'gain', 'duration'],
-    camera: ['from', 'to', 'ease', 'h', 'at', 'for'],
+    camera: ['from', 'to', 'ease', 'h', 'at', 'for', 'shake'],
     audioCue: ['asset', 'at', 'gain', 'fadeIn', 'fadeOut', 'offset', 'duration', 'bus'],
     asset: ['kind', 'src', 'file', 'provider', 'frames', 'grid', 'pivot', 'fit'],
     background: ['color', 'gradient', 'image', 'fit'],

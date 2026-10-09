@@ -125,6 +125,7 @@ recovers both from the encoded file.
 | [docs/07-ART-SYSTEM.md](docs/07-ART-SYSTEM.md) | the art system's design, and the corrections measurement forced on it |
 | [docs/08-ART-VOCABULARY.md](docs/08-ART-VOCABULARY.md) | **every name the procedural art accepts** — read this to author cheaply |
 | [docs/09-PRINCIPLES.md](docs/09-PRINCIPLES.md) | the twelve principles of animation, and the feature carrying each |
+| [docs/10-ACTION-GAPS.md](docs/10-ACTION-GAPS.md) | **what the engine cannot do yet**, measured against a fight brief, and the plan |
 | [docs/STATUS.md](docs/STATUS.md) | **implemented vs not** |
 | [docs/DEFECTS.md](docs/DEFECTS.md) | defect register — the legacy 3D engine, and what tests found in the new code |
 | [docs/CDN-AND-PWA.md](docs/CDN-AND-PWA.md) | library use, installing, offline |

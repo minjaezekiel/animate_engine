@@ -162,6 +162,9 @@ export function compileFilm(film, { assets = {} } = {}) {
                 buildAction({
                     scene, timeline, action, castMap, shotStart, shotEnd,
                     sceneId, characters, diagnostics, ground: spec.ground ?? null,
+                    // So `set props.fill` can name a palette colour, exactly
+                    // as a part or a scenery item does.
+                    colorOf: (c) => (c == null ? null : (scenePalette[c] ?? c)),
                 });
             }
 
@@ -500,7 +503,11 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
             },
             z: m.z ?? 100,
         }, parent);
-    } else if (char.parts?.length) {
+    } else if (char.parts?.length && char.voice) {
+        // Only for a character that was cast to SPEAK. An effect sprite -- a
+        // beam, an impact flash -- is a character with parts and no business
+        // having a mouth, and warning about it trains an author to ignore the
+        // diagnostics that matter.
         diagnostics.push({
             severity: 'warning', path: `characters.${charName}.mouth`,
             message: 'No mouth block; this character cannot be lipsynced.',
@@ -602,6 +609,7 @@ function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamer
     if (start.rot != null || end.rot != null) {
         write('transform.rot', start.rot ?? 0, end.rot ?? 0);
     }
+    if (cam?.shake) buildShake({ timeline, cameraId, cam, moveStart, startAt, dur, meta, centre, start, end });
 
     return { x: end.x ?? 0, y: end.y ?? 0, zoom: end.zoom ?? 1, rot: end.rot ?? 0 };
 }
@@ -615,6 +623,56 @@ function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamer
  * previous value held at the start or the ramp begins from the default. Both
  * `pose` and `reach` need exactly this, so it lives in one place.
  */
+
+/**
+ * Camera shake, as a declaration rather than a dozen hand-written keys.
+ *
+ * An impact without a shake is a pose change -- the hit lands on the frame,
+ * not on the character -- and `shot.camera` had no way to say so: it is a
+ * from/to pair, and an oscillation is neither. An author could only get one
+ * by cutting the shot into pieces, which puts a cut where a cut does not
+ * belong.
+ *
+ *   "camera": { ..., "shake": 14 }          // amplitude in scene units
+ *   "camera": { ..., "shake": { "amount": 20, "at": 0.4, "for": 0.5 } }
+ *
+ * Decays to nothing across its span, because a shake that stops abruptly
+ * reads as a mistake. Alternating sign at twice the frame rate is what makes
+ * it register as a jolt rather than as a wobble -- below that it looks like
+ * the camera operator is unwell.
+ */
+function buildShake({ timeline, cameraId, cam, moveStart, startAt, dur, meta, centre, start, end }) {
+    const spec = typeof cam.shake === 'number' ? { amount: cam.shake } : cam.shake;
+    const amount = spec.amount ?? 12;
+    if (!(amount > 0)) return;
+    const fps = meta.fps || 24;
+    // Never earlier than `startAt`. A shake beginning at `moveStart` writes its
+    // first key at the exact time the PREVIOUS shot's `to` key sits on, and
+    // `key()` replaces rather than appends -- so an impact at the top of a
+    // shot silently deleted the end of the shot before it and the camera
+    // drifted across the cut instead of holding. This is the same clobber the
+    // cut offset above exists to prevent; the shake has to respect it too.
+    const at = Math.max(startAt, moveStart + (spec.at ?? 0));
+    const span = Math.min(spec.for ?? 0.45, dur - (at - moveStart));
+    const steps = Math.max(2, Math.round(span * fps));
+    // The pan underneath still has to happen, so each jolt is written as an
+    // OFFSET from the interpolated position rather than as an absolute.
+    const baseX = centre.x + (start.x ?? 0), endX = centre.x + (end.x ?? 0);
+    const baseY = centre.y + (start.y ?? 0), endY = centre.y + (end.y ?? 0);
+    for (let i = 0; i <= steps; i++) {
+        const t = at + (i / steps) * span;
+        const decay = 1 - i / steps;
+        const sign = i % 2 ? -1 : 1;
+        const u = dur > 0 ? Math.min(1, Math.max(0, (t - moveStart) / dur)) : 0;
+        key(timeline, cameraId, 'transform.x', t,
+            baseX + (endX - baseX) * u + sign * amount * decay,
+            { type: 'number', ease: 'linear' });
+        key(timeline, cameraId, 'transform.y', t,
+            baseY + (endY - baseY) * u + sign * amount * decay * 0.6,
+            { type: 'number', ease: 'linear' });
+    }
+}
+
 function writeChannel({ timeline, target, channel, value, at, span, ease, h,
                        anticipate = 0, overshoot = 0 }) {
     const path = `transform.${channel}`;
@@ -661,8 +719,34 @@ function castFeet(char, entry) {
     return measureCharacter(parts).bottom * (entry?.scale ?? 1);
 }
 
+/**
+ * Hold a channel's existing value at t=0 before changing it later.
+ *
+ * A track reads as its FIRST key's value at every time before that key. So a
+ * single `set` at t=16 does not change anything at t=16 -- it rewrites the
+ * whole film from frame one. A hair colour meant to turn gold on a
+ * transformation was gold in the opening shot, and an effect sprite first
+ * shown at t=35 was on screen from the start. Both looked like the author's
+ * mistake and neither was.
+ *
+ * Seeding only when the track does not yet exist keeps a later `set` on the
+ * same channel behaving as a plain keyframe.
+ */
+function seedChannel(scene, timeline, nodeId, path, value) {
+    if (timeline._index?.get(`${nodeId}\u0000${path}`)) return;
+    const node = scene.get(nodeId);
+    if (!node) return;
+    const dot = path.indexOf('.');
+    const bag = path.slice(0, dot) === 'props' ? node.props : node.transform;
+    const current = bag?.[path.slice(dot + 1)];
+    if (current === undefined) return;
+    key(timeline, nodeId, path, 0, current, { type: typeof current === 'number' ? 'number' : undefined, ease: 'step' });
+}
+
+const COLOR_CHANNELS = new Set(['props.fill', 'props.stroke']);
+
 function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
-                       sceneId, characters, diagnostics, ground = null }) {
+                       sceneId, characters, diagnostics, ground = null, colorOf = null }) {
     const cast = castMap.get(action.target);
     if (!cast) return;
     const { rootId, charName, entry } = cast;
@@ -792,11 +876,23 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
         case 'set': {
             if (!action.channel) return;
             const node = action.part ? `${rootId}/${action.part}` : rootId;
-            key(timeline, node, action.channel, at, action.value, { ease, h });
+            // A colour channel takes a palette NAME like everything else that
+            // paints. Without this, `set props.fill "aura"` wrote the literal
+            // string, which is not a colour, so the canvas silently kept the
+            // previous fill -- a transformation that simply never happened and
+            // reported nothing.
+            const value = COLOR_CHANNELS.has(action.channel) && typeof action.value === 'string'
+                ? (colorOf?.(action.value) ?? action.value)
+                : action.value;
+            if (at > 0) seedChannel(scene, timeline, node, action.channel, value);
+            key(timeline, node, action.channel, at, value, { ease, h });
             break;
         }
         case 'show':
         case 'hide': {
+            // Same trap: an effect first shown at t=35 was visible from frame
+            // one, because nothing held its starting alpha before that key.
+            if (at > 0) seedChannel(scene, timeline, rootId, 'props.alpha');
             key(timeline, rootId, 'props.alpha', at, action.do === 'show' ? 1 : 0,
                 { type: 'number', ease: span ? ease : 'step' });
             if (span != null) {

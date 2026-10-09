@@ -13,7 +13,7 @@
 import { compileFilm } from './core/script/compile.js';
 import { parseScreenplay, retimeToAudio } from './core/script/screenplay.js';
 import { VoiceRegistry } from './core/voice/VoiceRegistry.js';
-import { AssetRegistry, loadAssets } from './core/art/AssetRegistry.js';
+import { AssetRegistry, loadAssets, loadAudioAssets } from './core/art/AssetRegistry.js';
 import { UrlProvider } from './core/art/providers/UrlProvider.js';
 import { FileProvider } from './core/art/providers/FileProvider.js';
 import { MicProvider } from './core/voice/providers/MicProvider.js';
@@ -98,6 +98,16 @@ export class FilmStudio {
             notes.push(...loaded.diagnostics);
         }
 
+        // Music beds and sound effects. Declared since the first phase and
+        // never fetched by anything, so a film could name a score, validate
+        // clean and render silent.
+        const sound = await loadAudioAssets(film, {
+            baseUrl, decode: (b) => decodeAudio(b, this.sampleRate),
+            onProgress: (p) => { this.log(`audio ${p.done}/${p.total}: ${p.id}`); onProgress?.(p); },
+        });
+        notes.push(...sound.diagnostics);
+        const allBuffers = { ...sound.buffers, ...audioBuffers };
+
         // Pass 1: synthesize so real line durations are known.
         let first = compileFilm(working, { assets: images });
         if (!first.timeline) return { ...first, audio: null };
@@ -105,7 +115,7 @@ export class FilmStudio {
         const voiced = await synthesizeDialogue({
             lipsyncJobs: first.lipsyncJobs,
             registry: this.voices,
-            buffers: { ...audioBuffers },
+            buffers: { ...allBuffers },
             fps: first.meta.fps,
             sampleRate: this.sampleRate,
             onProgress: (p) => {

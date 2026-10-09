@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-09 (end of Phase 12 — the art system is complete).
+Last updated: 2026-10-09 (Phase 12 complete; live-tested against a fight brief, which found the action gaps).
 
 Legend: **done** · *partial* · — not started
 
@@ -601,6 +601,51 @@ to declare.
 ground, using the same helpers `do:'move'` already used. Previously an author
 computed the first y by hand or wrote a dummy one-frame `move` to snap it
 down — both the arithmetic the ground declaration exists to remove.
+
+---
+
+## Live test: action — **the engine is not ready for it**
+
+Full findings and the plan: [10-ACTION-GAPS.md](10-ACTION-GAPS.md).
+
+A sixty-second fight (`demo/fight.json`, script in `demo/fight-script.md`)
+rendered to `demo/out/sun-and-sky.webm`. Everything structural passed —
+60.0 s authored, 23 shots, validate clean, staging clean, framing clean,
+voices, music, zero diagnostics — and the result is a slideshow.
+
+| | exactly frozen | visibly moving |
+|---|---|---|
+| the fight | **77%** | 21% |
+| the dialogue film | 2% | 5% |
+
+Seven shots, including `06-impact`, are 100% frozen. Frame-to-frame luma
+change during the punch combo measured 16.2 as rendered and **0.78** with the
+camera locked: the motion was almost entirely the camera shaking.
+
+**Root cause: there is no additive layering.** A pose compiles to absolute
+keys; a cycle is a clip instance on the same channel; they collide and the
+pose wins for the entire film, before and after it. One pose at second three
+stops a character breathing for all sixty seconds. It also forces every pose
+to restore every channel any other pose touched, which is what produced the
+freeze in this film.
+
+Planned as Phase 13 (additive layering), 14 (timing texture: twos, hit-stop),
+15 (trails/smears and an effects library), 16 (per-pose z, spring secondary
+motion). Phase 13 first; the rest is cosmetic until a pose stops killing
+cycles.
+
+### Fixed during the test
+
+| Item | State |
+|---|---|
+| `camera.shake` | **done** — decaying, declared, written as an offset so the pan underneath survives |
+| `spiky` and `flame` hair | **done** — straight-edged radial crowns; smoothing turns a spike into a blob |
+| Audio assets actually load | **done** — `assets: { kind: "audio" }` had been in the schema since phase 0 and nothing ever fetched one, so a film could declare a score and render silent |
+| `set` resolves palette names on colour channels | **done** — it wrote the literal string, which is not a colour, so the canvas kept the previous fill |
+| A later `set`/`show` no longer rewrites the film from frame one | **done** — a track reads as its first key at every earlier time, so gold hair was gold in the opening shot and an effect shown at 35 s was on screen from the start |
+| `buildShake` clobbering the previous shot's final framing | **done** — its first key landed on the preceding `to` key and `key()` replaces; caught by the staging check, not by eye |
+| Motion is now measurable | **done** — `analyseMotion`/`checkMotion` measure cast movement on world positions, where the camera cannot flatter it. 7 diagnostics on the fight, 0 on the dialogue film |
+| No-mouth warning on voiceless characters | **done** — effect sprites were training authors to ignore diagnostics |
 
 ---
 

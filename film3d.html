@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>jireX 3D film</title>
+<style>body{margin:0;background:#07080a}canvas{display:block;margin:auto}</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { compileFilm3D } from './src/core/script/compile3d.js';
+import { buildScene3D } from './src/backends/three3d/SceneAdapter.js';
+import { createThreePoser } from './src/backends/three3d/Three3DBackend.js';
+import { samplePose } from './src/core/anim/Evaluator.js';
+import { renderOffline } from './src/render/OfflineRenderer.js';
+import { MediaRecorderSink } from './src/render/sinks/MediaRecorderSink.js';
+import { MemorySink } from './src/render/sinks/MemorySink.js';
+
+/**
+ * Render a 3D film script to a video, headless.
+ *
+ * Deliberately not a UI. The 2D path has film.html for authoring; this exists
+ * so the 3D compiler can be driven by a script and a test, which is what the
+ * live test needs. A studio surface is a separate job.
+ */
+window.render3d = async function render3d(film, opts = {}) {
+    const width = opts.width ?? film.meta?.width ?? 1280;
+    const height = opts.height ?? film.meta?.height ?? 720;
+    const compiled = compileFilm3D(film);
+    const report = (m) => (window.report ? window.report(m) : console.log(m));
+    for (const d of compiled.diagnostics) report(`[${d.severity}] ${d.message} @ ${d.location ?? '-'}`);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setSize(width, height, false);
+    renderer.setPixelRatio(1);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.88;
+    document.body.append(renderer.domElement);
+
+    const built = buildScene3D(THREE, compiled, { width, height });
+    built.camera.aspect = width / height;
+
+    // Bloom is what makes an emissive muzzle flash read as light rather than
+    // as a bright orange ball. It is the one post pass this film needs.
+    const bloom = compiled.meta.bloom;
+    let composer = null;
+    if (bloom) {
+        composer = new EffectComposer(renderer);
+        composer.setSize(width, height);
+        composer.addPass(new RenderPass(built.root, built.camera));
+        composer.addPass(new UnrealBloomPass(new THREE.Vector2(width, height),
+            bloom.strength ?? 0.8, bloom.radius ?? 0.5, bloom.threshold ?? 0.75));
+        composer.addPass(new OutputPass());
+    }
+
+    // Three3DBackend wants a SceneManager; all it uses is render(), camera and
+    // renderer, so this standalone path hands it those three and reuses the
+    // backend rather than growing a second one.
+    const sceneManager = {
+        renderer, camera: built.camera,
+        render: () => (composer ? composer.render() : renderer.render(built.root, built.camera)),
+    };
+    const backend = {
+        capabilities: { kind: '3d', postFX: !!composer },
+        mount: () => backend, unmount() {}, sync: () => backend,
+        resize: () => backend,
+        renderFrame: () => { sceneManager.render(); return backend; },
+        canvas: () => renderer.domElement,
+    };
+
+    const poser = createThreePoser({
+        timeline: compiled.timeline, resolve: built.resolve, samplePose,
+    });
+
+    // Grab single frames at given times. The cheapest way to check that a
+    // model looks like the thing it is meant to be, which no measurement does.
+    if (opts.grab) {
+        const out = [];
+        for (const t of opts.grab) {
+            poser.reset(); poser.apply(t); built.step(t);
+            sceneManager.render();
+            out.push({ t, png: renderer.domElement.toDataURL('image/png') });
+        }
+        poser.reset();
+        return { frames: out, duration: compiled.duration, diagnostics: compiled.diagnostics };
+    }
+
+    const sink = opts.probe
+        ? new MemorySink()
+        : new MediaRecorderSink({ videoBitsPerSecond: opts.bitrate ?? 12_000_000 });
+
+    const blob = await renderOffline({
+        scene: compiled.scene, timeline: compiled.timeline, backend,
+        cameraId: compiled.cameraId, fps: compiled.meta.fps,
+        width, height, durationSec: opts.durationSec ?? compiled.duration,
+        sink, poser,
+        // Aiming the camera and solving the particles both happen after the
+        // pose is written and before the frame is drawn.
+        beforeFrame: (t) => built.step(t),
+        onProgress: (p) => report(`frame ${p.frame}/${p.total} ${p.msPerFrame.toFixed(1)}ms/f`),
+    });
+
+    return {
+        mime: sink.mimeType, chunks: sink.chunks?.length ?? 0,
+        supported: typeof MediaRecorder !== 'undefined'
+            ? ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+                .filter((m) => MediaRecorder.isTypeSupported(m)) : [],
+        duration: compiled.duration,
+        nodes: compiled.scene.byId.size,
+        tracks: compiled.timeline.tracks.length,
+        particles: [...compiled.emitters.values()].reduce((a, e) => a + e.emitter.count, 0),
+        diagnostics: compiled.diagnostics,
+        size: blob?.size ?? 0,
+        dataUrl: blob && !opts.probe ? await new Promise((res) => {
+            const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob);
+        }) : null,
+    };
+};
+window.ready3d = true;
+</script>

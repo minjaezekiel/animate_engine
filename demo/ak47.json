@@ -1,0 +1,2747 @@
+{
+ "version": "jirex.film3d/1",
+ "meta": {
+  "title": "AK-47 — Assembly",
+  "fps": 24,
+  "width": 1280,
+  "height": 720,
+  "background": "#0d1014",
+  "bloom": {
+   "strength": 0.6,
+   "radius": 0.45,
+   "threshold": 0.88
+  }
+ },
+ "materials": {
+  "steel": {
+   "color": "#4b5058",
+   "metalness": 0.88,
+   "roughness": 0.38
+  },
+  "bright": {
+   "color": "#7d848e",
+   "metalness": 0.94,
+   "roughness": 0.22
+  },
+  "wood": {
+   "color": "#5e3a1d",
+   "metalness": 0,
+   "roughness": 0.68
+  },
+  "mag": {
+   "color": "#3a3d43",
+   "metalness": 0.82,
+   "roughness": 0.45
+  },
+  "concrete": {
+   "color": "#6a6660",
+   "metalness": 0,
+   "roughness": 0.94
+  },
+  "floor": {
+   "color": "#121316",
+   "metalness": 0.3,
+   "roughness": 0.8
+  },
+  "crater": {
+   "color": "#17161a",
+   "metalness": 0.1,
+   "roughness": 1
+  },
+  "flash": {
+   "color": "#ffd9a0",
+   "emissive": "#ffb347",
+   "emissiveIntensity": 3.2,
+   "roughness": 1
+  },
+  "spark": {
+   "color": "#ffd27a",
+   "emissive": "#ff9b2e",
+   "emissiveIntensity": 5,
+   "roughness": 1
+  },
+  "brass": {
+   "color": "#b08436",
+   "metalness": 0.95,
+   "roughness": 0.28
+  },
+  "smoke": {
+   "color": "#9a978f",
+   "basic": true,
+   "opacity": 0.13
+  },
+  "dustM": {
+   "color": "#b4ac9c",
+   "basic": true,
+   "opacity": 0.11
+  },
+  "debris": {
+   "color": "#6d675d",
+   "roughness": 0.95
+  }
+ },
+ "lights": [
+  {
+   "id": "amb",
+   "type": "ambient",
+   "color": "#6b7684",
+   "intensity": 1.15
+  },
+  {
+   "id": "key",
+   "type": "directional",
+   "color": "#fff6e8",
+   "intensity": 3.6,
+   "at": [
+    1.6,
+    2.4,
+    2.2
+   ],
+   "castShadow": true
+  },
+  {
+   "id": "fill",
+   "type": "directional",
+   "color": "#9fc4ff",
+   "intensity": 1.5,
+   "at": [
+    -2.2,
+    0.6,
+    1.8
+   ]
+  },
+  {
+   "id": "rim",
+   "type": "directional",
+   "color": "#8ec0ff",
+   "intensity": 2.4,
+   "at": [
+    -1.8,
+    1.2,
+    -2.4
+   ]
+  },
+  {
+   "id": "under",
+   "type": "point",
+   "color": "#ffb066",
+   "intensity": 0.45,
+   "at": [
+    0.1,
+    -0.7,
+    0.9
+   ],
+   "distance": 3
+  }
+ ],
+ "assemblies": {
+  "ak47": {
+   "parts": [
+    {
+     "id": "receiver",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.25,
+      "height": 0.07,
+      "depth": 0.038
+     },
+     "material": "steel",
+     "at": [
+      -0.02000000000000001,
+      -0.02,
+      0
+     ]
+    },
+    {
+     "id": "trunnion",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.05,
+      "height": 0.058,
+      "depth": 0.04
+     },
+     "material": "steel",
+     "at": [
+      0.09,
+      -0.014,
+      0
+     ]
+    },
+    {
+     "id": "barrel",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0073100000000000005,
+      "radiusBottom": 0.0085,
+      "height": 0.415,
+      "radialSegments": 20
+     },
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "material": "steel",
+     "at": [
+      0.2275,
+      0,
+      0
+     ]
+    },
+    {
+     "id": "muzzleNut",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0115,
+      "radiusBottom": 0.0115,
+      "height": 0.022,
+      "radialSegments": 20
+     },
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "material": "steel",
+     "at": [
+      0.424,
+      0,
+      0
+     ]
+    },
+    {
+     "id": "gasBlock",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.046,
+      "height": 0.05,
+      "depth": 0.03
+     },
+     "material": "steel",
+     "at": [
+      0.322,
+      0.012,
+      0
+     ]
+    },
+    {
+     "id": "gasTube",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0095,
+      "radiusBottom": 0.0095,
+      "height": 0.205,
+      "radialSegments": 20
+     },
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "material": "steel",
+     "at": [
+      0.218,
+      0.028,
+      0
+     ]
+    },
+    {
+     "id": "frontSightBlock",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.03,
+      "height": 0.038,
+      "depth": 0.028
+     },
+     "material": "steel",
+     "at": [
+      0.406,
+      0.016,
+      0
+     ]
+    },
+    {
+     "id": "frontSightPost",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0028,
+      "radiusBottom": 0.0035,
+      "height": 0.022
+     },
+     "material": "steel",
+     "at": [
+      0.406,
+      0.042,
+      0
+     ]
+    },
+    {
+     "id": "frontSightEars",
+     "geometry": {
+      "kind": "torus",
+      "radius": 0.012,
+      "tube": 0.0035,
+      "radialSegments": 8,
+      "tubularSegments": 20,
+      "arc": 3.14159
+     },
+     "material": "steel",
+     "at": [
+      0.406,
+      0.04,
+      0
+     ],
+     "rot": [
+      0,
+      90,
+      0
+     ]
+    },
+    {
+     "id": "rearSightBlock",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.04,
+      "height": 0.026,
+      "depth": 0.034
+     },
+     "material": "steel",
+     "at": [
+      0.086,
+      0.022,
+      0
+     ]
+    },
+    {
+     "id": "rearSightLeaf",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.03,
+      "height": 0.012,
+      "depth": 0.03
+     },
+     "material": "steel",
+     "at": [
+      0.08,
+      0.038,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      -6
+     ]
+    },
+    {
+     "id": "handguardLower",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.175,
+      "height": 0.048,
+      "depth": 0.044
+     },
+     "material": "wood",
+     "at": [
+      0.213,
+      -0.018,
+      0
+     ]
+    },
+    {
+     "id": "handguardUpper",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.155,
+      "height": 0.028,
+      "depth": 0.04
+     },
+     "material": "wood",
+     "at": [
+      0.222,
+      0.04,
+      0
+     ]
+    },
+    {
+     "id": "dustCover",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.218,
+      "height": 0.014,
+      "depth": 0.039
+     },
+     "material": "steel",
+     "at": [
+      -0.02500000000000001,
+      0.021,
+      0
+     ]
+    },
+    {
+     "id": "boltCarrier",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.158,
+      "height": 0.024,
+      "depth": 0.026
+     },
+     "material": "bright",
+     "at": [
+      -0.03,
+      0.004,
+      0
+     ]
+    },
+    {
+     "id": "chargingHandle",
+     "parent": "boltCarrier",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.03,
+      "height": 0.012,
+      "depth": 0.04
+     },
+     "material": "bright",
+     "at": [
+      0.064,
+      0.001,
+      0.03
+     ]
+    },
+    {
+     "id": "bolt",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0105,
+      "radiusBottom": 0.0105,
+      "height": 0.07,
+      "radialSegments": 20
+     },
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "material": "bright",
+     "at": [
+      0.028,
+      0.004,
+      0
+     ]
+    },
+    {
+     "id": "gasPiston",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0072,
+      "radiusBottom": 0.0072,
+      "height": 0.085,
+      "radialSegments": 20
+     },
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "material": "bright",
+     "at": [
+      0.12,
+      0.028,
+      0
+     ]
+    },
+    {
+     "id": "recoilSpring",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0062,
+      "radiusBottom": 0.0062,
+      "height": 0.112,
+      "radialSegments": 20
+     },
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "material": "bright",
+     "at": [
+      -0.085,
+      0.006,
+      0
+     ]
+    },
+    {
+     "id": "triggerGuard",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.062,
+      "height": 0.008,
+      "depth": 0.026
+     },
+     "material": "steel",
+     "at": [
+      -0.052,
+      -0.08,
+      0
+     ]
+    },
+    {
+     "id": "trigger",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.009,
+      "height": 0.026,
+      "depth": 0.008
+     },
+     "material": "bright",
+     "at": [
+      -0.04,
+      -0.068,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      8
+     ]
+    },
+    {
+     "id": "pistolGrip",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.032,
+      "height": 0.092,
+      "depth": 0.034
+     },
+     "material": "wood",
+     "at": [
+      -0.106,
+      -0.098,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      18
+     ]
+    },
+    {
+     "id": "selector",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.052,
+      "height": 0.012,
+      "depth": 0.006
+     },
+     "material": "steel",
+     "at": [
+      -0.028,
+      -0.004,
+      0.023
+     ],
+     "rot": [
+      0,
+      0,
+      20
+     ]
+    },
+    {
+     "id": "stockWrist",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.148,
+      "height": 0.052,
+      "depth": 0.036
+     },
+     "material": "wood",
+     "at": [
+      -0.21100000000000002,
+      -0.034,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      -4
+     ]
+    },
+    {
+     "id": "stockButt",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.165,
+      "height": 0.072,
+      "depth": 0.038
+     },
+     "material": "wood",
+     "at": [
+      -0.363,
+      -0.054,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      -5
+     ]
+    },
+    {
+     "id": "buttPlate",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.008,
+      "height": 0.074,
+      "depth": 0.038
+     },
+     "material": "steel",
+     "at": [
+      -0.442,
+      -0.056,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      -5
+     ]
+    },
+    {
+     "id": "magazine0",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.078,
+      "height": 0.05,
+      "depth": 0.025
+     },
+     "material": "mag",
+     "at": [
+      0.01,
+      -0.058,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      4
+     ]
+    },
+    {
+     "id": "magazine1",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.07466666666666667,
+      "height": 0.05,
+      "depth": 0.025
+     },
+     "material": "mag",
+     "at": [
+      0.016293227383520296,
+      -0.10400000000000001,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      10.666666666666666
+     ]
+    },
+    {
+     "id": "magazine2",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.07133333333333333,
+      "height": 0.05,
+      "depth": 0.025
+     },
+     "material": "mag",
+     "at": [
+      0.030259259110616776,
+      -0.15000000000000002,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      17.333333333333332
+     ]
+    },
+    {
+     "id": "magazine3",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.068,
+      "height": 0.05,
+      "depth": 0.025
+     },
+     "material": "mag",
+     "at": [
+      0.05148713759373162,
+      -0.19600000000000004,
+      0
+     ],
+     "rot": [
+      0,
+      0,
+      24
+     ]
+    },
+    {
+     "id": "cleaningRod",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0024,
+      "radiusBottom": 0.0024,
+      "height": 0.265,
+      "radialSegments": 20
+     },
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "material": "bright",
+     "at": [
+      0.288,
+      -0.016,
+      0
+     ]
+    },
+    {
+     "id": "slingLoop",
+     "geometry": {
+      "kind": "torus",
+      "radius": 0.009,
+      "tube": 0.0022,
+      "radialSegments": 8,
+      "tubularSegments": 16
+     },
+     "material": "steel",
+     "at": [
+      0.146,
+      -0.044,
+      0.016
+     ],
+     "rot": [
+      0,
+      90,
+      0
+     ]
+    }
+   ],
+   "actions": {
+    "cycle": {
+     "duration": 0.1,
+     "loop": "repeat",
+     "keys": {
+      "boltCarrier.position.x": [
+       [
+        0,
+        -0.03
+       ],
+       [
+        0.045,
+        -0.098
+       ],
+       [
+        0.1,
+        -0.03
+       ]
+      ]
+     }
+    }
+   }
+  },
+  "set": {
+   "parts": [
+    {
+     "id": "wall",
+     "geometry": {
+      "kind": "cube",
+      "width": 0.22,
+      "height": 5.2,
+      "depth": 11
+     },
+     "material": "concrete",
+     "at": [
+      2.4,
+      0.4,
+      0
+     ]
+    },
+    {
+     "id": "floor",
+     "geometry": {
+      "kind": "cube",
+      "width": 9,
+      "height": 0.08,
+      "depth": 9
+     },
+     "material": "floor",
+     "at": [
+      0.4,
+      -1.63,
+      0
+     ]
+    },
+    {
+     "id": "crater0",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.45,
+      -0.48000000000000004
+     ]
+    },
+    {
+     "id": "crater1",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.3591472239752486,
+      -0.4705575761391483
+     ]
+    },
+    {
+     "id": "crater2",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.39819417323606404,
+      -0.44075279655748534
+     ]
+    },
+    {
+     "id": "crater3",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.30608238189885945,
+      -0.25815694262547606
+     ]
+    },
+    {
+     "id": "crater4",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.21650082382635524,
+      -0.1352960218293584
+     ]
+    },
+    {
+     "id": "crater5",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.255523249537045,
+      -0.1498331408802454
+     ]
+    },
+    {
+     "id": "crater6",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.16216500148509694,
+      -0.06922936487267328
+     ]
+    },
+    {
+     "id": "crater7",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.0738665045966995,
+      0.12425568996064185
+     ]
+    },
+    {
+     "id": "crater8",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.11283989014061369,
+      0.1935115871640281
+     ]
+    },
+    {
+     "id": "crater9",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      -0.018248096378890077,
+      0.18189869152484556
+     ]
+    },
+    {
+     "id": "crater10",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      0.06875585884987975,
+      0.31535395095177277
+     ]
+    },
+    {
+     "id": "crater11",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      0.02985601622440049,
+      0.4922955370655131
+     ]
+    },
+    {
+     "id": "crater12",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      0.12566809593396622,
+      0.5129630205716793
+     ]
+    },
+    {
+     "id": "crater13",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.03,
+      "radiusBottom": 0.046,
+      "height": 0.05,
+      "radialSegments": 14
+     },
+     "material": "crater",
+     "rot": [
+      0,
+      0,
+      90
+     ],
+     "scale": 0,
+     "at": [
+      2.31,
+      0.21136639502976892,
+      0.5304142928349516
+     ]
+    }
+   ]
+  }
+ },
+ "emitters": {
+  "flash": {
+   "count": 102,
+   "at": [
+    39.45,
+    39.55,
+    39.65,
+    39.75,
+    39.85,
+    39.95,
+    40.05,
+    40.15,
+    40.25,
+    40.35,
+    40.45,
+    40.55,
+    40.65,
+    40.75,
+    40.85,
+    40.95,
+    41.05
+   ],
+   "life": [
+    0.05,
+    0.095
+   ],
+   "speed": [
+    3.6,
+    8
+   ],
+   "size": [
+    1.5,
+    0.25
+   ],
+   "dir": [
+    1,
+    0.05,
+    0
+   ],
+   "spread": 0.66,
+   "origin": [
+    0.455,
+    0,
+    0
+   ],
+   "geometry": {
+    "kind": "sphere",
+    "radius": 0.026
+   },
+   "material": "flash",
+   "blending": "additive",
+   "fade": 0.55,
+   "seed": 11
+  },
+  "sparks": {
+   "count": 85,
+   "at": [
+    39.45,
+    39.55,
+    39.65,
+    39.75,
+    39.85,
+    39.95,
+    40.05,
+    40.15,
+    40.25,
+    40.35,
+    40.45,
+    40.55,
+    40.65,
+    40.75,
+    40.85,
+    40.95,
+    41.05
+   ],
+   "life": [
+    0.12,
+    0.3
+   ],
+   "speed": [
+    1.6,
+    4.2
+   ],
+   "size": [
+    0.5,
+    0.1
+   ],
+   "dir": [
+    1,
+    0.15,
+    0
+   ],
+   "spread": 0.85,
+   "gravity": [
+    0,
+    -7,
+    0
+   ],
+   "origin": [
+    0.455,
+    0,
+    0
+   ],
+   "geometry": {
+    "kind": "sphere",
+    "radius": 0.008
+   },
+   "material": "spark",
+   "blending": "additive",
+   "fade": 1.3,
+   "seed": 23
+  },
+  "smoke": {
+   "count": 24,
+   "at": [
+    39.45,
+    39.75,
+    40.05,
+    40.35,
+    40.65,
+    40.95
+   ],
+   "life": [
+    1.5,
+    2.6
+   ],
+   "speed": [
+    0.22,
+    0.6
+   ],
+   "size": [
+    0.5,
+    2.3
+   ],
+   "dir": [
+    0.75,
+    0.6,
+    0
+   ],
+   "spread": 1,
+   "gravity": [
+    0.05,
+    0.35,
+    0
+   ],
+   "origin": [
+    0.455,
+    0,
+    0
+   ],
+   "geometry": {
+    "kind": "sphere",
+    "radius": 0.035
+   },
+   "material": "smoke",
+   "blending": "normal",
+   "fade": 1.6,
+   "seed": 31
+  },
+  "shells": {
+   "count": 17,
+   "at": [
+    39.45,
+    39.55,
+    39.65,
+    39.75,
+    39.85,
+    39.95,
+    40.05,
+    40.15,
+    40.25,
+    40.35,
+    40.45,
+    40.55,
+    40.65,
+    40.75,
+    40.85,
+    40.95,
+    41.05
+   ],
+   "life": [
+    1.1,
+    1.5
+   ],
+   "speed": [
+    1.5,
+    2.3
+   ],
+   "size": [
+    1,
+    1
+   ],
+   "dir": [
+    0.15,
+    0.78,
+    0.62
+   ],
+   "spread": 0.3,
+   "gravity": [
+    0,
+    -9.81,
+    0
+   ],
+   "origin": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "spin": 24,
+   "geometry": {
+    "kind": "cylinder",
+    "radiusTop": 0.0056,
+    "radiusBottom": 0.0062,
+    "height": 0.039
+   },
+   "material": "brass",
+   "seed": 47
+  },
+  "debris": {
+   "count": 60,
+   "at": [
+    39.45,
+    39.55,
+    39.65,
+    39.75,
+    39.85,
+    39.95,
+    40.05,
+    40.15,
+    40.25,
+    40.35,
+    40.45,
+    40.55,
+    40.65,
+    40.75
+   ],
+   "life": [
+    0.7,
+    1.5
+   ],
+   "speed": [
+    1,
+    3.6
+   ],
+   "size": [
+    1,
+    0.4
+   ],
+   "dir": [
+    -1,
+    0.35,
+    0
+   ],
+   "spread": 0.7,
+   "gravity": [
+    0,
+    -9.81,
+    0
+   ],
+   "origin": [
+    2.28,
+    -0.15,
+    0.3
+   ],
+   "geometry": {
+    "kind": "tetrahedron",
+    "radius": 0.021
+   },
+   "material": "debris",
+   "spin": 12,
+   "seed": 59
+  },
+  "dust": {
+   "count": 30,
+   "at": [
+    39.45,
+    39.55,
+    39.65,
+    39.75,
+    39.85,
+    39.95,
+    40.05,
+    40.15,
+    40.25,
+    40.35,
+    40.45,
+    40.55,
+    40.65,
+    40.75
+   ],
+   "life": [
+    1.4,
+    2.8
+   ],
+   "speed": [
+    0.5,
+    1.9
+   ],
+   "size": [
+    0.7,
+    2.8
+   ],
+   "dir": [
+    -1,
+    0.45,
+    0
+   ],
+   "spread": 1.15,
+   "gravity": [
+    0,
+    0.2,
+    0
+   ],
+   "origin": [
+    2.28,
+    -0.15,
+    0.3
+   ],
+   "geometry": {
+    "kind": "sphere",
+    "radius": 0.05
+   },
+   "material": "dustM",
+   "blending": "normal",
+   "fade": 1.5,
+   "seed": 67
+  }
+ },
+ "cast": [
+  {
+   "assembly": "ak47",
+   "as": "ak",
+   "at": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "assembly": "set",
+   "as": "set",
+   "at": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "scenes": [
+  {
+   "id": "main",
+   "shots": [
+    {
+     "id": "01-reveal",
+     "duration": 5,
+     "camera": {
+      "from": {
+       "at": [
+        -1.5,
+        0.95,
+        2.5
+       ],
+       "look": [
+        0,
+        0,
+        0
+       ],
+       "fov": 46
+      },
+      "to": {
+       "at": [
+        -0.75,
+        0.45,
+        1.65
+       ],
+       "look": [
+        0,
+        0,
+        0
+       ],
+       "fov": 38
+      },
+      "ease": "smooth"
+     }
+    },
+    {
+     "id": "02-survey",
+     "duration": 4,
+     "camera": {
+      "from": {
+       "at": [
+        -0.75,
+        0.45,
+        1.65
+       ],
+       "look": [
+        0,
+        0,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        0.85,
+        -0.25,
+        1.5
+       ],
+       "look": [
+        0.05,
+        0,
+        0
+       ]
+      },
+      "ease": "smooth"
+     }
+    },
+    {
+     "id": "03-receiver",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        1.21,
+        -0.3625,
+        2.175
+       ],
+       "look": [
+        0.05,
+        0,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        -0.252,
+        0.2945,
+        0.986
+       ],
+       "look": [
+        -0.02,
+        -0.01,
+        0
+       ],
+       "fov": 36
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/receiver",
+       "from": [
+        0.391875,
+        0,
+        0
+       ],
+       "fromRot": [
+        -45,
+        -90,
+        -60
+       ],
+       "at": 0.25,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/trunnion",
+       "from": [
+        0.35713988816983483,
+        0.39079617543987066,
+        0.4534259809361425
+       ],
+       "fromRot": [
+        8,
+        7,
+        -29
+       ],
+       "at": 0.41,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "04-barrel",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        -0.252,
+        0.2945,
+        0.986
+       ],
+       "look": [
+        -0.02,
+        -0.01,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        0.532,
+        0.174,
+        0.754
+       ],
+       "look": [
+        0.3,
+        0,
+        0
+       ],
+       "fov": 34
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/barrel",
+       "from": [
+        0.10381701003225455,
+        0.6958978059861046,
+        0.4091745228284944
+       ],
+       "fromRot": [
+        -29,
+        -76,
+        2
+       ],
+       "at": 0.25,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/muzzleNut",
+       "from": [
+        -0.2839152572949862,
+        0.7082241153309955,
+        -0.22826504714133744
+       ],
+       "fromRot": [
+        24,
+        21,
+        33
+       ],
+       "at": 0.41,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "05-gas",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        0.532,
+        0.174,
+        0.754
+       ],
+       "look": [
+        0.3,
+        0,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        0.2865,
+        0.281,
+        0.58
+       ],
+       "look": [
+        0.33,
+        0.02,
+        0
+       ],
+       "fov": 32
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/gasBlock",
+       "from": [
+        -0.6212368075253629,
+        0.3430996148298259,
+        -0.7166970262436586
+       ],
+       "fromRot": [
+        -13,
+        -62,
+        -56
+       ],
+       "at": 0.25,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/gasTube",
+       "from": [
+        -0.4037652748598225,
+        -0.16330780944604545,
+        -0.19242651423696655
+       ],
+       "fromRot": [
+        40,
+        35,
+        -25
+       ],
+       "at": 0.37,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/frontSightBlock",
+       "from": [
+        -0.2733796181776535,
+        -0.5455220159466231,
+        0.34864949834868414
+       ],
+       "fromRot": [
+        3,
+        -48,
+        6
+       ],
+       "at": 0.49,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/frontSightPost",
+       "from": [
+        0.05510592547629662,
+        -0.7459998009702913,
+        0.5684899364248259
+       ],
+       "fromRot": [
+        -34,
+        49,
+        37
+       ],
+       "at": 0.61,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/frontSightEars",
+       "from": [
+        0.4471345536659308,
+        -0.596179404887908,
+        0.05292066006843196
+       ],
+       "fromRot": [
+        19,
+        -34,
+        -52
+       ],
+       "at": 0.73,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "06-furniture",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        0.2865,
+        0.281,
+        0.58
+       ],
+       "look": [
+        0.33,
+        0.02,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        0.14200000000000002,
+        -0.1405,
+        0.812
+       ],
+       "look": [
+        0.2,
+        -0.01,
+        0
+       ],
+       "fov": 34
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/handguardLower",
+       "from": [
+        0.15156602103600725,
+        0.6661949477898212,
+        0.15643043253790373
+       ],
+       "fromRot": [
+        -2,
+        77,
+        41
+       ],
+       "at": 0.25,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/handguardUpper",
+       "from": [
+        -0.22665024224685518,
+        0.7295761183300067,
+        0.6273709976812748
+       ],
+       "fromRot": [
+        -39,
+        -6,
+        -48
+       ],
+       "at": 0.41,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/cleaningRod",
+       "from": [
+        -0.11163586434430534,
+        0.7483085194076529,
+        -0.2877287832401667
+       ],
+       "fromRot": [
+        15,
+        -60,
+        30
+       ],
+       "at": 0.57,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "07-sights",
+     "duration": 2,
+     "camera": {
+      "from": {
+       "at": [
+        0.14200000000000002,
+        -0.1405,
+        0.812
+       ],
+       "look": [
+        0.2,
+        -0.01,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        -0.06499999999999999,
+        0.223,
+        0.5509999999999999
+       ],
+       "look": [
+        0.08,
+        0.02,
+        0
+       ],
+       "fov": 30
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/rearSightBlock",
+       "from": [
+        0.6990978332855255,
+        -0.09180683557899227,
+        -0.6642704886600976
+       ],
+       "fromRot": [
+        -18,
+        63,
+        -21
+       ],
+       "at": 0.25,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/rearSightLeaf",
+       "from": [
+        0.37581776890440455,
+        0.33481787324321943,
+        -0.37268766482750987
+       ],
+       "fromRot": [
+        35,
+        -20,
+        10
+       ],
+       "at": 0.38,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/slingLoop",
+       "from": [
+        -0.496553531262637,
+        0.5433479354910986,
+        -0.6825146063461408
+       ],
+       "fromRot": [
+        -22,
+        37,
+        -59
+       ],
+       "at": 0.51,
+       "for": 0.5,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "08-trigger",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        -0.06499999999999999,
+        0.223,
+        0.5509999999999999
+       ],
+       "look": [
+        0.08,
+        0.02,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        -0.2875,
+        -0.2005,
+        0.725
+       ],
+       "look": [
+        -0.07,
+        -0.07,
+        0
+       ],
+       "fov": 34
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/triggerGuard",
+       "from": [
+        0.3897850838074014,
+        0.27779262389675674,
+        -0.09650778332730064
+       ],
+       "fromRot": [
+        -28,
+        -47,
+        49
+       ],
+       "at": 0.25,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/trigger",
+       "from": [
+        0.1959757733713413,
+        0.6308364932928627,
+        -0.5357539594202644
+       ],
+       "fromRot": [
+        25,
+        50,
+        -40
+       ],
+       "at": 0.41,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/pistolGrip",
+       "from": [
+        -0.16901711940689032,
+        0.7428996965758562,
+        -0.3500968204769131
+       ],
+       "fromRot": [
+        -12,
+        -33,
+        -9
+       ],
+       "at": 0.57,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "09-stock",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        -0.2875,
+        -0.2005,
+        0.725
+       ],
+       "look": [
+        -0.07,
+        -0.07,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        -0.59,
+        0.10499999999999998,
+        0.899
+       ],
+       "look": [
+        -0.3,
+        -0.04,
+        0
+       ],
+       "fov": 36
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/stockWrist",
+       "from": [
+        -0.399959299233082,
+        -0.05252340355628514,
+        0.4227308767993341
+       ],
+       "fromRot": [
+        4,
+        -19,
+        53
+       ],
+       "at": 0.25,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/stockButt",
+       "from": [
+        -0.3337764978069624,
+        -0.44503533040928345,
+        0.11753974070144782
+       ],
+       "fromRot": [
+        -33,
+        78,
+        -36
+       ],
+       "at": 0.41,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/buttPlate",
+       "from": [
+        -0.053141753875160805,
+        -0.7194097090545187,
+        -0.46450495554940086
+       ],
+       "fromRot": [
+        20,
+        -5,
+        -5
+       ],
+       "at": 0.57,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "10-bolt",
+     "duration": 3,
+     "camera": {
+      "from": {
+       "at": [
+        -0.59,
+        0.10499999999999998,
+        0.899
+       ],
+       "look": [
+        -0.3,
+        -0.04,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        -0.13599999999999998,
+        0.4885,
+        0.638
+       ],
+       "look": [
+        -0.02,
+        0.01,
+        0
+       ],
+       "fov": 32
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/bolt",
+       "from": [
+        -2.3668212904146265e-16,
+        -0.73625,
+        -0.09213989990869692
+       ],
+       "fromRot": [
+        -7,
+        22,
+        -44
+       ],
+       "at": 0.25,
+       "for": 0.58,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/boltCarrier",
+       "from": [
+        -0.4039992492910963,
+        -0.10714726279479489,
+        -0.26518739199584995
+       ],
+       "fromRot": [
+        -23,
+        8,
+        14
+       ],
+       "at": 0.45,
+       "for": 0.58,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/gasPiston",
+       "from": [
+        0.39479830494738777,
+        -0.6414175019660644,
+        0.562560873672241
+       ],
+       "fromRot": [
+        -44,
+        -61,
+        -13
+       ],
+       "at": 0.65,
+       "for": 0.58,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/recoilSpring",
+       "from": [
+        0.6791554947542213,
+        -0.18012323637395328,
+        0.6059690162240333
+       ],
+       "fromRot": [
+        9,
+        36,
+        18
+       ],
+       "at": 0.85,
+       "for": 0.58,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "11-cover",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        -0.13599999999999998,
+        0.4885,
+        0.638
+       ],
+       "look": [
+        -0.02,
+        0.01,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        -0.1025,
+        0.1495,
+        0.754
+       ],
+       "look": [
+        -0.03,
+        -0.01,
+        0
+       ],
+       "fov": 34
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/dustCover",
+       "from": [
+        -0.584186712507314,
+        0.41633907107952267,
+        0.35127692031163976
+       ],
+       "fromRot": [
+        14,
+        -89,
+        -17
+       ],
+       "at": 0.25,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/selector",
+       "from": [
+        -0.5424364841822183,
+        0.48325929487814623,
+        0.37517288045568903
+       ],
+       "fromRot": [
+        41,
+        64,
+        22
+       ],
+       "at": 0.41,
+       "for": 0.62,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "12-mag",
+     "duration": 3,
+     "camera": {
+      "from": {
+       "at": [
+        -0.1025,
+        0.1495,
+        0.754
+       ],
+       "look": [
+        -0.03,
+        -0.01,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        0.1405,
+        -0.27849999999999997,
+        0.667
+       ],
+       "look": [
+        0.01,
+        -0.09,
+        0
+       ],
+       "fov": 33
+      }
+     },
+     "actions": [
+      {
+       "do": "fly",
+       "target": "ak/magazine0",
+       "from": [
+        0.34017825791337103,
+        -0.6788169881688736,
+        -0.5634733958417438
+       ],
+       "fromRot": [
+        -17,
+        -88,
+        26
+       ],
+       "at": 0.55,
+       "for": 0.75,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/magazine1",
+       "from": [
+        0.653055708414435,
+        -0.26413637781115307,
+        0.0926526153934934
+       ],
+       "fromRot": [
+        36,
+        9,
+        57
+       ],
+       "at": 0.565,
+       "for": 0.75,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/magazine2",
+       "from": [
+        0.39907265119178975,
+        0.22040173932776777,
+        0.44345125019601767
+       ],
+       "fromRot": [
+        -1,
+        -74,
+        -32
+       ],
+       "at": 0.58,
+       "for": 0.75,
+       "ease": "smooth",
+       "overshoot": 0.14
+      },
+      {
+       "do": "fly",
+       "target": "ak/magazine3",
+       "from": [
+        0.2366835139372254,
+        0.5904049464219571,
+        0.3356765548410769
+       ],
+       "fromRot": [
+        -38,
+        23,
+        -1
+       ],
+       "at": 0.595,
+       "for": 0.75,
+       "ease": "smooth",
+       "overshoot": 0.14
+      }
+     ]
+    },
+    {
+     "id": "13-charge",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        0.1,
+        -0.22,
+        0.46
+       ],
+       "look": [
+        0.01,
+        -0.09,
+        0
+       ]
+      },
+      "to": {
+       "at": [
+        0.1,
+        0.12,
+        0.34
+       ],
+       "look": [
+        0.02,
+        0.01,
+        0
+       ],
+       "fov": 30
+      }
+     },
+     "actions": [
+      {
+       "do": "move",
+       "target": "ak/boltCarrier",
+       "to": [
+        -0.098,
+        0.004,
+        0
+       ],
+       "at": 0.35,
+       "for": 0.45,
+       "ease": "smooth",
+       "anticipate": 0.1
+      },
+      {
+       "do": "move",
+       "target": "ak/boltCarrier",
+       "to": [
+        -0.03,
+        0.004,
+        0
+       ],
+       "at": 1.05,
+       "for": 0.1,
+       "ease": "smooth",
+       "overshoot": 0.22
+      },
+      {
+       "do": "turn",
+       "target": "ak/selector",
+       "to": [
+        0,
+        0,
+        -16
+       ],
+       "at": 1.5,
+       "for": 0.35
+      }
+     ]
+    },
+    {
+     "id": "14-shoulder",
+     "duration": 2,
+     "camera": {
+      "from": {
+       "at": [
+        0.1,
+        0.12,
+        0.34
+       ],
+       "look": [
+        0.02,
+        0.01,
+        0
+       ],
+       "fov": 30
+      },
+      "to": {
+       "at": [
+        -1.25,
+        0.34,
+        1.75
+       ],
+       "look": [
+        0.55,
+        -0.08,
+        0.1
+       ],
+       "fov": 52
+      },
+      "ease": "smooth"
+     },
+     "actions": [
+      {
+       "do": "turn",
+       "target": "ak",
+       "to": [
+        0,
+        0,
+        0
+       ],
+       "at": 0,
+       "for": 1.6
+      }
+     ]
+    },
+    {
+     "id": "15-fire",
+     "duration": 5,
+     "camera": {
+      "from": {
+       "at": [
+        -1.25,
+        0.34,
+        1.75
+       ],
+       "look": [
+        0.55,
+        -0.08,
+        0.1
+       ],
+       "fov": 52
+      },
+      "to": {
+       "at": [
+        -1.05,
+        0.26,
+        2.05
+       ],
+       "look": [
+        0.85,
+        -0.14,
+        0.15
+       ],
+       "fov": 54
+      },
+      "ease": "smooth",
+      "shake": {
+       "amount": 0.022,
+       "frequency": 26,
+       "at": 0.4,
+       "for": 1.9
+      }
+     },
+     "actions": [
+      {
+       "do": "play",
+       "target": "ak",
+       "action": "cycle",
+       "at": 0.35,
+       "for": 1.75
+      },
+      {
+       "do": "grow",
+       "target": "set/crater0",
+       "to": 1,
+       "at": 0.45,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater1",
+       "to": 1,
+       "at": 0.55,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater2",
+       "to": 1,
+       "at": 0.65,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater3",
+       "to": 1,
+       "at": 0.75,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater4",
+       "to": 1,
+       "at": 0.85,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater5",
+       "to": 1,
+       "at": 0.95,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater6",
+       "to": 1,
+       "at": 1.05,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater7",
+       "to": 1,
+       "at": 1.15,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater8",
+       "to": 1,
+       "at": 1.25,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater9",
+       "to": 1,
+       "at": 1.35,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater10",
+       "to": 1,
+       "at": 1.45,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater11",
+       "to": 1,
+       "at": 1.55,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater12",
+       "to": 1,
+       "at": 1.65,
+       "for": 0.08,
+       "ease": "smooth"
+      },
+      {
+       "do": "grow",
+       "target": "set/crater13",
+       "to": 1,
+       "at": 1.75,
+       "for": 0.08,
+       "ease": "smooth"
+      }
+     ]
+    },
+    {
+     "id": "16-impact",
+     "duration": 3.5,
+     "camera": {
+      "from": {
+       "at": [
+        1.35,
+        0.05,
+        1.15
+       ],
+       "look": [
+        2.3,
+        -0.2,
+        0.2
+       ],
+       "fov": 38
+      },
+      "to": {
+       "at": [
+        1.72,
+        -0.08,
+        0.78
+       ],
+       "look": [
+        2.33,
+        -0.24,
+        0.22
+       ],
+       "fov": 32
+      },
+      "ease": "smooth"
+     }
+    },
+    {
+     "id": "17-hero",
+     "duration": 2.5,
+     "camera": {
+      "from": {
+       "at": [
+        -0.55,
+        0.62,
+        2.15
+       ],
+       "look": [
+        1,
+        -0.12,
+        0.25
+       ],
+       "fov": 52
+      },
+      "to": {
+       "at": [
+        -0.3,
+        0.3,
+        1.75
+       ],
+       "look": [
+        0.75,
+        -0.14,
+        0.22
+       ],
+       "fov": 48
+      },
+      "ease": "smooth"
+     }
+    }
+   ]
+  }
+ ]
+}

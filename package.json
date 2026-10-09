@@ -36,7 +36,9 @@
     "test:bundle": "node test/e2e/bundle.mjs",
     "test:studio": "node test/e2e/studio.mjs",
     "test:roundtrip": "node test/e2e/legacy-roundtrip.mjs",
-    "test:rig": "node test/e2e/rig-3d.mjs"
+    "test:rig": "node test/e2e/rig-3d.mjs",
+    "produce:3d": "node scripts/produce3d.mjs",
+    "make:ak47": "node scripts/make-ak47.mjs"
   },
   "keywords": [
     "animation",

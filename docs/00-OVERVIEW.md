@@ -104,6 +104,7 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [10-ACTION-GAPS.md](10-ACTION-GAPS.md) | **measured limits on action**, and the phases that address them |
 | [11-MOTION-SYSTEM.md](11-MOTION-SYSTEM.md) | layering, timing texture, smears, motion graphics |
 | [12-MOCAP.md](12-MOCAP.md) | *assessment, unbuilt* — webcam motion capture, scoped and costed |
+| [13-3D-FILM.md](13-3D-FILM.md) | declarative 3D films, analytic particles, the 3D live test |
 | [STATUS.md](STATUS.md) | **what is implemented and what is not** |
 | [DEFECTS.md](DEFECTS.md) | the defect register for the legacy 3D engine |
 | [CDN-AND-PWA.md](CDN-AND-PWA.md) | loading from a CDN, installing, offline |

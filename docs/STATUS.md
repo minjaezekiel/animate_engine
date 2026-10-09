@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-09 (Phase 13: the motion system, built from the fight live test's findings; camera mocap scoped in [12-MOCAP.md](12-MOCAP.md), not built).
+Last updated: 2026-10-09 (Phase 13: the motion system, built from the fight live test's findings; camera mocap scoped in [12-MOCAP.md](12-MOCAP.md), not built; Phase 14: the 3D film script, from the AK-47 live test).
 
 Legend: **done** · *partial* · — not started
 
@@ -734,3 +734,40 @@ Two findings worth carrying forward even if the feature is never built:
   exaggeration, smooth on ones. It is only worth shipping as a base layer
   under hand-authored exaggeration, which the Phase 13 additive system
   already supports with no new code.
+
+---
+
+## Phase 14 — the 3D film script — **done**
+
+Built from the AK-47 live test. Full findings:
+[13-3D-FILM.md](13-3D-FILM.md).
+
+| Item | State |
+|---|---|
+| `compile3d` — a declarative 3D film script | **done** — shots sequence themselves, duration is derived, `at` resolved once, diagnostics never throw. 3D had only imperative editor ops, so a 50-second film meant several hundred hand-timed keyframes |
+| `fly` — the assembly verb | **done** — a part flies in to **its own authored rest pose**, so moving a component in the model cannot desync the animation that lands it |
+| Scalar 3D channels | **done** — `position.x`, `rotation.y`, `scale.z`, so the whole 2D animation stack (writeChannel, Additive, anticipation, overshoot) serves 3D with no second copy |
+| `material.*` and `fov` keyframeable | **done** — material properties had been settable but never animatable, so a flash could not brighten and a part could not fade |
+| Analytic particles | **done** — closed-form `p(t)`, hashed randomness, no integrator, so frame N stays a pure function of N and a burst can be seeked into |
+| `SceneAdapter` — core recipe → THREE objects | **done** — the only module that touches THREE, and it takes it as an argument, so the 2D path still needs no Three.js |
+| Unlit materials for smoke and dust | **done** — lit, they rendered as solid grey balls |
+| Camera `lookAt` as a driven target node | **done** — baking a rotation would interpolate Euler between two aim directions and swing wide |
+| `film3d.html` + `scripts/produce3d.mjs` | **done** — render and frame-grab (`GRAB=12,40.3`), no UI |
+| `demo/ak47.json` from a dimension table | **done** — 32 rifle parts at real dimensions, 17 shots, 50.0 s |
+| Audio on the 3D path | **not done** — `compile3d` emits no audio cues, so the ad is silent. The 2D voice/music/mix pipeline is unreachable from 3D |
+| 3D staging and exposure checks | **not done** — **the largest gap.** Every framing, lighting and geometry fault in the test was found by looking at a frame |
+
+### What the test found, beyond the missing compiler
+
+- A rifle 880 mm long was framed so tight it overflowed on all four sides. 2D
+  measures framing in head heights; 3D measures nothing.
+- The first pass rendered near-black; the correction blew the rifle to white.
+  Nothing checks exposure or contrast.
+- Smoke rendered as solid grey balls: particle alpha was written straight into
+  `material.opacity`, replacing the authored value, **and** the puffs were lit.
+- The entire muzzle flash fired four seconds early, in the wrong shot, because
+  the generator hardcoded a start time instead of deriving it. Exactly the
+  arithmetic the declarative compiler removes — and it came straight back the
+  moment a generator did it by hand.
+- Written output was seven bytes. `dataUrl.split(',')[1]` splits on the first
+  comma, and the mime type `video/webm;codecs=vp9,opus` contains one.

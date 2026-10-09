@@ -14,6 +14,18 @@
  *   morph.<name>              number by name, through morphTargetDictionary
  *   morphIndex.<i>            number by index, for clips that address it that way
  *   visible                   discrete
+ *
+ * And the scalar forms, which is what a hand-authored 3D film emits:
+ *
+ *   position.x | .y | .z      number
+ *   rotation.x | .y | .z      number, Euler radians on the object's own order
+ *   scale.x | .y | .z         number
+ *   material.<prop>           number -- emissiveIntensity, opacity, metalness...
+ *
+ * Scalar channels exist so the 3D path reuses the whole 2D animation stack
+ * unchanged: `writeChannel` emits one number per key, `Additive` layers
+ * offsets and ratios, and anticipation and overshoot are scalar helpers. A
+ * vec3 channel would need its own copy of all four.
  */
 export function applyPoseToObjects(pose, resolve) {
     for (const [uuid, channels] of pose) {
@@ -31,7 +43,8 @@ export function applyChannel(object, path, value) {
     switch (group) {
         case 'position':
         case 'scale':
-            object[group].set(value[0], value[1], value[2]);
+            if (dot > 0) object[group][path.slice(dot + 1)] = value;
+            else object[group].set(value[0], value[1], value[2]);
             return;
         case 'quaternion':
             object.quaternion.set(value[0], value[1], value[2], value[3]);
@@ -41,6 +54,24 @@ export function applyChannel(object, path, value) {
             return;
         case 'visible':
             object.visible = !!value;
+            return;
+        case 'rotation':
+            // Euler on the object's own rotation order. A quaternion channel
+            // still exists for imported clips, where the keys came from one.
+            if (dot > 0) object.rotation[path.slice(dot + 1)] = value;
+            return;
+        case 'material': {
+            // `transparent` is not implied here the way the editor implies it
+            // from opacity, because a flash mesh wants additive blending set
+            // once at build time, not re-derived every frame.
+            const prop = path.slice(dot + 1);
+            if (object.material && prop in object.material) object.material[prop] = value;
+            return;
+        }
+        case 'fov':
+            // The projection matrix is rebuilt by the adapter's per-frame
+            // step, once, rather than here on every write.
+            if ('fov' in object) object.fov = value;
             return;
         case 'morph': {
             const index = object.morphTargetDictionary && object.morphTargetDictionary[path.slice(dot + 1)];
@@ -91,7 +122,14 @@ export function readChannel(object, path) {
     const group = dot < 0 ? path : path.slice(0, dot);
     switch (group) {
         case 'position':
-        case 'scale': return [object[group].x, object[group].y, object[group].z];
+        case 'scale': return dot > 0 ? object[group][path.slice(dot + 1)]
+            : [object[group].x, object[group].y, object[group].z];
+        case 'rotation': return dot > 0 ? object.rotation[path.slice(dot + 1)] : undefined;
+        case 'material': {
+            const prop = path.slice(dot + 1);
+            return object.material ? object.material[prop] : undefined;
+        }
+        case 'fov': return object.fov;
         case 'quaternion': return [object.quaternion.x, object.quaternion.y,
                                    object.quaternion.z, object.quaternion.w];
         case 'color': return object.material && object.material.color

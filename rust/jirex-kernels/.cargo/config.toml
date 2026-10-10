@@ -1,0 +1,6 @@
+# simd128 is enabled for every wasm build. It is measured as present in
+# Chrome, Firefox, Safari 16.4+ and Node 16+, so there is no scalar-only
+# wasm build to maintain -- the fallback for an engine without it is the JS
+# implementation, which the loader selects anyway.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]

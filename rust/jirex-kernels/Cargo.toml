@@ -1,0 +1,21 @@
+[package]
+name    = "jirex-kernels"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Numeric kernels for the jireX animation engine, compiled to WebAssembly."
+
+[lib]
+# cdylib so the wasm32 target emits a loadable module. There is deliberately
+# no wasm-bindgen: every kernel is flat numeric arrays in and out, so the
+# whole interface is `i32` offsets into linear memory. That removes the npm
+# toolchain, the generated glue, and the JS<->Rust marshalling cost, and it
+# keeps the module at tens of kilobytes.
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level     = 3
+lto           = true
+codegen-units = 1
+panic         = "abort"     # no unwinding tables in the wasm
+strip         = true

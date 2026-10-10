@@ -19,13 +19,14 @@
     "demo/script.txt",
     "docs",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "rust"
   ],
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:e2e": "node test/e2e/render-film.mjs",
     "test:av": "node test/e2e/render-av.mjs",
-    "test:all": "npm test && npm run test:e2e && npm run test:av && npm run test:studio && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle",
+    "test:all": "npm test && npm run audit:deps && npm run test:e2e && npm run test:av && npm run test:studio && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle",
     "produce": "node scripts/produce.mjs",
     "icons": "node scripts/make-icons.mjs",
     "serve": "python3 -m http.server 8080",
@@ -41,7 +42,12 @@
     "make:ak47": "node scripts/make-ak47.mjs",
     "check:3d": "CHECK=1 node scripts/produce3d.mjs",
     "make:ak47-audio": "node scripts/make-ak47-audio.mjs",
-    "make:orderblock": "node scripts/make-orderblock.mjs"
+    "make:orderblock": "node scripts/make-orderblock.mjs",
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "test:kernels": "node --test test/core/kernels.test.mjs",
+    "bench:kernels": "node scripts/bench-kernels.mjs",
+    "audit:deps": "node scripts/audit-deps.mjs",
+    "probe": "node scripts/probe-capabilities.mjs"
   },
   "keywords": [
     "animation",
@@ -60,7 +66,7 @@
     "deterministic-rendering"
   ],
   "peerDependencies": {
-    "three": "^0.128.0"
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

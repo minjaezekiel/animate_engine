@@ -2,9 +2,55 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-09 (Phase 13: the motion system, built from the fight live test's findings; camera mocap scoped in [12-MOCAP.md](12-MOCAP.md), not built; Phase 14: the 3D film script, from the AK-47 live test).
+Last updated: 2026-10-10 (Phase 13: the motion system, built from the fight live test's findings; camera mocap scoped in [12-MOCAP.md](12-MOCAP.md), not built; Phase 14: the 3D film script, from the AK-47 live test).
 
 Legend: **done** · *partial* · — not started
+
+---
+
+## Phase 17 — Rust/WebAssembly kernel layer — **done**
+
+Full detail, with every measurement, in
+[15-PERFORMANCE.md](15-PERFORMANCE.md).
+
+| Area | State | Notes |
+|---|---|---|
+| `rust/jirex-kernels` | **done** | 21 KB wasm, **zero crates.io dependencies**, **zero wasm imports**, no bindgen. `simd128`, verified at build time. |
+| `src/kernels` — one API, two backends | **done** | `loadKernels()` prefers wasm, falls back to a real JS implementation. `K.backend` reports which. |
+| Deform kernels — skin, morph, normals, smooth | **done** | 4.0× to 18.1× over JS. |
+| Paint kernels — stamp_mask, composite_mask, to_rgba8 | **done** | Two-pass stroke: coverage mask, then one composite. |
+| Image kernels — warp_mesh, blur_rgba | **done** | Correct, but see the per-pixel limit below. |
+| CSR adjacency builder | **done** | Replaces the legacy O(n²) *and topologically wrong* proximity smoothing. |
+| Capability probe | **done** | `npm run probe`. WebGPU compute **measured running in headless Chrome.** |
+| Dependency audit | **done** | `npm run audit:deps` — 9 browser dependencies, all loaded and smoke-tested in a real browser. |
+| Benchmark | **done** | `npm run bench:kernels`. |
+| Tests | **done** | 59: module integrity, wasm↔JS conformance, and the maths. Total now **272**. |
+| GPU compute backend | — | Scoped in 15-PERFORMANCE.md §7.1. Justified by measurement, not built. |
+| Drawing tools, motion graphics, sculpting | — | Kernels exist; the authoring layers do not. §7.2–7.4. |
+
+### Verified by measurement, not assumption
+
+- **Per-vertex work belongs in wasm; full-resolution per-pixel work does not
+  fit a frame in either backend.** `blurRgba` at 1080p is 97 ms against a
+  41.67 ms budget, and that is **4.0 GB/s of memory traffic** — bandwidth,
+  not compute. Raw pointers, checked slices and `get_unchecked` measured
+  98/143/100 ms, so neither aliasing information nor removing a per-pixel
+  divide moved it. The fix is at the call site: **quarter resolution is
+  1.63 ms, a 60× reduction**, and visually identical for a glow.
+- Two measurement artefacts nearly set the architecture wrong, and both are
+  now guarded: `navigator.gpu` and `VideoEncoder` read as **absent** outside
+  a secure context, and cargo discovers `.cargo/config.toml` from the
+  **working directory**, not from `--manifest-path`, which silently produced
+  a scalar wasm that reported itself fine.
+- wasm `f32` is bit-reproducible across machines; **JS cannot match it**,
+  having no single-precision arithmetic. The two are numerically equivalent,
+  not identical, and a golden hash over kernel output must record the
+  backend. GPU is reproducible on neither and may not feed keys or hashes.
+- Two genuine kernel bugs were found by the tests rather than by eye: the
+  brush's circle cull discarded the entire antialiased rim before the
+  falloff was evaluated, and the half-pixel feather that replaced it was too
+  narrow for pixel centres to land in — a radius-8 circle got 8 partial
+  pixels out of a ~50px circumference.
 
 ---
 

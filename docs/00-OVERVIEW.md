@@ -44,12 +44,16 @@ film.json  or  screenplay.txt
         |
         v
   core/paint      strokes, brushes, layers    (see 16-PAINT.md)
-  core/motion     photo deformation           (see 17-MOTION-AND-MCP.md)
+  core/motion     photo deformation + depth   (see 17-MOTION-AND-MCP.md)
+  core/history    undo/redo as inverse patches (see 18-EDITOR-ARCHITECTURE.md)
   core/script/ops headless op table -> MCP tools
         |
         v
   kernels/                    Rust -> wasm numeric kernels, JS fallback
         |                     (deform, paint, image; see 15-PERFORMANCE.md)
+        v
+  editor/         keymap, dockable workspace  (see 18-EDITOR-ARCHITECTURE.md)
+        |
         v
   backends/canvas2d           <-- ships today
   backends/three3d            <-- planned (wraps the existing managers)
@@ -60,6 +64,7 @@ film.json  or  screenplay.txt
         +--> MediaRecorderSink   paced, zero dependency, carries audio
         +--> WebCodecsSink       exact timestamps, needs an injected muxer
         +--> MemorySink          for tests, runs in Node
+        +--> PngSequenceSink     lossless frames in a zip, no codec needed
         |
         v
   .webm / .mp4
@@ -117,6 +122,7 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [15-PERFORMANCE.md](15-PERFORMANCE.md) | **Rust/wasm kernels, measured; what the browser really offers; the missing-tool register** |
 | [16-PAINT.md](16-PAINT.md) | **drawing tools** — SVG paths, 15 brushes, layers, grain, wet media, draw-on |
 | [17-MOTION-AND-MCP.md](17-MOTION-AND-MCP.md) | **picture into video**, and the headless agent surface |
+| [18-EDITOR-ARCHITECTURE.md](18-EDITOR-ARCHITECTURE.md) | **undo/redo, hotkeys, docking, onion skin, image-sequence export** |
 | [STATUS.md](STATUS.md) | **what is implemented and what is not** |
 | [DEFECTS.md](DEFECTS.md) | the defect register for the legacy 3D engine |
 | [CDN-AND-PWA.md](CDN-AND-PWA.md) | loading from a CDN, installing, offline |

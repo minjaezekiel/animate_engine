@@ -56,7 +56,8 @@
     "audit:tests": "node scripts/mutation-audit.mjs",
     "mcp:paint": "node mcp/paint-server.js",
     "test:motion": "node --test test/core/motion.test.mjs",
-    "test:ops": "node --test test/core/ops.test.mjs"
+    "test:ops": "node --test test/core/ops.test.mjs",
+    "test:editor": "node --test test/core/editor.test.mjs"
   },
   "keywords": [
     "animation",

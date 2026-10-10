@@ -36,8 +36,27 @@ MIT licensed — see [LICENSE](LICENSE).
 - **Deterministic rendering.** Frame *N* is a pure function of *N*, so a
   re-render is identical and a timeline can be scrubbed. The full 2,880-frame
   loop runs in Node in about 75 ms against a null backend.
+- **Draw and paint.** 15 brushes over a Rust/wasm raster layer — pencil,
+  ink, chisel marker, calligraphy, watercolour, oil, smudge — with layers,
+  masks, clipping groups and 17 W3C blend modes. Strokes are authored as
+  **SVG path data**, so one line replaces two hundred coordinates and an
+  agent can write them. Draw-on reveal is one number channel, so every
+  easing the animation system has applies to it.
+- **A photograph into a shot.** Ken Burns, 2.5D parallax, wave and puppet
+  warp over one textured-mesh kernel, with monocular depth estimation, the
+  mesh **torn** at depth edges so a subject separates instead of
+  stretching, and the hole behind it filled from an inpainted background
+  plate.
+- **An editor that behaves like one.** Undo *and* redo as labelled inverse
+  patches rather than whole-document snapshots, platform-correct hotkeys as
+  a rebindable table, and onion skinning rendered by the real renderer with
+  past and future tinted apart.
 - **Video out** with audio muxed, as WebM today — no dependencies at all on
-  the 2D path.
+  the 2D path. Or a lossless PNG sequence in a zip, which needs no codec at
+  all and is what a compositor wants.
+- **A headless agent surface.** 21 MCP tools generated from one op table,
+  running in Node: an agent paints, animates a photograph, writes a PNG and
+  then *looks at what it made*, with no browser in the loop.
 - **Installable PWA**, offline after first load.
 
 A worked example ships in the repo: `demo/film.json` is four scenes, nineteen
@@ -130,6 +149,10 @@ recovers both from the encoded file.
 | [docs/12-MOCAP.md](docs/12-MOCAP.md) | *assessment, unbuilt* — rigging a character from a webcam, and what it would cost |
 | [docs/13-3D-FILM.md](docs/13-3D-FILM.md) | the 3D film script, particles, and what an AK-47 ad found |
 | [docs/14-CHARACTER-3D.md](docs/14-CHARACTER-3D.md) | **building, rigging and skinning a character from code** — and where it stops |
+| [docs/15-PERFORMANCE.md](docs/15-PERFORMANCE.md) | **Rust/wasm kernels, measured**; what the browser really offers |
+| [docs/16-PAINT.md](docs/16-PAINT.md) | **the drawing tools** — SVG paths, 15 brushes, layers, grain, wet media |
+| [docs/17-MOTION-AND-MCP.md](docs/17-MOTION-AND-MCP.md) | **picture into video** — tearing, inpainting, depth — and the agent surface |
+| [docs/18-EDITOR-ARCHITECTURE.md](docs/18-EDITOR-ARCHITECTURE.md) | **undo/redo, hotkeys, docking, onion skin, image-sequence export** |
 | [docs/STATUS.md](docs/STATUS.md) | **implemented vs not** |
 | [docs/DEFECTS.md](docs/DEFECTS.md) | defect register — the legacy 3D engine, and what tests found in the new code |
 | [docs/CDN-AND-PWA.md](docs/CDN-AND-PWA.md) | library use, installing, offline |
@@ -151,9 +174,15 @@ Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
 - **The 3D editor animates rigged characters but cannot rig one.** Import a
   rigged character (glTF or FBX) and retarget animations onto it; building a
   skeleton for an unrigged mesh is not implemented.
-- **GIF and PNG-sequence export still hold every frame in memory**, so a long
-  sequence will not complete. WebM export does not — it was moved onto the
-  frame-stepped renderer in Phase 3.
+- **The legacy GIF and PNG-sequence exports hold every frame in memory**, so
+  a long sequence will not complete there. The new `PngSequenceSink` holds
+  encoded PNGs rather than frames and refuses an impossible render up front;
+  GIF has not been ported to it.
+- **A torn photograph's hole is filled by interpolation, not synthesis.** A
+  push-pull pyramid cannot carry a strong edge through a wide hole, so a
+  large parallax over a busy background reads as soft.
+- **Depth estimation needs a model.** The runtime is optional in both the
+  browser and Node, and no model url is bundled.
 - Pixel output is not bit-reproducible between runs (scene state is).
 - The 3D engine's remaining defects are mostly performance — see
   [docs/DEFECTS.md](docs/DEFECTS.md) before relying on it.

@@ -45,7 +45,7 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Draw-on animation | **done** | A revealed stroke is a **prefix** of the whole one, so frame N is a pure function of N with no history. Driven by an ordinary number channel, so every easing and clip feature applies unchanged. |
 | Input stabilisation | **done** | `smoothPoints`, `pressureFromVelocity`. |
 | Brush sheet | **done** | `npm run make:brushes` → a PNG rendered entirely in Node, `node:zlib` only. |
-| Tests | **done** | paint, media, motion and ops. Total now **438**. |
+| Tests | **done** | paint, media, motion, ops and editor. Total now **461**. |
 | Mutation audit | **done** | `npm run audit:tests` — 112 deliberate defects across every module. |
 | Layers + 13 W3C blend modes | **done** | `Document.js`. Named addressing, because an index means something else the moment a layer is inserted. 33 MB per layer at 1080p. |
 | Grain / textured brushes | **done** | `texture.js` — generated, not loaded, so a brush is four numbers rather than an asset. Canvas-locked by default: **paper tooth belongs to the paper**. |
@@ -69,6 +69,19 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Finding depth planes automatically | **done** | `depthPlanes` ranks histogram **valleys** by prominence. The midpoint and Otsu were both measured and both land inside the background (Otsu returns 0.499 where the midpoint returns 0.475). On a field with no planes it returns nothing and `tear` switches itself off. |
 | Depth estimation in Node | **done** | `onnxruntime-node` and `onnxruntime-web` share an API, so one adapter covers both and `photo_estimate_depth` runs headless. The runtime is optional in both; a missing one names every candidate and the fix. |
 | Texture synthesis in the fill | — | Push-pull interpolates and cannot carry a strong edge through a wide hole. PatchMatch or a generative model. 17-MOTION-AND-MCP.md §9. |
+
+### Editor architecture (docs/18-EDITOR-ARCHITECTURE.md)
+
+| Area | State | Notes |
+|---|---|---|
+| Undo / redo | **done** | `core/history/History.js` — inverse patches with labels, transactions for gestures, `MISSING` so undoing an insertion leaves the key *absent*. Replaces whole-document `JSON.stringify` snapshots in `studio.html`, which also had no redo. |
+| Hotkey system | **done** | `editor/keymap.js` — `mod` resolves per platform, chords normalise, `describe()` feeds a help overlay, a collision throws at setup, and a keystroke in a text field belongs to the field. |
+| Dockable workspace | **model built, not adopted** | `editor/dock.js` — a pure `DockLayout` (regions, order, sizes, collapse) plus a thin DOM binding. A restored layout is **reconciled** against the panels that exist, so shipping a panel does not make it invisible to existing users. `mountDock` is not yet used by any page; `studio.html` keeps its fixed two-column layout. |
+| Onion skinning | **done** | `render/onionSkin.js` — ghosts rendered by the real renderer, tinted warm behind and cool ahead, geometric falloff, spacing in seconds. Extracted from `studio.html`, which had two untinted past ghosts and no future ones. |
+| Image-sequence export | **done** | `render/sinks/PngSequenceSink.js` + `io/zip.js` — canvas-native PNG, stored ZIP, byte-reproducible, refuses an impossible render up front rather than at frame 2,000. |
+| GIF from the new renderer | — | A tested encoder exists in `animateEngine.js`; not extracted to a sink. 18-EDITOR-ARCHITECTURE.md §7. |
+| glTF / FBX export | — | `GLTFExporter` is a verified dependency, earmarked for the Phase 3 3D save/load rework. No browser FBX exporter exists. |
+| Floating / tabbed panels, split trees | — | Four fixed regions by design. §4. |
 
 ### Verified by measurement, not assumption
 

@@ -120,6 +120,7 @@
         <div class="row" style="margin-top:8px">
             <button id="newBtn" class="grow">New blank film</button>
             <button id="undoBtn" disabled>Undo</button>
+            <button id="redoBtn" disabled>Redo</button>
         </div>
 
         <h2>Selection</h2>
@@ -160,6 +161,9 @@ import {
 } from './src/core/index.js';
 import { Canvas2DBackend } from './src/backends/canvas2d/Canvas2DBackend.js';
 import { identity, multiply, invert, applyToPoint } from './src/core/math/mat2d.js';
+import { History, replaceAll } from './src/core/history/History.js';
+import { OnionSkin } from './src/render/onionSkin.js';
+import { Keymap } from './src/editor/keymap.js';
 
 const $ = (id) => document.getElementById(id);
 const log = (msg, cls = '') => {
@@ -179,9 +183,23 @@ let t = 0;                  // playhead, seconds
 let selection = null;       // { nodeId, sceneId, as, partId, charName, isRoot }
 let drag = null;            // { kind, from, override }
 let override = null;        // transforms held during a drag, applied after the pose
-const history = [];         // film snapshots, for undo
 
-const GHOST_OFFSETS = [-0.5, -0.25];
+// Undo/redo lives in `src/core/history/`, so the same stack serves this
+// page, the 3D editor and anything driving the ops table -- and so it is
+// tested in Node. See docs/18-EDITOR-ARCHITECTURE.md.
+const history = new History({
+    onChange: (h) => {
+        $('undoBtn').disabled = !h.canUndo;
+        $('undoBtn').title = h.canUndo ? `Undo ${h.undoLabel}` : 'Nothing to undo';
+        const redo = $('redoBtn');
+        if (redo) {
+            redo.disabled = !h.canRedo;
+            redo.title = h.canRedo ? `Redo ${h.redoLabel}` : 'Nothing to redo';
+        }
+    },
+});
+
+const onion = new OnionSkin({ before: 2, after: 1, spacing: 0.25 });
 const PICK_RADIUS = 26;     // screen px; a joint is grabbed, not an outline
 
 // --------------------------------------------------------------- compiling
@@ -216,20 +234,43 @@ function recompile({ keepTime = true } = {}) {
 const syncJsonBox = () => { $('jsonBox').value = JSON.stringify(film, null, 2); };
 
 function setFilm(next, label) {
-    film = next;
-    history.length = 0;
-    $('undoBtn').disabled = true;
+    // Mutated in place rather than reassigned, so `history` keeps editing
+    // the same object it recorded against. A document whose identity
+    // changes under undo is how an editor renders a stale copy of itself.
+    if (film) { for (const key of Object.keys(film)) delete film[key]; Object.assign(film, next); }
+    else film = next;
+    history.clear();
     selection = null;
     t = 0;
     recompile({ keepTime: false });
     log(`${label}: ${film.meta?.title ?? 'Untitled'}`, 'ok');
 }
 
-// Snapshot before every structural edit. A pose editor without undo is a trap.
-function pushHistory() {
-    history.push(JSON.stringify(film));
-    if (history.length > 50) history.shift();
-    $('undoBtn').disabled = false;
+/**
+ * Snapshot before a structural edit; `afterEdit` records it.
+ *
+ * Split in two because the mutation sites are many and small: each one
+ * calls this, changes `film`, then falls through to `afterEdit`, which is
+ * already the common exit. A command recorded from two snapshots keeps
+ * undo *and* redo correct however many branches the edit took.
+ *
+ * These are whole-document commands because this editor's edits really are
+ * document-sized -- an action object written into `film.json` -- and
+ * because the drag preview, which runs at pointer rate, never touches
+ * `film` at all: it lives in `override`. A keyframe editor dragging
+ * hundreds of keys wants the path-level commands instead; see
+ * docs/18-EDITOR-ARCHITECTURE.md.
+ */
+let pendingEdit = null;
+function pushHistory(label = 'edit') {
+    pendingEdit = { label, before: structuredClone(film) };
+}
+
+function commitHistory() {
+    if (!pendingEdit) return;
+    const { label, before } = pendingEdit;
+    pendingEdit = null;
+    history.apply(film, replaceAll(structuredClone(film), label, { before }));
 }
 
 // ----------------------------------------------------------------- drawing
@@ -274,20 +315,21 @@ function draw() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, compiled.meta.width, compiled.meta.height);
 
-    // Onion skin: render each past frame offscreen and composite it faint.
-    // Doing it this way needs no cooperation from the backend, which stays
-    // exactly the renderer that produces the final film.
-    if ($('ghosts').checked) {
-        for (const d of GHOST_OFFSETS) {
-            const gt = t + d;
-            if (gt < 0) continue;
-            poseAt(gt);
+    // Onion skin: each ghost is rendered by the same renderer that
+    // produces the final film, posed at a different time and composited
+    // faint. The backend is never told that ghosting exists.
+    onion.enabled = $('ghosts').checked;
+    onion.draw(ctx, {
+        time: t,
+        duration: compiled.meta.duration ?? 0,
+        width: compiled.meta.width,
+        height: compiled.meta.height,
+        render: (time) => {
+            poseAt(time);
             backend.renderFrame(compiled.scene, compiled.cameraId);
-            ctx.globalAlpha = 0.18;
-            ctx.drawImage(backend.canvas(), 0, 0);
-        }
-        ctx.globalAlpha = 1;
-    }
+            return backend.canvas();
+        },
+    });
 
     poseAt(t);
     backend.renderFrame(compiled.scene, compiled.cameraId);
@@ -510,7 +552,7 @@ function commitDrag(hit, [sx, sy]) {
     const timing = ease > 0.001 ? { at, for: round(ease) } : { at };
     const sameArrival = (a) => Math.abs((a.at ?? 0) + (a.for ?? 0) - arrival) < 0.02;
 
-    pushHistory();
+    pushHistory(hit.isRoot ? `move ${hit.as}` : `pose ${hit.as}/${hit.partId}`);
 
     if (hit.isRoot) {
         const [x, y] = toLocal(compiled.scene.get(hit.nodeId)?.parentId ?? compiled.scene.rootId, sx, sy);
@@ -561,6 +603,9 @@ function upsert(list, action, match) {
 }
 
 function afterEdit() {
+    // Commits whatever `pushHistory` captured. Every edit path ends here,
+    // so recording cannot be forgotten on one branch out of five.
+    commitHistory();
     recompile();
     showSelection();
 }
@@ -619,13 +664,19 @@ $('clearPoseBtn').onclick = () => {
     if (!span) return;
     const shot = film.scenes[span.sceneIndex].shots[span.shotIndex];
     const before = (shot.actions ?? []).length;
+    // Before the mutation, not after: recording afterwards captured the
+    // already-edited document, so undo for "clear pose" did nothing at all.
+    pushHistory('clear pose');
     shot.actions = (shot.actions ?? []).filter((a) => !(
         a.target === selection.as
         && (selection.isRoot ? a.do === 'move' : (a.do === 'reach' && a.part === selection.partId))
         // arrival, not start: actions are written to land on the playhead
         && Math.abs((a.at ?? 0) + (a.for ?? 0) - (t - span.start)) < 0.05));
-    if (shot.actions.length === before) { log('no matching action at the playhead', 'warn'); return; }
-    pushHistory();
+    if (shot.actions.length === before) {
+        pendingEdit = null;         // nothing changed, so nothing to record
+        log('no matching action at the playhead', 'warn');
+        return;
+    }
     log(`removed ${before - shot.actions.length} action(s)`, 'ok');
     afterEdit();
 };
@@ -665,24 +716,51 @@ $('time').oninput = (ev) => { pauseIfPlaying(); t = Number(ev.target.value); dra
 $('ghosts').onchange = draw;
 $('handles').onchange = draw;
 
-document.addEventListener('keydown', (ev) => {
-    if (ev.target.matches('textarea, input, select')) return;
+// Hotkeys as a table rather than a chain of key comparisons, so `mod` is
+// the platform's own accelerator, a keystroke inside a text field belongs
+// to the field, and the bindings can be listed back to the user. See
+// src/editor/keymap.js.
+const COMMANDS = {
+    undo: () => $('undoBtn').click(),
+    redo: () => $('redoBtn').click(),
+    play: () => $('playBtn').click(),
+    'toggle.onion': () => { $('ghosts').checked = !$('ghosts').checked; draw(); },
+    'toggle.handles': () => { $('handles').checked = !$('handles').checked; draw(); },
+    'clear.pose': () => $('clearPoseBtn').click(),
+    'step.back': () => step(-1),
+    'step.forward': () => step(1),
+    'jump.back': () => step(-12),
+    'jump.forward': () => step(12),
+};
+
+function step(frames) {
+    pauseIfPlaying();
     const fps = compiled?.meta.fps ?? 24;
-    if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') {
-        ev.preventDefault();
-        pauseIfPlaying();
-        const d = (ev.key === 'ArrowRight' ? 1 : -1) * (ev.shiftKey ? 12 : 1) / fps;
-        t = Math.min(compiled?.meta.duration ?? 0, Math.max(0, t + d));
-        $('time').value = String(t);
-        draw();
-    } else if (ev.key === ' ') {
-        ev.preventDefault();
-        $('playBtn').click();
-    } else if ((ev.metaKey || ev.ctrlKey) && ev.key === 'z') {
-        ev.preventDefault();
-        $('undoBtn').click();
-    }
+    t = Math.min(compiled?.meta.duration ?? 0, Math.max(0, t + frames / fps));
+    $('time').value = String(t);
+    draw();
+}
+
+const keymap = new Keymap({
+    'mod+z': { command: 'undo', doc: 'Undo the last edit' },
+    'mod+shift+z': { command: 'redo', doc: 'Redo' },
+    'mod+y': 'redo',
+    space: { command: 'play', doc: 'Play / pause' },
+    left: { command: 'step.back', doc: 'Previous frame' },
+    right: { command: 'step.forward', doc: 'Next frame' },
+    'shift+left': { command: 'jump.back', doc: 'Back twelve frames' },
+    'shift+right': { command: 'jump.forward', doc: 'Forward twelve frames' },
+    o: { command: 'toggle.onion', doc: 'Onion skin' },
+    h: { command: 'toggle.handles', doc: 'Handles' },
+    backspace: { command: 'clear.pose', doc: 'Clear the pose at the playhead' },
 });
+keymap.attach(document, (command) => {
+    const run = COMMANDS[command];
+    if (!run) return false;
+    run();
+    return true;
+});
+$('hint').title = keymap.describe().map((b) => `${b.label}  ${b.doc ?? b.command}`).join('\n');
 
 // ------------------------------------------------------------------- film I/O
 
@@ -729,8 +807,7 @@ function blankFilm() {
 $('applyBtn').onclick = () => {
     try {
         const next = JSON.parse($('jsonBox').value);
-        pushHistory();
-        film = next;
+        history.apply(film, replaceAll(next, 'apply JSON edits'));
         selection = null;
         recompile();
         log('edits applied', 'ok');
@@ -738,13 +815,19 @@ $('applyBtn').onclick = () => {
 };
 
 $('undoBtn').onclick = () => {
-    const prev = history.pop();
-    if (!prev) return;
-    film = JSON.parse(prev);
+    const entry = history.undo(film);
+    if (!entry) return;
     selection = null;
-    $('undoBtn').disabled = history.length === 0;
     recompile();
-    log('undone', 'ok');
+    log(`undone: ${entry.label}`, 'ok');
+};
+
+$('redoBtn').onclick = () => {
+    const entry = history.redo(film);
+    if (!entry) return;
+    selection = null;
+    recompile();
+    log(`redone: ${entry.label}`, 'ok');
 };
 
 $('saveBtn').onclick = () => {

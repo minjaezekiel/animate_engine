@@ -94,12 +94,23 @@ export function validateFilm(film) {
             if (shot.duration == null) warn(`${hp}.duration`, 'No duration; defaulting.');
             if (shot.camera) unknown(`${hp}.camera`, shot.camera, KNOWN.camera, warn);
 
+            // The same for every action in the shot, so computed once.
+            const drawingNames = new Set((scene.drawings ?? [])
+                .map((d, di) => d.id ?? `drawing${di + 1}`));
+
             for (const a of shot.actions ?? []) {
                 unknown(`${hp}.actions`, a, KNOWN.action, warn);
                 if (!DO_VERBS.includes(a.do)) {
                     warn(`${hp}.actions`, `Unknown verb "${a.do}"; ignored. Known: ${DO_VERBS.join(', ')}.`);
                 }
-                if (a.target && !castNames.has(a.target)) {
+                // `draw` names a drawing rather than a cast member, so the
+                // cast check does not apply to it.
+                if (a.do === 'draw') {
+                    if (a.target && !drawingNames.has(a.target)) {
+                        err(`${hp}.actions`, `draw: no drawing "${a.target}" in this scene.`
+                            + (drawingNames.size ? ` Have: ${[...drawingNames].join(', ')}.` : ''));
+                    }
+                } else if (a.target && !castNames.has(a.target)) {
                     err(`${hp}.actions`, `Target "${a.target}" is not cast in this scene.`);
                 }
                 if (a.do === 'pose' && a.target) {

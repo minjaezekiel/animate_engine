@@ -24,7 +24,49 @@
  * | `minFlow`, `flowCurve` | pressure to flow |
  * | `taper`, `taperMin` | entry and exit narrowing, in diameters |
  * | `jitterPos`, `jitterSize`, `jitterFlow` | granularity, for dry media |
+ * | `aspect`, `angle`, `angleMode` | nib shape and orientation |
+ * | `grain`, `grainScale`, `grainMode`, `grainSeed` | paper tooth |
+ * | `wet`, `smudge`, `colorRate`, `sampleRadius` | colour pickup |
  * | `erase` | composite as destination-out instead of over |
+ *
+ * # `aspect` and `angleMode`: two different instruments
+ *
+ * `aspect` is the nib's width across its length. `angleMode` decides what
+ * the angle is measured against, and the two choices are not variations of
+ * one idea:
+ *
+ * * **`'fixed'`** — the nib is held at a constant angle to the *paper*, so
+ *   the mark changes width as the stroke changes direction. A calligraphic
+ *   pen, a chisel marker. That direction-dependent swell is most of what
+ *   makes lettering read as lettering, and modelling it the other way
+ *   produces a constant-width ribbon, which is precisely what it must not
+ *   be.
+ * * **`'follow'`** — the nib aligns with travel, plus `angle` as an
+ *   offset. A flat bristle brush dragged edge-on.
+ *
+ * # `grainMode`: paper tooth belongs to the paper
+ *
+ * `'canvas'` locks the texture to canvas coordinates, so passing over the
+ * same patch twice hits the same high points — which is what makes a dry
+ * medium look dry. `'dab'` locks it to the dab, so the texture rotates and
+ * scales with the nib; that is right when the texture *is* the tip shape,
+ * a spatter or a bristle cluster, and wrong for paper, where it smears a
+ * copy of the texture along the stroke and reads as a rubber stamp
+ * repeated at high frequency.
+ *
+ * # `wet`: the only brushes that read the canvas
+ *
+ * A wet brush carries a reservoir that mixes with what is underneath.
+ * `smudge` is how much canvas colour is picked up per dab and `colorRate`
+ * is how much fresh paint is added — **independent controls**. Krita's
+ * original colour-smudge engine coupled them, and separating them was the
+ * central fix of their rewrite: coupled, you cannot ask for "drag existing
+ * paint a long way while adding almost no new colour", which is most of
+ * what blending a gradient is.
+ *
+ * Wet brushes composite dab by dab rather than through a coverage mask,
+ * because each dab carries a different colour. That makes them inherently
+ * sequential and the slowest brushes here.
  *
  * # `flow` against `opacity`, and why both exist
  *
@@ -77,8 +119,22 @@ const BASE = {
     jitterPos: 0,
     jitterSize: 0,
     jitterFlow: 0,
+    aspect: 1,
+    angle: 0,
+    angleMode: 'fixed',
+    grain: 0,
+    grainScale: 1,
+    grainMode: 'canvas',
+    grainSeed: 1,
+    wet: false,
+    smudge: 0,
+    colorRate: 1,
+    sampleRadius: 0,
     erase: false,
 };
+
+/** Degrees to radians, so brush records can be written in degrees. */
+const deg = (d) => (d * Math.PI) / 180;
 
 /**
  * The named brushes.
@@ -109,6 +165,9 @@ export const BRUSHES = {
         jitterPos: 0.14,
         jitterSize: 0.3,
         jitterFlow: 0.42,
+        grain: 0.45,
+        grainScale: 1.1,
+        grainSeed: 11,
     },
 
     /**
@@ -193,6 +252,9 @@ export const BRUSHES = {
         jitterPos: 0.34,
         jitterSize: 0.4,
         jitterFlow: 0.55,
+        grain: 0.7,
+        grainScale: 2.2,
+        grainSeed: 23,
     },
 
     /**
@@ -211,6 +273,122 @@ export const BRUSHES = {
         jitterPos: 0.26,
         jitterSize: 0.34,
         jitterFlow: 0.3,
+        grain: 0.6,
+        grainScale: 1.6,
+        grainSeed: 31,
+    },
+
+    /**
+     * A chisel marker, held at a fixed 45 degrees. The stroke is broad
+     * across one diagonal and thin across the other, so it swells and
+     * narrows purely from where the line is going.
+     */
+    chiselMarker: {
+        ...BASE,
+        size: 34,
+        hardness: 0.7,
+        flow: 0.55,
+        spacing: 0.04,
+        minSize: 0.95,
+        aspect: 0.3,
+        angle: deg(45),
+    },
+
+    /**
+     * A broad-edge calligraphic nib. Narrower and harder than the chisel
+     * marker, at the conventional 30-degree hand, with a taper so entries
+     * and exits thin out as a real nib does when it lifts.
+     */
+    calligraphy: {
+        ...BASE,
+        size: 30,
+        hardness: 0.95,
+        flow: 1,
+        spacing: 0.03,
+        minSize: 0.85,
+        aspect: 0.14,
+        angle: deg(-30),
+        taper: 0.5,
+        taperMin: 0.35,
+    },
+
+    /**
+     * A flat bristle brush dragged edge-on: `angleMode: 'follow'`, so the
+     * nib turns with the stroke and the ribbon keeps its width. Grain is
+     * dab-locked here because the texture *is* the bristle cluster, not
+     * the paper.
+     */
+    flatBristle: {
+        ...BASE,
+        size: 30,
+        hardness: 0.5,
+        flow: 0.7,
+        spacing: 0.035,
+        minSize: 0.7,
+        aspect: 0.38,
+        angleMode: 'follow',
+        angle: deg(90),
+        grain: 0.55,
+        grainMode: 'dab',
+        grainSeed: 47,
+    },
+
+    /**
+     * Watercolour. Heavy pickup and very little fresh paint, so colours
+     * run into one another instead of covering, and build-up accumulation
+     * so repeated passes deepen rather than cap.
+     */
+    watercolor: {
+        ...BASE,
+        size: 44,
+        hardness: 0.12,
+        flow: 0.3,
+        opacity: 0.85,
+        spacing: 0.04,
+        mode: 1,
+        minFlow: 0.3,
+        wet: true,
+        smudge: 0.62,
+        colorRate: 0.14,
+        sampleRadius: 0,
+    },
+
+    /**
+     * Oil paint. Balanced pickup and fresh colour, so a stroke both
+     * carries and deposits, with canvas grain for the weave.
+     */
+    oil: {
+        ...BASE,
+        size: 26,
+        hardness: 0.6,
+        flow: 0.95,
+        spacing: 0.03,
+        minSize: 0.8,
+        aspect: 0.6,
+        angleMode: 'follow',
+        angle: deg(90),
+        wet: true,
+        smudge: 0.45,
+        colorRate: 0.42,
+        grain: 0.3,
+        grainScale: 1.4,
+        grainSeed: 53,
+    },
+
+    /**
+     * Pure smear: picks up everything, deposits no new colour. This is the
+     * case that `smudge` and `colorRate` being independent exists for --
+     * with them coupled it cannot be expressed at all.
+     */
+    smudge: {
+        ...BASE,
+        size: 36,
+        hardness: 0.3,
+        flow: 1,
+        spacing: 0.02,
+        wet: true,
+        smudge: 0.9,
+        colorRate: 0,
     },
 
     /** Hard eraser. Composites destination-out at full strength. */

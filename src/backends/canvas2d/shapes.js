@@ -224,6 +224,20 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
             if (p.fill) { ctx.fillStyle = p.fill; ctx.fillText(p.text, 0, 0); }
             break;
         }
+        case 'paint': {
+            // A painter is attached by the backend at mount, the same way
+            // an `image` node's asset id is resolved to a real image
+            // before render. A bare spec here means nothing resolved it;
+            // drawing would throw, so refuse quietly rather than take the
+            // frame down.
+            const painter = p.painter;
+            if (!painter) break;
+            // `canvasAt` is memoised on progress, so a held frame costs a
+            // property read and only a changing reveal re-renders.
+            const canvas = painter.canvasAt(p.progress ?? 1);
+            if (canvas) drawImageNode(ctx, canvas, p);
+            break;
+        }
         case 'group':
         case 'bone':
         case 'camera':

@@ -45,7 +45,7 @@ export const KNOWN = {
            // draw-level: compositing, glow, trimmed strokes, repeaters
            'blend', 'glow', 'trim', 'repeat', 'gradient'],
     scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
-            'scenery', 'palette', 'ground', 'template'],
+            'scenery', 'palette', 'ground', 'template', 'drawings'],
     shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle', 'step',
            // what the shot is MEANT to be, so the checker can say whether it is
            'framing', 'on'],
@@ -68,4 +68,4 @@ export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidt
 
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];
 export const TRANSITION_KINDS = ['fade', 'crossfade', 'none'];
-export const DO_VERBS = ['play', 'pose', 'move', 'reach', 'set', 'show', 'hide'];
+export const DO_VERBS = ['play', 'pose', 'move', 'reach', 'set', 'show', 'hide', 'draw'];

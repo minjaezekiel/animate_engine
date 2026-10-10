@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import { loadKernels } from '../../src/kernels/index.js';
 import {
     resampleStroke, stampCountAt, strokeLength, arcLengths,
-    smoothPoints, pressureFromVelocity,
+    smoothPoints, pressureFromVelocity, STAMP_STRIDE,
 } from '../../src/core/paint/stroke.js';
 import { brush, BRUSHES, BRUSH_NAMES } from '../../src/core/paint/brushes.js';
 import { PaintSurface, parseColor } from '../../src/core/paint/Surface.js';
@@ -113,7 +113,7 @@ test('taper narrows both ends relative to the middle', () => {
     // synthetic line.
     const stroke = { points: arc(60, 300), size: 20 };
     const r = resampleStroke(stroke, brush('ink', { minSize: 1, sizeCurve: 1 }));
-    const radiusAt = (i) => r.stamps[i * 4 + 2];
+    const radiusAt = (i) => r.stamps[i * STAMP_STRIDE + 2];
     const mid = radiusAt(r.count >> 1);
     assert.ok(radiusAt(0) < mid * 0.6, `start not tapered: ${radiusAt(0)} vs ${mid}`);
     assert.ok(radiusAt(r.count - 1) < mid * 0.75,
@@ -126,7 +126,7 @@ test('a short stroke tapers proportionally rather than vanishing', () => {
     const r = resampleStroke(
         { points: [{ x: 0, y: 0, p: 1 }, { x: 6, y: 0, p: 1 }], size: 20 },
         brush('ink', { minSize: 1 }));
-    const peak = Math.max(...Array.from({ length: r.count }, (_, i) => r.stamps[i * 4 + 2]));
+    const peak = Math.max(...Array.from({ length: r.count }, (_, i) => r.stamps[i * STAMP_STRIDE + 2]));
     assert.ok(peak > 2, `short stroke collapsed to ${peak}`);
 });
 
@@ -157,7 +157,7 @@ test('a brush without jitter produces no jitter', () => {
         { points: [{ x: 0, y: 0, p: 1 }, { x: 50, y: 0, p: 1 }], size: 10, seed: 3 },
         brush('pen'));
     for (let i = 0; i < r.count; i++) {
-        assert.equal(r.stamps[i * 4 + 1], 0, `dab ${i} drifted off the straight line`);
+        assert.equal(r.stamps[i * STAMP_STRIDE + 1], 0, `dab ${i} drifted off the straight line`);
     }
 });
 

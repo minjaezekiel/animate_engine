@@ -51,8 +51,11 @@ import { buildAdjacency } from './adjacency.js';
 import * as jsDeform from './js/deform.js';
 import * as jsRaster from './js/raster.js';
 import * as jsWarp from './js/warp.js';
+import * as jsBlend from './js/blend.js';
 
 export { buildAdjacency };
+export { MODES as BLEND_MODES, MODE_NAMES as BLEND_MODE_NAMES, modeId } from './js/blend.js';
+export { STAMP_STRIDE } from './js/raster.js';
 
 /**
  * Load the kernels.
@@ -185,10 +188,53 @@ export class Kernels {
      * Accumulate stamps `[x, y, radius, flow]` into a coverage mask.
      * `mode` 0 = peak (pen, pencil), 1 = build-up (airbrush).
      */
-    stampMask(mask, w, h, stamps, count, hardness, mode, y0 = 0, y1 = h) {
-        if (this.host) this.host.exports.stamp_mask(mask.ptr, w, h, stamps.ptr,
-            count, hardness, mode, y0, y1);
-        else jsRaster.stampMask(mask, w, h, stamps, count, hardness, mode, y0, y1);
+    stampMask(mask, w, h, stamps, count, hardness, mode, y0 = 0, y1 = h, texture = null) {
+        // `texture` is `{ buf, width, height, mode, scale }` or null.
+        // Canvas-locked (mode 1) is the one that matters for dry media:
+        // paper tooth belongs to the paper, so passing over the same patch
+        // twice must hit the same high points.
+        const t = texture;
+        if (this.host) {
+            this.host.exports.stamp_mask(mask.ptr, w, h, stamps.ptr, count, hardness, mode,
+                t ? t.buf.ptr : 0, t ? t.width : 0, t ? t.height : 0,
+                t ? t.mode : 0, t ? t.scale : 1, y0, y1);
+        } else {
+            jsRaster.stampMask(mask, w, h, stamps, count, hardness, mode, y0, y1,
+                t ? t.buf : null, t ? t.width : 0, t ? t.height : 0,
+                t ? t.mode : 0, t ? t.scale : 1);
+        }
+    }
+
+    /**
+     * Wet media: dabs that pick up what is already on the canvas.
+     *
+     * Sequential by nature, so it takes no band arguments and cannot be
+     * split across the worker pool. `smudge` (canvas pickup) and
+     * `colorRate` (fresh paint) are independent controls.
+     */
+    smudgeStroke(dst, w, h, stamps, count, hardness, smudge, colorRate, sampleR,
+                 r, g, b, opacity) {
+        if (this.host) this.host.exports.smudge_stroke(dst.ptr, w, h, stamps.ptr, count,
+            hardness, smudge, colorRate, sampleR, r, g, b, opacity);
+        else jsRaster.smudgeStroke(dst, w, h, stamps, count, hardness, smudge,
+            colorRate, sampleR, r, g, b, opacity);
+    }
+
+    /**
+     * Composite one premultiplied layer onto another with a blend mode.
+     *
+     * `mode` is a name from `BLEND_MODE_NAMES` or its number.
+     */
+    blendLayers(dst, src, w, h, mode, opacity, y0 = 0, y1 = h) {
+        const id = jsBlend.modeId(mode);
+        if (this.host) this.host.exports.blend_layers(dst.ptr, src.ptr, w, h, id, opacity, y0, y1);
+        else jsBlend.blendLayers(dst, src, w, h, id, opacity, y0, y1);
+    }
+
+    /** Copy `n` floats between kernel buffers. */
+    copyF32(src, dst, n) {
+        if (this.host) this.host.exports.copy_f32(src.ptr, dst.ptr, n);
+        else jsBlend.copyF32(src, dst, n);
     }
 
     /** Composite a mask over premultiplied f32 RGBA at `opacity`. */

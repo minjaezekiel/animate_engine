@@ -1,0 +1,135 @@
+/**
+ * Procedural grain tiles, for dry media.
+ *
+ * # Why generated rather than loaded
+ *
+ * A textured brush normally ships with image assets. Generating the tile
+ * instead keeps the engine's dependency count at zero, keeps a `film.json`
+ * self-contained — a brush is described by four numbers rather than by a
+ * reference to a file that has to travel with it — and makes the texture
+ * *deterministic from a seed*, which the render contract needs anyway.
+ *
+ * The cost is that these are noise fields, not photographs of paper. For
+ * the job they do — modulating dab alpha so a dry medium breaks up — that
+ * is sufficient, and `Kernels.stampMask` accepts any u8 buffer, so a real
+ * scanned tile can be supplied later with no change below this file.
+ *
+ * # Strength is baked into the tile
+ *
+ * Values are generated in `[1 - strength, 1]` rather than `[0, 1]`, so the
+ * kernel's `alpha *= texel` *is* `lerp(1, noise, strength)` with no extra
+ * parameter in the hot loop and no extra argument across the ABI.
+ */
+
+/** Hash an integer to a well-distributed u32. Same construction as `stroke.js`. */
+function hash(n) {
+    let x = n | 0;
+    x = (x ^ 61) ^ (x >>> 16);
+    x = (x + (x << 3)) | 0;
+    x ^= x >>> 4;
+    x = Math.imul(x, 0x27d4eb2d);
+    x ^= x >>> 15;
+    return x >>> 0;
+}
+
+/** A deterministic value in `[0, 1)` for lattice point `(x, y)` at `seed`. */
+const lattice = (seed, x, y) => hash(Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ seed) / 4294967296;
+
+/**
+ * Smoothly interpolated value noise at one octave.
+ *
+ * Smoothstep on the fractional part rather than linear: a linear blend
+ * leaves visible creases along every lattice line, which on a grain
+ * texture reads as a regular grid and defeats the whole purpose.
+ */
+function valueNoise(seed, x, y, period) {
+    const xi = Math.floor(x), yi = Math.floor(y);
+    const xf = x - xi, yf = y - yi;
+    // Wrap the lattice to `period` so the tile is seamless: sampling at
+    // `period` must give exactly what sampling at 0 gives, or every tile
+    // boundary shows as a hard line across the canvas.
+    const wrap = (v) => ((v % period) + period) % period;
+    const x0 = wrap(xi), x1 = wrap(xi + 1);
+    const y0 = wrap(yi), y1 = wrap(yi + 1);
+
+    const sx = xf * xf * (3 - 2 * xf);
+    const sy = yf * yf * (3 - 2 * yf);
+
+    const n00 = lattice(seed, x0, y0), n10 = lattice(seed, x1, y0);
+    const n01 = lattice(seed, x0, y1), n11 = lattice(seed, x1, y1);
+
+    const a = n00 + (n10 - n00) * sx;
+    const b = n01 + (n11 - n01) * sx;
+    return a + (b - a) * sy;
+}
+
+/**
+ * Generate a seamless grain tile as u8 values.
+ *
+ * @param {object} [options]
+ * @param {number} [options.size=128]      tile edge, in texels
+ * @param {number} [options.seed=1]
+ * @param {number} [options.strength=0.5]  how far below 1 the tile may dip
+ * @param {number} [options.octaves=3]     fractal detail
+ * @param {number} [options.frequency=8]   lattice cells across the tile
+ * @returns {{data: Uint8Array, width: number, height: number}}
+ *
+ * The tile is seamless by construction: every octave wraps its lattice to
+ * the tile period, so canvas-locked grain tiles across an arbitrarily
+ * large canvas with no visible repeat boundary. A repeat *pattern* is
+ * still perceptible at low frequencies on a very large area, which is why
+ * `size` defaults to 128 rather than 32.
+ */
+export function makeGrainTexture({
+    size = 128, seed = 1, strength = 0.5, octaves = 3, frequency = 8,
+} = {}) {
+    const data = new Uint8Array(size * size);
+    const s = Math.min(1, Math.max(0, strength));
+    const raw = new Float32Array(size * size);
+    let lo = Infinity, hi = -Infinity;
+
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            let value = 0;
+            let amplitude = 1;
+            let total = 0;
+            let freq = frequency;
+
+            for (let o = 0; o < octaves; o++) {
+                value += valueNoise(seed + o * 7919, (x / size) * freq, (y / size) * freq, freq)
+                    * amplitude;
+                total += amplitude;
+                amplitude *= 0.5;
+                freq *= 2;
+            }
+            const n = value / total;
+            raw[y * size + x] = n;
+            if (n < lo) lo = n;
+            if (n > hi) hi = n;
+        }
+    }
+
+    // Stretch to the full 0..1 range before applying strength.
+    //
+    // Summed octaves of value noise are a mean of several independent
+    // uniform samples, so they concentrate sharply around 0.5 -- measured,
+    // three octaves spanned only 0.35 to 0.94 rather than 0 to 1. Without
+    // this, `strength` is a lie: asking for 0.7 produced roughly 0.4 of
+    // actual modulation, and no setting could reach full contrast.
+    //
+    // Normalising against the tile's own extremes also keeps every seed
+    // equally contrasty, instead of leaving some seeds flat by chance.
+    const span = hi - lo;
+    const norm = span > 1e-6 ? 1 / span : 0;
+
+    for (let i = 0; i < raw.length; i++) {
+        const n = span > 1e-6 ? (raw[i] - lo) * norm : 1;
+        // Map into [1 - strength, 1] so the kernel's multiply is already a
+        // strength-weighted blend, with no extra parameter in the hot loop.
+        data[i] = Math.round((1 - s + s * n) * 255);
+    }
+    return { data, width: size, height: size };
+}
+
+/** Texture application modes, matching `tex_mode` in `raster.rs`. */
+export const TEXTURE_MODES = { none: 0, canvas: 1, dab: 2 };

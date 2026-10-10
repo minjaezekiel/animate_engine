@@ -25,7 +25,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadKernels, buildAdjacency } from '../../src/kernels/index.js';
+import { loadKernels, buildAdjacency, STAMP_STRIDE, BLEND_MODE_NAMES } from '../../src/kernels/index.js';
 import { wasmBytes, WASM_SIZE } from '../../src/kernels/wasm/module.js';
 
 const WASM = await loadKernels({ prefer: 'wasm' });
@@ -198,12 +198,18 @@ test('conformance: smooth', () => {
 
 test('conformance: stampMask, both modes', () => {
     const w = 64, h = 64;
-    const stamps = new Float32Array(40 * 4);
+    // Six floats per dab: x, y, radius, flow, angle, aspect. Elliptical
+    // dabs are included deliberately, since a round-only fixture would
+    // leave the rotation maths unexercised on both backends at once.
+    const stamps = new Float32Array(40 * STAMP_STRIDE);
     for (let i = 0; i < 40; i++) {
-        stamps[i * 4] = 8 + (i * 1.3) % 48;
-        stamps[i * 4 + 1] = 8 + (i * 2.7) % 48;
-        stamps[i * 4 + 2] = 4 + (i % 5);
-        stamps[i * 4 + 3] = 0.3 + (i % 3) * 0.2;
+        const o = i * STAMP_STRIDE;
+        stamps[o] = 8 + (i * 1.3) % 48;
+        stamps[o + 1] = 8 + (i * 2.7) % 48;
+        stamps[o + 2] = 4 + (i % 5);
+        stamps[o + 3] = 0.3 + (i % 3) * 0.2;
+        stamps[o + 4] = (i % 7) * 0.4;
+        stamps[o + 5] = i % 3 === 0 ? 0.35 : 1;
     }
     for (const mode of [0, 1]) {
         const run = (K) => {
@@ -235,6 +241,72 @@ test('conformance: compositeMask and maskToRgba8', () => {
     // u8 output: allow one least-significant bit, since the f64 and f32
     // divides can land either side of a rounding boundary.
     assert.ok(maxDiff(runU(WASM), runU(JS)) <= 1);
+});
+
+test('conformance: stampMask with a grain texture, both lock modes', () => {
+    // Without this, a mutation to the JS grain path survives: every paint
+    // test that exercises texture goes through the wasm backend, so the
+    // fallback is unverified unless conformance covers it.
+    const w = 56, h = 44;
+    const tex = new Uint8Array(32 * 32);
+    for (let i = 0; i < tex.length; i++) tex[i] = (i * 37 + (i >> 5) * 11) & 255;
+    const stamps = new Float32Array(20 * STAMP_STRIDE);
+    for (let i = 0; i < 20; i++) {
+        stamps.set([6 + (i * 2.3) % 44, 6 + (i * 3.1) % 32, 5 + (i % 3), 0.6,
+            i * 0.3, i % 2 ? 0.4 : 1], i * STAMP_STRIDE);
+    }
+    for (const texMode of [1, 2]) {
+        const run = (K) => {
+            const mask = K.f32(w * h);
+            K.stampMask(mask, w, h, K.from(stamps), 20, 0.5, 0, 0, h, {
+                buf: K.from(tex, Uint8Array), width: 32, height: 32,
+                mode: texMode, scale: 1.7,
+            });
+            return Float32Array.from(mask.array);
+        };
+        assert.ok(maxDiff(run(WASM), run(JS)) < 1e-6, `texMode ${texMode}`);
+    }
+});
+
+test('conformance: smudgeStroke', () => {
+    const w = 60, h = 40, n = w * h;
+    const start = seeded(n * 4, 61).map(Math.abs);
+    const stamps = new Float32Array(30 * STAMP_STRIDE);
+    for (let i = 0; i < 30; i++) {
+        stamps.set([8 + i * 1.5, 10 + Math.sin(i * 0.4) * 8, 6, 0.7, 0, 1], i * STAMP_STRIDE);
+    }
+    const run = (K) => {
+        const dst = K.from(start);
+        K.smudgeStroke(dst, w, h, K.from(stamps), 30, 0.5, 0.6, 0.2, 0, 0.9, 0.4, 0.1, 0.8);
+        return Float32Array.from(dst.array);
+    };
+    assert.ok(maxDiff(run(WASM), run(JS)) < 1e-5);
+});
+
+test('conformance: blendLayers, every mode', () => {
+    // All five blend mutations survived the first mutation audit because
+    // every blend test reached the wasm backend and nothing exercised the
+    // JS mirror at all.
+    const w = 32, h = 24, n = w * h * 4;
+    const backdrop = seeded(n, 67).map(Math.abs);
+    const source = seeded(n, 71).map(Math.abs);
+    // Premultiplied-valid inputs: no channel above its own alpha, or the
+    // un-divide produces values outside 0..1 and the comparison is
+    // meaningless.
+    for (const buf of [backdrop, source]) {
+        for (let i = 0; i < w * h; i++) {
+            const a = buf[i * 4 + 3];
+            for (let c = 0; c < 3; c++) buf[i * 4 + c] = Math.min(buf[i * 4 + c], a);
+        }
+    }
+    for (const mode of BLEND_MODE_NAMES) {
+        const run = (K) => {
+            const dst = K.from(backdrop);
+            K.blendLayers(dst, K.from(source), w, h, mode, 0.75);
+            return Float32Array.from(dst.array);
+        };
+        assert.ok(maxDiff(run(WASM), run(JS)) < 1e-5, `mode ${mode}`);
+    }
 });
 
 test('conformance: warpMesh', () => {
@@ -368,9 +440,9 @@ for (const K of BOTH) {
     test(`${tag}: stampMask peak mode never exceeds flow, build-up does accumulate`, () => {
         const w = 16, h = 16;
         // Eight stamps on the same spot: the classic over-darkening case.
-        const stamps = new Float32Array(8 * 4);
+        const stamps = new Float32Array(8 * STAMP_STRIDE);
         for (let i = 0; i < 8; i++) {
-            stamps.set([8, 8, 5, 0.25], i * 4);
+            stamps.set([8, 8, 5, 0.25, 0, 1], i * STAMP_STRIDE);
         }
         const peak = K.f32(w * h);
         K.stampMask(peak, w, h, mk(K, stamps), 8, 0.5, 0);
@@ -389,7 +461,7 @@ for (const K of BOTH) {
         // read as jagged.
         const w = 32, h = 32;
         const mask = K.f32(w * h);
-        K.stampMask(mask, w, h, mk(K, [16, 16, 8, 1]), 1, 1.0, 0);
+        K.stampMask(mask, w, h, mk(K, [16, 16, 8, 1, 0, 1]), 1, 1.0, 0);
         const values = Array.from(mask.array);
         assert.ok(values.every(Number.isFinite), 'NaN in a hard-brush mask');
         // A radius-8 circle has a ~50px circumference, so a genuine rim is
@@ -403,7 +475,7 @@ for (const K of BOTH) {
     test(`${tag}: stamp coverage falls off monotonically from the centre`, () => {
         const w = 41, h = 41;
         const mask = K.f32(w * h);
-        K.stampMask(mask, w, h, mk(K, [20.5, 20.5, 18, 1]), 1, 0.2, 0);
+        K.stampMask(mask, w, h, mk(K, [20.5, 20.5, 18, 1, 0, 1]), 1, 0.2, 0);
         let prev = Infinity;
         for (let x = 20; x < 39; x++) {
             const v = mask.array[20 * w + x];
@@ -417,7 +489,7 @@ for (const K of BOTH) {
         const w = 24, h = 24, n = w * h;
         const dst = K.f32(n * 4);
         const mask = K.f32(n);
-        K.stampMask(mask, w, h, mk(K, [12, 12, 9, 1]), 1, 0.3, 0);
+        K.stampMask(mask, w, h, mk(K, [12, 12, 9, 1, 0, 1]), 1, 0.3, 0);
         K.compositeMask(dst, mask, w, h, 1, 0.5, 0, 0.8, 0);
         for (let i = 0; i < n; i++) {
             const a = dst.array[i * 4 + 3];
@@ -586,6 +658,20 @@ test('adjacency: an interior vertex of a triangulated grid has six neighbours', 
     const { start } = buildAdjacency(indices, count);
     const interior = 4 * 9 + 4;
     assert.equal(start[interior + 1] - start[interior], 6);
+});
+
+test('adjacency: a degenerate triangle does not create a self-loop', () => {
+    // The `n !== v` guard is unreachable with well-formed input -- an edge
+    // joins two distinct vertices -- so a mutation removing it survived
+    // the first audit. A collapsed triangle, which a sculpt or a bad
+    // import really does produce, is what exercises it. A self-loop would
+    // make Laplacian smoothing average a vertex partly against itself and
+    // quietly reduce the smoothing strength.
+    const { start, adj } = buildAdjacency([0, 0, 1, 1, 2, 0], 3);
+    for (let v = 0; v < 3; v++) {
+        const list = Array.from(adj.slice(start[v], start[v + 1]));
+        assert.ok(!list.includes(v), `vertex ${v} is its own neighbour: ${list}`);
+    }
 });
 
 test('adjacency: out-of-range indices are dropped, not crashed on', () => {

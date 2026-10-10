@@ -113,7 +113,7 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [13-3D-FILM.md](13-3D-FILM.md) | declarative 3D films, analytic particles, the 3D live test |
 | [14-CHARACTER-3D.md](14-CHARACTER-3D.md) | procedural rig, skinning, blendshapes, and the honest ceiling |
 | [15-PERFORMANCE.md](15-PERFORMANCE.md) | **Rust/wasm kernels, measured; what the browser really offers; the missing-tool register** |
-| [16-PAINT.md](16-PAINT.md) | **drawing tools** — the stroke model, nine brushes, draw-on animation |
+| [16-PAINT.md](16-PAINT.md) | **drawing tools** — SVG paths, 15 brushes, layers, grain, wet media, draw-on |
 | [STATUS.md](STATUS.md) | **what is implemented and what is not** |
 | [DEFECTS.md](DEFECTS.md) | the defect register for the legacy 3D engine |
 | [CDN-AND-PWA.md](CDN-AND-PWA.md) | loading from a CDN, installing, offline |

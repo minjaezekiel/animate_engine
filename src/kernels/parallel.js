@@ -57,7 +57,7 @@
  * `loadParallelKernels` returns `null` rather than throwing when
  * unavailable, so a caller falls back to the serial `Kernels` in one line.
  */
-import { Kernels } from './index.js';
+import { Kernels, modeId } from './index.js';
 
 /** Bytes of stack per worker. Kernels are shallow and allocation-free. */
 const STACK_BYTES = 256 * 1024;
@@ -303,13 +303,33 @@ export class ParallelKernels {
     }
 
     /** Accumulate stamps into a coverage mask, split by rows. */
-    async stampMask(mask, w, h, stamps, count, hardness, mode) {
+    async stampMask(mask, w, h, stamps, count, hardness, mode, texture = null) {
         if (w * h < this.minPixels || this.workerCount < 2) {
-            this.serial.stampMask(mask, w, h, stamps, count, hardness, mode);
+            this.serial.stampMask(mask, w, h, stamps, count, hardness, mode, 0, h, texture);
             return;
         }
+        const t = texture;
         await Promise.all(this._bands(h).map(([a, b], k) => this._run(k, 'stamp_mask',
-            [mask.ptr, w, h, stamps.ptr, count, hardness, mode, a, b])));
+            [mask.ptr, w, h, stamps.ptr, count, hardness, mode,
+                t ? t.buf.ptr : 0, t ? t.width : 0, t ? t.height : 0,
+                t ? t.mode : 0, t ? t.scale : 1, a, b])));
+    }
+
+    /**
+     * Composite one layer onto another, split by rows.
+     *
+     * Flattening a stack is one of these per layer, so at 1080p a
+     * twelve-layer document is twelve full-frame passes -- exactly the
+     * bandwidth-bound shape the pool exists for.
+     */
+    async blendLayers(dst, src, w, h, mode, opacity) {
+        const id = modeId(mode);
+        if (w * h < this.minPixels || this.workerCount < 2) {
+            this.serial.blendLayers(dst, src, w, h, id, opacity);
+            return;
+        }
+        await Promise.all(this._bands(h).map(([a, b], k) => this._run(k, 'blend_layers',
+            [dst.ptr, src.ptr, w, h, id, opacity, a, b])));
     }
 
     /** Premultiplied f32 to straight u8, split by pixel range. */

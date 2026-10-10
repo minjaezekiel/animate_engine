@@ -22,7 +22,7 @@
  */
 
 /** The ABI this loader speaks. Must match `abi_version()` in lib.rs. */
-export const ABI_VERSION = 2;
+export const ABI_VERSION = 3;
 
 /**
  * A block of kernel-owned memory, viewed as a typed array.

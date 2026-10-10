@@ -43,6 +43,8 @@
  */
 import { resampleStroke, stampCountAt } from './stroke.js';
 import { brush as resolveBrush } from './brushes.js';
+import { pathToPoints } from './path.js';
+import { makeGrainTexture, TEXTURE_MODES } from './texture.js';
 
 /**
  * Parse `#rgb`, `#rrggbb` or `r,g,b` into three 0..1 components.
@@ -93,6 +95,43 @@ export class PaintSurface {
         this.mask = kernels.f32(pixels);
         /** @type {WeakMap<object, {resampled: object, buf: object, brushKey: string}>} */
         this._cache = new WeakMap();
+        /**
+         * Grain tiles, keyed by seed and strength.
+         *
+         * Shared across every stroke using the same paper: a tile is a few
+         * tens of kilobytes and generating one per stroke would dominate
+         * the cost of drawing with a textured brush.
+         *
+         * @type {Map<string, {buf: object, width: number, height: number}>}
+         */
+        this._grain = new Map();
+    }
+
+    /**
+     * The grain tile for a brush, generated once and reused.
+     *
+     * Strength is baked into the tile rather than passed to the kernel, so
+     * `alpha *= texel` is already a strength-weighted blend and the hot
+     * loop carries no extra parameter.
+     */
+    _texture(b) {
+        if (!b.grain || b.grain <= 0) return null;
+        const key = `${b.grainSeed}|${b.grain}`;
+        let tile = this._grain.get(key);
+        if (!tile) {
+            const made = makeGrainTexture({ seed: b.grainSeed, strength: b.grain });
+            const buf = this.kernels.u8(made.data.length);
+            buf.array.set(made.data);
+            tile = { buf, width: made.width, height: made.height };
+            this._grain.set(key, tile);
+        }
+        return {
+            buf: tile.buf,
+            width: tile.width,
+            height: tile.height,
+            mode: TEXTURE_MODES[b.grainMode] ?? TEXTURE_MODES.canvas,
+            scale: Math.max(0.05, b.grainScale),
+        };
     }
 
     /** Erase the surface to transparent. */
@@ -113,13 +152,21 @@ export class PaintSurface {
         const key = `${b.size}|${b.spacing}|${b.minSize}|${b.sizeCurve}|${b.minFlow}`
             + `|${b.flowCurve}|${b.taper}|${b.taperMin}|${b.flow}`
             + `|${b.jitterPos}|${b.jitterSize}|${b.jitterFlow}`
-            + `|${stroke.size ?? ''}|${stroke.seed ?? 0}|${stroke.points?.length ?? 0}`;
+            + `|${b.aspect}|${b.angle}|${b.angleMode}`
+            + `|${stroke.size ?? ''}|${stroke.seed ?? 0}`
+            + `|${stroke.points?.length ?? 0}|${stroke.path ?? ''}`;
 
         const hit = this._cache.get(stroke);
         if (hit && hit.brushKey === key) return { ...hit, brushSpec: b };
 
         if (hit) hit.buf.free();
-        const resampled = resampleStroke(stroke, b);
+        // `path` is the form anybody should normally reach for: one line
+        // of SVG data instead of two hundred coordinates. `points` wins if
+        // both are present, since it is the more explicit statement.
+        const points = stroke.points ?? (stroke.path
+            ? pathToPoints(stroke.path, { pressure: stroke.pressure, tolerance: stroke.tolerance })
+            : []);
+        const resampled = resampleStroke({ ...stroke, points }, b);
         const buf = this.kernels.f32(Math.max(4, resampled.stamps.length));
         buf.array.set(resampled.stamps);
         const entry = { resampled, buf, brushKey: key };
@@ -146,11 +193,23 @@ export class PaintSurface {
         if (count === 0) return 0;
 
         const { width: w, height: h, kernels: K } = this;
-        K.clearF32(this.mask, w * h);
-        K.stampMask(this.mask, w, h, buf, count, brushSpec.hardness, brushSpec.mode);
-
         const [r, g, b] = parseColor(stroke.color ?? '#000');
         const opacity = (stroke.opacity ?? 1) * brushSpec.opacity;
+
+        if (brushSpec.wet) {
+            // A wet brush cannot use the mask: every dab carries a
+            // different colour, which is the entire point. It composites
+            // dab by dab instead, and is therefore sequential and the
+            // slowest path here.
+            K.smudgeStroke(this.buffer, w, h, buf, count, brushSpec.hardness,
+                brushSpec.smudge, brushSpec.colorRate, brushSpec.sampleRadius,
+                r, g, b, opacity);
+            return count;
+        }
+
+        K.clearF32(this.mask, w * h);
+        K.stampMask(this.mask, w, h, buf, count, brushSpec.hardness, brushSpec.mode,
+            0, h, this._texture(brushSpec));
         K.compositeMask(this.buffer, this.mask, w, h, r, g, b, opacity,
             brushSpec.erase ? 1 : 0);
         return count;
@@ -170,10 +229,14 @@ export class PaintSurface {
         const count = stampCountAt(resampled, progress);
         if (count === 0) return 0;
 
+        // A wet brush is sequential by nature, so there is nothing to
+        // split; run it on the main thread rather than pretend otherwise.
+        if (brushSpec.wet) return this.draw(stroke, { progress });
+
         const { width: w, height: h } = this;
         this.kernels.clearF32(this.mask, w * h);
         await this.pool.stampMask(this.mask, w, h, buf, count,
-            brushSpec.hardness, brushSpec.mode);
+            brushSpec.hardness, brushSpec.mode, this._texture(brushSpec));
 
         const [r, g, b] = parseColor(stroke.color ?? '#000');
         const opacity = (stroke.opacity ?? 1) * brushSpec.opacity;
@@ -246,6 +309,8 @@ export class PaintSurface {
     dispose() {
         this.buffer.free();
         this.mask.free();
+        for (const tile of this._grain.values()) tile.buf.free();
+        this._grain.clear();
         if (this._u8buf) this._u8buf.free();
         this._u8buf = null;
         this._u8 = null;

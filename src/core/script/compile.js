@@ -120,6 +120,7 @@ export function compileFilm(film, { assets = {} } = {}) {
         buildBackground(scene, timeline, spec, groupId, meta, assets, diagnostics,
                         (c) => (c == null ? null : (scenePalette[c] ?? c)));
         buildScenery(scene, spec, groupId, palettes, meta, assets, diagnostics);
+        buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagnostics);
 
         // --- cast: instantiate each character's part tree
         const castMap = new Map();
@@ -782,7 +783,19 @@ function castFeet(char, entry) {
  * Seeding only when the track does not yet exist keeps a later `set` on the
  * same channel behaving as a plain keyframe.
  */
-function seedChannel(scene, timeline, nodeId, path, value) {
+/**
+ * Hold a channel at its authored value from frame one.
+ *
+ * Without this, a channel first keyed at t=35 reads as that key's value
+ * for the whole film before it, because a track reads as its *first* key
+ * at every earlier time.
+ *
+ * It deliberately takes no value: the seed is always the node's own
+ * authored state. A caller wanting to start somewhere else must say so
+ * with an explicit key -- which `draw` does, since a drawing's authored
+ * `progress` is 1 but a reveal has to begin at 0.
+ */
+function seedChannel(scene, timeline, nodeId, path) {
     if (timeline._index?.get(`${nodeId}\u0000${path}`)) return;
     const node = scene.get(nodeId);
     if (!node) return;
@@ -797,6 +810,48 @@ const COLOR_CHANNELS = new Set(['props.fill', 'props.stroke']);
 
 function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
                        sceneId, characters, diagnostics, ground = null, colorOf = null }) {
+    const at0 = shotStart + (action.at ?? 0);
+
+    // `draw` targets a *drawing*, not a cast member, so it resolves before
+    // the cast lookup -- which would otherwise discard it silently.
+    if (action.do === 'draw') {
+        const nodeId = `${sceneId}/${action.target}`;
+        if (!scene.get(nodeId)) {
+            diagnostics.push({
+                severity: 'warning', path: `scenes.${sceneId}.actions`,
+                message: `draw: no drawing "${action.target}" in this scene`,
+            });
+            return;
+        }
+        // The whole mechanism is one number. `props.progress` selects how
+        // many of a stroke's dabs are stamped, and the resampler walks
+        // from the start, so a partially drawn stroke is a *prefix* of the
+        // finished one rather than a different computation. Frame N stays
+        // a pure function of N with no history buffer -- and because the
+        // reveal is an ordinary number channel, every easing, clip, mask
+        // and additive layer the animation system already has applies to
+        // a draw-on for free.
+        const from = action.from ?? 0;
+        const to = action.to ?? 1;
+        const span0 = action.for ?? null;
+        const ease0 = action.ease ?? 'smooth';
+        // A drawing's authored `progress` is 1, so that a drawing with no
+        // actions is simply present. A reveal therefore cannot use
+        // `seedChannel` -- it must hold at `from` before it starts, or the
+        // drawing is fully visible for every frame preceding its own
+        // draw-on.
+        if (at0 > 0) {
+            key(timeline, nodeId, 'props.progress', 0, from, { type: 'number', ease: 'step' });
+        }
+        key(timeline, nodeId, 'props.progress', at0, from,
+            { type: 'number', ease: ease0, h: action.h });
+        // No duration is a legitimate request: `draw` without `for` is an
+        // instant reveal, matching how `show` behaves.
+        key(timeline, nodeId, 'props.progress', at0 + (span0 ?? 0), to,
+            { type: 'number', ease: ease0, h: action.h });
+        return;
+    }
+
     const cast = castMap.get(action.target);
     if (!cast) return;
     const { rootId, charName, entry } = cast;
@@ -935,7 +990,7 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             const value = COLOR_CHANNELS.has(action.channel) && typeof action.value === 'string'
                 ? (colorOf?.(action.value) ?? action.value)
                 : action.value;
-            if (at > 0) seedChannel(scene, timeline, node, action.channel, value);
+            if (at > 0) seedChannel(scene, timeline, node, action.channel);
             key(timeline, node, action.channel, at, value, { ease, h });
             break;
         }
@@ -954,6 +1009,101 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
         }
         default:
             break;      // validate() already reported the unknown verb
+    }
+}
+
+/**
+ * Instantiate a scene's `drawings` as paint nodes.
+ *
+ * ```json
+ * "drawings": [{
+ *   "id": "sketch",
+ *   "at": [640, 360], "width": 900, "height": 540,
+ *   "layers": [
+ *     { "name": "under", "strokes": [
+ *         { "path": "M 100 400 C 300 120, 600 120, 800 400",
+ *           "brush": "pencil", "color": "ink", "size": 6 } ] },
+ *     { "name": "ink", "blend": "multiply", "strokes": [...] }
+ *   ]
+ * }]
+ * ```
+ *
+ * Then `{ "target": "sketch", "do": "draw", "for": 3 }` reveals it.
+ *
+ * # Why this shape
+ *
+ * Strokes are given as **SVG path data**, not coordinate lists. A curve is
+ * one line instead of two hundred numbers, the notation is the most widely
+ * published vector syntax there is, and the intent stays readable in the
+ * source. For an agent writing a film that difference is decisive: a long
+ * run of unstructured coordinates is exactly the output shape that drifts.
+ *
+ * Colours go through the scene palette like every other painted thing, so
+ * `"color": "ink"` resolves to the palette entry and a drawing restyles
+ * with the scene rather than carrying its own hard-coded hexes.
+ *
+ * The node carries the spec in `props.paint`; nothing is rasterised here.
+ * Compilation stays pure -- no canvas, no kernels, no DOM -- and the
+ * backend resolves the spec to a painter at mount, exactly as it already
+ * resolves an `image` node's asset id to a real image.
+ */
+function buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagnostics) {
+    const colorOf = (c) => (c == null ? null : (scenePalette[c] ?? c));
+
+    for (const [i, drawing] of (spec.drawings ?? []).entries()) {
+        const id = drawing.id ?? `drawing${i + 1}`;
+        const nodeId = `${sceneId}/${id}`;
+        const width = drawing.width ?? meta.width;
+        const height = drawing.height ?? meta.height;
+
+        const layers = (drawing.layers ?? [{ strokes: drawing.strokes ?? [] }])
+            .map((layer, li) => ({
+                name: layer.name ?? `layer${li + 1}`,
+                blend: layer.blend ?? 'normal',
+                opacity: layer.opacity ?? 1,
+                visible: layer.visible ?? true,
+                strokes: (layer.strokes ?? []).map((stroke) => ({
+                    ...stroke,
+                    color: colorOf(stroke.color) ?? '#000000',
+                })),
+            }));
+
+        const strokeCount = layers.reduce((n, l) => n + l.strokes.length, 0);
+        if (strokeCount === 0) {
+            diagnostics.push({
+                severity: 'warning', path: `scenes.${sceneId}.drawings.${id}`,
+                message: 'drawing has no strokes; it will render as nothing',
+            });
+        }
+        for (const layer of layers) {
+            for (const stroke of layer.strokes) {
+                if (!stroke.path && !stroke.points) {
+                    diagnostics.push({
+                        severity: 'warning', path: `scenes.${sceneId}.drawings.${id}`,
+                        message: `a stroke in layer "${layer.name}" has neither "path" nor "points"`,
+                    });
+                }
+            }
+        }
+
+        scene.add({
+            id: nodeId,
+            kind: 'paint',
+            parentId: groupId,
+            transform: { x: drawing.at?.[0] ?? meta.width / 2, y: drawing.at?.[1] ?? meta.height / 2 },
+            z: drawing.z ?? 40,
+            props: {
+                // The unrasterised spec. The backend turns this into a
+                // painter; the compiler never touches a canvas.
+                paint: { width, height, layers, background: drawing.background ?? null },
+                // Default 1, so a drawing with no `draw` action is simply
+                // present -- the same way a character with no actions
+                // stands in its rest pose rather than being invisible.
+                progress: drawing.progress ?? 1,
+                alpha: drawing.alpha ?? 1,
+                w: width, h: height, cx: true, cy: true,
+            },
+        });
     }
 }
 

@@ -45,9 +45,15 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Draw-on animation | **done** | A revealed stroke is a **prefix** of the whole one, so frame N is a pure function of N with no history. Driven by an ordinary number channel, so every easing and clip feature applies unchanged. |
 | Input stabilisation | **done** | `smoothPoints`, `pressureFromVelocity`. |
 | Brush sheet | **done** | `npm run make:brushes` → a PNG rendered entirely in Node, `node:zlib` only. |
-| Tests | **done** | 28. Total now **312**. |
-| Layers, textured brushes, wet media, tilt | — | 16-PAINT.md §6. |
-| Binding to a scene node / `film.json` | — | The mechanism is ready (`progress` is a number); only the binding is missing. |
+| Tests | **done** | 28 paint + 48 media (paths, nibs, grain, wet, layers, binding). Total now **364**. |
+| Layers + 13 W3C blend modes | **done** | `Document.js`. Named addressing, because an index means something else the moment a layer is inserted. 33 MB per layer at 1080p. |
+| Grain / textured brushes | **done** | `texture.js` — generated, not loaded, so a brush is four numbers rather than an asset. Canvas-locked by default: **paper tooth belongs to the paper**. |
+| Wet media and colour mixing | **done** | `smudge_stroke`. `smudge` and `colorRate` are **independent** — coupling them, as Krita's original engine did, makes a pure smear inexpressible. |
+| Chisel and calligraphic nibs | **done** | Elliptical dabs with `aspect`/`angle`. `fixed` vs `follow` are different instruments, not variations. |
+| SVG path input | **done** | `path.js`. One line instead of two hundred coordinates — the decisive ergonomic choice for agent authoring. |
+| `film.json` binding | **done** | `kind:'paint'` nodes from a scene's `drawings`, and a `draw` verb animating `props.progress`. |
+| Mutation audit | **done** | `npm run audit:tests` — 51 deliberate defects; 50 killed, 1 equivalent by construction. |
+| Masks, non-separable modes, asset textures, live input | — | 16-PAINT.md §8. |
 
 ### Verified by measurement, not assumption
 
@@ -64,6 +70,20 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 - An airbrush and a marker composite *identically* across separate
   strokes; `mode` is a within-stroke property, and the test that compares
   them had to be rewritten to use one self-crossing stroke.
+- **The mutation audit's first run found 12 survivors**, and most had one
+  cause: every test touching the new kernels reached the **wasm** backend,
+  so the whole JS fallback for blend modes, grain and smudge was
+  unverified. Conformance tests comparing the two backends now cover it.
+- Two tests were simply too weak to distinguish a defect: an `S` path
+  command checked by peak height pins down only half the control-point
+  reflection, and grain measured along one scanline samples only three
+  noise features. Both now assert the property that matters — tangent
+  continuity at the join, and deviation over the stroke's 2D core.
+- `seedChannel` declared a `value` parameter and **never used it**, so
+  every caller passing one was silently ignored. Removed.
+- Summed octaves of value noise concentrate around 0.5, so grain at
+  `strength: 0.7` delivered only ~0.4 of real modulation until the tile
+  was stretched to its own extremes.
 
 ### Verified by measurement, not assumption
 

@@ -187,11 +187,30 @@ export function pressureFromVelocity(points, { fast = 2.5, min = 0.35 } = {}) {
     return out;
 }
 
+/** Floats per dab: `x, y, radius, flow, angle, aspect`. Matches `STAMP_STRIDE`. */
+export const STAMP_STRIDE = 6;
+
 /**
- * Resample a stroke into `[x, y, radius, flow]` stamp quads.
+ * Resample a stroke into `[x, y, radius, flow, angle, aspect]` dabs.
  *
  * Returns `{ stamps, count, length }`, where `stamps` is a `Float32Array`
- * of `4 * count` values ready to hand straight to `Kernels.stampMask`.
+ * of `STAMP_STRIDE * count` values ready to hand straight to
+ * `Kernels.stampMask`.
+ *
+ * # The nib angle, which is easy to model backwards
+ *
+ * `brush.angleMode` chooses between two genuinely different instruments:
+ *
+ * * **`'fixed'`** -- the nib is held at a constant angle to the *paper*,
+ *   and the mark changes width as the stroke changes direction relative
+ *   to it. This is a calligraphic pen and a chisel marker, and that
+ *   direction-dependent swell is most of what makes lettering read as
+ *   lettering. Modelling it as following the stroke would produce a line
+ *   of constant width, which is exactly what it must not be.
+ *
+ * * **`'follow'`** -- the nib aligns with the direction of travel, plus
+ *   `brush.angle` as an offset. This is a flat bristle brush dragged
+ *   edge-on, and it gives a constant-width ribbon.
  *
  * # Spacing
  *
@@ -222,7 +241,8 @@ export function resampleStroke(stroke, brush) {
     const total = lengths[lengths.length - 1];
 
     const quads = [];
-    const push = (x, y, s, i) => {
+    const follow = brush.angleMode === 'follow';
+    const push = (x, y, s, i, dirAngle) => {
         // Pressure drives diameter through a curve, so a brush can be made
         // to respond gently (exponent > 1) or sharply (< 1).
         const pressure = Math.min(1, Math.max(0, s));
@@ -233,33 +253,36 @@ export function resampleStroke(stroke, brush) {
         let flow = brush.flow * flowF;
 
         if (brush.jitterSize > 0) {
-            diameter *= 1 - brush.jitterSize * rand(stroke.seed ?? 0, quads.length, 1);
+            diameter *= 1 - brush.jitterSize * rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 1);
         }
         let jx = 0, jy = 0;
         if (brush.jitterPos > 0) {
             const r = brush.jitterPos * size * 0.5;
-            jx = (rand(stroke.seed ?? 0, quads.length, 2) * 2 - 1) * r;
-            jy = (rand(stroke.seed ?? 0, quads.length, 3) * 2 - 1) * r;
+            jx = (rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 2) * 2 - 1) * r;
+            jy = (rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 3) * 2 - 1) * r;
         }
         if (brush.jitterFlow > 0) {
-            flow *= 1 - brush.jitterFlow * rand(stroke.seed ?? 0, quads.length, 4);
+            flow *= 1 - brush.jitterFlow * rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 4);
         }
 
         const radius = Math.max(0.05, diameter * 0.5);
-        if (flow > 0) quads.push(x + jx, y + jy, radius, Math.min(1, flow));
+        const angle = follow ? dirAngle + brush.angle : brush.angle;
+        if (flow > 0) {
+            quads.push(x + jx, y + jy, radius, Math.min(1, flow), angle, brush.aspect);
+        }
     };
 
     if (total <= 1e-9) {
         // A tap must leave a mark.
-        push(points[0].x, points[0].y, points[0].p ?? 1, 0);
-        return { stamps: Float32Array.from(quads), count: quads.length / 4, length: 0 };
+        push(points[0].x, points[0].y, points[0].p ?? 1, 0, 0);
+        return { stamps: Float32Array.from(quads), count: quads.length / STAMP_STRIDE, length: 0 };
     }
 
     let travelled = 0;
     let segment = 1;
     const limit = Math.ceil(total / Math.max(0.05, brush.spacing * size * brush.minSize)) + 8;
 
-    while (travelled <= total && quads.length / 4 < limit) {
+    while (travelled <= total && quads.length / STAMP_STRIDE < limit) {
         while (segment < points.length - 1 && lengths[segment] < travelled) segment++;
         const a = points[segment - 1], b = points[segment];
         const span = lengths[segment] - lengths[segment - 1];
@@ -269,7 +292,9 @@ export function resampleStroke(stroke, brush) {
         const x = a.x + (b.x - a.x) * tc;
         const y = a.y + (b.y - a.y) * tc;
         const p = (a.p ?? 1) + ((b.p ?? 1) - (a.p ?? 1)) * tc;
-        push(x, y, p, travelled);
+        // Direction of travel, used only when the nib follows the stroke.
+        const dirAngle = follow ? Math.atan2(b.y - a.y, b.x - a.x) : 0;
+        push(x, y, p, travelled, dirAngle);
 
         // Step by the mark being made here, not by the nominal size.
         const localSize = Math.max(
@@ -279,7 +304,7 @@ export function resampleStroke(stroke, brush) {
         travelled += Math.max(0.35, brush.spacing * localSize);
     }
 
-    return { stamps: Float32Array.from(quads), count: quads.length / 4, length: total };
+    return { stamps: Float32Array.from(quads), count: quads.length / STAMP_STRIDE, length: total };
 }
 
 /**

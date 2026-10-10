@@ -17,7 +17,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadKernels } from '../../src/kernels/index.js';
+import { loadKernels, STAMP_STRIDE } from '../../src/kernels/index.js';
 import { loadParallelKernels, parallelAvailable } from '../../src/kernels/parallel.js';
 
 const SERIAL = await loadKernels({ prefer: 'wasm' });
@@ -182,9 +182,10 @@ test('stampMask: parallel is bit-identical to serial, in both modes', { skip }, 
     // Stamps deliberately placed on band boundaries, which is where a
     // clipped bounding box goes wrong.
     const count = 60;
-    const stamps = new Float32Array(count * 4);
+    const stamps = new Float32Array(count * STAMP_STRIDE);
     for (let i = 0; i < count; i++) {
-        stamps.set([10 + (i * 2.7) % (w - 20), (i * h) / count, 9 + (i % 4), 0.3], i * 4);
+        stamps.set([10 + (i * 2.7) % (w - 20), (i * h) / count, 9 + (i % 4), 0.3,
+            (i % 5) * 0.5, i % 4 === 0 ? 0.4 : 1], i * STAMP_STRIDE);
     }
     for (const mode of [0, 1]) {
         const run = async (K, parallel) => {

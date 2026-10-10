@@ -95,11 +95,27 @@ for (const [i, name] of BRUSH_NAMES.entries()) {
     if (spec.erase) {
         // An eraser needs something to erase, so lay a solid band first
         // and cut through it. Erasing an empty surface shows nothing, and
-        // a sheet with two blank rows would look like a bug.
+        // a sheet with blank rows would look like a bug.
         const band = [];
         for (let x = 50; x <= W - 40; x += 6) band.push({ x, y, p: 1 });
         surface.draw({ points: band, brush: 'pen', size: 64, color: '#c2452f', opacity: 1 });
         surface.draw({ points: wave(y, { amp: 18 }), brush: name, size: 26 });
+    } else if (spec.wet) {
+        // A wet brush has nothing to say against an empty canvas -- its
+        // whole character is what it picks up. So the row is prepared with
+        // adjacent bands of colour and the brush is dragged across them,
+        // which is exactly the case a smear is for.
+        const bands = ['#1f6fb2', '#c9a227', '#9c3d8f', '#2f8f57'];
+        for (const [bi, color] of bands.entries()) {
+            const x0 = 60 + bi * 220;
+            const run = [];
+            for (let x = x0; x < x0 + 215; x += 5) run.push({ x, y, p: 1 });
+            surface.draw({ points: run, brush: 'pen', size: 58, color, opacity: 1 });
+        }
+        surface.draw({
+            points: wave(y, { from: 70, to: W - 60, amp: 14, n: 420 }),
+            brush: name, size: 30, color: '#f2f2f2', seed: 70 + i,
+        });
     } else {
         // The fine brushes are drawn smaller, as they would be used.
         const size = name === 'pencil' || name === 'pen' ? 7 : 22;
@@ -152,5 +168,8 @@ for (const [i, name] of BRUSH_NAMES.entries()) {
         + `${b.mode === 1 ? 'build-up' : 'peak    '}  `
         + `${b.taper > 0 ? `taper ${b.taper}` : 'no taper'}`
         + `${b.jitterPos > 0 ? `  jitter ${b.jitterPos}` : ''}`
+        + `${b.grain > 0 ? `  grain ${b.grain} ${b.grainMode}` : ''}`
+        + `${b.aspect < 1 ? `  nib ${b.aspect} ${b.angleMode}` : ''}`
+        + `${b.wet ? `  WET smudge ${b.smudge} colour ${b.colorRate}` : ''}`
         + `${b.erase ? '  ERASE' : ''}`);
 }

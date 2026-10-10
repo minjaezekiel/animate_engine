@@ -51,7 +51,9 @@
     "test:parallel": "node --test test/core/kernels-parallel.test.mjs",
     "test:kernels:browser": "node test/e2e/kernels-browser.mjs",
     "test:paint": "node --test test/core/paint.test.mjs",
-    "make:brushes": "node scripts/make-brush-sheet.mjs"
+    "make:brushes": "node scripts/make-brush-sheet.mjs",
+    "test:media": "node --test test/core/paint-media.test.mjs",
+    "audit:tests": "node scripts/mutation-audit.mjs"
   },
   "keywords": [
     "animation",

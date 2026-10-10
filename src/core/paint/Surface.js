@@ -77,9 +77,18 @@ export class PaintSurface {
      *   [`draw`] always runs on the main thread, because a synchronous
      *   method cannot await workers.
      */
-    constructor(kernels, width, height, { pool } = {}) {
+    constructor(kernels, width, height, { pool, textures } = {}) {
         this.kernels = kernels;
         this.pool = pool ?? null;
+        /**
+         * Named grain tiles, for brushes that set `grainAsset`.
+         *
+         * A `Map<string, {data, width, height}>`, typically built with
+         * `textureFromImage`. Keeping it a plain map rather than a loader
+         * is what keeps `core/paint` free of the DOM: whoever decoded the
+         * image owns that, and core only ever sees bytes.
+         */
+        this.textures = textures ?? null;
         this.width = width;
         this.height = height;
 
@@ -105,6 +114,22 @@ export class PaintSurface {
          * @type {Map<string, {buf: object, width: number, height: number}>}
          */
         this._grain = new Map();
+        /**
+         * Bumped by anything that changes the pixels.
+         *
+         * `PaintDocument` compares these to decide how much of a flatten
+         * it can skip. A counter rather than a dirty flag, because the
+         * document needs to know *whether it has already seen this state*,
+         * not merely that something happened at some unspecified point.
+         *
+         * It must be initialised here. Left undefined, `version++` yields
+         * `NaN`, every signature interpolates the constant string "NaN",
+         * change detection never fires, and the incremental flatten
+         * returns a stale composite forever -- with no error anywhere.
+         * `test/core/paint-media.test.mjs` asserts a fresh surface starts
+         * at 0 for exactly that reason.
+         */
+        this.version = 0;
     }
 
     /**
@@ -116,10 +141,23 @@ export class PaintSurface {
      */
     _texture(b) {
         if (!b.grain || b.grain <= 0) return null;
-        const key = `${b.grainSeed}|${b.grain}`;
+        const key = `${b.grainAsset ?? ''}|${b.grainSeed}|${b.grain}`;
         let tile = this._grain.get(key);
         if (!tile) {
-            const made = makeGrainTexture({ seed: b.grainSeed, strength: b.grain });
+            // A named asset wins over the generated field. An asset that
+            // is named but missing falls back to generated grain with a
+            // warning rather than dropping texture silently -- a brush
+            // that quietly stopped being textured is very hard to notice
+            // in a render that otherwise looks fine.
+            let made = null;
+            if (b.grainAsset) {
+                made = this.textures?.get?.(b.grainAsset) ?? null;
+                if (!made) {
+                    console.warn(`jirex paint: no grain texture "${b.grainAsset}"; `
+                        + 'falling back to generated grain');
+                }
+            }
+            if (!made) made = makeGrainTexture({ seed: b.grainSeed, strength: b.grain });
             const buf = this.kernels.u8(made.data.length);
             buf.array.set(made.data);
             tile = { buf, width: made.width, height: made.height };
@@ -137,6 +175,7 @@ export class PaintSurface {
     /** Erase the surface to transparent. */
     clear() {
         this.kernels.clearF32(this.buffer, this.width * this.height * 4);
+        this.version++;
     }
 
     /**
@@ -204,6 +243,7 @@ export class PaintSurface {
             K.smudgeStroke(this.buffer, w, h, buf, count, brushSpec.hardness,
                 brushSpec.smudge, brushSpec.colorRate, brushSpec.sampleRadius,
                 r, g, b, opacity);
+            this.version++;
             return count;
         }
 
@@ -212,6 +252,7 @@ export class PaintSurface {
             0, h, this._texture(brushSpec));
         K.compositeMask(this.buffer, this.mask, w, h, r, g, b, opacity,
             brushSpec.erase ? 1 : 0);
+        this.version++;
         return count;
     }
 
@@ -242,6 +283,7 @@ export class PaintSurface {
         const opacity = (stroke.opacity ?? 1) * brushSpec.opacity;
         await this.pool.compositeMask(this.buffer, this.mask, w, h, r, g, b, opacity,
             brushSpec.erase ? 1 : 0);
+        this.version++;
         return count;
     }
 
@@ -289,6 +331,23 @@ export class PaintSurface {
         const out = this._u8buf.array;
         if (target) { target.set(out); return target; }
         return Uint8Array.from(out);
+    }
+
+    /**
+     * Fill the whole surface with one premultiplied colour.
+     *
+     * Exists for masks: a mask that starts opaque hides nothing, which is
+     * the sane default for "add a mask and then erase parts of it". The
+     * alternative, starting transparent, makes the layer vanish the moment
+     * a mask is added, which every user reads as a bug.
+     */
+    fill(r = 0, g = 0, b = 0, a = 1) {
+        const arr = this.buffer.array;
+        for (let i = 0; i < this.width * this.height; i++) {
+            arr[i * 4] = r * a; arr[i * 4 + 1] = g * a;
+            arr[i * 4 + 2] = b * a; arr[i * 4 + 3] = a;
+        }
+        this.version++;
     }
 
     /** Drop a stroke's cached resampling and its kernel buffer. */

@@ -46,15 +46,29 @@ import { MODE_NAMES, modeId } from '../../kernels/js/blend.js';
 
 export { MODE_NAMES as BLEND_MODE_NAMES };
 
-/** One layer: a surface plus how it composites. */
+/** One layer: a surface, a mask, and how it composites. */
 export class PaintLayer {
-    constructor(surface, { name, blend = 'normal', opacity = 1, visible = true } = {}) {
+    constructor(surface, { name, blend = 'normal', opacity = 1, visible = true,
+                           clip = false } = {}) {
         this.surface = surface;
         this.name = name;
         /** A name from `BLEND_MODE_NAMES`. Validated on assignment, not at flatten. */
         this.blend = blend;
         this.opacity = opacity;
         this.visible = visible;
+        /**
+         * Clip to the layer below.
+         *
+         * A clipping group means "show this layer only where the one
+         * beneath it is opaque" -- how a shading or colour pass is
+         * confined to a character without re-cutting its silhouette by
+         * hand. The base is the nearest layer below that is not itself
+         * clipped, so a run of clipped layers all share one base, which is
+         * what every tool that has this feature does.
+         */
+        this.clip = clip;
+        /** @type {PaintSurface|null} the layer's own mask, if any */
+        this.mask = null;
         // Fail here rather than at flatten time, so a typo is reported
         // where it was written instead of several hundred strokes later.
         modeId(blend);
@@ -66,6 +80,65 @@ export class PaintLayer {
     drawAll(strokes, options) { return this.surface.drawAll(strokes, options); }
     /** Erase this layer to transparent. */
     clear() { this.surface.clear(); }
+
+    /**
+     * Give this layer a mask, and return it for painting.
+     *
+     * The mask is an ordinary `PaintSurface`, so it is painted with the
+     * ordinary brushes -- a soft airbrush mask, a hard pen mask, a
+     * textured one -- and the blend kernel reads its alpha channel
+     * directly. No conversion, no second code path, no extra buffer.
+     *
+     * It starts **opaque**, hiding nothing. Starting transparent would
+     * make the layer vanish the instant a mask is added, which every user
+     * reads as a bug rather than as a blank mask.
+     *
+     * @param {object} [options]
+     * @param {number} [options.fill=1] starting coverage, 0..1
+     */
+    addMask({ fill = 1 } = {}) {
+        if (!this.mask) {
+            this.mask = new PaintSurface(
+                this.surface.kernels, this.surface.width, this.surface.height,
+                { pool: this.surface.pool });
+        }
+        this.mask.clear();
+        if (fill > 0) this.mask.fill(0, 0, 0, Math.min(1, fill));
+        return this.mask;
+    }
+
+    /**
+     * Paint on the mask.
+     *
+     * Painting black with alpha *adds* coverage and erasing removes it,
+     * so `{ brush: 'softEraser' }` hides part of the layer and a normal
+     * brush reveals it again -- the same gesture as in any paint program.
+     */
+    paintMask(stroke, options) {
+        if (!this.mask) this.addMask();
+        return this.mask.draw(stroke, options);
+    }
+
+    /** Drop the mask and release its buffers. */
+    removeMask() {
+        if (this.mask) { this.mask.dispose(); this.mask = null; }
+    }
+
+    /**
+     * A cheap key that changes whenever this layer's contribution would.
+     *
+     * Used by the document's incremental flatten. It covers the pixels
+     * (via the surfaces' version counters) *and* the compositing
+     * properties, because `layer.visible = false` is a plain assignment
+     * with no setter to hook -- and a dirty-flag scheme that missed it
+     * would leave a hidden layer on screen, which is exactly the kind of
+     * staleness that makes people distrust incremental rendering.
+     */
+    signature() {
+        return `${this.surface.version}|${this.blend}|${this.opacity}`
+            + `|${this.visible ? 1 : 0}|${this.clip ? 1 : 0}`
+            + `|${this.mask ? this.mask.version : -1}`;
+    }
 }
 
 export class PaintDocument {
@@ -86,6 +159,15 @@ export class PaintDocument {
         /** The flattened result. Allocated on first flatten, not before. */
         this.composite = null;
         this._u8buf = null;
+
+        // --- incremental flatten state ---
+        // `_prefix` holds the composite of layers [0, _prefixUpTo). One
+        // extra full buffer, allocated only when incremental flattening
+        // actually kicks in.
+        this._prefix = null;
+        this._prefixUpTo = -1;
+        /** @type {string[]|null} layer signatures as of the last flatten */
+        this._seen = null;
     }
 
     /**
@@ -93,14 +175,15 @@ export class PaintDocument {
      *
      * @returns {PaintLayer}
      */
-    addLayer({ name, blend = 'normal', opacity = 1, visible = true, at } = {}) {
+    addLayer({ name, blend = 'normal', opacity = 1, visible = true, clip = false, at } = {}) {
         const layerName = name ?? `layer${this.layers.length + 1}`;
         if (this.layers.some((l) => l.name === layerName)) {
             throw new Error(`duplicate layer name "${layerName}"`);
         }
         const surface = new PaintSurface(this.kernels, this.width, this.height,
             { pool: this.pool });
-        const layer = new PaintLayer(surface, { name: layerName, blend, opacity, visible });
+        const layer = new PaintLayer(surface, { name: layerName, blend, opacity, visible, clip });
+        this._invalidate();
         if (at === undefined || at >= this.layers.length) this.layers.push(layer);
         else this.layers.splice(Math.max(0, at), 0, layer);
         return layer;
@@ -135,7 +218,9 @@ export class PaintDocument {
     removeLayer(ref) {
         const layer = this.layer(ref);
         this.layers.splice(this.layers.indexOf(layer), 1);
+        layer.removeMask();
         layer.surface.dispose();
+        this._invalidate();
     }
 
     /** Move a layer to a new index in the stack. */
@@ -144,6 +229,38 @@ export class PaintDocument {
         const from = this.layers.indexOf(layer);
         this.layers.splice(from, 1);
         this.layers.splice(Math.max(0, Math.min(this.layers.length, to)), 0, layer);
+        this._invalidate();
+    }
+
+    /**
+     * Discard the incremental cache.
+     *
+     * Any change to the *stack* -- adding, removing or reordering -- is
+     * handled by throwing the cache away rather than by trying to patch
+     * it. Those are rare next to painting, and the bookkeeping to do it
+     * precisely is the part of an incremental renderer most likely to be
+     * subtly wrong.
+     */
+    _invalidate() {
+        this._seen = null;
+        this._prefixUpTo = -1;
+    }
+
+    /**
+     * The layer a clipped layer at `index` clips to.
+     *
+     * The nearest layer below that is not itself clipped, so a run of
+     * clipped layers shares one base -- the behaviour of every tool that
+     * has clipping groups. Returns null when there is none, in which case
+     * the clip is ignored rather than hiding the layer entirely: a
+     * clipping group with nothing beneath it is an authoring mistake, and
+     * silently blanking the layer makes it very hard to see which one.
+     */
+    _clipBase(index) {
+        for (let i = index - 1; i >= 0; i--) {
+            if (!this.layers[i].clip) return this.layers[i];
+        }
+        return null;
     }
 
     /** The composite buffer, allocated on demand. */
@@ -157,38 +274,131 @@ export class PaintDocument {
     /**
      * Composite every visible layer, bottom to top, into `composite`.
      *
-     * The target is cleared first. Flatten is not incremental: there is no
-     * dirty tracking, so changing one layer re-composites all of them.
-     * That is the right trade at this stage — a flatten is a handful of
-     * linear passes and the bookkeeping to avoid them would be easy to get
-     * subtly wrong, in a way that shows as a stale layer on screen.
+     * **Incremental.** Painting usually touches one layer, and in a deep
+     * document re-compositing the eleven below it every stroke is most of
+     * the cost of drawing. So the composite of the layers *below* the
+     * lowest changed one is cached in `_prefix`, and a flatten resumes
+     * from there.
+     *
+     * The scheme is deliberately the simple one: a single prefix buffer
+     * and a linear scan for the lowest change. Caching a buffer per layer
+     * would make an edit near the bottom cheap too, at the cost of a full
+     * frame of memory per layer -- 33 MB each at 1080p -- for a case that
+     * is rare. One buffer turns the common case from O(layers) into O(1)
+     * and leaves the rare case where it was.
+     *
+     * Change is detected by comparing [`PaintLayer.signature`] values
+     * rather than by dirty flags, because `layer.visible = false` is a
+     * plain assignment with nothing to hook. A missed change leaves a
+     * stale layer on screen, which is the failure that makes people stop
+     * trusting incremental rendering, so the signature covers the
+     * compositing properties as well as the pixels.
      */
     flatten() {
-        const target = this._target();
         const { width: w, height: h, kernels: K } = this;
-        K.clearF32(target, w * h * 4);
-        for (const layer of this.layers) {
-            if (!layer.visible || layer.opacity <= 0) continue;
-            K.blendLayers(target, layer.surface.buffer, w, h, layer.blend, layer.opacity);
+        const target = this._target();
+        const sigs = this.layers.map((l) => l.signature());
+
+        // How much of the previous flatten still holds.
+        let from = 0;
+        if (this._seen && this._seen.length === sigs.length) {
+            while (from < sigs.length && this._seen[from] === sigs[from]) from++;
+            if (from === sigs.length) return target;      // nothing changed at all
         }
+
+        if (from > 0 && this._prefixUpTo === from && this._prefix) {
+            K.copyF32(this._prefix, target, w * h * 4);
+        } else {
+            K.clearF32(target, w * h * 4);
+            for (let i = 0; i < from; i++) this._compose(target, i);
+            if (from > 0) {
+                if (!this._prefix) this._prefix = K.f32(w * h * 4);
+                K.copyF32(target, this._prefix, w * h * 4);
+                this._prefixUpTo = from;
+            } else {
+                // Nothing was saved, so whatever `_prefix` still holds is
+                // stale. Leaving `_prefixUpTo` pointing at it is the bug
+                // that matters here: painting low in the stack and then
+                // high again would reuse a prefix captured *before* the
+                // low edit, silently dropping it from the composite.
+                this._prefixUpTo = -1;
+            }
+        }
+
+        for (let i = from; i < this.layers.length; i++) this._compose(target, i);
+        this._seen = sigs;
         return target;
     }
 
-    /** As [`flatten`], across the worker pool when one was supplied. */
+    /** Composite one layer onto `target`, honouring its mask and clip. */
+    _compose(target, index) {
+        const layer = this.layers[index];
+        if (!layer.visible || layer.opacity <= 0) return;
+        const base = layer.clip ? this._clipBase(index) : null;
+        this.kernels.blendLayers(target, layer.surface.buffer, this.width, this.height,
+            layer.blend, layer.opacity, {
+                mask: layer.mask ? layer.mask.buffer : null,
+                clip: base ? base.surface.buffer : null,
+                // The base's own mask too: masking a base layer must hide
+                // what is clipped to it.
+                clipMask: base?.mask ? base.mask.buffer : null,
+            });
+    }
+
+    /** Re-composite everything, ignoring the incremental cache. */
+    flattenFull() {
+        this._invalidate();
+        return this.flatten();
+    }
+
+    /**
+     * As [`flatten`], across the worker pool when one was supplied.
+     *
+     * The stack is sequential by necessity -- each layer composites onto
+     * the result of the one below -- so the parallelism is *within* each
+     * blend, across rows. The incremental prefix applies here too.
+     */
     async flattenAsync() {
         if (!this.pool) return this.flatten();
+        const { width: w, height: h, kernels: K } = this;
         const target = this._target();
-        const { width: w, height: h } = this;
-        this.kernels.clearF32(target, w * h * 4);
-        for (const layer of this.layers) {
-            if (!layer.visible || layer.opacity <= 0) continue;
-            // Sequential by necessity: each layer composites onto the
-            // result of the one below, so the stack cannot be split. The
-            // parallelism is *within* each blend, across rows.
-            await this.pool.blendLayers(target, layer.surface.buffer, w, h,
-                layer.blend, layer.opacity);
+        const sigs = this.layers.map((l) => l.signature());
+
+        let from = 0;
+        if (this._seen && this._seen.length === sigs.length) {
+            while (from < sigs.length && this._seen[from] === sigs[from]) from++;
+            if (from === sigs.length) return target;
         }
+
+        if (from > 0 && this._prefixUpTo === from && this._prefix) {
+            K.copyF32(this._prefix, target, w * h * 4);
+        } else {
+            K.clearF32(target, w * h * 4);
+            for (let i = 0; i < from; i++) await this._composeAsync(target, i);
+            if (from > 0) {
+                if (!this._prefix) this._prefix = K.f32(w * h * 4);
+                K.copyF32(target, this._prefix, w * h * 4);
+                this._prefixUpTo = from;
+            } else {
+                this._prefixUpTo = -1;      // see `flatten`
+            }
+        }
+
+        for (let i = from; i < this.layers.length; i++) await this._composeAsync(target, i);
+        this._seen = sigs;
         return target;
+    }
+
+    async _composeAsync(target, index) {
+        const layer = this.layers[index];
+        if (!layer.visible || layer.opacity <= 0) return;
+        const base = layer.clip ? this._clipBase(index) : null;
+        await this.pool.blendLayers(target, layer.surface.buffer, this.width, this.height,
+            layer.blend, layer.opacity, {
+                mask: layer.mask ? layer.mask.buffer : null,
+                clip: base ? base.surface.buffer : null,
+                clipMask: base?.mask ? base.mask.buffer : null,
+            });
     }
 
     /**
@@ -212,9 +422,11 @@ export class PaintDocument {
 
     /** Release every layer and the composite. */
     dispose() {
-        for (const layer of this.layers) layer.surface.dispose();
+        for (const layer of this.layers) { layer.removeMask(); layer.surface.dispose(); }
         this.layers = [];
         if (this.composite) { this.composite.free(); this.composite = null; }
+        if (this._prefix) { this._prefix.free(); this._prefix = null; }
         if (this._u8buf) { this._u8buf.free(); this._u8buf = null; }
+        this._invalidate();
     }
 }

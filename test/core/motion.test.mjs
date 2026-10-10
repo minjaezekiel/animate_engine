@@ -1,210 +1,346 @@
 /**
- * Layered evaluation, timing texture, smears and the motion-graphics draw
- * layer -- the systems added after a sixty-second fight rendered 77% frozen
- * while every other check reported clean.
+ * Photo motion: Ken Burns, parallax, wave, puppet.
  *
- * Each asserts the property that was MISSING, not merely that the new code
- * runs: a cycle survives a pose, a drawing is held for two frames while the
- * camera is not, a trail lags the thing it trails, a trimmed stroke is
- * shorter than an untrimmed one.
+ *   npm run test:motion
+ *
+ * The assertions that carry the most weight are the ones about *frame
+ * coverage*. Every effect displaces the mesh, and any displacement can
+ * uncover the frame edge -- which shows as a bright band marching along
+ * the border and is instantly disqualifying. It is also invisible to
+ * every other kind of check, so it is tested directly, across amplitudes
+ * and across the whole time range rather than at one convenient moment.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { loadKernels } from '../../src/kernels/index.js';
+import { PhotoMotion, EFFECTS } from '../../src/core/motion/PhotoMotion.js';
 
-import { compileFilm } from '../../src/core/script/compile.js';
-import { samplePose, applyPose, createPoseBaseline, resetPose, Additive }
-    from '../../src/core/anim/Evaluator.js';
-import { createClip } from '../../src/core/anim/Clip.js';
-import { createTrack, setKey, trackValueAt } from '../../src/core/anim/Track.js';
-import { createTimeline, addClip, addInstance } from '../../src/core/anim/Timeline.js';
-import { Scene } from '../../src/core/scene/Scene.js';
-import { Canvas2DBackend } from '../../src/backends/canvas2d/Canvas2DBackend.js';
-import { RecordingContext, RecordingPath2D } from '../../src/backends/canvas2d/RecordingContext.js';
-import { drawShape, BLEND_MODES } from '../../src/backends/canvas2d/shapes.js';
-import { applyToPoint } from '../../src/core/math/mat2d.js';
-import { analyseMotion } from '../../src/core/script/staging.js';
+const K = await loadKernels({ prefer: 'wasm' });
 
-const film = (extra = {}, shots = []) => ({
-    version: 'jirex.film/1',
-    meta: { fps: 24, width: 1280, height: 720, ...(extra.meta ?? {}) },
-    characters: { a: { generate: {}, proportions: { height: 300 },
-                       poses: { pin: { torso: { sy: 1 } } } } },
-    scenes: [{
-        id: 's1', template: { template: 'hillside' },
-        cast: [{ character: 'a', as: 'a', at: [200], ...(extra.cast ?? {}) }],
-        shots,
-    }],
-});
-
-// ------------------------------------------------------------------ layering
-
-test('an additive clip layers a delta, a masked one leaves other parts alone', () => {
-    const make = ({ blend, mask, weight = 1 }) => {
-        const arm = createTrack({ target: 'arm', path: 'transform.rot', type: 'number' });
-        setKey(arm, 0, 0.5); setKey(arm, 1, 1.5);
-        const leg = createTrack({ target: 'leg', path: 'transform.rot', type: 'number' });
-        setKey(leg, 0, 0); setKey(leg, 1, 2);
-        const tl = createTimeline({ duration: 2 });
-        addClip(tl, createClip({ id: 'c', duration: 1, loop: 'repeat',
-                                 tracks: [arm, leg], blend, mask }));
-        addInstance(tl, { clipId: 'c', start: 0, end: 2, scopeId: 'a', weight });
-        const sc = new Scene();
-        sc.add({ id: 'a', kind: 'group' });
-        sc.add({ id: 'a/arm', kind: 'rect', transform: { rot: 2 } }, 'a');
-        sc.add({ id: 'a/leg', kind: 'rect', transform: { rot: 9 } }, 'a');
-        applyPose(sc, samplePose(tl, 0.5));
-        return [sc.get('a/arm').transform.rot, sc.get('a/leg').transform.rot];
-    };
-
-    // Override replaces outright; additive offsets from the clip's own rest.
-    assert.deepEqual(make({ blend: 'override' }).map((v) => +v.toFixed(3)), [1, 1]);
-    assert.deepEqual(make({ blend: 'add' }).map((v) => +v.toFixed(3)), [2.5, 10]);
-    assert.deepEqual(make({ blend: 'add', weight: 0.5 }).map((v) => +v.toFixed(3)), [2.25, 9.5]);
-
-    // A mask is how an upper-body gesture stops being able to halt the legs.
-    assert.deepEqual(make({ blend: 'override', mask: ['arm'] }).map((v) => +v.toFixed(3)),
-                     [1, 9], 'the unmasked part keeps its authored value');
-});
-
-test('scale layers as a ratio and rotation as an offset', () => {
-    const t = createTrack({ target: 'n', path: 'transform.sy', type: 'number' });
-    setKey(t, 0, 1); setKey(t, 1, 1.5);
-    const tl = createTimeline({ duration: 2 });
-    addClip(tl, createClip({ id: 'c', duration: 1, loop: 'repeat', tracks: [t], blend: 'add' }));
-    addInstance(tl, { clipId: 'c', start: 0, end: 2, scopeId: 'a' });
-    const sc = new Scene();
-    sc.add({ id: 'a', kind: 'group' });
-    sc.add({ id: 'a/n', kind: 'rect', transform: { sy: 2 } }, 'a');
-    applyPose(sc, samplePose(tl, 0.5));
-    // A scale that layered as an offset would read 2.25; as a ratio it is 2.5.
-    assert.ok(Math.abs(sc.get('a/n').transform.sy - 2.5) < 1e-9,
-        `scale is a ratio, got ${sc.get('a/n').transform.sy}`);
-});
-
-test('a cycle survives a pose on the same channel', () => {
-    const f = film({}, [{ id: 'x', duration: 4, actions: [
-        { target: 'a', do: 'play', action: 'breathe', at: 0 },
-        { target: 'a', do: 'pose', pose: 'pin', at: 0.5 },
-    ] }]);
-    const { scene, timeline } = compileFilm(f, {});
-    const baseline = createPoseBaseline(scene, timeline);
-    const sy = (t) => {
-        resetPose(scene, baseline);
-        applyPose(scene, samplePose(timeline, t));
-        return scene.get('s1/a/torso').transform.sy;
-    };
-    assert.notEqual(sy(0.3), 1, 'breathing before the pose');
-    assert.notEqual(sy(2.5), 1, 'and still breathing long after it');
-});
-
-// -------------------------------------------------------------------- timing
-
-test('on twos holds the cast for two frames and leaves the camera on ones', () => {
-    const shots = [{ id: 'x', duration: 2,
-        camera: { from: { x: 0, y: 0, zoom: 1 }, to: { x: 200, y: 0, zoom: 1 } },
-        actions: [{ target: 'a', do: 'move', to: [1000], for: 2 }] }];
-    const read = (step) => {
-        const { timeline } = compileFilm(film({ meta: step ? { step } : {} }, shots), {});
-        const at = (f, id, p) => samplePose(timeline, f / 24).get(id)?.get(p);
-        return {
-            cast: [0, 1, 2, 3].map((f) => +at(f, 's1/a', 'transform.x').toFixed(3)),
-            cam: [0, 1, 2, 3].map((f) => +at(f, '__camera', 'transform.x').toFixed(3)),
-        };
-    };
-    const ones = read(0), twos = read(2), threes = read(3);
-    assert.equal(new Set(ones.cast).size, 4, 'on ones every frame is a new drawing');
-    assert.equal(twos.cast[0], twos.cast[1], 'on twos frames pair up');
-    assert.notEqual(twos.cast[1], twos.cast[2]);
-    assert.equal(threes.cast[0], threes.cast[2], 'on threes they come in threes');
-    // The camera must not judder: a quantised pan is the classic mistake.
-    assert.equal(new Set(twos.cam).size, 4, 'the camera stays on ones');
-});
-
-test('motion is measured per DRAWING, so on twos is not scored as frozen', () => {
-    const shots = [{ id: 'x', duration: 2,
-        actions: [{ target: 'a', do: 'move', to: [1000], for: 2 }] }];
-    const frozenOf = (step) => {
-        const f = film({ meta: step ? { step } : {} }, shots);
-        return analyseMotion(compileFilm(f, {}), f).frozen;
-    };
-    assert.ok(frozenOf(0) < 0.05, 'a continuous move is not frozen on ones');
-    assert.ok(frozenOf(2) < 0.05,
-        'and is not frozen on twos either -- every second frame is a duplicate by construction');
-});
-
-// -------------------------------------------------------------------- smears
-
-test('a trail lags the drawing it trails, and only during the shots that ask', () => {
-    const shots = [
-        { id: 'slow', duration: 1 },
-        { id: 'fast', duration: 2, actions: [{ target: 'a', do: 'move', to: [1000], for: 2 }] },
-    ];
-    const f = film({ cast: { echo: { frames: 3, spacing: 2, falloff: 0.5, shots: ['fast'] } } }, shots);
-    const { scene, timeline } = compileFilm(f, {});
-    const baseline = createPoseBaseline(scene, timeline);
-    resetPose(scene, baseline);
-    applyPose(scene, samplePose(timeline, 2.0));
-    const xs = ['s1/a', 's1/a#echo1', 's1/a#echo2', 's1/a#echo3']
-        .map((id) => applyToPoint(scene.worldMatrix(id), 0, 0)[0]);
-    for (let i = 1; i < xs.length; i++) {
-        assert.ok(xs[i] < xs[i - 1], `ghost ${i} trails behind ghost ${i - 1}`);
+/** An opaque test picture, with a near half and a far half in the depth map. */
+function scene(w = 96, h = 64) {
+    const source = new Uint8Array(w * h * 4);
+    const depth = new Uint8Array(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const near = x >= w / 2;
+            source[i] = near ? 240 : 60;
+            source[i + 1] = near ? 160 : 90;
+            source[i + 2] = near ? 70 : 150;
+            source[i + 3] = 255;
+            const d = near ? 235 : 25;
+            depth[i] = depth[i + 1] = depth[i + 2] = d;
+            depth[i + 3] = 255;
+        }
     }
-    // Gated: nothing shows during the shot that did not ask for it.
-    const alpha = timeline._index.get('s1/a#echo1\u0000props.alpha');
-    assert.equal(trackValueAt(alpha, 0.5), 0, 'no trail in the slow shot');
-    assert.ok(trackValueAt(alpha, 2.0) > 0, 'a trail in the fast one');
-    assert.ok(trackValueAt(alpha, 2.95) > 0);
+    return { source: { data: source, width: w, height: h },
+             depth: { data: depth, width: w, height: h } };
+}
+
+const make = (effects, extra = {}) => {
+    const s = scene();
+    return new PhotoMotion(K, {
+        width: 96, height: 64, duration: 2,
+        source: s.source, depth: s.depth, effects, ...extra,
+    });
+};
+
+/** Pixels with no coverage in the frame at `t`. */
+function uncovered(photo, t) {
+    const a = photo.renderAt(t).array;
+    let n = 0;
+    for (let i = 3; i < a.length; i += 4) if (a[i] < 0.5) n++;
+    return n;
+}
+
+test('the effect list is what the effects actually implement', () => {
+    // Guards against adding an effect and forgetting to publish it, which
+    // leaves it undiscoverable to anything enumerating the API.
+    assert.deepEqual([...EFFECTS].sort(), ['kenBurns', 'parallax', 'puppet', 'wave']);
 });
 
-// ----------------------------------------------------- motion-graphics layer
-
-test('a repeater draws many copies from one node, with accumulating offsets', () => {
-    const sc = new Scene();
-    sc.add({ id: 'ray', kind: 'path',
-             props: { d: 'M100,0 L300,0', stroke: '#fff', strokeWidth: 3,
-                      repeat: { count: 12, rot: 0.5, alpha: 0.9 } } });
-    const ctx = new RecordingContext({ width: 200, height: 200 });
-    new Canvas2DBackend({ width: 200, height: 200, ctx, Path2DImpl: RecordingPath2D })
-        .renderFrame(sc, null);
-    const strokes = ctx.calls.filter((c) => String(c).startsWith('stroke'));
-    assert.equal(strokes.length, 12, 'one node, twelve drawings');
-    const transforms = ctx.calls.filter((c) => String(c).startsWith('setTransform'));
-    assert.ok(new Set(transforms).size >= 12, 'each copy is placed differently');
+test('kenBurns scales about the frame centre, exactly', () => {
+    // Hand-computable: at zoom 2 about the centre of a 96x64 frame, the
+    // corner (0,0) must land at (-96, -64).
+    const photo = make([{ type: 'kenBurns', from: { zoom: 1 }, to: { zoom: 2 } }],
+        { duration: 1, overscan: 1 });
+    try {
+        photo.solveAt(0);
+        assert.deepEqual(Array.from(photo.verts.array.slice(0, 2)), [0, 0]);
+        // Centre is (48, 32), so (0,0) at 2x lands at 48 - 48*2 = -48.
+        photo.solveAt(1);
+        assert.deepEqual(Array.from(photo.verts.array.slice(0, 2)), [-48, -32]);
+    } finally { photo.dispose(); }
 });
 
-test('a trimmed stroke draws a fraction of its length; blend and glow are set and cleared', () => {
-    const draw = (props) => {
-        const ctx = new RecordingContext({ width: 100, height: 100 });
-        drawShape(ctx, { kind: 'path', props: { d: 'M0,0 L50,0', stroke: '#fff', ...props } },
-                  { Path2DImpl: RecordingPath2D });
-        return ctx;
+test('kenBurns pan is a fraction of the frame, not pixels', () => {
+    // So the same film renders correctly at 720p and 4K.
+    const photo = make([{ type: 'kenBurns', to: { x: 0.25 } }], { duration: 1, overscan: 1 });
+    try {
+        photo.solveAt(1);
+        assert.ok(Math.abs(photo.verts.array[0] - 24) < 1e-4,
+            `expected 0.25 * 96 = 24, got ${photo.verts.array[0]}`);
+    } finally { photo.dispose(); }
+});
+
+test('kenBurns eases by default, which is why a slow push does not jolt', () => {
+    const eased = make([{ type: 'kenBurns', to: { x: 1 } }], { duration: 1, overscan: 1 });
+    const linear = make([{ type: 'kenBurns', to: { x: 1 }, ease: 'linear' }],
+        { duration: 1, overscan: 1 });
+    try {
+        // Smoothstep(0.25) = 0.15625 against a linear 0.25.
+        eased.solveAt(0.25);
+        linear.solveAt(0.25);
+        assert.ok(eased.verts.array[0] < linear.verts.array[0] - 1,
+            'the eased curve should lag the linear one early on');
+        eased.solveAt(1); linear.solveAt(1);
+        assert.ok(Math.abs(eased.verts.array[0] - linear.verts.array[0]) < 1e-4,
+            'both must arrive at the same place');
+    } finally { eased.dispose(); linear.dispose(); }
+});
+
+test('parallax moves near and far in opposite directions', () => {
+    // The property that distinguishes parallax from a pan. If everything
+    // moved the same way it would just be a camera move.
+    const photo = make([{ type: 'parallax', amplitude: 0.1, orbit: [1, 0], speed: 1 }]);
+    try {
+        const n = photo.div + 1, mid = Math.floor(n / 2);
+        const nearIdx = mid * n + (n - 2);          // right half: near
+        const farIdx = mid * n + 1;                 // left half: far
+        const base = photo.baseVerts;
+        photo.solveAt(0.5);                         // quarter orbit: ox at maximum
+        const near = photo.verts.array[nearIdx * 2] - base[nearIdx * 2];
+        const far = photo.verts.array[farIdx * 2] - base[farIdx * 2];
+        assert.ok(Math.abs(near) > 1, `near barely moved: ${near}`);
+        assert.ok(Math.abs(far) > 1, `far barely moved: ${far}`);
+        assert.ok(Math.sign(near) !== Math.sign(far),
+            `near ${near.toFixed(2)} and far ${far.toFixed(2)} moved the same way; `
+            + 'that is a pan, not parallax');
+    } finally { photo.dispose(); }
+});
+
+test('parallax does nothing without a depth map', () => {
+    // Without one, every vertex reads depth 0, so `depth - focus` is the
+    // same constant everywhere and the effect degenerates into a uniform
+    // pan -- measured at nearly 8 pixels of unasked-for drift. An effect
+    // named "parallax" doing that silently is worse than doing nothing,
+    // so it is skipped and `photo_create` reports it.
+    const s = scene();
+    const photo = new PhotoMotion(K, {
+        width: 96, height: 64, duration: 2, source: s.source,
+        effects: [{ type: 'parallax', amplitude: 0.2, orbit: [1, 1] }],
+    });
+    try {
+        photo.solveAt(0.7);
+        const moved = Array.from(photo.verts.array)
+            .some((v, i) => Math.abs(v - photo.baseVerts[i]) > 1e-3);
+        assert.equal(moved, false, 'parallax moved something with no depth map');
+    } finally { photo.dispose(); }
+});
+
+test('the depth map is blurred before it displaces anything', () => {
+    // A hard depth edge pins the silhouette: vertices inside the subject
+    // move one way and vertices a cell outside move the other, so the
+    // subject stretches in place instead of sliding. Blurring spreads the
+    // discontinuity over several cells.
+    const s = scene();
+    const spec = {
+        width: 96, height: 64, duration: 2, source: s.source, depth: s.depth, grid: 24,
+        effects: [{ type: 'parallax', amplitude: 0.1 }],
     };
-    const plain = draw({});
-    assert.equal(plain.calls.filter((c) => String(c).startsWith('setLineDash')).length, 0,
-        'an untrimmed stroke sets no dash at all');
-
-    const trimmed = draw({ trim: { start: 0.25, end: 0.75 } });
-    const dash = trimmed.calls.find((c) => String(c).startsWith('setLineDash'));
-    const [, on, off] = String(dash).split(',').map(Number);
-    // The pattern is [drawn, skipped] where `skipped` is longer than any path
-    // the engine draws, so exactly one dash lands: the drawn run is the
-    // trimmed fraction of that reference length.
-    assert.ok(Math.abs(on / off - 0.5) < 1e-6, `half the length is drawn, got ${on}/${off}`);
-
-    // A fully closed trim draws nothing rather than drawing everything.
-    assert.equal(draw({ trim: { start: 0.5, end: 0.5 } })
-        .calls.filter((c) => String(c).startsWith('stroke')).length, 0);
-
-    assert.ok(BLEND_MODES.includes('add') && BLEND_MODES.includes('multiply'));
-    const lit = draw({ blend: 'add', glow: { blur: 10, color: '#0ff' } });
-    // Compositing is context-wide: left on, it bleeds into every later node.
-    assert.equal(lit.globalCompositeOperation, 'source-over', 'blend is reset');
-    assert.equal(lit.shadowBlur, 0, 'glow is reset');
+    const sharp = new PhotoMotion(K, { ...spec, depthBlur: 0 });
+    const soft = new PhotoMotion(K, { ...spec, depthBlur: 0.06 });
+    try {
+        // Depth sampled across the boundary should go from a step to a ramp.
+        const n = sharp.div + 1, row = Math.floor(n / 2) * n;
+        const steps = (photo) => {
+            let biggest = 0;
+            for (let c = 1; c < n; c++) {
+                biggest = Math.max(biggest,
+                    Math.abs(photo.depths[row + c] - photo.depths[row + c - 1]));
+            }
+            return biggest;
+        };
+        // Bilinear sampling already softens a step by one texel, so an
+        // unblurred hard edge reads as ~0.41 per cell rather than the
+        // full 0.82 of the underlying map.
+        assert.ok(steps(sharp) > 0.3,
+            `the unblurred map should have a hard step, got ${steps(sharp).toFixed(3)}`);
+        assert.ok(steps(soft) < steps(sharp) * 0.6,
+            `blurring did not soften the depth edge: ${steps(soft).toFixed(3)} `
+            + `against ${steps(sharp).toFixed(3)}`);
+    } finally { sharp.dispose(); soft.dispose(); }
 });
 
-test('an Additive resolves over whatever the base layer produced', () => {
-    assert.equal(new Additive(2, 1).over(5), 7);
-    assert.equal(new Additive(0, 1.5).over(4), 6);
-    assert.equal(new Additive(1, 2).add(new Additive(2, 3)).over(1), 9);
-    assert.equal(new Additive(3, 1).over(undefined), 3, 'no base means the delta alone');
+test('depth is sampled bilinearly, not quantised to texels', () => {
+    // A depth map is a smooth field. Nearest sampling quantises it into
+    // terraces, which show as visible steps marching across the picture
+    // as the camera moves -- the opposite call from the grain texture,
+    // which wants nearest precisely because it is high-frequency.
+    //
+    // A linear ramp is the test: sampled bilinearly the per-vertex depths
+    // increase on nearly every step; sampled nearest they repeat wherever
+    // two vertices fall in one texel.
+    const w = 8, h = 4;                       // deliberately coarser than the mesh
+    const source = new Uint8Array(w * h * 4).fill(255);
+    const depth = new Uint8Array(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const v = Math.round((x / (w - 1)) * 255);
+            depth[i] = depth[i + 1] = depth[i + 2] = v;
+            depth[i + 3] = 255;
+        }
+    }
+    const photo = new PhotoMotion(K, {
+        width: 64, height: 32, duration: 1, grid: 24, depthBlur: 0,
+        source: { data: source, width: w, height: h },
+        depth: { data: depth, width: w, height: h },
+        effects: [],
+    });
+    try {
+        const n = photo.div + 1, row = Math.floor(n / 2) * n;
+        let distinct = new Set();
+        for (let c = 0; c < n; c++) distinct.add(photo.depths[row + c].toFixed(5));
+        // 25 vertices across 8 texels: nearest can yield at most 8 values.
+        assert.ok(distinct.size > 12,
+            `only ${distinct.size} distinct depths across ${n} vertices -- `
+            + 'the field looks quantised to texels');
+    } finally { photo.dispose(); }
+});
+
+test('no effect at any amplitude uncovers the frame edge', () => {
+    // Overscan. The bug this pins: `overscan = 1 + margin` puts only
+    // `margin / 2` outside each edge while the displacement is per-side,
+    // which left exactly one uncovered row -- easy to dismiss as
+    // antialiasing.
+    const cases = [
+        [{ type: 'parallax', amplitude: 0.04, orbit: [1, 1] }],
+        [{ type: 'parallax', amplitude: 0.2, orbit: [1, 1] }],
+        [{ type: 'parallax', amplitude: 0.35, orbit: [1, 1] }],
+        [{ type: 'kenBurns', from: { zoom: 1 }, to: { zoom: 0.6 } }],
+        [{ type: 'kenBurns', to: { x: 0.2, y: 0.15 } }],
+        [{ type: 'wave', amplitude: 0.05, range: [0, 1] }],
+        [{ type: 'parallax', amplitude: 0.15, orbit: [1, 1] },
+            { type: 'kenBurns', to: { zoom: 0.8 } }],
+    ];
+    for (const effects of cases) {
+        const photo = make(effects);
+        try {
+            for (let k = 0; k <= 16; k++) {
+                const t = (k / 16) * photo.duration;
+                const gaps = uncovered(photo, t);
+                assert.equal(gaps, 0,
+                    `${effects.map((e) => e.type).join('+')} left ${gaps} uncovered `
+                    + `pixels at t=${t.toFixed(2)} (overscan ${photo.overscan.toFixed(3)})`);
+            }
+        } finally { photo.dispose(); }
+    }
+});
+
+test('an explicit overscan is respected', () => {
+    const photo = make([{ type: 'parallax', amplitude: 0.1 }], { overscan: 1.5 });
+    try {
+        assert.equal(photo.overscan, 1.5);
+        // The mesh corner sits a quarter of the frame outside each edge.
+        assert.ok(Math.abs(photo.baseVerts[0] + 24) < 1e-4,
+            `corner at ${photo.baseVerts[0]}, expected -24`);
+    } finally { photo.dispose(); }
+});
+
+test('wave is confined to its range, and fades in at the boundary', () => {
+    // Without the fade the wave starts at a hard line, which reads as a
+    // seam across the picture.
+    const photo = make([{ type: 'wave', amplitude: 0.1, range: [0.6, 1] }], { overscan: 1 });
+    try {
+        photo.solveAt(0.3);
+        const n = photo.div + 1;
+        const rowOffset = (r) => {
+            let worst = 0;
+            for (let c = 0; c < n; c++) {
+                const i = r * n + c;
+                worst = Math.max(worst,
+                    Math.abs(photo.verts.array[i * 2 + 1] - photo.baseVerts[i * 2 + 1]));
+            }
+            return worst;
+        };
+        const above = Math.floor(n * 0.3);           // v = 0.3, outside the range
+        const inside = Math.floor(n * 0.85);         // well inside
+        assert.ok(rowOffset(above) < 1e-6, 'the wave escaped its range');
+        assert.ok(rowOffset(inside) > 0.5, 'the wave did not move anything inside its range');
+    } finally { photo.dispose(); }
+});
+
+test('puppet pins pull nearby points and leave distant ones alone', () => {
+    const photo = make([{
+        type: 'puppet',
+        pins: [{ at: [0.5, 0.5], to: [0.7, 0.5], radius: 0.2 }],
+    }], { overscan: 1, duration: 1 });
+    try {
+        photo.solveAt(1);
+        const n = photo.div + 1;
+        const at = (u, v) => {
+            const c = Math.round(u * (n - 1)), r = Math.round(v * (n - 1));
+            const i = r * n + c;
+            return photo.verts.array[i * 2] - photo.baseVerts[i * 2];
+        };
+        assert.ok(at(0.5, 0.5) > 10, `the pin itself barely moved: ${at(0.5, 0.5)}`);
+        assert.ok(Math.abs(at(0.05, 0.5)) < 1e-6, 'a point outside the radius moved');
+        // Falloff: closer means more.
+        assert.ok(at(0.55, 0.5) > at(0.62, 0.5), 'the falloff is not monotonic');
+    } finally { photo.dispose(); }
+});
+
+test('effects compose in order, and the order matters', () => {
+    const a = make([{ type: 'kenBurns', to: { zoom: 2 } }, { type: 'kenBurns', to: { x: 0.2 } }],
+        { duration: 1, overscan: 1 });
+    const b = make([{ type: 'kenBurns', to: { x: 0.2 } }, { type: 'kenBurns', to: { zoom: 2 } }],
+        { duration: 1, overscan: 1 });
+    try {
+        a.solveAt(1); b.solveAt(1);
+        assert.notDeepEqual(Array.from(a.verts.array.slice(0, 2)),
+            Array.from(b.verts.array.slice(0, 2)),
+            'a pan then a zoom must differ from a zoom then a pan');
+    } finally { a.dispose(); b.dispose(); }
+});
+
+test('an unknown effect is ignored rather than thrown on', () => {
+    // A film should not fail to render because one effect name was
+    // mistyped; the rest of the shot is still worth seeing.
+    const photo = make([{ type: 'teleport' }, { type: 'kenBurns', to: { zoom: 1.2 } }],
+        { duration: 1 });
+    try {
+        photo.solveAt(1);
+        assert.ok(Number.isFinite(photo.verts.array[0]));
+    } finally { photo.dispose(); }
+});
+
+test('a frame is a pure function of t', () => {
+    const photo = make([
+        { type: 'parallax', amplitude: 0.08 },
+        { type: 'wave', amplitude: 0.01 },
+    ]);
+    try {
+        const a = Float32Array.from(photo.renderAt(0.73).array);
+        photo.renderAt(1.9);                              // disturb any hidden state
+        const b = Float32Array.from(photo.renderAt(0.73).array);
+        assert.deepEqual(Array.from(a), Array.from(b));
+    } finally { photo.dispose(); }
+});
+
+test('time is clamped, so a held photo keeps its final framing', () => {
+    // Wrapping instead would snap back to the start mid-shot.
+    const photo = make([{ type: 'kenBurns', to: { zoom: 1.4 } }], { duration: 1 });
+    try {
+        photo.solveAt(1);
+        const atEnd = Array.from(photo.verts.array.slice(0, 2));
+        photo.solveAt(5);
+        assert.deepEqual(Array.from(photo.verts.array.slice(0, 2)), atEnd);
+        photo.solveAt(-3);
+        photo.solveAt(0);
+        const atStart = Array.from(photo.verts.array.slice(0, 2));
+        photo.solveAt(-3);
+        assert.deepEqual(Array.from(photo.verts.array.slice(0, 2)), atStart);
+    } finally { photo.dispose(); }
 });

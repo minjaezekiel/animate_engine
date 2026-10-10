@@ -53,7 +53,10 @@
     "test:paint": "node --test test/core/paint.test.mjs",
     "make:brushes": "node scripts/make-brush-sheet.mjs",
     "test:media": "node --test test/core/paint-media.test.mjs",
-    "audit:tests": "node scripts/mutation-audit.mjs"
+    "audit:tests": "node scripts/mutation-audit.mjs",
+    "mcp:paint": "node mcp/paint-server.js",
+    "test:motion": "node --test test/core/motion.test.mjs",
+    "test:ops": "node --test test/core/ops.test.mjs"
   },
   "keywords": [
     "animation",

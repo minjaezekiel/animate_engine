@@ -322,14 +322,16 @@ export class ParallelKernels {
      * twelve-layer document is twelve full-frame passes -- exactly the
      * bandwidth-bound shape the pool exists for.
      */
-    async blendLayers(dst, src, w, h, mode, opacity) {
+    async blendLayers(dst, src, w, h, mode, opacity,
+                      { mask = null, clip = null, clipMask = null } = {}) {
         const id = modeId(mode);
         if (w * h < this.minPixels || this.workerCount < 2) {
-            this.serial.blendLayers(dst, src, w, h, id, opacity);
+            this.serial.blendLayers(dst, src, w, h, id, opacity, { mask, clip, clipMask });
             return;
         }
         await Promise.all(this._bands(h).map(([a, b], k) => this._run(k, 'blend_layers',
-            [dst.ptr, src.ptr, w, h, id, opacity, a, b])));
+            [dst.ptr, src.ptr, w, h, id, opacity, mask ? mask.ptr : 0,
+                clip ? clip.ptr : 0, clipMask ? clipMask.ptr : 0, a, b])));
     }
 
     /** Premultiplied f32 to straight u8, split by pixel range. */

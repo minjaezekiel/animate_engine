@@ -5,3 +5,4 @@ demo/out
 .DS_Store
 demo/assets/*.wav
 demo/out/
+.mutation-audit.lock

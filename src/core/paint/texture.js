@@ -133,3 +133,62 @@ export function makeGrainTexture({
 
 /** Texture application modes, matching `tex_mode` in `raster.rs`. */
 export const TEXTURE_MODES = { none: 0, canvas: 1, dab: 2 };
+
+/**
+ * Build a grain tile from an image's pixels.
+ *
+ * This is the path for a real scanned paper or canvas texture, which a
+ * generated noise field cannot imitate -- paper has structure (fibres,
+ * a weave, a laid pattern) and noise has only statistics.
+ *
+ * @param {{data: Uint8ClampedArray|Uint8Array, width: number, height: number}} image
+ *   An `ImageData`, or anything shaped like one.
+ * @param {object} [options]
+ * @param {number} [options.strength=1]  how far below 1 the tile may dip
+ * @param {boolean} [options.normalize=true]
+ * @param {boolean} [options.invert=false]
+ *
+ * # Luminance, and why it is not the blend weights
+ *
+ * Coverage comes from `(r + g + b) / 3`, a flat average, **not** from the
+ * perceptual luminance used in `blend.js`. Those weights exist to model
+ * how bright a colour *looks*; here the image is standing in for the
+ * height of a physical surface, and a green fibre is not twice as tall as
+ * a red one because the eye is more sensitive to it. Using luminance
+ * weights makes a coloured scan grain unevenly by hue, which looks like a
+ * printing fault.
+ *
+ * Alpha is ignored: a transparent texel means "no data", and treating it
+ * as zero coverage would punch holes in the stroke.
+ *
+ * # Normalising
+ *
+ * On by default, for the same reason the generated tiles normalise: a
+ * photograph of paper occupies a narrow band of mid-greys, so without a
+ * stretch `strength: 1` would deliver a fraction of its range and no
+ * setting could reach full contrast.
+ */
+export function textureFromImage(image, { strength = 1, normalize = true, invert = false } = {}) {
+    const { data, width, height } = image;
+    const n = width * height;
+    const raw = new Float32Array(n);
+    let lo = Infinity, hi = -Infinity;
+
+    for (let i = 0; i < n; i++) {
+        let v = (data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2]) / 765;   // 3 * 255
+        if (invert) v = 1 - v;
+        raw[i] = v;
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+    }
+
+    const span = hi - lo;
+    const norm = normalize && span > 1e-6 ? 1 / span : 0;
+    const s = Math.min(1, Math.max(0, strength));
+    const out = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+        const v = norm ? (raw[i] - lo) * norm : raw[i];
+        out[i] = Math.round((1 - s + s * v) * 255);
+    }
+    return { data: out, width, height };
+}

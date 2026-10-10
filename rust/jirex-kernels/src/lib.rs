@@ -102,7 +102,7 @@ pub extern "C" fn dealloc(ptr: *mut u8, size: usize) {
 /// instead of writing nonsense through a shifted argument list.
 #[no_mangle]
 pub extern "C" fn abi_version() -> i32 {
-    3
+    4
 }
 
 /// Whether this module was built with `simd128`.

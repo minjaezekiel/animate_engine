@@ -43,7 +43,9 @@ film.json  or  screenplay.txt
         +--------> core/audio   cues, envelope, visemes, lipsync
         |
         v
-  core/paint      strokes, brushes, surfaces   (see 16-PAINT.md)
+  core/paint      strokes, brushes, layers    (see 16-PAINT.md)
+  core/motion     photo deformation           (see 17-MOTION-AND-MCP.md)
+  core/script/ops headless op table -> MCP tools
         |
         v
   kernels/                    Rust -> wasm numeric kernels, JS fallback
@@ -114,6 +116,7 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [14-CHARACTER-3D.md](14-CHARACTER-3D.md) | procedural rig, skinning, blendshapes, and the honest ceiling |
 | [15-PERFORMANCE.md](15-PERFORMANCE.md) | **Rust/wasm kernels, measured; what the browser really offers; the missing-tool register** |
 | [16-PAINT.md](16-PAINT.md) | **drawing tools** — SVG paths, 15 brushes, layers, grain, wet media, draw-on |
+| [17-MOTION-AND-MCP.md](17-MOTION-AND-MCP.md) | **picture into video**, and the headless agent surface |
 | [STATUS.md](STATUS.md) | **what is implemented and what is not** |
 | [DEFECTS.md](DEFECTS.md) | the defect register for the legacy 3D engine |
 | [CDN-AND-PWA.md](CDN-AND-PWA.md) | loading from a CDN, installing, offline |

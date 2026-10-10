@@ -321,19 +321,16 @@ radius.
 - **Non-separable blend modes** — hue, saturation, colour, luminosity.
   They need the whole colour at once plus a luminance model, and no caller
   has asked.
-- **Vector-first strokes.** A `path` is flattened at author time. Keeping
-  the control points editable, and resampling on change, would make a
-  stroke adjustable after the fact.
-- **Live input binding.** `pressureFromVelocity` and `smoothPoints` exist
-  for pointers with no pressure, but nothing is wired to
-  `pointerdown`/`pointermove` yet.
+  Keeping the control points editable, and resampling on change, would
+  make a stroke adjustable after the fact.
 - **Arcs in path data** (§4).
-- **Incremental flatten.** Changing one layer re-composites all of them;
-  there is no dirty tracking. A flatten is a handful of linear passes and
-  the bookkeeping to avoid them is easy to get subtly wrong, in a way that
-  shows as a stale layer on screen.
 - **Per-stroke undo.** Strokes are replayed from the spec, so undo is
   "drop the last stroke and re-render", which is O(strokes).
+- **Smudge on the worker pool.** Wet brushes are sequential by nature --
+  each dab's colour depends on every dab before it -- so they cannot be
+  banded. They are the slowest brushes here.
+- **A `photos` block in `film.json`**, to match `drawings`. See
+  [17-MOTION-AND-MCP.md](17-MOTION-AND-MCP.md) §6.
 
 ---
 
@@ -384,3 +381,132 @@ leaving a future reader to rediscover it.
 
 The sheet renders entirely in Node — kernels, strokes, brushes and surface
 are all pure, and the PNG writer uses `node:zlib` and nothing else.
+
+
+---
+
+## 11. Layers, masks and clipping
+
+```js
+const doc = new PaintDocument(kernels, 1280, 720);
+const base = doc.addLayer({ name: 'colour' });
+doc.addLayer({ name: 'shade', blend: 'multiply', clip: true });
+
+base.addMask();                                   // opaque: hides nothing
+base.paintMask({ path: 'M 100 200 L 400 200', brush: 'softEraser', size: 60 });
+doc.flatten();
+```
+
+### Masks are `PaintSurface`s
+
+A mask is an ordinary surface whose **alpha channel** the blend kernel
+reads directly. That one decision removes a surprising amount of
+machinery: masks are painted with the ordinary brushes — a soft airbrush
+mask, a hard pen mask, a textured one — with no second code path and no
+conversion step. The cost is reading one float in four on a buffer already
+being streamed; the alternative, extracting coverage into a packed
+single-channel buffer, costs a full-frame pass and another 8 MB per masked
+layer at 1080p.
+
+A new mask starts **opaque**. Starting transparent makes the layer vanish
+the instant a mask is added, which every user reads as a bug rather than as
+a blank mask.
+
+### Clipping groups
+
+`clip: true` shows a layer only where the layer beneath it is opaque — how
+a shading or colour pass is confined to a character without re-cutting its
+silhouette. The base is the nearest layer below that is not *itself*
+clipped, so a run of clipped layers shares one base.
+
+The blend kernel takes **three** coverage multipliers, not two, and the
+third is easy to omit: a base layer's own mask must also hide everything
+clipped to it. Without it a shading pass keeps showing over a region its
+subject was masked out of. A clip with nothing beneath it is ignored rather
+than blanking the layer, because silently blanking makes it very hard to
+see which layer is at fault.
+
+### Non-separable blend modes
+
+`hue`, `saturation`, `color` and `luminosity` transplant one attribute of a
+colour onto another and cannot be computed per channel — they need all
+three components at once plus the W3C luminance model.
+
+Two details carry them:
+
+**The weights are 0.3 / 0.59 / 0.11**, the specification's, not Rec. 709's
+0.2126 / 0.7152 / 0.0722. They differ visibly on saturated colours, and the
+point of these modes is to match Photoshop, Figma and a browser's
+`mix-blend-mode` — so the older NTSC weights are the correct ones here.
+
+**The clip preserves hue.** `setLum` routinely pushes a channel outside
+0..1, and clamping each channel independently shifts the hue because they
+clamp by different amounts. Scaling toward the colour's own luminosity
+moves it along the grey axis instead. This is the step most often skipped,
+and the symptom is a `luminosity` layer whose highlights drift toward
+whichever primary clipped first.
+
+---
+
+## 12. Incremental flatten
+
+Painting usually touches one layer, and in a deep document re-compositing
+the eleven below it on every stroke is most of the cost of drawing. So the
+composite of the layers *below* the lowest changed one is cached, and a
+flatten resumes from there.
+
+Measured on a 12-layer document: painting the top layer costs **1 blend
+instead of 12**, and a flatten with nothing changed returns in 5 µs.
+
+The scheme is deliberately the simple one — a single prefix buffer and a
+linear scan for the lowest change. A buffer per layer would make an edit
+near the bottom cheap too, at 33 MB each at 1080p, for a case that is rare.
+
+Three things make it trustworthy rather than merely fast:
+
+**Change is detected by comparing signatures, not dirty flags.**
+`layer.visible = false` is a plain assignment with nothing to hook, so the
+signature covers the compositing properties as well as the pixels. A missed
+change leaves a stale layer on screen, which is the failure that makes
+people stop trusting incremental rendering.
+
+**The version counter must be initialised.** It was not. `undefined++`
+yields `NaN`, every signature interpolated the constant string `"NaN"`,
+change detection never fired, and the incremental flatten returned a stale
+composite **forever**, with no error anywhere. A test now asserts a fresh
+surface starts at 0.
+
+**A prefix that was not re-saved must be invalidated.** Painting low in the
+stack rebuilds from zero and saves no prefix — but leaving `_prefixUpTo`
+pointing at the old one meant the next high edit reused a prefix captured
+*before* the low edit, silently dropping it. The test paints bottom, then
+top, then compares against a full rebuild.
+
+---
+
+## 13. Live input
+
+`src/input/StrokeRecorder.js` turns pointer events into the same stroke
+objects an agent writes into a `film.json` — so a stroke drawn by hand and
+a stroke written by a model are the same thing, and either can be replayed,
+serialised or animated.
+
+Four things every naive implementation gets wrong:
+
+- **Coalesced events.** A stylus samples at 120–240 Hz but the browser
+  delivers `pointermove` once per frame, batching the rest.
+  `getCoalescedEvents()` returns the full batch; reading only the event
+  discards three quarters of the samples and the stroke comes out as
+  visible straight segments between frame positions. This is the single
+  largest quality difference in the file.
+- **Pointer capture.** Without it a stroke that leaves the canvas never
+  gets its `pointerup`, so the next click continues the old stroke.
+- **Mouse pressure is a lie** — a constant 0.5 while held. Treating it as a
+  measurement gives a dead uniform line from every pressure-sensitive
+  brush, so for a non-pen pointer it is derived from speed instead.
+- **`touch-action: none`**, or the browser claims the gesture for scrolling
+  partway through and the stroke simply stops — on touch devices only,
+  which makes it hard to attribute.
+
+Smoothing is applied **on commit**, not live: smoothing live makes the line
+visibly crawl behind the cursor and settle, which reads as lag.

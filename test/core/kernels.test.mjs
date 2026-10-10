@@ -309,6 +309,68 @@ test('conformance: blendLayers, every mode', () => {
     }
 });
 
+test('conformance: blendLayers with a mask, a clip and a clip mask', () => {
+    // Without this the JS mirror's three coverage multipliers are never
+    // executed: every masking and clipping test reaches the document,
+    // which uses the wasm backend. Four mutations survived on exactly
+    // that gap.
+    const w = 24, h = 20, n = w * h * 4;
+    const backdrop = seeded(n, 73).map(Math.abs);
+    const source = seeded(n, 79).map(Math.abs);
+    const mask = seeded(n, 83).map(Math.abs);
+    const clip = seeded(n, 89).map(Math.abs);
+    const clipMask = seeded(n, 97).map(Math.abs);
+    for (const buf of [backdrop, source]) {
+        for (let i = 0; i < w * h; i++) {
+            const a = buf[i * 4 + 3];
+            for (let c = 0; c < 3; c++) buf[i * 4 + c] = Math.min(buf[i * 4 + c], a);
+        }
+    }
+    // Each combination separately, so a mirror that drops exactly one of
+    // the three is still caught.
+    const combos = [
+        ['mask only', { mask: true }],
+        ['clip only', { clip: true }],
+        ['clip mask only', { clipMask: true }],
+        ['all three', { mask: true, clip: true, clipMask: true }],
+    ];
+    for (const [label, want] of combos) {
+        for (const mode of ['normal', 'multiply', 'luminosity']) {
+            const run = (K) => {
+                const dst = K.from(backdrop);
+                K.blendLayers(dst, K.from(source), w, h, mode, 0.8, {
+                    mask: want.mask ? K.from(mask) : null,
+                    clip: want.clip ? K.from(clip) : null,
+                    clipMask: want.clipMask ? K.from(clipMask) : null,
+                });
+                return Float32Array.from(dst.array);
+            };
+            assert.ok(maxDiff(run(WASM), run(JS)) < 1e-5, `${label}, ${mode}`);
+        }
+    }
+});
+
+test('a mask multiplies source alpha, read at the right stride', () => {
+    // A mirror reading `M[i]` instead of `M[p + 3]` still produces
+    // plausible numbers, so the values are pinned rather than just
+    // compared between backends.
+    for (const K of BOTH) {
+        const n = 4;
+        const dst = K.f32(n * 4), src = K.f32(n * 4), mask = K.f32(n * 4);
+        for (let i = 0; i < n; i++) {
+            src.array.set([1, 0, 0, 1], i * 4);
+            // Alpha ramps 0, 1/3, 2/3, 1; the colour channels are
+            // deliberately different, so a stride mistake reads one.
+            mask.array.set([0.9, 0.8, 0.7, i / 3], i * 4);
+        }
+        K.blendLayers(dst, src, n, 1, 'normal', 1, { mask });
+        for (let i = 0; i < n; i++) {
+            assert.ok(Math.abs(dst.array[i * 4 + 3] - i / 3) < 1e-5,
+                `${K.backend}: pixel ${i} alpha ${dst.array[i * 4 + 3]}, expected ${i / 3}`);
+        }
+    }
+});
+
 test('conformance: warpMesh', () => {
     const { src, sw, sh } = image(24, 24);
     const dw = 37, dh = 29;

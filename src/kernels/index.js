@@ -225,10 +225,15 @@ export class Kernels {
      *
      * `mode` is a name from `BLEND_MODE_NAMES` or its number.
      */
-    blendLayers(dst, src, w, h, mode, opacity, y0 = 0, y1 = h) {
+    blendLayers(dst, src, w, h, mode, opacity,
+                { mask = null, clip = null, clipMask = null } = {}, y0 = 0, y1 = h) {
         const id = jsBlend.modeId(mode);
-        if (this.host) this.host.exports.blend_layers(dst.ptr, src.ptr, w, h, id, opacity, y0, y1);
-        else jsBlend.blendLayers(dst, src, w, h, id, opacity, y0, y1);
+        if (this.host) {
+            this.host.exports.blend_layers(dst.ptr, src.ptr, w, h, id, opacity,
+                mask ? mask.ptr : 0, clip ? clip.ptr : 0, clipMask ? clipMask.ptr : 0, y0, y1);
+        } else {
+            jsBlend.blendLayers(dst, src, w, h, id, opacity, mask, clip, clipMask, y0, y1);
+        }
     }
 
     /** Copy `n` floats between kernel buffers. */

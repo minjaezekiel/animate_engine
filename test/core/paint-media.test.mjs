@@ -16,7 +16,7 @@ import { pathToPoints, pathToRuns, circlePath, rectPath } from '../../src/core/p
 import { makeGrainTexture } from '../../src/core/paint/texture.js';
 import { resampleStroke, STAMP_STRIDE } from '../../src/core/paint/stroke.js';
 import { brush } from '../../src/core/paint/brushes.js';
-import { PaintSurface } from '../../src/core/paint/Surface.js';
+import { PaintSurface, parseColor } from '../../src/core/paint/Surface.js';
 import { PaintDocument } from '../../src/core/paint/Document.js';
 
 const K = await loadKernels({ prefer: 'wasm' });
@@ -527,16 +527,307 @@ test('separable blend modes match the W3C formulas', () => {
     }
 });
 
-test('every named blend mode is covered by the formula test', () => {
-    // Guards against adding a mode to the library and forgetting to pin
-    // its maths, which is how an untested mode slips in.
-    const tested = new Set(['normal', 'multiply', 'screen', 'darken', 'lighten',
-        'difference', 'exclusion', 'hardLight', 'overlay', 'colorDodge',
-        'colorBurn', 'add', 'softLight']);
-    for (const name of BLEND_MODE_NAMES) {
-        assert.ok(tested.has(name), `blend mode "${name}" has no formula test`);
+/** The W3C luminosity, with the specification's NTSC weights. */
+const lum = (c) => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+const satOf = (c) => Math.max(...c) - Math.min(...c);
+
+test('non-separable modes transplant the right attribute', () => {
+    // These four cannot be checked per channel, so they are pinned by the
+    // properties that define them rather than by one arithmetic result.
+    //
+    // `color` takes the source's hue and saturation but the backdrop's
+    // luminosity; `luminosity` is the exact converse. Asserting the
+    // luminosity of the result is the sharpest available check, because
+    // getting the hue-preserving clip wrong perturbs it immediately.
+    const cases = [
+        ['#00ff00', '#ff0000'],      // green backdrop, red source
+        ['#2060a0', '#e0a020'],      // blue backdrop, amber source
+        ['#808080', '#3fa05f'],      // grey backdrop
+    ];
+    for (const [bHex, sHex] of cases) {
+        const cb = parseColor(bHex), cs = parseColor(sHex);
+
+        const color = blendPair('color', bHex, sHex).slice(0, 3);
+        assert.ok(Math.abs(lum(color) - lum(cb)) < 0.02,
+            `color: luminosity ${lum(color).toFixed(3)} should match the backdrop's `
+            + `${lum(cb).toFixed(3)}`);
+
+        const luminosity = blendPair('luminosity', bHex, sHex).slice(0, 3);
+        assert.ok(Math.abs(lum(luminosity) - lum(cs)) < 0.02,
+            `luminosity: ${lum(luminosity).toFixed(3)} should match the source's `
+            + `${lum(cs).toFixed(3)}`);
+
+        // `saturation` takes the source's saturation and the backdrop's
+        // luminosity.
+        const saturation = blendPair('saturation', bHex, sHex).slice(0, 3);
+        assert.ok(Math.abs(lum(saturation) - lum(cb)) < 0.02, 'saturation changed luminosity');
+
+        // `hue` likewise keeps the backdrop's luminosity.
+        const hue = blendPair('hue', bHex, sHex).slice(0, 3);
+        assert.ok(Math.abs(lum(hue) - lum(cb)) < 0.02, 'hue changed luminosity');
     }
 });
+
+test('hue and saturation collapse correctly against a grey', () => {
+    // Decisive degenerate cases, computable by hand from the definitions.
+    //
+    // A grey backdrop has zero saturation, so `hue` -- which gives the
+    // result the *backdrop's* saturation -- must return that same grey
+    // whatever the source is.
+    const grey = blendPair('hue', '#808080', '#ff3300').slice(0, 3);
+    for (const c of grey) {
+        assert.ok(Math.abs(c - 0.502) < 0.02, `hue over grey returned ${c.toFixed(3)}`);
+    }
+
+    // A grey *source* has zero saturation, so `saturation` must fully
+    // desaturate the backdrop while holding its luminosity.
+    const desat = blendPair('saturation', '#ff3300', '#808080').slice(0, 3);
+    assert.ok(satOf(desat) < 0.02, `saturation with a grey source left ${satOf(desat).toFixed(3)}`);
+    assert.ok(Math.abs(lum(desat) - lum(parseColor('#ff3300'))) < 0.02);
+});
+
+test('the hue-preserving clip does not shift hue on out-of-gamut results', () => {
+    // `setLum` routinely pushes a channel outside 0..1, and clamping each
+    // channel independently shifts the hue because they clamp by
+    // different amounts. Scaling toward the luminosity instead keeps the
+    // channel *ordering*, which is what carries the hue. A very bright
+    // target luminosity is the case that forces the clip.
+    const got = blendPair('color', '#f0f0f0', '#0040ff').slice(0, 3);
+    // The source is blue: blue highest, green middle, red lowest. That
+    // ordering must survive.
+    assert.ok(got[2] >= got[1] - 1e-3 && got[1] >= got[0] - 1e-3,
+        `channel ordering lost: ${got.map((v) => v.toFixed(3))}`);
+});
+
+test('every named blend mode is covered by a maths test', () => {
+    // Guards against adding a mode and forgetting to pin it -- which is
+    // exactly what happened when the four non-separable modes landed.
+    const separable = new Set(['normal', 'multiply', 'screen', 'darken', 'lighten',
+        'difference', 'exclusion', 'hardLight', 'overlay', 'colorDodge',
+        'colorBurn', 'add', 'softLight']);
+    const nonSeparable = new Set(['hue', 'saturation', 'color', 'luminosity']);
+    for (const name of BLEND_MODE_NAMES) {
+        assert.ok(separable.has(name) || nonSeparable.has(name),
+            `blend mode "${name}" has no maths test`);
+    }
+});
+
+// =====================================================================
+// masks, clipping groups, incremental flatten
+// =====================================================================
+
+/** Alpha at a pixel of a document's composite. */
+const alphaAt = (d, x, y) => d.composite.array[(y * d.width + x) * 4 + 3];
+
+test('a surface starts at version 0, so change detection works at all', () => {
+    // Left uninitialised, `version++` yields NaN, every layer signature
+    // interpolates the constant string "NaN", and the incremental flatten
+    // returns a stale composite forever with no error anywhere. That is
+    // precisely what happened.
+    const S = new PaintSurface(K, 8, 8);
+    try {
+        assert.equal(S.version, 0);
+        S.draw({ points: [{ x: 4, y: 4, p: 1 }], brush: 'pen', size: 4, color: '#000' });
+        assert.equal(S.version, 1);
+        assert.ok(Number.isFinite(S.version));
+    } finally { S.dispose(); }
+});
+
+test('a layer mask hides what it covers, and is painted with ordinary brushes', () => {
+    const doc = new PaintDocument(K, 60, 40);
+    try {
+        doc.addLayer({ name: 'a' });
+        doc.draw('a', { points: [{ x: 2, y: 20, p: 1 }, { x: 58, y: 20, p: 1 }],
+            brush: 'pen', size: 30, color: '#ff0000' });
+        doc.flatten();
+        assert.ok(alphaAt(doc, 30, 20) > 0.9, 'nothing was painted');
+
+        // A new mask is opaque, so adding one must change nothing --
+        // otherwise the layer vanishes the moment a mask appears, which
+        // reads as a bug rather than as a blank mask.
+        doc.layer('a').addMask();
+        doc.flatten();
+        assert.ok(alphaAt(doc, 30, 20) > 0.9, 'adding a mask hid the layer');
+
+        doc.layer('a').paintMask({ points: [{ x: 30, y: 20, p: 1 }],
+            brush: 'eraser', size: 16 });
+        doc.flatten();
+        assert.ok(alphaAt(doc, 30, 20) < 0.05, 'erasing the mask did not hide the layer');
+        assert.ok(alphaAt(doc, 5, 20) > 0.9, 'the mask hid more than it covered');
+    } finally { doc.dispose(); }
+});
+
+test('a clipping group is confined to the layer below', () => {
+    const doc = new PaintDocument(K, 80, 40);
+    try {
+        doc.addLayer({ name: 'base' });
+        doc.addLayer({ name: 'shade', blend: 'multiply', clip: true });
+        doc.draw('base', { points: [{ x: 5, y: 20, p: 1 }, { x: 40, y: 20, p: 1 }],
+            brush: 'pen', size: 28, color: '#ffcc00' });
+        // The shading runs the full width; the clip must cut it back.
+        doc.draw('shade', { points: [{ x: 5, y: 20, p: 1 }, { x: 75, y: 20, p: 1 }],
+            brush: 'pen', size: 28, color: '#4040ff' });
+        doc.flatten();
+        assert.ok(alphaAt(doc, 20, 20) > 0.9, 'the base is missing');
+        assert.ok(alphaAt(doc, 70, 20) < 0.05,
+            'the clipped layer painted beyond its base');
+    } finally { doc.dispose(); }
+});
+
+test("a base layer's own mask also hides what is clipped to it", () => {
+    // Easy to omit and wrong to: a shading pass would keep showing over a
+    // region its subject had been masked out of.
+    const doc = new PaintDocument(K, 80, 40);
+    try {
+        doc.addLayer({ name: 'base' });
+        doc.addLayer({ name: 'shade', blend: 'multiply', clip: true });
+        const band = [{ x: 5, y: 20, p: 1 }, { x: 75, y: 20, p: 1 }];
+        doc.draw('base', { points: band, brush: 'pen', size: 28, color: '#ffcc00' });
+        doc.draw('shade', { points: band, brush: 'pen', size: 28, color: '#4040ff' });
+        doc.flatten();
+        assert.ok(alphaAt(doc, 40, 20) > 0.9);
+
+        doc.layer('base').addMask();
+        doc.layer('base').paintMask({ points: [{ x: 40, y: 20, p: 1 }],
+            brush: 'eraser', size: 14 });
+        doc.flatten();
+        assert.ok(alphaAt(doc, 40, 20) < 0.05,
+            'masking the base left its clipped layer showing');
+    } finally { doc.dispose(); }
+});
+
+test('a run of clipped layers all clip to the same base', () => {
+    // The base is the nearest layer below that is not *itself* clipped.
+    // Returning simply "the layer below" looks identical with one clipped
+    // layer and is wrong with two: the second would clip to the first
+    // rather than to the subject, and would disappear wherever the first
+    // happened not to paint.
+    const doc = new PaintDocument(K, 90, 40);
+    try {
+        doc.addLayer({ name: 'base' });
+        doc.addLayer({ name: 'shade', clip: true });
+        doc.addLayer({ name: 'light', clip: true });
+        // The base covers x 5..45. `shade` paints only the left third, so
+        // if `light` clipped to `shade` it would vanish past x 20.
+        doc.draw('base', { points: [{ x: 5, y: 20, p: 1 }, { x: 45, y: 20, p: 1 }],
+            brush: 'pen', size: 26, color: '#ffcc00' });
+        doc.draw('shade', { points: [{ x: 5, y: 20, p: 1 }, { x: 18, y: 20, p: 1 }],
+            brush: 'pen', size: 26, color: '#403020' });
+        doc.draw('light', { points: [{ x: 5, y: 20, p: 1 }, { x: 85, y: 20, p: 1 }],
+            brush: 'pen', size: 26, color: '#ffffff' });
+        doc.flatten();
+
+        const white = (x) => doc.composite.array[(20 * doc.width + x) * 4 + 2];
+        assert.ok(white(35) > 0.8,
+            'the second clipped layer should reach the base\'s full extent, '
+            + 'not stop where the first one did');
+        assert.ok(doc.composite.array[(20 * doc.width + 70) * 4 + 3] < 0.05,
+            'it must still be clipped to the base');
+    } finally { doc.dispose(); }
+});
+
+test('a clip with nothing beneath it is ignored, not blanked', () => {
+    // A clipping group at the bottom of the stack is an authoring
+    // mistake; silently blanking the layer makes it very hard to see
+    // which one.
+    const doc = new PaintDocument(K, 40, 30);
+    try {
+        doc.addLayer({ name: 'only', clip: true });
+        doc.draw('only', { points: [{ x: 5, y: 15, p: 1 }, { x: 35, y: 15, p: 1 }],
+            brush: 'pen', size: 16, color: '#ff0000' });
+        doc.flatten();
+        assert.ok(alphaAt(doc, 20, 15) > 0.9, 'a clip with no base blanked the layer');
+    } finally { doc.dispose(); }
+});
+
+test('incremental flatten matches a full rebuild after every kind of edit', () => {
+    const doc = new PaintDocument(K, 90, 60);
+    try {
+        for (let i = 0; i < 5; i++) {
+            doc.addLayer({ name: 'L' + i, blend: i % 2 ? 'multiply' : 'normal', opacity: 0.9 });
+            doc.draw('L' + i, { path: `M 5 ${8 + i * 10} L 85 ${14 + i * 9}`,
+                brush: 'pen', size: 9, color: '#3080c0' });
+        }
+        const same = (what) => {
+            const incremental = Float32Array.from(doc.flatten().array);
+            const full = Float32Array.from(doc.flattenFull().array);
+            for (let i = 0; i < incremental.length; i++) {
+                if (incremental[i] !== full[i]) {
+                    assert.fail(`${what}: incremental differs from full at ${i}`);
+                }
+            }
+        };
+        const dot = (layer, x) => doc.draw(layer, { points: [{ x, y: 30, p: 1 }],
+            brush: 'pen', size: 6, color: '#fff' });
+
+        same('initial');
+        dot('L4', 20); same('after painting the top layer');
+        dot('L4', 30); same('after painting it again');
+        dot('L0', 40); same('after painting the bottom layer');
+
+        // The stale-prefix regression, which needs an *uninterrupted*
+        // sequence: `same()` calls `flattenFull()`, and that invalidates
+        // the cache, so checking after every step never lets a stale
+        // prefix survive long enough to be reused. The run below
+        // therefore flattens incrementally throughout and compares only
+        // at the end, against a reference document built independently.
+        // Each step must be flattened, or the lowest change is always
+        // layer 0 at the final flatten and the prefix is never reused at
+        // all -- the path under test simply does not execute.
+        dot('L4', 50); doc.flatten();      // saves a prefix below L4
+        dot('L0', 60); doc.flatten();      // rebuilds; that prefix is now stale
+        dot('L4', 70);
+        const incremental = Float32Array.from(doc.flatten().array);
+        const rebuilt = Float32Array.from(doc.flattenFull().array);
+        for (let i = 0; i < incremental.length; i++) {
+            if (incremental[i] !== rebuilt[i]) {
+                assert.fail('a prefix captured before a low edit was reused after it, '
+                    + `dropping that edit (first difference at ${i})`);
+            }
+        }
+
+        doc.layer('L2').visible = false; same('after hiding a layer');
+        doc.layer('L2').visible = true; same('after showing it again');
+        doc.layer('L1').opacity = 0.3; same('after an opacity change');
+        doc.layer('L3').blend = 'screen'; same('after a blend change');
+        doc.layer('L3').addMask(); same('after adding a mask');
+        doc.layer('L3').paintMask({ points: [{ x: 45, y: 30, p: 1 }],
+            brush: 'eraser', size: 12 });
+        same('after painting a mask');
+        doc.reorder('L1', 4); same('after reordering');
+        doc.removeLayer('L0'); same('after removing a layer');
+    } finally { doc.dispose(); }
+});
+
+test('incremental flatten actually skips work', () => {
+    // Without this the scheme could be correct and pointless.
+    const doc = new PaintDocument(K, 64, 64);
+    try {
+        for (let i = 0; i < 6; i++) {
+            doc.addLayer({ name: 'L' + i });
+            doc.draw('L' + i, { path: `M 2 ${6 + i * 9} L 62 ${10 + i * 9}`,
+                brush: 'pen', size: 7, color: '#38c' });
+        }
+        let blends = 0;
+        const real = doc._compose.bind(doc);
+        doc._compose = (t, i) => { blends++; return real(t, i); };
+        const dot = (layer, x) => doc.draw(layer, { points: [{ x, y: 32, p: 1 }],
+            brush: 'pen', size: 5, color: '#fff' });
+
+        doc.flatten();
+        blends = 0; doc.flatten();
+        assert.equal(blends, 0, 'an unchanged flatten still composited');
+
+        dot('L5', 10); doc.flatten();          // builds the prefix
+        blends = 0; dot('L5', 20); doc.flatten();
+        assert.equal(blends, 1, `painting the top layer cost ${blends} blends, expected 1`);
+
+        blends = 0; dot('L0', 30); doc.flatten();
+        assert.equal(blends, 6, 'painting the bottom layer should rebuild everything');
+    } finally { doc.dispose(); }
+});
+
+
 
 test('blending over an empty backdrop is plain source-over', () => {
     // The blend term is scaled by the backdrop alpha, so with nothing

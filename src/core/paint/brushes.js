@@ -126,6 +126,12 @@ const BASE = {
     grainScale: 1,
     grainMode: 'canvas',
     grainSeed: 1,
+    /**
+     * A named tile from the surface's texture map, for a real scanned
+     * paper or canvas. Null uses the generated field, which has
+     * statistics but no structure.
+     */
+    grainAsset: null,
     wet: false,
     smudge: 0,
     colorRate: 1,

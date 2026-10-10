@@ -30,8 +30,37 @@
  * pins the behaviour directly. That is itself worth knowing -- if a
  * mutation to a mirror survives, conformance is not covering that kernel.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+
+/**
+ * Refuse to run twice at once.
+ *
+ * This script deliberately leaves a defect in a source file for the
+ * duration of each test run. Two instances therefore corrupt each other:
+ * one restores a file while the other is measuring it, and the results of
+ * both become noise -- which is exactly what happened, and presented as
+ * "the suite fails before any mutation" with no hint of the cause.
+ *
+ * `wx` is atomic, so this is a real lock rather than a check-then-create
+ * race.
+ */
+const LOCK = '.mutation-audit.lock';
+try {
+    closeSync(openSync(LOCK, 'wx'));
+} catch {
+    console.error(`another mutation audit is already running (${LOCK} exists).`);
+    console.error('This script edits source files in place, so two runs corrupt each other.');
+    console.error(`If no audit is running, delete ${LOCK}.`);
+    process.exit(2);
+}
+const releaseLock = () => { try { unlinkSync(LOCK); } catch { /* already gone */ } };
+process.on('exit', releaseLock);
+// A kill between mutations would otherwise leave a deliberate defect in
+// the tree, so the restore and the lock release both run on a signal.
+for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.on(signal, () => { releaseLock(); process.exit(130); });
+}
 
 const only = process.argv.find((a) => a.startsWith('--only='))?.slice(7);
 
@@ -126,14 +155,120 @@ const MUTATIONS = [
       find: 'case MODES.overlay: return blend(MODES.hardLight, cs, cb);',
       replace: 'case MODES.overlay: return blend(MODES.hardLight, cb, cs);' },
     { group: 'blend', file: 'src/kernels/js/blend.js', what: 'the blend term is applied without un-premultiplying',
-      find: 'const cs = Math.min(1, Math.max(0, s[c] * invSa));', replace: 'const cs = Math.min(1, Math.max(0, s[c]));' },
+      find: 'const cs = [0, 1, 2].map((c) => Math.min(1, Math.max(0, s[c] * invSa)));',
+      replace: 'const cs = [0, 1, 2].map((c) => Math.min(1, Math.max(0, s[c])));' },
     { group: 'blend', file: 'src/kernels/js/blend.js', what: 'layer opacity is ignored',
-      find: 'const sa = S[p + 3] * op;', replace: 'const sa = S[p + 3];' },
+      find: 'const sa = S[p + 3] * k;', replace: 'const sa = S[p + 3];' },
     { group: 'blend', file: 'src/kernels/js/blend.js', what: 'colorDodge divides by the wrong operand',
       find: 'return Math.min(1, cb / (1 - cs));', replace: 'return Math.min(1, cs / (1 - cb));' },
     { group: 'blend', file: 'src/kernels/js/blend.js', what: 'an unknown blend mode silently becomes normal',
       find: "throw new Error(`unknown blend mode \"${name}\"; available: ${MODE_NAMES.join(', ')}`);",
       replace: 'return 0;' },
+
+    // --- non-separable blend modes -----------------------------------
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: 'luminosity uses flat channel weights',
+      find: 'const lum = (c) => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];',
+      replace: 'const lum = (c) => (c[0] + c[1] + c[2]) / 3;' },
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: 'clipColor clamps per channel, shifting hue',
+      find: 'if (d > 1e-9) out = out.map((v) => l + ((v - l) * (1 - l)) / d);',
+      replace: 'out = out.map((v) => Math.min(1, v));' },
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: 'setSat ignores the channel ordering',
+      find: 'out[imid] = span > 1e-9 ? ((c[imid] - c[imin]) * s) / span : 0;',
+      replace: 'out[imid] = s / 2;' },
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: 'color and luminosity are swapped',
+      find: 'case MODES.color: return setLum(cs, lum(cb));',
+      replace: 'case MODES.color: return setLum(cb, lum(cs));' },
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: 'hue takes the source saturation, not the backdrop',
+      find: 'case MODES.hue: return setLum(setSat(cs, sat(cb)), lum(cb));',
+      replace: 'case MODES.hue: return setLum(setSat(cs, sat(cs)), lum(cb));' },
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: 'the layer mask is ignored',
+      find: 'if (M) k *= Math.min(1, Math.max(0, M[p + 3]));', replace: '' },
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: 'the clip source is ignored',
+      find: 'if (C) k *= Math.min(1, Math.max(0, C[p + 3]));', replace: '' },
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: "the clip base's own mask is ignored",
+      find: 'if (CM) k *= Math.min(1, Math.max(0, CM[p + 3]));', replace: '' },
+    { group: 'nonsep', file: 'src/kernels/js/blend.js', what: 'mask alpha is read at the wrong stride',
+      find: 'if (M) k *= Math.min(1, Math.max(0, M[p + 3]));',
+      replace: 'if (M) k *= Math.min(1, Math.max(0, M[i]));' },
+
+    // --- the layer document -------------------------------------------
+    { group: 'layers', file: 'src/core/paint/Document.js', what: 'a clipped layer clips to the wrong base',
+      find: 'if (!this.layers[i].clip) return this.layers[i];',
+      replace: 'return this.layers[i];' },
+    { group: 'layers', file: 'src/core/paint/Document.js', what: 'a stale prefix is reused after a low edit',
+      find: '                this._prefixUpTo = -1;\n            }\n        }\n\n        for (let i = from; i < this.layers.length; i++) this._compose(target, i);',
+      replace: '            }\n        }\n\n        for (let i = from; i < this.layers.length; i++) this._compose(target, i);' },
+    { group: 'layers', file: 'src/core/paint/Document.js', what: 'the layer signature ignores compositing properties',
+      find: "        return `${this.surface.version}|${this.blend}|${this.opacity}`",
+      replace: "        return `${this.surface.version}|x|x`" },
+    { group: 'layers', file: 'src/core/paint/Document.js', what: 'the signature ignores the mask',
+      find: "            + `|${this.mask ? this.mask.version : -1}`;", replace: '            + `|0`;' },
+    { group: 'layers', file: 'src/core/paint/Document.js', what: 'a new mask starts transparent, hiding the layer',
+      find: 'if (fill > 0) this.mask.fill(0, 0, 0, Math.min(1, fill));', replace: '' },
+    { group: 'layers', file: 'src/core/paint/Surface.js', what: 'drawing does not bump the version',
+      find: '        this.version++;\n        return count;\n    }\n\n    /**\n     * As [`draw`], across the worker pool',
+      replace: '        return count;\n    }\n\n    /**\n     * As [`draw`], across the worker pool' },
+
+    // --- photo motion ---------------------------------------------------
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'overscan is halved (one uncovered row)',
+      find: 'return 1 + margin * 2.2;', replace: 'return 1 + margin * 1.1;' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'the depth map is not blurred',
+      find: 'const depth = spec.depthBlur === 0\n            ? spec.depth\n            : blurDepth(kernels, spec.depth, spec.depthBlur ?? 0.02);',
+      replace: 'const depth = spec.depth;' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'parallax runs without a depth map',
+      find: '                    if (this.hasDepth) applyParallax(out, this, effect, phase, t);',
+      replace: '                    applyParallax(out, this, effect, phase, t);' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'parallax ignores focus, becoming a pan',
+      find: 'const d = photo.depths[i] - focus;', replace: 'const d = 1;' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'kenBurns zooms about the origin, not the centre',
+      find: 'out[i * 2] = cx + (out[i * 2] - cx) * zoom + dx;',
+      replace: 'out[i * 2] = out[i * 2] * zoom + dx;' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'kenBurns pan is in pixels, not frame fractions',
+      find: 'const dx = lerp(from.x ?? 0, to.x ?? 0, e) * photo.width;',
+      replace: 'const dx = lerp(from.x ?? 0, to.x ?? 0, e);' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'time is not clamped',
+      find: 'return this.duration > 0 ? Math.min(1, Math.max(0, t / this.duration)) : 0;',
+      replace: 'return this.duration > 0 ? t / this.duration : 0;' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'wave escapes its range',
+      find: 'if (v < v0 || v > v1) continue;', replace: '' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'puppet pins have no falloff',
+      find: 'const w = smooth(1 - dist / radius);', replace: 'const w = 1;' },
+    { group: 'motion', file: 'src/core/motion/PhotoMotion.js', what: 'depth is sampled nearest, terracing the field',
+      find: 'return lerp(lerp(at(x0, y0), at(x1, y0), tx), lerp(at(x0, y1), at(x1, y1), tx), ty);',
+      replace: 'return at(x0, y0);' },
+
+    // --- PNG ---------------------------------------------------------------
+    { group: 'png', file: 'src/io/png.js', what: 'the paeth predictor picks the wrong neighbour',
+      find: 'if (pa <= pb && pa <= pc) return a;\n    return pb <= pc ? b : c;',
+      replace: 'return a;' },
+    { group: 'png', file: 'src/io/png.js', what: 'the average filter does not halve',
+      find: 'line[i] = (line[i] + ((left + prev[i]) >> 1)) & 255;',
+      replace: 'line[i] = (line[i] + left + prev[i]) & 255;' },
+    { group: 'png', file: 'src/io/png.js', what: 'the sub filter uses the byte above',
+      find: 'for (let i = bpp; i < n; i++) line[i] = (line[i] + line[i - bpp]) & 255;',
+      replace: 'for (let i = bpp; i < n; i++) line[i] = (line[i] + prev[i]) & 255;' },
+    { group: 'png', file: 'src/io/png.js', what: 'a 16-bit PNG is accepted and misdecoded',
+      find: "        throw new Error(`PNG bit depth ${depth} is not supported (only 8)`);",
+      replace: '        depth = 8;' },
+    { group: 'png', file: 'src/io/png.js', what: 'greyscale decode drops two channels',
+      find: '                    out[d] = out[d + 1] = out[d + 2] = line[s];\n                    out[d + 3] = 255;\n                    break;',
+      replace: '                    out[d] = line[s];\n                    out[d + 3] = 255;\n                    break;' },
+
+    // --- the op surface ------------------------------------------------------
+    { group: 'ops', file: 'src/core/script/ops.js', what: 'an off-canvas stroke is reported as a success',
+      find: 'const offCanvas = bounds && (bounds.x1 < 0 || bounds.y1 < 0',
+      replace: 'const offCanvas = false && (bounds.x1 < 0 || bounds.y1 < 0' },
+    { group: 'ops', file: 'src/core/script/ops.js', what: 'stroke bounds ignore the brush radius',
+      find: '        x0 = Math.min(x0, s[o] - r); x1 = Math.max(x1, s[o] + r);',
+      replace: '        x0 = Math.min(x0, s[o]); x1 = Math.max(x1, s[o]);' },
+    { group: 'ops', file: 'src/core/script/ops.js', what: 'required arguments are not enforced',
+      find: '        if (spec.required && args[key] === undefined) {', replace: '        if (false) {' },
+    { group: 'ops', file: 'src/core/script/ops.js', what: 'an unknown op fails without listing the known ones',
+      find: 'throw new Error(`unknown op "${name}". Known: ${OP_NAMES.join(\', \')}`);',
+      replace: 'throw new Error("bad op");' },
+    { group: 'ops', file: 'src/core/script/ops.js', what: 'a sequence overwrites one file instead of numbering',
+      find: "                ctx.io.writeImage(a.out.replace('####', String(i).padStart(4, '0')),",
+      replace: "                ctx.io.writeImage(a.out," },
 
     // --- deform kernels ---------------------------------------------
     { group: 'deform', file: 'src/kernels/js/deform.js', what: 'skin reads the matrix transposed',
@@ -163,9 +298,11 @@ const MUTATIONS = [
 
     // --- layer document ----------------------------------------------
     { group: 'document', file: 'src/core/paint/Document.js', what: 'hidden layers are composited anyway',
-      find: 'if (!layer.visible || layer.opacity <= 0) continue;\n            K.blendLayers(', replace: 'K.blendLayers(' },
+      find: '        const layer = this.layers[index];\n        if (!layer.visible || layer.opacity <= 0) return;\n        const base = layer.clip ? this._clipBase(index) : null;\n        this.kernels.blendLayers(',
+      replace: '        const layer = this.layers[index];\n        const base = layer.clip ? this._clipBase(index) : null;\n        this.kernels.blendLayers(' },
     { group: 'document', file: 'src/core/paint/Document.js', what: 'the composite is not cleared before flattening',
-      find: 'K.clearF32(target, w * h * 4);', replace: '' },
+      find: '            K.clearF32(target, w * h * 4);\n            for (let i = 0; i < from; i++) this._compose(target, i);',
+      replace: '            for (let i = 0; i < from; i++) this._compose(target, i);' },
     { group: 'document', file: 'src/core/paint/Document.js', what: 'a missing layer resolves to the first one',
       find: 'if (!found) {\n            throw new Error(', replace: 'if (false) {\n            throw new Error(' },
     { group: 'document', file: 'src/core/paint/Document.js', what: 'toRgba8 does not flatten first',

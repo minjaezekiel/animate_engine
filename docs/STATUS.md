@@ -45,7 +45,8 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Draw-on animation | **done** | A revealed stroke is a **prefix** of the whole one, so frame N is a pure function of N with no history. Driven by an ordinary number channel, so every easing and clip feature applies unchanged. |
 | Input stabilisation | **done** | `smoothPoints`, `pressureFromVelocity`. |
 | Brush sheet | **done** | `npm run make:brushes` → a PNG rendered entirely in Node, `node:zlib` only. |
-| Tests | **done** | 28 paint + 48 media (paths, nibs, grain, wet, layers, binding). Total now **364**. |
+| Tests | **done** | paint, media, motion and ops. Total now **401**. |
+| Mutation audit | **done** | `npm run audit:tests` — 87 deliberate defects across every module. |
 | Layers + 13 W3C blend modes | **done** | `Document.js`. Named addressing, because an index means something else the moment a layer is inserted. 33 MB per layer at 1080p. |
 | Grain / textured brushes | **done** | `texture.js` — generated, not loaded, so a brush is four numbers rather than an asset. Canvas-locked by default: **paper tooth belongs to the paper**. |
 | Wet media and colour mixing | **done** | `smudge_stroke`. `smudge` and `colorRate` are **independent** — coupling them, as Krita's original engine did, makes a pure smear inexpressible. |
@@ -53,7 +54,15 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | SVG path input | **done** | `path.js`. One line instead of two hundred coordinates — the decisive ergonomic choice for agent authoring. |
 | `film.json` binding | **done** | `kind:'paint'` nodes from a scene's `drawings`, and a `draw` verb animating `props.progress`. |
 | Mutation audit | **done** | `npm run audit:tests` — 51 deliberate defects; 50 killed, 1 equivalent by construction. |
-| Masks, non-separable modes, asset textures, live input | — | 16-PAINT.md §8. |
+| Layer masks + clipping groups | **done** | A mask *is* a `PaintSurface`, so it is painted with the ordinary brushes. Three coverage multipliers: own mask, clip base, **and the base's own mask**. |
+| Non-separable blend modes | **done** | hue, saturation, color, luminosity, with the W3C luminance model and a hue-preserving clip. 17 modes total. |
+| Asset-loaded brush textures | **done** | `textureFromImage` + `paint_load_texture`. A named asset wins over generated grain; a missing one warns and falls back. |
+| Live pointer binding | **done** | `src/input/StrokeRecorder.js` — coalesced events, pointer capture, derived pressure, `touch-action`. |
+| Incremental flatten | **done** | Painting the top of a 12-layer document costs **1 blend instead of 12**; an unchanged flatten returns in 5 µs. |
+| Picture → video | **done** | `core/motion/PhotoMotion.js` — Ken Burns, 2.5D parallax, wave, puppet, over `warp_mesh`. |
+| Headless MCP surface | **done** | `mcp/paint-server.js`, 20 tools **generated** from `core/script/ops.js`. No browser required. |
+| PNG codec | **done** | `src/io/png.js`, `node:zlib` only. All five scanline filters; refuses 16-bit and interlaced rather than misdecoding. |
+| Depth estimation, mesh tearing, `photos` in film.json | — | 17-MOTION-AND-MCP.md §6. |
 
 ### Verified by measurement, not assumption
 
@@ -84,6 +93,31 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 - Summed octaves of value noise concentrate around 0.5, so grain at
   `strength: 0.7` delivered only ~0.4 of real modulation until the tile
   was stretched to its own extremes.
+
+### Phase 20 findings
+
+- **The incremental flatten returned a stale composite forever.**
+  `PaintSurface.version` was never initialised, so `version++` yielded
+  `NaN`, every layer signature interpolated the constant string `"NaN"`,
+  and change detection never fired — with no error anywhere. A test now
+  asserts a fresh surface starts at 0.
+- **A prefix that was not re-saved must be invalidated.** Painting low in
+  the stack rebuilds from zero and saves no prefix; leaving `_prefixUpTo`
+  pointing at the old one meant the next high edit reused a prefix
+  captured *before* the low edit, silently dropping it.
+- **Overscan was half what it needed to be.** `1 + margin` scales about
+  the centre, putting only `margin / 2` outside each edge while the
+  displacement is per-side. It left exactly one uncovered row, which is
+  easy to dismiss as antialiasing.
+- **Parallax with no depth map was a uniform pan** of nearly 8 px, not a
+  no-op. Now skipped, and `photo_create` reports it.
+- **A stroke drawn at (-500, -500) resampled into 405 dabs** and reported
+  success. `paint_stroke` now returns the dabs' bounding box and names
+  the three outcomes apart.
+- The mutation audit's second run found **10 survivors**, nine of them one
+  cause again: tests for masks, clipping and the new blend modes all
+  reached the **wasm** backend, leaving the JS mirror's three coverage
+  multipliers unexecuted. Conformance now covers each combination.
 
 ### Verified by measurement, not assumption
 

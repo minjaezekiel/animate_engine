@@ -15,9 +15,15 @@
  * peak (`max`, a pen or pencil -- dwelling does not darken) or 1 for
  * build-up (an airbrush -- it does).
  */
-export function stampMask(mask, w, h, stamps, count, hardness, mode) {
+export function stampMask(mask, w, h, stamps, count, hardness, mode, y0, y1) {
     const M = mask.array, S = stamps.array;
     const hard = Math.min(1, Math.max(0, hardness));
+    // `y0..y1` is this worker's band. Both accumulation modes are
+    // per-pixel, so a band needs no halo -- each stamp's bounding box is
+    // simply clipped to the band, and a stamp straddling a boundary is
+    // visited by both workers, each writing only its own rows.
+    const bandLo = Math.min(y0, h), bandHi = Math.min(y1, h);
+    if (bandLo >= bandHi) return;
 
     for (let s = 0; s < count; s++) {
         const cx = S[s * 4], cy = S[s * 4 + 1];
@@ -39,11 +45,11 @@ export function stampMask(mask, w, h, stamps, count, hardness, mode) {
         const r2 = rEdge * rEdge;
 
         const x0 = Math.max(0, Math.floor(cx - rEdge));
-        const y0 = Math.max(0, Math.floor(cy - rEdge));
         const x1 = Math.max(0, Math.min(w, Math.ceil(cx + rEdge) + 1));
-        const y1 = Math.max(0, Math.min(h, Math.ceil(cy + rEdge) + 1));
+        const sy0 = Math.max(bandLo, Math.max(0, Math.floor(cy - rEdge)));
+        const sy1 = Math.min(bandHi, Math.max(0, Math.min(h, Math.ceil(cy + rEdge) + 1)));
 
-        for (let y = y0; y < y1; y++) {
+        for (let y = sy0; y < sy1; y++) {
             const dy = y + 0.5 - cy;
             const dy2 = dy * dy;
             if (dy2 > r2) continue;
@@ -74,11 +80,12 @@ export function stampMask(mask, w, h, stamps, count, hardness, mode) {
  * channels together so the buffer stays premultiplied-valid and an erased
  * edge picks up no colour fringe.
  */
-export function compositeMask(dst, mask, w, h, r, g, b, opacity, erase) {
+export function compositeMask(dst, mask, w, h, r, g, b, opacity, erase, y0, y1) {
     const D = dst.array, M = mask.array;
-    const n = w * h;
+    // Every pixel is independent, so a band is just a row range.
+    const lo = Math.min(y0, h) * w, hi = Math.min(y1, h) * w;
 
-    for (let i = 0; i < n; i++) {
+    for (let i = lo; i < hi; i++) {
         const a = M[i] * opacity;
         if (a <= 0) continue;
         const p = i * 4, inv = 1 - a;
@@ -100,10 +107,10 @@ export function compositeMask(dst, mask, w, h, r, g, b, opacity, erase) {
  * their colour carries no information and the divide would write NaN,
  * which `putImageData` renders as garbage.
  */
-export function maskToRgba8(src, dst, n) {
+export function maskToRgba8(src, dst, i0, i1) {
     const S = src.array, D = dst.array;
 
-    for (let i = 0; i < n; i++) {
+    for (let i = i0; i < i1; i++) {
         const p = i * 4;
         const a = S[p + 3];
         if (a <= 0) { D[p] = D[p + 1] = D[p + 2] = D[p + 3] = 0; continue; }

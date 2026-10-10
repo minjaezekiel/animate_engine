@@ -22,7 +22,7 @@
  */
 
 /** The ABI this loader speaks. Must match `abi_version()` in lib.rs. */
-export const ABI_VERSION = 1;
+export const ABI_VERSION = 2;
 
 /**
  * A block of kernel-owned memory, viewed as a typed array.
@@ -86,10 +86,19 @@ export class JsBuf {
 }
 
 /** The instantiated module plus its allocation helpers. */
-class WasmHost {
-    constructor(instance) {
+export class WasmHost {
+    /**
+     * @param {WebAssembly.Instance} instance
+     * @param {WebAssembly.Memory} [memory]
+     *   The shared memory, for the multi-threaded module. That build
+     *   *imports* its memory rather than exporting one, so
+     *   `exports.memory` is undefined there and the host must be told
+     *   which memory it is addressing.
+     */
+    constructor(instance, memory) {
         this.exports = instance.exports;
-        this.memory = instance.exports.memory;
+        this.memory = memory ?? instance.exports.memory;
+        if (!this.memory) throw new Error('jirex kernels: module has no memory');
     }
 
     /**
@@ -115,16 +124,25 @@ class WasmHost {
 /**
  * Compile and instantiate the kernel module.
  *
- * Instantiation is synchronous-after-compile and takes no import object at
- * all, which is the whole point of the no-bindgen ABI: there is no glue to
- * keep in step and nothing the host must provide.
+ * With no `memory`, this instantiates the single-threaded module, which
+ * takes no import object at all -- the point of the no-bindgen ABI: no
+ * glue to keep in step and nothing the host must provide.
+ *
+ * With a `memory`, it instantiates the shared-memory module against it, so
+ * several instances -- the main thread's and one per worker -- address the
+ * same bytes with no copying.
  *
  * @param {Uint8Array} bytes
+ * @param {WebAssembly.Memory} [memory] shared memory, for the pool
  * @returns {Promise<WasmHost>}
  */
-export async function instantiate(bytes) {
-    const { instance } = await WebAssembly.instantiate(bytes, {});
-    const host = new WasmHost(instance);
+export async function instantiate(bytes, memory) {
+    // The single-threaded module takes no imports at all; the
+    // shared-memory one takes exactly `env.memory`. Passing an unused
+    // import object to the former is harmless.
+    const imports = memory ? { env: { memory } } : {};
+    const { instance } = await WebAssembly.instantiate(bytes, imports);
+    const host = new WasmHost(instance, memory);
 
     // A stale module -- one left in a service-worker cache from an earlier
     // build -- would otherwise be called with a shifted argument list and

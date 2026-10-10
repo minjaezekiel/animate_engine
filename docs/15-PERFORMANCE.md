@@ -335,9 +335,7 @@ subsurface scattering; hair; cloth simulation; correctives driven by joint
 angle; IK in 3D; teeth and tongue; eye convergence; ambient occlusion and
 contact shadows; painted weight groups; lipsync coarticulation. 2D: Spine
 or Moho-style deformation, elongated smears, spring secondary motion,
-per-pose z, hit-stop. Also: no wasm threads until the dev server sends
-COOP/COEP headers, which would turn 6 cores into a ~5× multiplier on every
-per-pixel kernel and is cheaper than the GPU path.
+per-pose z, hit-stop. (wasm threads are now built -- see §9.)
 
 ---
 
@@ -350,4 +348,134 @@ npm run test:kernels    # 59 tests: integrity, conformance, maths
 npm run bench:kernels   # the table in §3
 npm run audit:deps      # load every browser dependency and smoke-test it
 npm test                # everything, 272 tests
+```
+
+
+---
+
+## 9. The worker pool: wasm threads over one shared memory
+
+**Built and measured.** `src/kernels/parallel.js`, `scripts/serve.mjs`.
+
+§3 established that full-resolution per-pixel kernels miss the frame budget
+and that the cause is memory bandwidth, which SIMD cannot address. More
+cores can, because each brings its own share of bandwidth — so a worker
+pool was the cheaper lever than porting kernels to WGSL. It reuses the
+kernels unchanged and keeps the determinism guarantee the GPU cannot offer.
+
+### Measured
+
+`npm run bench:kernels`, 11 workers:
+
+| kernel | 1 thread | pooled | speedup | budget |
+|---|---|---|---|---|
+| `warpMesh` 1080p, 32×32 grid | 90.8 ms | **18.1 ms** | **5.01×** | over → **ok** |
+| `blurRgba` 1080p radius 16 | 100.0 ms | **36.3 ms** | 2.76× | over → **ok** |
+| `stampMask` 600 stamps @1080p | 6.9 ms | 1.6 ms | 4.29× | ok |
+| `compositeMask` 1080p | 5.8 ms | 3.0 ms | 1.96× | ok |
+
+**Both kernels that missed the budget now fit it.** `warpMesh` hits 5.01×,
+essentially linear. `blurRgba` gets 2.76× rather than 5× for two reasons
+that are both inherent: it is the most bandwidth-bound kernel here, so
+extra cores contend on the same memory bus, and a full blur is **six
+barriered passes**, so it pays 6 × *workers* round trips of dispatch where
+`warpMesh` pays one.
+
+`compositeMask`'s 1.96× is the same bandwidth story at a size that was
+already comfortable. Below `minPixels` (64k pixels by default) the pool
+runs the kernel inline, because a round trip is ~100 µs and a small buffer
+genuinely comes out slower in parallel.
+
+### How it works, and the three things that would silently break it
+
+Every worker instantiates **the same module against the same
+`WebAssembly.Memory({shared: true})`**, so a pointer means the same bytes
+everywhere and **no pixel is ever copied between threads**. The obvious
+alternative — a worker per band with its own memory, staged through a
+`SharedArrayBuffer` — costs two copies of the buffer per pass, which for a
+blur would roughly double the very traffic that is already the bottleneck.
+
+1. **Only the main thread allocates.** One allocator, one caller, no
+   question of lock contention or reentrancy. Workers receive pointers.
+   Every kernel is allocation-free by construction to make this hold, which
+   is why `blur` has a `MAX_BLUR_RADIUS` and a stack-allocated reciprocal
+   table instead of a `Vec`.
+
+2. **Each worker gets its own stack.** Instances share a linear memory but
+   each initialises `__stack_pointer` from module data — to the *same*
+   address. Without relocation every worker's call frames overlap. The
+   corruption is silent, timing-dependent and effectively undebuggable, so
+   the module exports `__stack_pointer` and the pool moves each worker's
+   before any kernel runs.
+
+3. **Passes are barriered.** Within one blur pass rows (or columns) are
+   independent; *between* passes they are not, since a vertical pass reads
+   what the horizontal pass wrote across rows. Omitting a barrier does not
+   crash — it produces a subtly wrong result that varies with worker
+   timing, which is the worst failure mode available. Each horizontal pass
+   splits by rows and each vertical by columns, i.e. along the axis that
+   pass does not read across, so **no band needs a halo and the pooled
+   result is bit-identical to the serial one** rather than approximately
+   equal. The tests assert exactly that.
+
+### Why `+atomics` needs nightly, and why that is optional
+
+Shared memory requires the `atomics` target feature, which is still
+unstable, so `core` and `alloc` must be rebuilt with it via `-Z build-std`.
+Three flags follow: `--import-memory --shared-memory` so the host supplies
+the memory, and `--export=__stack_pointer` for (2) above. `+atomics` also
+makes the linker emit data segments as **passive**, initialised once behind
+an atomic guard — which is what makes instantiating one module N times safe.
+
+That is a heavier toolchain than the rest of the repo needs, so the
+multi-threaded build is **optional**: `npm run build:wasm` skips it with an
+explanation when nightly or `rust-src` is absent, and the committed
+`module-mt.js` is left alone. A machine without nightly loses parallelism
+and nothing else.
+
+### The headers, and the CDN question
+
+`SharedArrayBuffer` needs the document **cross-origin isolated**, which
+needs two response headers that no plain static server sends — so
+`npm run serve` is now `scripts/serve.mjs` (Node stdlib only, no
+dependencies) instead of `python3 -m http.server`.
+
+The expectation was that `COEP: require-corp` would block the CDN
+dependencies and trade a worker pool for broken 3D and silent voices.
+**Measured, it does not:** jsDelivr and cdnjs both send
+`cross-origin-resource-policy: cross-origin`, and all four dependencies
+load in an isolated document under both COEP values.
+`test/e2e/kernels-browser.mjs` runs the full check in each mode.
+
+| | isolates | cross-origin assets without CORP | Safari |
+|---|---|---|---|
+| `credentialless` *(default)* | yes | **load** | **not isolated** |
+| `require-corp` | yes | blocked | isolated |
+
+The default is `credentialless` because an animation tool handles arbitrary
+user-supplied assets, and an image on an origin that has never heard of
+CORP would be blocked by the stricter value. The known dependencies are
+fine either way; unknown future ones are not. The cost is Safari, which
+does not implement `credentialless` and so stays un-isolated —
+`COEP=require-corp npm run serve` is the right choice for a deploy that
+needs Safari and controls its own assets.
+
+Either way `loadParallelKernels` returns `null` rather than throwing when
+isolation is absent, so the fallback is one line and the degradation is
+slower, never broken.
+
+### Where this leaves the GPU path
+
+Less urgent than §7.1 claimed. Both over-budget kernels now fit a frame on
+the CPU, with determinism intact. The GPU remains the right answer for work
+that is an order of magnitude larger — 4K, real-time interactive painting,
+or per-pixel simulation — and for nothing that feeds a key or a hash.
+
+### Commands
+
+```bash
+npm run serve                   # dev server with COOP/COEP
+COEP=require-corp npm run serve # the stricter value, for Safari
+npm run test:parallel           # 12 tests: bit-identity with serial, bands, barriers
+npm run test:kernels:browser    # the pool and all CDN deps, in a real browser, both modes
 ```

@@ -64,15 +64,21 @@ export { buildAdjacency };
  *   reporting it as wasm is worse than an error.
  * @param {Uint8Array} [options.wasmBytes]
  *   Override the embedded module, for a host that would rather fetch it.
+ * @param {WebAssembly.Memory} [options.memory]
+ *   A shared memory. Selects the multi-threaded module and instantiates
+ *   it against this memory. `loadParallelKernels` in `./parallel.js` uses
+ *   this; callers wanting a worker pool should use that instead.
  * @returns {Promise<Kernels>}
  */
-export async function loadKernels({ prefer = 'auto', wasmBytes } = {}) {
+export async function loadKernels({ prefer = 'auto', wasmBytes, memory } = {}) {
     if (prefer === 'js') return new Kernels(null);
 
     try {
         if (typeof WebAssembly === 'undefined') throw new Error('no WebAssembly');
-        const bytes = wasmBytes ?? (await import('./wasm/module.js')).wasmBytes();
-        return new Kernels(await instantiate(bytes));
+        const bytes = wasmBytes ?? (memory
+            ? (await import('./wasm/module-mt.js')).wasmBytes()
+            : (await import('./wasm/module.js')).wasmBytes());
+        return new Kernels(await instantiate(bytes, memory));
     } catch (err) {
         if (prefer === 'wasm') throw err;
         // Deliberately a warning and not a throw: a slow engine beats a
@@ -179,23 +185,23 @@ export class Kernels {
      * Accumulate stamps `[x, y, radius, flow]` into a coverage mask.
      * `mode` 0 = peak (pen, pencil), 1 = build-up (airbrush).
      */
-    stampMask(mask, w, h, stamps, count, hardness, mode) {
+    stampMask(mask, w, h, stamps, count, hardness, mode, y0 = 0, y1 = h) {
         if (this.host) this.host.exports.stamp_mask(mask.ptr, w, h, stamps.ptr,
-            count, hardness, mode);
-        else jsRaster.stampMask(mask, w, h, stamps, count, hardness, mode);
+            count, hardness, mode, y0, y1);
+        else jsRaster.stampMask(mask, w, h, stamps, count, hardness, mode, y0, y1);
     }
 
     /** Composite a mask over premultiplied f32 RGBA at `opacity`. */
-    compositeMask(dst, mask, w, h, r, g, b, opacity, erase = 0) {
+    compositeMask(dst, mask, w, h, r, g, b, opacity, erase = 0, y0 = 0, y1 = h) {
         if (this.host) this.host.exports.composite_mask(dst.ptr, mask.ptr, w, h,
-            r, g, b, opacity, erase ? 1 : 0);
-        else jsRaster.compositeMask(dst, mask, w, h, r, g, b, opacity, erase ? 1 : 0);
+            r, g, b, opacity, erase ? 1 : 0, y0, y1);
+        else jsRaster.compositeMask(dst, mask, w, h, r, g, b, opacity, erase ? 1 : 0, y0, y1);
     }
 
     /** Premultiplied f32 RGBA to straight u8 RGBA for `putImageData`. */
-    maskToRgba8(src, dst, n) {
-        if (this.host) this.host.exports.mask_to_rgba8(src.ptr, dst.ptr, n);
-        else jsRaster.maskToRgba8(src, dst, n);
+    maskToRgba8(src, dst, n, i0 = 0, i1 = n) {
+        if (this.host) this.host.exports.mask_to_rgba8(src.ptr, dst.ptr, i0, i1);
+        else jsRaster.maskToRgba8(src, dst, i0, i1);
     }
 
     /** Zero `n` floats. */
@@ -207,15 +213,33 @@ export class Kernels {
     // --- image -----------------------------------------------------------
 
     /** Rasterise textured triangles from u8 RGBA `src` into f32 `dst`. */
-    warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vcount) {
+    warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vcount, y0 = 0, y1 = dh) {
         if (this.host) this.host.exports.warp_mesh(src.ptr, sw, sh, dst.ptr, dw, dh,
-            verts.ptr, uvs.ptr, indices.ptr, tris, vcount);
-        else jsWarp.warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vcount);
+            verts.ptr, uvs.ptr, indices.ptr, tris, vcount, y0, y1);
+        else jsWarp.warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vcount, y0, y1);
     }
 
     /** Three box passes approximating a Gaussian. Result lands in `buf`. */
     blurRgba(buf, scratch, w, h, radius) {
         if (this.host) this.host.exports.blur_rgba(buf.ptr, scratch.ptr, w, h, radius);
         else jsWarp.blurRgba(buf, scratch, w, h, radius);
+    }
+
+    /**
+     * One axis pass of the blur over a range of lines, for a worker pool.
+     *
+     * `begin`/`end` index the axis the pass does not read across -- rows
+     * for a horizontal pass, columns for a vertical one.
+     *
+     * **The caller must barrier between passes.** A vertical pass reads
+     * what the horizontal pass wrote, across rows, so every worker must
+     * finish pass k before any starts pass k+1. Omitting the barrier does
+     * not crash; it produces a subtly wrong result that varies with worker
+     * timing. `ParallelKernels.blurRgba` does the barriers for you.
+     */
+    blurPass(src, dst, w, h, radius, horizontal, begin, end) {
+        if (this.host) this.host.exports.blur_pass(src.ptr, dst.ptr, w, h, radius,
+            horizontal ? 1 : 0, begin, end);
+        else jsWarp.blurPass(src, dst, w, h, radius, horizontal, begin, end);
     }
 }

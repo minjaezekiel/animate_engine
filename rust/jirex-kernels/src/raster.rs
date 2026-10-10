@@ -67,6 +67,18 @@
 /// either 0 or NaN; the floor is what antialiases a hard round brush
 /// instead of leaving it jagged.
 ///
+/// # The row range
+///
+/// `y0`/`y1` restrict the pass to rows `y0..y1`. Passing `0, h` processes
+/// the whole mask.
+///
+/// This exists so a worker pool can split the mask into horizontal bands.
+/// Both accumulation modes are per-pixel, so a band's result does not
+/// depend on any other band and no halo or overlap is needed -- each
+/// worker simply clips every stamp's bounding box to its own rows. A stamp
+/// straddling a boundary is visited by both workers, each writing only its
+/// own side.
+///
 /// # Safety
 /// `mask` holds `w * h` floats and `stamps` holds `4 * count`.
 #[no_mangle]
@@ -78,7 +90,14 @@ pub unsafe extern "C" fn stamp_mask(
     count: usize,
     hardness: f32,
     mode: i32,
+    y0: usize,
+    y1: usize,
 ) {
+    let band_lo = y0.min(h);
+    let band_hi = y1.min(h);
+    if band_lo >= band_hi {
+        return;
+    }
     for s in 0..count {
         let cx = *stamps.add(s * 4);
         let cy = *stamps.add(s * 4 + 1);
@@ -120,11 +139,12 @@ pub unsafe extern "C" fn stamp_mask(
         let r2 = r_edge * r_edge;
 
         let x0 = ((cx - r_edge).floor().max(0.0)) as usize;
-        let y0 = ((cy - r_edge).floor().max(0.0)) as usize;
         let x1 = (((cx + r_edge).ceil() + 1.0).min(w as f32).max(0.0)) as usize;
-        let y1 = (((cy + r_edge).ceil() + 1.0).min(h as f32).max(0.0)) as usize;
+        // The stamp's own vertical extent, then clipped to this worker's band.
+        let sy0 = ((cy - r_edge).floor().max(0.0) as usize).max(band_lo);
+        let sy1 = ((((cy + r_edge).ceil() + 1.0).min(h as f32).max(0.0)) as usize).min(band_hi);
 
-        for y in y0..y1 {
+        for y in sy0..sy1 {
             let dy = y as f32 + 0.5 - cy;
             let dy2 = dy * dy;
             if dy2 > r2 {
@@ -167,6 +187,9 @@ pub unsafe extern "C" fn stamp_mask(
 /// the same `1 - a` is what keeps the buffer premultiplied-valid, so an
 /// erased edge stays neutral instead of picking up a colour fringe.
 ///
+/// `y0`/`y1` restrict the pass to rows `y0..y1`; pass `0, h` for the whole
+/// buffer. Every pixel is independent here, so a band needs no halo.
+///
 /// # Safety
 /// `dst` holds `4 * w * h` floats and `mask` holds `w * h`.
 #[no_mangle]
@@ -180,9 +203,12 @@ pub unsafe extern "C" fn composite_mask(
     b: f32,
     opacity: f32,
     erase: i32,
+    y0: usize,
+    y1: usize,
 ) {
-    let n = w * h;
-    for i in 0..n {
+    let lo = y0.min(h) * w;
+    let hi = y1.min(h) * w;
+    for i in lo..hi {
         let a = *mask.add(i) * opacity;
         if a <= 0.0 {
             continue;
@@ -215,11 +241,14 @@ pub unsafe extern "C" fn composite_mask(
 /// `Math.round` differs from a C cast on negatives, and the two paths must
 /// produce identical bytes for the golden-hash tests to mean anything.
 ///
+/// `i0`/`i1` restrict the conversion to pixels `i0..i1`, so a worker pool
+/// can split it; pass `0, n` for the whole buffer.
+///
 /// # Safety
-/// `src` holds `4 * n` floats and `dst` holds `4 * n` bytes.
+/// `src` holds `4 * i1` floats and `dst` holds `4 * i1` bytes.
 #[no_mangle]
-pub unsafe extern "C" fn mask_to_rgba8(src: *const f32, dst: *mut u8, n: usize) {
-    for i in 0..n {
+pub unsafe extern "C" fn mask_to_rgba8(src: *const f32, dst: *mut u8, i0: usize, i1: usize) {
+    for i in i0..i1 {
         let a = *src.add(i * 4 + 3);
         if a <= 0.0 {
             *dst.add(i * 4) = 0;

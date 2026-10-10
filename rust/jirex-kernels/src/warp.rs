@@ -113,6 +113,17 @@ unsafe fn sample(src: *const u8, sw: usize, sh: usize, u: f32, v: f32) -> (f32, 
 /// by rasterising a subdivided grid over a sentinel-filled buffer and
 /// requiring that no pixel survives unwritten.
 ///
+/// # The row range
+///
+/// `y0`/`y1` restrict rasterisation to rows `y0..y1`; pass `0, dh` for the
+/// whole frame.
+///
+/// A band needs no halo, because each destination pixel is decided by the
+/// one triangle covering it and depends on no neighbour. Workers each walk
+/// the full triangle list and clip every bounding box to their own rows,
+/// which costs one extra bbox test per triangle per worker -- negligible
+/// against the per-pixel work, and far simpler than partitioning the mesh.
+///
 /// # Safety
 /// `src` holds `4 * sw * sh` bytes, `dst` holds `4 * dw * dh` floats,
 /// `verts`/`uvs` hold `2 * vcount`, `indices` holds `3 * tris`.
@@ -129,7 +140,14 @@ pub unsafe extern "C" fn warp_mesh(
     indices: *const u32,
     tris: usize,
     vcount: usize,
+    y0: usize,
+    y1: usize,
 ) {
+    let band_lo = y0.min(dh);
+    let band_hi = y1.min(dh);
+    if band_lo >= band_hi {
+        return;
+    }
     for t in 0..tris {
         let i0 = *indices.add(t * 3) as usize;
         let i1 = *indices.add(t * 3 + 1) as usize;
@@ -149,15 +167,19 @@ pub unsafe extern "C" fn warp_mesh(
         let inv_area = 1.0 / area;
 
         let x0 = ax.min(bx).min(cx).floor().max(0.0) as usize;
-        let y0 = ay.min(by).min(cy).floor().max(0.0) as usize;
         let x1 = (ax.max(bx).max(cx).ceil() + 1.0).min(dw as f32).max(0.0) as usize;
-        let y1 = (ay.max(by).max(cy).ceil() + 1.0).min(dh as f32).max(0.0) as usize;
+        // The triangle's own row span, clipped to this worker's band.
+        let ty0 = (ay.min(by).min(cy).floor().max(0.0) as usize).max(band_lo);
+        let ty1 = (((ay.max(by).max(cy).ceil() + 1.0).min(dh as f32).max(0.0)) as usize).min(band_hi);
+        if ty0 >= ty1 {
+            continue;
+        }
 
         let (au, av) = (*uvs.add(i0 * 2), *uvs.add(i0 * 2 + 1));
         let (bu, bv) = (*uvs.add(i1 * 2), *uvs.add(i1 * 2 + 1));
         let (cu, cv) = (*uvs.add(i2 * 2), *uvs.add(i2 * 2 + 1));
 
-        for y in y0..y1 {
+        for y in ty0..ty1 {
             let py = y as f32 + 0.5;
             for x in x0..x1 {
                 let px = x as f32 + 0.5;
@@ -186,8 +208,21 @@ pub unsafe extern "C" fn warp_mesh(
     }
 }
 
-/// Three-pass box blur over premultiplied f32 RGBA, approximating a
-/// Gaussian.
+/// The largest blur radius accepted.
+///
+/// Bounded so the reciprocal table can live on the stack rather than the
+/// heap. That matters for more than tidiness: under the multi-threaded
+/// build several wasm instances share one linear memory and one allocator,
+/// and a kernel that allocates while running on a worker is a kernel that
+/// contends on the allocator lock on every call. Every kernel here is
+/// therefore allocation-free, and `blur_pass` is the only one that ever
+/// wanted otherwise.
+///
+/// 256 is far past useful: three box passes at radius 256 already reach
+/// roughly 1,500 pixels of visible spread.
+pub const MAX_BLUR_RADIUS: usize = 256;
+
+/// Three box passes over premultiplied f32 RGBA, approximating a Gaussian.
 ///
 /// `scratch` must be the same size as `buf`; the passes ping-pong between
 /// them and the result always lands back in `buf`.
@@ -208,6 +243,10 @@ pub unsafe extern "C" fn warp_mesh(
 ///   map must be smoothed before it displaces anything;
 /// * glow and depth-of-field want a large radius cheaply.
 ///
+/// This is the single-threaded convenience form, running all six passes.
+/// A worker pool calls [`blur_pass`] instead, so it can place a barrier
+/// between passes -- see that function for why a barrier is required.
+///
 /// # Safety
 /// `buf` and `scratch` each hold `4 * w * h` floats.
 #[no_mangle]
@@ -221,25 +260,77 @@ pub unsafe extern "C" fn blur_rgba(
     if radius == 0 || w == 0 || h == 0 {
         return;
     }
+    let radius = radius.min(MAX_BLUR_RADIUS);
     let n = w * h * 4;
-    // Slices are formed once here, at the single `unsafe` boundary, so the
-    // passes below carry LLVM's non-aliasing guarantee.
     let a = core::slice::from_raw_parts_mut(buf, n);
     let b = core::slice::from_raw_parts_mut(scratch, n);
+    let recip = reciprocals(radius);
+    for _ in 0..3 {
+        blur_axis(a, b, w, h, radius, true, 0, h, &recip);
+        blur_axis(b, a, w, h, radius, false, 0, w, &recip);
+    }
+}
 
-    // `1 / n` for every window size the sweep can see: the window grows
-    // from `radius + 1` at the start to `2 * radius + 1` in the middle and
-    // back, so indices 0..=2*radius+1 cover it. Index 0 is never read
-    // because the window always holds at least one sample.
-    let mut recip = vec![0.0f32; 2 * radius + 2];
-    for (i, r) in recip.iter_mut().enumerate().skip(1) {
+/// One axis pass of the blur, over a range of lines.
+///
+/// `horizontal` chooses the axis. `begin`/`end` index the *perpendicular*
+/// axis -- rows for a horizontal pass, columns for a vertical one -- so a
+/// worker pool splits each pass along whichever axis the pass does not
+/// read across.
+///
+/// That is what makes this parallel without any halo: a horizontal pass
+/// reads and writes only within one row, so rows are independent; a
+/// vertical pass likewise for columns. No worker ever needs a neighbour's
+/// output *within* a pass.
+///
+/// **But it does between passes.** A vertical pass reads what the
+/// horizontal pass wrote, across rows. So the caller must run every worker
+/// to completion on pass *k* before any worker starts pass *k + 1*. Six
+/// barriers for a full blur. Skipping them does not crash -- it produces a
+/// subtly wrong, non-deterministic result that varies with worker timing,
+/// which is the worst failure mode available.
+///
+/// Results alternate buffers: pass 0 reads `src` and writes `dst`, pass 1
+/// swaps them, and so on, exactly as [`blur_rgba`] does.
+///
+/// # Safety
+/// `src` and `dst` each hold `4 * w * h` floats and must not overlap.
+#[no_mangle]
+pub unsafe extern "C" fn blur_pass(
+    src: *const f32,
+    dst: *mut f32,
+    w: usize,
+    h: usize,
+    radius: usize,
+    horizontal: i32,
+    begin: usize,
+    end: usize,
+) {
+    if radius == 0 || w == 0 || h == 0 || begin >= end {
+        return;
+    }
+    let radius = radius.min(MAX_BLUR_RADIUS);
+    let n = w * h * 4;
+    let a = core::slice::from_raw_parts(src, n);
+    let b = core::slice::from_raw_parts_mut(dst, n);
+    let recip = reciprocals(radius);
+    blur_axis(a, b, w, h, radius, horizontal != 0, begin, end, &recip);
+}
+
+/// `1 / n` for every window size a sweep at this radius can see.
+///
+/// The window grows from `radius + 1` at the start of a line to
+/// `2 * radius + 1` in the middle and back, so indices `0..=2*radius+1`
+/// cover it; index 0 is never read because the window always holds at
+/// least one sample. A fixed-size array keeps this off the heap -- see
+/// [`MAX_BLUR_RADIUS`].
+#[inline]
+fn reciprocals(radius: usize) -> [f32; MAX_BLUR_RADIUS * 2 + 2] {
+    let mut table = [0.0f32; MAX_BLUR_RADIUS * 2 + 2];
+    for (i, r) in table.iter_mut().enumerate().skip(1).take(2 * radius + 1) {
         *r = 1.0 / i as f32;
     }
-
-    for _ in 0..3 {
-        blur_axis(a, b, w, h, radius, true, &recip);
-        blur_axis(b, a, w, h, radius, false, &recip);
-    }
+    table
 }
 
 /// One running-sum box pass along a single axis.
@@ -287,11 +378,15 @@ fn blur_axis(
     h: usize,
     radius: usize,
     horizontal: bool,
+    begin: usize,
+    end: usize,
     recip: &[f32],
 ) {
     let (outer, inner, stride) = if horizontal { (h, w, 1usize) } else { (w, h, w) };
+    let lo = begin.min(outer);
+    let hi = end.min(outer);
 
-    for o in 0..outer {
+    for o in lo..hi {
         let base = if horizontal { o * w } else { o };
         let mut sum = [0.0f32; 4];
         let mut n = 0usize;

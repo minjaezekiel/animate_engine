@@ -14,6 +14,7 @@
  * which is the only fair comparison.
  */
 import { loadKernels, buildAdjacency } from '../src/kernels/index.js';
+import { loadParallelKernels, parallelAvailable } from '../src/kernels/parallel.js';
 
 const WASM = await loadKernels({ prefer: 'wasm' });
 const JS = await loadKernels({ prefer: 'js' });
@@ -197,5 +198,112 @@ console.log(`\n24fps frame budget: ${frameBudget.toFixed(2)} ms`);
 for (const r of results) {
     if (r.js > frameBudget && r.wasm <= frameBudget) {
         console.log(`  moved inside budget by wasm: ${r.name.trim()} (${r.js.toFixed(1)} -> ${r.wasm.toFixed(1)} ms)`);
+    }
+}
+
+// =====================================================================
+// The worker pool, on the kernels that do not fit a frame single-threaded
+// =====================================================================
+
+/** Median of `runs` timed async calls, after `warm` untimed ones. */
+async function timedAsync(fn, runs = 7, warm = 2) {
+    for (let i = 0; i < warm; i++) await fn();
+    const samples = [];
+    for (let i = 0; i < runs; i++) {
+        const t = process.hrtime.bigint();
+        await fn();
+        samples.push(Number(process.hrtime.bigint() - t) / 1e6);
+    }
+    samples.sort((a, b) => a - b);
+    return samples[samples.length >> 1];
+}
+
+if (!parallelAvailable()) {
+    console.log('\nworker pool: unavailable (no SharedArrayBuffer).');
+    console.log('In a browser this needs COOP/COEP -- run `npm run serve`.');
+} else {
+    const POOL = await loadParallelKernels({ minPixels: 0 });
+    if (!POOL) {
+        console.log('\nworker pool: could not be created.');
+    } else {
+        console.log(`\nworker pool: ${POOL.workerCount} workers, one shared memory, zero copies\n`);
+        console.log('kernel'.padEnd(40), '1 thread'.padStart(10), 'pooled'.padStart(10), 'speedup'.padStart(8));
+        console.log('-'.repeat(71));
+
+        const dw = 1920, dh = 1080;
+        const rows = [];
+
+        // blur, full resolution -- the kernel that is 2.3x over budget.
+        {
+            const n = dw * dh * 4;
+            const a = POOL.f32(n), t = POOL.f32(n);
+            a.array.fill(0.5);
+            const one = timed(() => POOL.serial.blurRgba(a, t, dw, dh, 16));
+            const many = await timedAsync(() => POOL.blurRgba(a, t, dw, dh, 16));
+            rows.push(['blurRgba 1080p radius 16', one, many]);
+        }
+
+        // warp, full resolution -- 2.1x over budget.
+        {
+            const src = POOL.u8(dw * dh * 4);
+            src.array.fill(180);
+            const dst = POOL.f32(dw * dh * 4);
+            const div = 32, nn = div + 1;
+            const verts = [], uvs = [], indices = [];
+            for (let r = 0; r < nn; r++) {
+                for (let c = 0; c < nn; c++) {
+                    verts.push((c / div) * dw, (r / div) * dh);
+                    uvs.push(c / div, r / div);
+                }
+            }
+            for (let r = 0; r < div; r++) {
+                for (let c = 0; c < div; c++) {
+                    const i = r * nn + c;
+                    indices.push(i, i + 1, i + nn + 1, i, i + nn + 1, i + nn);
+                }
+            }
+            const V = POOL.from(Float32Array.from(verts));
+            const U = POOL.from(Float32Array.from(uvs));
+            const I = POOL.from(Uint32Array.from(indices), Uint32Array);
+            const tris = indices.length / 3, vcount = verts.length / 2;
+            const one = timed(() => POOL.serial.warpMesh(src, dw, dh, dst, dw, dh, V, U, I, tris, vcount));
+            const many = await timedAsync(() => POOL.warpMesh(src, dw, dh, dst, dw, dh, V, U, I, tris, vcount));
+            rows.push(['warpMesh 1080p, 32x32 grid', one, many]);
+        }
+
+        // composite and stamp, already inside budget -- included to show
+        // where dispatch overhead stops being worth paying.
+        {
+            const n = dw * dh;
+            const dst = POOL.f32(n * 4), mask = POOL.f32(n);
+            mask.array.fill(0.5);
+            const one = timed(() => POOL.serial.compositeMask(dst, mask, dw, dh, 0.8, 0.2, 0.1, 0.9, 0));
+            const many = await timedAsync(() => POOL.compositeMask(dst, mask, dw, dh, 0.8, 0.2, 0.1, 0.9, 0));
+            rows.push(['compositeMask 1080p', one, many]);
+        }
+        {
+            const count = 600;
+            const stamps = new Float32Array(count * 4);
+            for (let i = 0; i < count; i++) {
+                stamps.set([200 + i * 2.4, 300 + Math.sin(i * 0.05) * 220, 24, 0.4], i * 4);
+            }
+            const mask = POOL.f32(dw * dh), S = POOL.from(stamps);
+            const one = timed(() => POOL.serial.stampMask(mask, dw, dh, S, count, 0.5, 0));
+            const many = await timedAsync(() => POOL.stampMask(mask, dw, dh, S, count, 0.5, 0));
+            rows.push(['stampMask 600 stamps r24 @1080p', one, many]);
+        }
+
+        for (const [name, one, many] of rows) {
+            console.log(name.padEnd(40), one.toFixed(3).padStart(10),
+                many.toFixed(3).padStart(10), `${(one / many).toFixed(2)}x`.padStart(8));
+        }
+        console.log('-'.repeat(71));
+        console.log(`frame budget at 24fps: ${frameBudget.toFixed(2)} ms`);
+        for (const [name, one, many] of rows) {
+            const was = one > frameBudget ? 'OVER' : 'ok';
+            const now = many > frameBudget ? 'OVER' : 'ok';
+            if (was !== now) console.log(`  ${name}: ${was} -> ${now} (${one.toFixed(1)} -> ${many.toFixed(1)} ms)`);
+        }
+        await POOL.dispose();
     }
 }

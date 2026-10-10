@@ -24,8 +24,11 @@ Full detail, with every measurement, in
 | Capability probe | **done** | `npm run probe`. WebGPU compute **measured running in headless Chrome.** |
 | Dependency audit | **done** | `npm run audit:deps` — 9 browser dependencies, all loaded and smoke-tested in a real browser. |
 | Benchmark | **done** | `npm run bench:kernels`. |
-| Tests | **done** | 59: module integrity, wasm↔JS conformance, and the maths. Total now **272**. |
-| GPU compute backend | — | Scoped in 15-PERFORMANCE.md §7.1. Justified by measurement, not built. |
+| Tests | **done** | 59 kernel + 12 pool: module integrity, wasm↔JS conformance, the maths, and bit-identity of pooled vs serial. Total now **284**. |
+| Browser e2e | **done** | `test/e2e/kernels-browser.mjs` — the pool and all four CDN dependencies, in a real browser, under **both** COEP values. |
+| Worker pool — wasm threads over shared memory | **done** | `src/kernels/parallel.js`. 11 workers, one `WebAssembly.Memory({shared:true})`, **zero copies**. Pooled results are **bit-identical** to serial. |
+| Dev server with COOP/COEP | **done** | `scripts/serve.mjs`, Node stdlib only. Replaces `python3 -m http.server`, which cannot enable `SharedArrayBuffer`. |
+| GPU compute backend | — | Scoped in 15-PERFORMANCE.md §7.1, and **less urgent than it was**: the pool brought both over-budget kernels inside the frame budget on the CPU, with determinism intact. |
 | Drawing tools, motion graphics, sculpting | — | Kernels exist; the authoring layers do not. §7.2–7.4. |
 
 ### Verified by measurement, not assumption
@@ -46,6 +49,18 @@ Full detail, with every measurement, in
   having no single-precision arithmetic. The two are numerically equivalent,
   not identical, and a golden hash over kernel output must record the
   backend. GPU is reproducible on neither and may not feed keys or hashes.
+- **The worker pool moved both over-budget kernels inside the frame
+  budget:** `warpMesh` 90.8 → **18.1 ms (5.01×)** and `blurRgba`
+  100 → **36.3 ms (2.76×)** against 41.67 ms. `blurRgba` falls short of
+  linear for two inherent reasons — it is the most bandwidth-bound kernel
+  here, so cores contend on one memory bus, and a full blur is six
+  *barriered* passes against `warpMesh`'s one.
+- `COEP: require-corp` was predicted to block the CDN dependencies and
+  trade the pool for broken 3D and silent voices. **Measured, it does
+  not:** jsDelivr and cdnjs both send
+  `cross-origin-resource-policy: cross-origin`, and all four load under
+  both COEP values. The default is still `credentialless`, for arbitrary
+  user-supplied assets; `require-corp` is what gains Safari.
 - Two genuine kernel bugs were found by the tests rather than by eye: the
   brush's circle cull discarded the entire antialiased rim before the
   falloff was evaluated, and the half-pixel feather that replaced it was too

@@ -29,7 +29,7 @@
     "test:all": "npm test && npm run audit:deps && npm run test:e2e && npm run test:av && npm run test:studio && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle",
     "produce": "node scripts/produce.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "serve": "python3 -m http.server 8080",
+    "serve": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
     "test:legacy": "node test/e2e/legacy-guards.mjs",
     "build:legacy": "terser animateEngine.js -c -m -o animateEngine.min.js",
@@ -47,7 +47,9 @@
     "test:kernels": "node --test test/core/kernels.test.mjs",
     "bench:kernels": "node scripts/bench-kernels.mjs",
     "audit:deps": "node scripts/audit-deps.mjs",
-    "probe": "node scripts/probe-capabilities.mjs"
+    "probe": "node scripts/probe-capabilities.mjs",
+    "test:parallel": "node --test test/core/kernels-parallel.test.mjs",
+    "test:kernels:browser": "node test/e2e/kernels-browser.mjs"
   },
   "keywords": [
     "animation",

@@ -61,10 +61,16 @@ function sample(S, sw, sh, u, v, out) {
  * pixels unwritten and shows as diagonal single-pixel seams across a
  * warped photo wherever its grid was subdivided.
  */
-export function warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vcount) {
+export function warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vcount, y0, y1) {
     const S = src.array, D = dst.array;
     const V = verts.array, U = uvs.array, I = indices.array;
     const px4 = [0, 0, 0, 0];
+    // `y0..y1` is this worker's band. No halo is needed: a destination
+    // pixel is decided by the single triangle covering it and reads no
+    // neighbour, so each worker walks the whole triangle list and clips
+    // every bounding box to its own rows.
+    const bandLo = Math.min(y0, dh), bandHi = Math.min(y1, dh);
+    if (bandLo >= bandHi) return;
 
     for (let t = 0; t < tris; t++) {
         const i0 = I[t * 3], i1 = I[t * 3 + 1], i2 = I[t * 3 + 2];
@@ -79,15 +85,16 @@ export function warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vc
         const invArea = 1 / area;
 
         const x0 = Math.max(0, Math.floor(Math.min(ax, bx, cx)));
-        const y0 = Math.max(0, Math.floor(Math.min(ay, by, cy)));
         const x1 = Math.max(0, Math.min(dw, Math.ceil(Math.max(ax, bx, cx)) + 1));
-        const y1 = Math.max(0, Math.min(dh, Math.ceil(Math.max(ay, by, cy)) + 1));
+        const ty0 = Math.max(bandLo, Math.max(0, Math.floor(Math.min(ay, by, cy))));
+        const ty1 = Math.min(bandHi, Math.max(0, Math.min(dh, Math.ceil(Math.max(ay, by, cy)) + 1)));
+        if (ty0 >= ty1) continue;
 
         const au = U[i0 * 2], av = U[i0 * 2 + 1];
         const bu = U[i1 * 2], bv = U[i1 * 2 + 1];
         const cu = U[i2 * 2], cv = U[i2 * 2 + 1];
 
-        for (let y = y0; y < y1; y++) {
+        for (let y = ty0; y < ty1; y++) {
             const py = y + 0.5;
             for (let x = x0; x < x1; x++) {
                 const pxc = x + 0.5;
@@ -120,11 +127,40 @@ export function warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vc
  */
 export function blurRgba(buf, scratch, w, h, radius) {
     if (radius <= 0 || w === 0 || h === 0) return;
+    const r = Math.min(radius, MAX_BLUR_RADIUS);
     const A = buf.array, B = scratch.array;
+    const recip = reciprocals(r);
     for (let pass = 0; pass < 3; pass++) {
-        blurAxis(A, B, w, h, radius, true);
-        blurAxis(B, A, w, h, radius, false);
+        blurAxis(A, B, w, h, r, true, 0, h, recip);
+        blurAxis(B, A, w, h, r, false, 0, w, recip);
     }
+}
+
+/** Must match `MAX_BLUR_RADIUS` in warp.rs. */
+export const MAX_BLUR_RADIUS = 256;
+
+/**
+ * One axis pass over a range of lines, for a worker pool.
+ *
+ * `begin`/`end` index the axis the pass does *not* read across -- rows for
+ * a horizontal pass, columns for a vertical one -- which is what makes a
+ * band need no halo.
+ *
+ * The caller must barrier between passes: a vertical pass reads what the
+ * horizontal pass wrote, across rows. Omitting the barrier does not crash,
+ * it yields a subtly wrong result that varies with worker timing.
+ */
+export function blurPass(src, dst, w, h, radius, horizontal, begin, end) {
+    if (radius <= 0 || w === 0 || h === 0 || begin >= end) return;
+    const r = Math.min(radius, MAX_BLUR_RADIUS);
+    blurAxis(src.array, dst.array, w, h, r, !!horizontal, begin, end, reciprocals(r));
+}
+
+/** `1 / n` for every window size this radius can produce. */
+function reciprocals(radius) {
+    const t = new Float32Array(2 * radius + 2);
+    for (let i = 1; i < t.length; i++) t[i] = 1 / i;
+    return t;
 }
 
 /**
@@ -135,12 +171,13 @@ export function blurRgba(buf, scratch, w, h, radius) {
  * -- the usual shortcut -- darkens every border, which on a full-frame
  * glow reads as a vignette nobody asked for.
  */
-function blurAxis(src, dst, w, h, radius, horizontal) {
+function blurAxis(src, dst, w, h, radius, horizontal, begin, end, recip) {
     const outer = horizontal ? h : w;
     const inner = horizontal ? w : h;
     const stride = horizontal ? 1 : w;
+    const lo = Math.min(begin, outer), hi = Math.min(end, outer);
 
-    for (let o = 0; o < outer; o++) {
+    for (let o = lo; o < hi; o++) {
         const base = horizontal ? o * w : o;
         let s0 = 0, s1 = 0, s2 = 0, s3 = 0, n = 0;
 
@@ -153,7 +190,7 @@ function blurAxis(src, dst, w, h, radius, horizontal) {
 
         for (let i = 0; i < inner; i++) {
             const q = (base + i * stride) * 4;
-            const inv = 1 / n;
+            const inv = recip[n];
             dst[q] = s0 * inv; dst[q + 1] = s1 * inv;
             dst[q + 2] = s2 * inv; dst[q + 3] = s3 * inv;
 

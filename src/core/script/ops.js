@@ -41,6 +41,7 @@ import { PaintSurface } from '../paint/Surface.js';
 import { BRUSHES, BRUSH_NAMES, brush as resolveBrush } from '../paint/brushes.js';
 import { BLEND_MODE_NAMES } from '../../kernels/index.js';
 import { PhotoMotion, EFFECTS } from '../motion/PhotoMotion.js';
+import { DepthEstimator } from '../motion/depth.js';
 import { textureFromImage } from '../paint/texture.js';
 
 /**
@@ -435,6 +436,49 @@ export const OPS = {
     },
 
     // --- photo motion --------------------------------------------------------
+    photo_estimate_depth: {
+        summary: 'Estimate a depth map from a photograph using a monocular depth model, '
+            + 'and write it as a greyscale PNG where white is near. Feed the result to '
+            + 'photo_create as "depth" to unlock parallax and tearing. Needs an ONNX '
+            + 'runtime installed and a model file; it will say so if either is missing.',
+        params: {
+            source: S('Path to a PNG to estimate depth for.', true),
+            out: S('Where to write the greyscale depth PNG.', true),
+            model: S('Path or url to an .onnx monocular depth model, for example '
+                + 'Depth Anything V2 small or MiDaS v2.1 small.', true),
+            size: N('The model\'s square input edge in pixels. Default 518, which is '
+                + 'Depth Anything V2; MiDaS v2.1 small wants 256.'),
+            near: S('Which end of the prediction is closest to camera: "high" for '
+                + 'inverse-depth models such as MiDaS and Depth Anything (the default), '
+                + '"low" for models that predict metric distance. Getting this wrong '
+                + 'inverts the scene.'),
+            runtime: S('Module specifier for the ONNX runtime. Defaults to trying '
+                + 'onnxruntime-node and then onnxruntime-web.'),
+        },
+        run: async (ctx, a) => {
+            const source = ctx.io.readImage(a.source);
+            const estimator = new DepthEstimator({
+                modelUrl: a.model,
+                size: a.size ?? 518,
+                near: a.near ?? 'high',
+                runtime: a.runtime ?? undefined,
+            });
+            const depth = await estimator.estimate(source);
+            ctx.io.writeImage(a.out, depth.width, depth.height, depth.data);
+            return {
+                out: a.out, width: depth.width, height: depth.height,
+                // Reported because a flat prediction is a real failure mode
+                // that produces a perfectly valid-looking PNG: parallax
+                // over it degenerates into a uniform pan.
+                range: Number((depth.max - depth.min).toFixed(4)),
+                note: depth.max === depth.min
+                    ? 'the model returned a flat field -- parallax over this would be a '
+                        + 'uniform pan. Check the model and the "size" argument.'
+                    : undefined,
+            };
+        },
+    },
+
     photo_create: {
         summary: 'Load a still picture and give it motion. Effects deform a textured '
             + 'mesh over time; see list_effects. A depth map enables parallax.',

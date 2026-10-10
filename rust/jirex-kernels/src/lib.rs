@@ -62,6 +62,7 @@
 use core::alloc::Layout;
 
 pub mod blend;
+pub mod inpaint;
 pub mod deform;
 pub mod raster;
 pub mod warp;
@@ -102,7 +103,7 @@ pub extern "C" fn dealloc(ptr: *mut u8, size: usize) {
 /// instead of writing nonsense through a shifted argument list.
 #[no_mangle]
 pub extern "C" fn abi_version() -> i32 {
-    4
+    5
 }
 
 /// Whether this module was built with `simd128`.

@@ -547,8 +547,8 @@ test('a level below or above every depth cuts nothing', () => {
 // monocular depth estimation
 // =====================================================================
 
-const { DepthEstimator, DEPTH_MODELS, IMAGENET, resizeRgba, toNchw, depthToImage } =
-    await import('../../src/core/motion/depth.js');
+const { DepthEstimator, DEPTH_MODELS, IMAGENET, resizeRgba, toNchw, depthToImage,
+        depthPlanes, dilateMask } = await import('../../src/core/motion/depth.js');
 
 /**
  * A stub onnxruntime.
@@ -688,4 +688,157 @@ test('the model table names a size and a polarity for every entry', () => {
         assert.ok(model.near === 'high' || model.near === 'low', `${name} has no polarity`);
         assert.ok(model.note?.length > 20, `${name} has no note worth reading`);
     }
+});
+
+// =====================================================================
+// inpainted plates, and finding the planes to tear along
+// =====================================================================
+
+test('the fill is a real background plate, not the subject smeared', () => {
+    // This is the whole point of the tear, so it is measured against the
+    // alternative rather than on its own. `inpaint: false` keeps the
+    // geometry and drops the plate, so the extension band samples the
+    // source -- which at that uv is the subject. The silhouette then
+    // appears not to move, which is what the untorn mesh already did.
+    const torn = make(PUSH, { depthBlur: 0, tear: true });
+    const naive = make(PUSH, { depthBlur: 0, tear: { inpaint: false } });
+    const rest = silhouetteX(torn, 0);
+
+    assert.ok(silhouetteX(torn, 0.5) - rest >= 4,
+        'the plate did not let the silhouette move');
+    assert.ok(Math.abs(silhouetteX(naive, 0.5) - rest) <= 1,
+        'without a plate the silhouette should be pinned by its own ghost');
+
+    // One plate, on the far band only. The near band shows the photograph.
+    assert.equal(torn.bands.length, 2);
+    assert.ok(torn.bands[0].plate, 'the far band has no plate');
+    assert.equal(torn.bands[1].plate, null, 'the near band should use the source');
+    assert.equal(naive.bands.filter((b) => b.plate).length, 0);
+});
+
+test('bands partition the triangles and stay in far-to-near order', () => {
+    // `warp_mesh` has no depth test, so a triangle in the wrong band is
+    // drawn with the wrong texture *and* at the wrong time.
+    const torn = make(PUSH, { depthBlur: 0, tear: true });
+    const total = torn.bands.reduce((n, b) => n + b.tris, 0);
+    assert.equal(total, torn.triangleCount, 'bands lost or duplicated triangles');
+    for (let i = 1; i < torn.bands.length; i++) {
+        assert.ok(torn.bands[i].band > torn.bands[i - 1].band, 'bands are out of order');
+    }
+});
+
+test('tear declines on a depth field with no planes, and says so', () => {
+    // A continuous ramp -- a landscape receding to the horizon -- has
+    // nothing to tear along, and cutting it anyway would separate two
+    // halves of one surface. `tear` goes back to false so the caller can
+    // see that it did nothing.
+    const w = 96, h = 64;
+    const source = new Uint8Array(w * h * 4).fill(200);
+    const depth = new Uint8Array(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            depth[i] = depth[i + 1] = depth[i + 2] = Math.round((x / (w - 1)) * 255);
+            depth[i + 3] = 255;
+        }
+    }
+    for (let i = 3; i < source.length; i += 4) source[i] = 255;
+
+    const photo = new PhotoMotion(K, {
+        width: w, height: h, duration: 2,
+        source: { data: source, width: w, height: h },
+        depth: { data: depth, width: w, height: h },
+        effects: PUSH, depthBlur: 0, tear: true,
+    });
+    assert.equal(photo.tear, false, 'a continuous ramp was torn');
+    assert.deepEqual(photo.tearLevels, []);
+    assert.equal(photo.bands.length, 1);
+    assert.equal(photo.bands[0].plate, null);
+});
+
+test('tear.planes cuts along more than one level', () => {
+    // Three hard planes, so two gaps.
+    const w = 96, h = 64;
+    const source = new Uint8Array(w * h * 4);
+    const depth = new Uint8Array(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const band = x < w / 3 ? 0 : x < (2 * w) / 3 ? 1 : 2;
+            source[i] = 60 + band * 90; source[i + 1] = 120; source[i + 2] = 200 - band * 60;
+            source[i + 3] = 255;
+            const d = [20, 128, 236][band];
+            depth[i] = depth[i + 1] = depth[i + 2] = d;
+            depth[i + 3] = 255;
+        }
+    }
+    const spec = {
+        width: w, height: h, duration: 2,
+        source: { data: source, width: w, height: h },
+        depth: { data: depth, width: w, height: h },
+        effects: PUSH, depthBlur: 0,
+    };
+    const two = new PhotoMotion(K, { ...spec, tear: { planes: 2 } });
+    assert.equal(two.tearLevels.length, 2, `got ${JSON.stringify(two.tearLevels)}`);
+    assert.equal(two.bands.length, 3);
+    // A plate per level, and the nearest band on the photograph itself.
+    assert.ok(two.bands[0].plate && two.bands[1].plate);
+    assert.equal(two.bands[2].plate, null);
+
+    const one = new PhotoMotion(K, { ...spec, tear: true });
+    assert.equal(one.tearLevels.length, 1, 'the default should be a single level');
+});
+
+test('depthPlanes finds the gap, where a midpoint and Otsu both miss it', () => {
+    const cluster = (lo, hi, n) =>
+        Array.from({ length: n }, (_, i) => lo + ((i + 0.5) / n) * (hi - lo));
+    // A background spread evenly over 0.0-0.8 with a subject at 0.95. The
+    // midpoint lands at 0.475 and Otsu, which maximises between-class
+    // variance, lands at 0.499 -- both inside the background.
+    const values = [...cluster(0, 0.8, 800), ...cluster(0.94, 0.98, 120)];
+    const [level] = depthPlanes(values, 1);
+    assert.ok(level > 0.8 && level < 0.94, `level ${level} is not in the gap`);
+
+    // Nothing at all on a field with no gap, which is what makes
+    // `tear: true` safe to set on any photograph.
+    assert.deepEqual(depthPlanes(cluster(0, 1, 2000), 1), []);
+    assert.deepEqual(depthPlanes([0.5, 0.5, 0.5], 1), []);
+
+    // Three clusters, two gaps, ranked by prominence.
+    const three = [...cluster(0, 0.05, 400), ...cluster(0.48, 0.52, 400),
+                   ...cluster(0.95, 1, 400)];
+    const levels = depthPlanes(three, 2);
+    assert.equal(levels.length, 2);
+    assert.ok(levels[0] > 0.05 && levels[0] < 0.48, `first ${levels[0]}`);
+    assert.ok(levels[1] > 0.52 && levels[1] < 0.95, `second ${levels[1]}`);
+});
+
+test('depthPlanes reads a depth image without flattening it', () => {
+    // A 4K depth map is twelve million values; materialising them to fill
+    // a 128-bin histogram would be 48MB of waste.
+    const w = 32, h = 16;
+    const data = new Uint8Array(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+        const v = (i % w) < w / 2 ? 20 : 230;
+        data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = v;
+        data[i * 4 + 3] = 255;
+    }
+    const [level] = depthPlanes({ data, width: w, height: h }, 1);
+    assert.ok(level > 20 / 255 && level < 230 / 255, `level ${level} is not in the gap`);
+});
+
+test('dilateMask grows a mask by the radius, in both axes', () => {
+    // The plate needs this: a depth threshold cannot see the rim of texels
+    // the silhouette shares with the background, because the rim is where
+    // the depth map is wrong.
+    const w = 9, h = 9;
+    const mask = new Float32Array(w * h);
+    mask[4 * w + 4] = 1;
+    dilateMask(mask, w, h, 2);
+    let on = 0;
+    for (const v of mask) if (v > 0.5) on++;
+    assert.equal(on, 25, 'a radius-2 dilation of one pixel is a 5x5 block');
+    assert.equal(mask[4 * w + 2], 1);
+    assert.equal(mask[2 * w + 4], 1);
+    assert.equal(mask[4 * w + 1], 0);
 });

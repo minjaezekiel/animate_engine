@@ -49,6 +49,8 @@
  * out of scope.
  */
 
+import { depthPlanes, dilateMask } from './depth.js';
+
 /** Effects, by name. Exposed so a UI or an agent can enumerate them. */
 export const EFFECTS = ['kenBurns', 'parallax', 'wave', 'puppet'];
 
@@ -164,24 +166,26 @@ function autoFill(effects, width, span) {
  *
  * A tear with nothing behind it is *worse* than a smear -- the subject
  * slides away and uncovers transparent nothing. So the far side's copy of
- * each crossing point is pushed `fill` pixels **past** the contour while
- * its uv steps the same distance **back**, which mirrors the strip of
- * background lying just behind the silhouette forward over the hole. It
- * is hidden under the near piece until the tear opens, and then it is
- * what fills the hole.
+ * each crossing point is pushed `fill` pixels **past** the contour, with
+ * its uv advancing to match, and the far side samples a **plate**: the
+ * source photograph with everything above that level removed and the
+ * background inpainted in behind it (see [`PhotoMotion._buildPlate`] and
+ * `rust/jirex-kernels/src/inpaint.rs`).
  *
- * Mirroring, rather than continuing the uv along with the position: the
- * latter is one sign away and looks right on paper, but it carries the
- * *subject's* own edge pixels into the hole, so the silhouette appears
- * not to move at all. Measured on a hard depth step it left the visible
- * edge within a pixel of where the untorn mesh put it.
+ * Sampling the original source for that extension is one line away and
+ * looks right -- it is the same affine patch continued -- but the picture
+ * it continues into is the *subject*, so the subject's own edge pixels
+ * land in the hole and the silhouette appears not to move at all.
+ * Measured on a hard depth step it left the visible edge within a pixel
+ * of where the untorn mesh put it.
  *
- * Mirrored background is still not inpainting -- the honest limit of
- * doing this without a generative model, documented in
- * `docs/17-MOTION-AND-MCP.md` -- and the far triangle that does the
- * mirroring has a different texture map from its neighbours, so there is
- * a seam in the background at the contour. It sits under the near piece,
- * and only the part of it inside the hole is ever seen.
+ * # Bands
+ *
+ * Because the two sides sample different textures, the triangles are
+ * emitted in **bands**: all triangles below level 0, then those between
+ * level 0 and level 1, and so on. Each band is drawn with the plate for
+ * the level above it, and the topmost band with the source itself. Band
+ * order is also depth order, so the painter ordering below comes free.
  *
  * # Draw order
  *
@@ -202,15 +206,34 @@ export function tearMesh(mesh, levels, fill) {
 
     const d = m.depths;
     const tris = m.indices.length / 3;
-    const mean = (t) => (d[m.indices[t * 3]] + d[m.indices[t * 3 + 1]]
-                       + d[m.indices[t * 3 + 2]]) / 3;
+    const mean = new Float64Array(tris);
+    const band = new Int32Array(tris);
+    for (let t = 0; t < tris; t++) {
+        mean[t] = (d[m.indices[t * 3]] + d[m.indices[t * 3 + 1]] + d[m.indices[t * 3 + 2]]) / 3;
+        for (const level of levels) if (mean[t] > level) band[t]++;
+    }
+
+    // Sorted by mean depth alone, which orders the bands too: a band is
+    // defined as "how many levels is this triangle above", so it is a
+    // monotone function of the mean and cannot disagree with it. Adding
+    // `band` as the primary key was redundant -- the mutation audit proved
+    // it by surviving, which is the useful kind of survivor.
+    //
+    // `Array.prototype.sort` is stable, so ties keep grid order and the
+    // result stays deterministic.
     const order = Array.from({ length: tris }, (_, t) => t)
-        .sort((a, b) => mean(a) - mean(b));
+        .sort((a, b) => mean[a] - mean[b]);
+
     const indices = [];
+    const bands = [];
     for (const t of order) {
+        if (!bands.length || bands[bands.length - 1].band !== band[t]) {
+            bands.push({ band: band[t], start: indices.length / 3, tris: 0 });
+        }
+        bands[bands.length - 1].tris++;
         indices.push(m.indices[t * 3], m.indices[t * 3 + 1], m.indices[t * 3 + 2]);
     }
-    return { verts: m.verts, uvs: m.uvs, depths: d, indices };
+    return { verts: m.verts, uvs: m.uvs, depths: d, indices, bands };
 }
 
 /** One iso-contour cut. See [`tearMesh`] for the whole argument. */
@@ -247,18 +270,22 @@ function cutAtLevel({ verts, uvs, depths, indices }, level, fill) {
 
         const nearIdx = push(fx + dx * t, fy + dy * t,
                              fu + du * t, fv + dv * t, d[near]);
-        // The far copy reaches `fill` px *past* the contour while its uv
-        // steps the same distance *back* into the far side -- so the strip
-        // of background just behind the silhouette is mirrored forward
-        // across the hole. Advancing the uv with the position instead
-        // would carry the subject's own edge pixels into the hole, which
-        // reads as the subject smearing: the exact artefact the tear
-        // exists to remove. Measured on a hard step, that mistake left the
-        // visible silhouette at the untorn position.
+        // The far copy reaches `fill` px *past* the contour, with its uv
+        // advancing by the matching amount -- the same affine patch
+        // continued a little further. That is only correct because the far
+        // band samples an **inpainted plate** in which the subject has
+        // been removed and the background filled in behind it, so the
+        // picture it continues into is background.
+        //
+        // Sampling the original source here instead carries the subject's
+        // own edge pixels into the hole, which reads as the subject
+        // smearing -- the exact artefact the tear exists to remove.
+        // Measured on a hard step, that left the visible silhouette within
+        // a pixel of where the untorn mesh put it.
         const len = Math.hypot(dx, dy) || 1;
-        const k = fill / len;
-        const farIdx = push(fx + dx * (t + k), fy + dy * (t + k),
-                            fu + du * (t - k), fv + dv * (t - k), d[far]);
+        const k = t + fill / len;
+        const farIdx = push(fx + dx * k, fy + dy * k,
+                            fu + du * k, fv + dv * k, d[far]);
 
         const pair = [nearIdx, farIdx];
         seam.set(key, pair);
@@ -495,15 +522,26 @@ export class PhotoMotion {
         // the gap between them. An author who knows better passes
         // `tear: { at: 0.6 }`, or several levels for several planes --
         // cutting is a fold over levels, so more cost nothing but time.
+        const tearOpts = typeof spec.tear === 'object' ? spec.tear : {};
         if (this.tear) {
             const lo = Math.min(...mesh.depths), hi = Math.max(...mesh.depths);
-            const opts = typeof spec.tear === 'object' ? spec.tear : {};
-            const at = opts.at ?? (lo + hi) / 2;
+            // From the depth *map*, not from `mesh.depths`: see
+            // [`depthPlanes`] for why the mesh's bilinear resampling
+            // invents a plane that is really an interpolation ramp.
+            const at = tearOpts.at
+                ?? depthPlanes(spec.depth, tearOpts.planes ?? 1);
             this.tearLevels = (Array.isArray(at) ? at : [at]);
-            this.tearFill = opts.fill != null
-                ? opts.fill * spec.width
-                : autoFill(this.effects, spec.width, hi - lo);
-            Object.assign(mesh, tearMesh(mesh, this.tearLevels, this.tearFill));
+            // No separable planes means there is nothing to tear along --
+            // see [`depthPlanes`]. Declining is the right answer and makes
+            // `tear: true` safe to set on any photograph, but it must be
+            // *visible*, so `tear` goes back to false and the ops report it.
+            if (!this.tearLevels.length) this.tear = false;
+            else {
+                this.tearFill = tearOpts.fill != null
+                    ? tearOpts.fill * spec.width
+                    : autoFill(this.effects, spec.width, hi - lo);
+                Object.assign(mesh, tearMesh(mesh, this.tearLevels, this.tearFill));
+            }
         }
 
         this.vertexCount = mesh.depths.length;
@@ -527,6 +565,99 @@ export class PhotoMotion {
         this.verts = kernels.f32(this.vertexCount * 2);
         this.dst = kernels.f32(spec.width * spec.height * 4);
         this._u8buf = null;
+
+        // Draw bands: index lists that share one vertex buffer but sample
+        // different textures. An untorn mesh is one band over the source.
+        //
+        // Each band gets its own index buffer rather than an offset into
+        // the shared one, because `warp_mesh` takes a triangle count and
+        // not a range. Indices are 12 bytes a triangle, so the duplication
+        // is tens of kilobytes -- cheaper than widening the kernel ABI.
+        const groups = mesh.bands ?? [{ band: 0, start: 0, tris: this.triangleCount }];
+        this.bands = groups.map((group) => ({
+            ...group,
+            indices: kernels.from(
+                Uint32Array.from(indices.slice(group.start * 3, (group.start + group.tris) * 3)),
+                Uint32Array),
+            // Band `b` sits below level `b`, so it shows what is behind
+            // that level: the plate with everything above it removed. The
+            // topmost band has no level above it and uses the photograph.
+            plate: group.band < (this.tearLevels?.length ?? 0) && tearOpts.inpaint !== false
+                ? this._buildPlate(this.tearLevels[group.band], spec.depth)
+                : null,
+        }));
+    }
+
+    /**
+     * Build the background plate for one tear level.
+     *
+     * Everything nearer than `level` is erased from a copy of the source
+     * and the hole is filled by `inpaint` -- so the far side of a tear has
+     * real background to slide over instead of a mirrored strip of itself.
+     *
+     * Three things worth knowing:
+     *
+     *   - **Built once, at construction.** The plate depends on the source
+     *     and the level, neither of which moves, so the per-frame cost of
+     *     tearing is unchanged: two `warp_mesh` calls instead of one over
+     *     the same total triangles. Frame N stays a pure function of N.
+     *   - **The whole subject is removed**, not a band around it. Only the
+     *     first few percent of the frame past the silhouette is ever
+     *     revealed, and that band is surrounded by real background, which
+     *     is where push-pull inpainting is at its best. The blurry middle
+     *     of the hole sits behind the subject forever.
+     *   - **The mask is dilated.** A depth threshold cannot see the rim of
+     *     texels the silhouette shares with the background, because the
+     *     rim is exactly where the depth map is wrong. Leaving it makes
+     *     the fill propagate the subject's colour inward -- a coloured
+     *     halo along the tear.
+     *
+     * The depth map used is the one the caller supplied, *unblurred*: the
+     * plate wants the true silhouette, while the blur exists only to keep
+     * an untorn mesh from pinning.
+     *
+     * @returns {object|null} a u8 RGBA kernel buffer, or null without depth
+     */
+    _buildPlate(level, depth) {
+        if (!depth) return null;
+        const K = this.kernels;
+        const { data, width: sw, height: sh } = this.spec.source;
+        const n = sw * sh;
+
+        const img = K.f32(n * 4);
+        const mask = K.f32(n);
+        const scratch = K.f32(K.inpaintScratch(sw, sh));
+        try {
+            // Straight u8 to premultiplied f32: the inpainter works in
+            // premultiplied space for the same reason `warp_mesh` samples
+            // that way -- interpolating straight alpha mixes in the colour
+            // of transparent pixels.
+            const a = img.array;
+            for (let i = 0; i < n; i++) {
+                const alpha = data[i * 4 + 3] / 255;
+                a[i * 4] = (data[i * 4] / 255) * alpha;
+                a[i * 4 + 1] = (data[i * 4 + 1] / 255) * alpha;
+                a[i * 4 + 2] = (data[i * 4 + 2] / 255) * alpha;
+                a[i * 4 + 3] = alpha;
+            }
+            const m = mask.array;
+            for (let y = 0; y < sh; y++) {
+                for (let x = 0; x < sw; x++) {
+                    m[y * sw + x] =
+                        sampleDepth(depth, (x + 0.5) / sw, (y + 0.5) / sh) > level ? 1 : 0;
+                }
+            }
+            dilateMask(m, sw, sh, Math.max(1, Math.round(sw * 0.004)));
+            K.inpaint(img, mask, sw, sh, scratch);
+
+            const plate = K.u8(n * 4);
+            K.maskToRgba8(img, plate, n);
+            return plate;
+        } finally {
+            img.free();
+            mask.free();
+            scratch.free();
+        }
     }
 
     /**
@@ -572,10 +703,14 @@ export class PhotoMotion {
     renderAt(t) {
         this.solveAt(t);
         const { width: w, height: h, kernels: K } = this;
+        const { width: sw, height: sh } = this.spec.source;
         K.clearF32(this.dst, w * h * 4);
-        K.warpMesh(this.src, this.spec.source.width, this.spec.source.height,
-            this.dst, w, h, this.verts, this.uvs, this.indices,
-            this.triangleCount, this.vertexCount);
+        // Bands in order, far to near. `warp_mesh` has no depth test, so
+        // the near band painting last is what hides the fill behind it.
+        for (const band of this.bands) {
+            K.warpMesh(band.plate ?? this.src, sw, sh, this.dst, w, h,
+                this.verts, this.uvs, band.indices, band.tris, this.vertexCount);
+        }
         return this.dst;
     }
 
@@ -590,10 +725,16 @@ export class PhotoMotion {
         if (!this.pool) return this.renderAt(t);
         this.solveAt(t);
         const { width: w, height: h } = this;
+        const { width: sw, height: sh } = this.spec.source;
         this.kernels.clearF32(this.dst, w * h * 4);
-        await this.pool.warpMesh(this.src, this.spec.source.width, this.spec.source.height,
-            this.dst, w, h, this.verts, this.uvs, this.indices,
-            this.triangleCount, this.vertexCount);
+        // Awaited one band at a time: the pool splits a band across rows,
+        // but the bands themselves must stay ordered or the near piece
+        // gets painted over by the fill it is meant to hide.
+        for (const band of this.bands) {
+            await this.pool.warpMesh(band.plate ?? this.src, sw, sh,
+                this.dst, w, h, this.verts, this.uvs, band.indices,
+                band.tris, this.vertexCount);
+        }
         return this.dst;
     }
 
@@ -611,6 +752,11 @@ export class PhotoMotion {
         for (const b of [this.src, this.uvs, this.indices, this.verts, this.dst, this._u8buf]) {
             b?.free();
         }
+        for (const band of this.bands ?? []) {
+            band.indices?.free();
+            band.plate?.free();
+        }
+        this.bands = [];
         this._u8buf = null;
     }
 }

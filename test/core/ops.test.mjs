@@ -234,6 +234,34 @@ test('photo_create reports whether parallax will actually do anything', async ()
     assert.match(without.depth, /parallax will do nothing/);
 });
 
+test('photo_estimate_depth says what is missing instead of failing obscurely', async () => {
+    fixtures();
+    // No ONNX runtime is installed here, and that is the normal case: the
+    // runtime is optional in both Node and the browser. What matters is
+    // that the message names the candidates and the fix, because "cannot
+    // find module 'onnxruntime-node'" tells a caller nothing about a
+    // package it never heard of.
+    await assert.rejects(
+        () => run(ctx, 'photo_estimate_depth',
+                  { source: 'pic.png', out: 'd.png', model: 'model.onnx' }),
+        (error) => {
+            assert.match(error.message, /no ONNX runtime available/);
+            assert.match(error.message, /onnxruntime-node/);
+            assert.match(error.message, /onnxruntime-web/);
+            assert.match(error.message, /npm i onnxruntime-node/);
+            return true;
+        });
+
+    // An injected runtime is the supported seam, and it is what makes the
+    // whole path exercisable without a 50MB model: the op is a thin shell
+    // over `DepthEstimator`, which has its own tests in motion.test.mjs.
+    await assert.rejects(
+        () => run(ctx, 'photo_estimate_depth',
+                  { source: 'pic.png', out: 'd.png', model: 'model.onnx',
+                    runtime: 'node:path' }),
+        /InferenceSession|not a function|undefined/);
+});
+
 test('photo_create reports what tearing actually did', async () => {
     fixtures();
     const torn = await run(ctx, 'photo_create', {

@@ -84,7 +84,7 @@ doing that silently is worse than doing nothing, so it is skipped and
 
 ---
 
-## 3. Tearing the mesh, and the honest limit behind it
+## 3. Tearing the mesh
 
 Parallax moves a foreground across a background, exposing pixels that were
 never photographed. A single connected grid cannot separate the two: the
@@ -117,6 +117,43 @@ an imperceptible amount while cutting a silhouette separates them fully. A
 threshold would only buy inconsistency — an edge cut in one triangle and
 left whole in its neighbour is a visible hairline.
 
+### Where to cut: finding the planes
+
+`tear.at` defaults to levels found by `depthPlanes`, and the two obvious
+ways to pick one are both wrong, which is worth recording because the
+second is the textbook answer.
+
+**The midpoint of the observed range** assumes the depth distribution is
+symmetric. It never is: a background occupies most of the frame while a
+subject occupies a narrow band near the top of the range.
+
+**Otsu's method** maximises the variance *between* two classes, so it
+splits whichever class is most spread out. On a subject at 0.95 against a
+background spread evenly over 0.0–0.8, Otsu returns **0.499** — it cuts
+the background in half and leaves the subject attached to the front of it,
+landing within four thousandths of the midpoint it was meant to improve
+on. Measured, not assumed; that is why it is not what shipped.
+
+A plane boundary is a **gap**: two clusters of depth with nothing between
+them. So the thing to look for is a *valley* in the histogram, ranked by
+how far it sits below the lower of its two flanking peaks. `tear.planes`
+asks for more than one.
+
+That buys a property the other two cannot have: on a depth field with no
+planes — a continuous ramp, a landscape receding to the horizon — there is
+no valley, so `depthPlanes` returns nothing, `tear` switches itself back
+off, and the ops say so. Tearing a continuous surface is meaningless, and
+declining to is what makes `tear: true` safe to set on any photograph.
+
+Two details that cost a round each. The histogram is read from the depth
+**map**, not from the mesh's sampled depths: the grid samples the map
+bilinearly, so a hard silhouette arrives as a one-cell ramp whose mid
+value is a third cluster with a gap either side of it — and the detector
+then cut at the wrong gap, leaving the near piece holding the ramp's depth
+so that it barely moved. And the histogram uses **64 bins, smoothed**:
+more bins than the field has distinct values combs it, and at 128 bins an
+8-bit linear ramp 96 pixels wide produced a spurious level at 0.028.
+
 **A crossing point belongs to its edge, not to the triangle being cut**,
 so the two triangles sharing an edge agree on it exactly. Together with
 leaving the original vertices at their own depth, that means there are no
@@ -124,36 +161,77 @@ cracks anywhere except along the contour, where a crack is the point.
 
 **The hole has to be filled, or the tear is worse than the smear.** The
 subject slides away and uncovers transparent nothing. So the far side's
-copy of each crossing is pushed `fill` pixels *past* the contour while its
-uv steps the same distance *back*, mirroring the strip of background just
-behind the silhouette forward over the hole. `fill` is derived from the
-parallax reach, because it is exactly as wide as the relative displacement
-of the two sides and no author should have to compute that.
+copy of each crossing is pushed `fill` pixels *past* the contour, with its
+uv advancing to match, and the far side samples a **background plate**
+rather than the photograph. `fill` is derived from the parallax reach,
+because it is exactly as wide as the relative displacement of the two
+sides and no author should have to compute that.
 
-The mirror direction is one sign, and the wrong sign looks right on paper:
-advancing the uv along with the position continues the same affine patch,
-which is tidier — and carries the *subject's own edge pixels* into the
-hole, so the silhouette appears not to move at all. It measured within a
-pixel of the untorn mesh. The test now asserts the fill is background by
-colour.
+Sampling the photograph for that extension is one line away and looks
+right — it is the same affine patch continued — but the picture it
+continues into is the *subject*, so the subject's own edge pixels land in
+the hole and the silhouette appears not to move at all. Measured, it sat
+within a pixel of the untorn mesh. A regression test now compares the two
+directly.
 
 Tearing also turns the depth blur off by default (§2), since the blur
 exists only to soften the pinning that tearing removes outright; blurring
 a map about to be cut just moves the cut off the real edge.
 
-### The limit that remains
+---
 
-Mirrored background is not inpainting. The fill is still edge content, now
-confined to the hole instead of deforming the subject, and the far triangle
-doing the mirroring has a different texture map from its neighbours — a
-seam in the background at the contour, hidden under the near piece except
-where the tear opens. Tools that go further **generate** the background
-behind the subject, which needs a generative model and is out of scope
-here.
+## 4. The background plate: inpainting, once
+
+A plate is the source photograph with everything nearer than a tear level
+**removed and filled in behind**. One per level, built at construction, so
+the per-frame cost of tearing is two `warp_mesh` calls over the same total
+triangles instead of one — not one warp plus an inpaint.
+
+| rung | what it gives | why not |
+|---|---|---|
+| mirror the strip forward | nearly free | visibly a reflection, and a seam where it meets the real background. **What this replaced.** |
+| diffuse inward (Laplace) | seamless | a textured background turns to a flat smear, and the band runs the whole length of a silhouette |
+| **push-pull pyramid** | detail near the edge, coarse structure in the middle; linear time; nothing to tune | blurry in the middle of a large hole |
+| PatchMatch / generative | better again | an order of magnitude more code and time |
+
+Push-pull is the right rung because of *where* the fill is seen. The whole
+subject is removed, but only the first few percent of the frame past the
+silhouette is ever revealed, and that band is surrounded by real
+background on one side — exactly where push-pull is at its best. The
+blurry middle of the hole sits behind the subject forever.
+
+It runs as a Rust kernel (`rust/jirex-kernels/src/inpaint.rs`, with the
+usual JS mirror and a conformance test). Every pixel carries a colour and
+a **weight**: how much real photographed colour went into it. *Pull* sums
+four children into a parent, weights included, so a hole contributes
+nothing rather than contributing black. *Push* gives a pixel with full
+coverage its own colour, one with partial coverage a mix in proportion to
+that coverage, and one with none its parent's outright — then marks it
+known, so the fill cascades down and arrives continuous with the real
+pixels around it.
+
+Two details that are not optional:
+
+**The weight cannot be the alpha channel.** The obvious shortcut fails on
+anything with real transparency: a cut-out has alpha 0 over genuinely
+empty regions, which the pyramid would try to fill, and a semi-transparent
+pixel would count as a partly missing one.
+
+**The mask is dilated** before filling. A depth threshold cannot see the
+rim of texels the silhouette shares with the background, because the rim
+is where the depth map is *wrong*. Leaving it makes the fill propagate the
+subject's colour inward — a coloured halo along the tear.
+
+### What remains
+
+Push-pull is interpolation, not synthesis: it cannot invent a texture or
+continue a strong edge through a wide hole. At large amplitudes on a
+busy background the fill reads as soft. PatchMatch or a generative model
+would fix it, and both are out of scope here.
 
 ---
 
-## 4. The agent surface
+## 5. The agent surface
 
 ### Why it runs headless
 
@@ -175,7 +253,7 @@ what it made**. The feedback loop closes without a person in it.
 
 ### Schemas are generated, never written twice
 
-All 20 tools are derived from `src/core/script/ops.js`. The existing server
+All 21 tools are derived from `src/core/script/ops.js`. The existing server
 hand-registers its tools **and** repeats the op list in a doc string, and
 the two have already drifted — which is exactly the failure this avoids.
 Adding an op to the table adds a documented tool with no edit to the server.
@@ -217,7 +295,7 @@ choice rather than a convenience.
 
 ---
 
-## 5. PNG, by hand
+## 6. PNG, by hand
 
 `src/io/png.js` encodes and decodes with `node:zlib` and nothing else. The
 engine's rule is that nothing in its path may need an install, and an image
@@ -240,7 +318,7 @@ diagnose than a refusal.
 
 ---
 
-## 6. Depth from one photograph
+## 7. Depth from one photograph
 
 Parallax and tearing both need to know what is near, and nothing in a
 single photograph says so — depth from one view is a learned prior, not a
@@ -278,11 +356,28 @@ has no absolute scale, and `min`/`max` come back on the result because a
 flat prediction is a real failure mode: a map with no range makes parallax
 a uniform pan, which is the degenerate case §2 refuses outright.
 
-`onnxruntime-web` is a browser package, so estimation runs in the browser
-and there is no `photo_estimate_depth` op. Everything except the session
-creation is pure, and the Node tests drive the whole pipeline against a
-stub session — the same bargain the voice providers make with a fake
-provider.
+### It runs in Node too
+
+`onnxruntime-node` and `onnxruntime-web` expose the same
+`InferenceSession` and `Tensor`, so one adapter covers both and
+`DepthEstimator` tries whichever belongs where it is running. That is what
+makes `photo_estimate_depth` possible on the headless surface: an agent
+takes a photograph, derives its depth map and animates it with no browser
+anywhere in the loop.
+
+```
+photo_estimate_depth  { source, out, model, size, near }
+photo_create          { source, depth: <that out>, tear: true, effects: [...] }
+```
+
+The runtime stays **optional** in both places — a page's import map in the
+browser, an install the user chooses in Node — and neither is a dependency
+of this package. When it is missing, the error names every candidate it
+tried and the fix, because "cannot find module 'onnxruntime-node'" tells a
+caller nothing about a package it never heard of. Everything except the
+session creation is pure, and the Node tests drive the whole pipeline
+against a stub session — the same bargain the voice providers make with a
+fake provider.
 
 **Not built here:** the two URLs in `DEPTH_MODELS` are candidates to
 confirm against the model host, not promises; there is deliberately no
@@ -291,7 +386,7 @@ fetch.
 
 ---
 
-## 7. A photo in a film
+## 8. A photo in a film
 
 `photos` is the declarative half of all of the above: the same four
 effects, authored in the film rather than called through the API.
@@ -336,14 +431,14 @@ it will do nothing.
 
 ---
 
-## 8. What is not built
+## 9. What is not built
 
-- **Inpainting the hole a tear opens** (§3). The fill is mirrored
-  background, not generated content.
-- **Multiple depth planes are supported but not automatic.** `tear.at`
-  takes a list of levels; the default is one level at the midpoint of the
-  depth present on the mesh, and nothing finds the planes for you.
-- **No depth estimation in Node** (§6), and no verified model url.
+- **Texture synthesis in the fill** (§4). Push-pull interpolates; it
+  cannot invent a texture or carry a strong edge through a wide hole, so a
+  large tear over a busy background reads as soft. PatchMatch or a
+  generative model is the upgrade.
+- **No verified model url** (§7). `DEPTH_MODELS` lists candidates to
+  confirm against the host, and there is deliberately no default.
 - **Video output from the ops.** `photo_render_sequence` writes numbered
   PNGs; turning those into a file is an `ffmpeg` call away but is not done
   here.
@@ -353,10 +448,10 @@ it will do nothing.
 
 ---
 
-## 9. Commands
+## 10. Commands
 
 ```bash
-npm run mcp:paint       # the MCP server, 20 tools, headless
+npm run mcp:paint       # the MCP server, 21 tools, headless
 npm run test:motion     # effects, overscan, tearing, depth estimation
 npm run test:ops        # the op surface and the PNG codec
 npm run audit:tests     # mutation audit across everything

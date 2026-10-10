@@ -51,6 +51,7 @@ import { buildAdjacency } from './adjacency.js';
 import * as jsDeform from './js/deform.js';
 import * as jsRaster from './js/raster.js';
 import * as jsWarp from './js/warp.js';
+import * as jsInpaint from './js/inpaint.js';
 import * as jsBlend from './js/blend.js';
 
 export { buildAdjacency };
@@ -268,6 +269,27 @@ export class Kernels {
         if (this.host) this.host.exports.warp_mesh(src.ptr, sw, sh, dst.ptr, dw, dh,
             verts.ptr, uvs.ptr, indices.ptr, tris, vcount, y0, y1);
         else jsWarp.warpMesh(src, sw, sh, dst, dw, dh, verts, uvs, indices, tris, vcount, y0, y1);
+    }
+
+    /**
+     * Scratch floats [`inpaint`] needs for a `w` by `h` image.
+     *
+     * Exposed so the caller sizes one buffer exactly. The pyramid is about
+     * 4/3 of the image at five floats a pixel, and guessing that is how you
+     * end up one row short on an odd height.
+     */
+    inpaintScratch(w, h) { return jsInpaint.inpaintScratch(w, h); }
+
+    /**
+     * Fill the masked pixels of a premultiplied f32 RGBA image, in place.
+     *
+     * `mask` is one float per pixel and `> 0.5` means "hole". Unmasked
+     * pixels are left bit-identical, so this is safe over a plate that is
+     * mostly real photograph.
+     */
+    inpaint(img, mask, w, h, scratch) {
+        if (this.host) this.host.exports.inpaint_push_pull(img.ptr, mask.ptr, w, h, scratch.ptr);
+        else jsInpaint.inpaintPushPull(img, mask, w, h, scratch);
     }
 
     /** Three box passes approximating a Gaussian. Result lands in `buf`. */

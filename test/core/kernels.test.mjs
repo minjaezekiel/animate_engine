@@ -73,7 +73,7 @@ test('wasm module exports the full ABI surface', async () => {
     for (const n of ['memory', 'alloc', 'dealloc', 'abi_version', 'has_simd',
         'skin', 'morph', 'normals', 'smooth',
         'stamp_mask', 'composite_mask', 'mask_to_rgba8', 'clear_f32',
-        'warp_mesh', 'blur_rgba']) {
+        'warp_mesh', 'blur_rgba', 'inpaint_push_pull', 'inpaint_scratch']) {
         assert.ok(names.has(n), `missing export ${n}`);
     }
 });
@@ -399,6 +399,21 @@ test('conformance: blurRgba', () => {
     assert.ok(maxDiff(run(WASM), run(JS)) < 1e-4);
 });
 
+test('conformance: inpaint', () => {
+    const w = 23, h = 17, n = w * h;          // odd dimensions on purpose:
+    const field = seeded(n * 4, 91).map(Math.abs);   // the pyramid clamps
+    const run = (K) => {
+        const img = K.from(field);
+        const mask = K.f32(n);
+        for (let i = 0; i < n; i++) mask.array[i] = (i % 7 === 3) ? 1 : 0;
+        K.inpaint(img, mask, w, h, K.f32(K.inpaintScratch(w, h)));
+        return Float32Array.from(img.array);
+    };
+    // Weighted sums down a pyramid and quotients back up, so looser than a
+    // single-pass kernel and still well under 1/255.
+    assert.ok(maxDiff(run(WASM), run(JS)) < 1e-4);
+});
+
 // =====================================================================
 // 3. Correctness of the maths, on both backends
 // =====================================================================
@@ -691,6 +706,66 @@ for (const K of BOTH) {
 // =====================================================================
 // adjacency, which is pure JS and shared by both backends
 // =====================================================================
+
+for (const K of BOTH) {
+    const tag = K.backend;
+
+    test(`${tag}: inpaint fills a hole from its surroundings and leaves the rest alone`, () => {
+        // Half red, half blue, with a band of hole straddling the seam.
+        const w = 16, h = 8, n = w * h;
+        const img = K.f32(n * 4), mask = K.f32(n);
+        const scratch = K.f32(K.inpaintScratch(w, h));
+        try {
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4;
+                    img.array[i] = x < w / 2 ? 1 : 0;
+                    img.array[i + 2] = x < w / 2 ? 0 : 1;
+                    img.array[i + 3] = 1;
+                    mask.array[y * w + x] = (x >= 6 && x <= 9) ? 1 : 0;
+                }
+            }
+            const before = Float32Array.from(img.array);
+            K.inpaint(img, mask, w, h, scratch);
+            const at = (x, c) => img.array[((h >> 1) * w + x) * 4 + c];
+
+            // Unmasked pixels are untouched, bit for bit. A fill that
+            // rewrote the whole image would still look right and would
+            // quietly destroy a plate that is mostly real photograph.
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    if (x >= 6 && x <= 9) continue;
+                    const i = (y * w + x) * 4;
+                    for (let c = 0; c < 4; c++) {
+                        assert.equal(img.array[i + c], before[i + c], `rewrote (${x},${y})`);
+                    }
+                }
+            }
+            // The hole is filled, opaque, and takes from the nearer side:
+            // red on the left of the band, blue on the right. A diffusion
+            // fill would give the same mid-grey across the whole band.
+            for (let x = 6; x <= 9; x++) {
+                assert.ok(at(x, 3) > 0.9, `x=${x} left transparent`);
+            }
+            assert.ok(at(6, 0) > at(6, 2), 'the left of the hole is not red-ish');
+            assert.ok(at(9, 2) > at(9, 0), 'the right of the hole is not blue-ish');
+        } finally { img.free(); mask.free(); scratch.free(); }
+    });
+
+    test(`${tag}: an image that is entirely hole stays transparent`, () => {
+        // There is nothing to take from, and inventing a colour would be
+        // worse than admitting it: the caller gets back what it had.
+        const w = 4, h = 4, n = w * h;
+        const img = K.f32(n * 4), mask = K.f32(n);
+        const scratch = K.f32(K.inpaintScratch(w, h));
+        try {
+            img.array.fill(0.5);
+            mask.array.fill(1);
+            K.inpaint(img, mask, w, h, scratch);
+            assert.ok(img.array.every((v) => v === 0), 'invented a colour from nothing');
+        } finally { img.free(); mask.free(); scratch.free(); }
+    });
+}
 
 test('adjacency: a two-triangle quad has the expected neighbours', () => {
     // 3---2      triangles (0,1,2) and (0,2,3)

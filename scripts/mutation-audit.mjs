@@ -371,6 +371,51 @@ const MUTATIONS = [
     { group: 'photos', file: 'src/backends/canvas2d/PaintPainter.js',
       what: 'attachPainters skips photo nodes, leaving every photograph blank',
       find: '    made.push(...attachPhotoPainters(scene, kernels, options));\n', replace: '' },
+
+    // --- inpaint: the push-pull pyramid that fills what a tear uncovers
+    { group: 'inpaint', file: 'src/kernels/js/inpaint.js',
+      what: 'nothing is treated as a hole, so the fill never runs',
+      find: '        if (M[i] > 0.5) {', replace: '        if (false) {' },
+    { group: 'inpaint', file: 'src/kernels/js/inpaint.js',
+      what: 'an all-hole image divides by a zero weight instead of staying transparent',
+      find: '        if (weight <= 0) {\n            I[p] = I[p + 1] = I[p + 2] = I[p + 3] = 0;\n            continue;\n        }',
+      replace: '' },
+    { group: 'inpaint', file: 'src/kernels/js/inpaint.js',
+      what: 'the pull does not clamp, so an odd dimension reads past its row',
+      find: '                    if (sy >= ch) continue;', replace: '' },
+    { group: 'inpaint', file: 'src/kernels/js/inpaint.js',
+      what: 'the push does not mark a filled pixel known, so the fill stops cascading',
+      find: '                S[f + 4] = full;', replace: '' },
+
+    // --- planes: finding the depth levels worth tearing along
+    { group: 'planes', file: 'src/core/motion/depth.js',
+      what: 'any dip counts as a plane boundary, so a continuous ramp is torn',
+      find: '        if (prominence > flank * minDrop && leftMass >= minShare && rightMass >= minShare) {',
+      replace: '        if (prominence > 0 && leftMass >= minShare && rightMass >= minShare) {' },
+    { group: 'planes', file: 'src/core/motion/depth.js',
+      what: 'the cut lands at the edge of the gap rather than its middle',
+      find: '        const centre = (i + j) >> 1;', replace: '        const centre = i;' },
+    { group: 'planes', file: 'src/core/motion/depth.js',
+      what: 'dilation grows a mask in one axis only',
+      find: '                if (tmp[yy * w + x] > m) m = tmp[yy * w + x];',
+      replace: '                if (tmp[y * w + x] > m) m = tmp[y * w + x];' },
+    { group: 'planes', file: 'src/core/motion/PhotoMotion.js',
+      what: "planes are read off the mesh's resampled depths, which invent an interpolation ramp",
+      find: '                ?? depthPlanes(spec.depth, tearOpts.planes ?? 1);',
+      replace: '                ?? depthPlanes(mesh.depths, tearOpts.planes ?? 1);' },
+    { group: 'planes', file: 'src/core/motion/PhotoMotion.js',
+      what: 'a tear with no separable planes is left switched on',
+      find: '            if (!this.tearLevels.length) this.tear = false;', replace: '' },
+
+    // --- plates: the inpainted background each far band samples
+    { group: 'plates', file: 'src/core/motion/PhotoMotion.js',
+      what: 'the far band samples the photograph, so the subject ghosts into the hole',
+      find: '            K.warpMesh(band.plate ?? this.src, sw, sh, this.dst, w, h,',
+      replace: '            K.warpMesh(this.src, sw, sh, this.dst, w, h,' },
+    { group: 'plates', file: 'src/core/motion/PhotoMotion.js',
+      what: 'every triangle lands in one band, so the whole surface takes one texture',
+      find: "        if (!bands.length || bands[bands.length - 1].band !== band[t]) {",
+      replace: '        if (!bands.length) {' },
 ];
 
 const selected = only ? MUTATIONS.filter((m) => m.group === only) : MUTATIONS;

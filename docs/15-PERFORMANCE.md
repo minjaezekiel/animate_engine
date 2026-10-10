@@ -313,9 +313,11 @@ authoring layer above them does not.
   cuts the mesh at the discontinuity instead of smoothing it away.
 - **Puppet warp** — pinned and driven vertices over the same rasteriser.
   **Done.**
-- **Not yet designed:** inpainting what a tear reveals behind the subject
-  (the fill is mirrored background), automatic detection of depth planes,
-  camera-path authoring UI.
+- **Inpainting what a tear reveals** — **done**, as a push-pull pyramid
+  kernel (`inpaint.rs`) building one background plate per tear level at
+  construction, so the per-frame cost is unchanged.
+- **Not yet designed:** texture synthesis in that fill (push-pull
+  interpolates, it does not invent), camera-path authoring UI.
 
 ### 7.4 Sculpting and modelling
 

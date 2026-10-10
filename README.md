@@ -189,6 +189,87 @@ Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
 
 ---
 
+## Not implemented
+
+What is genuinely absent, checked against the code rather than carried over
+from an old plan. Everything the earlier "planned features" list named that
+has since shipped — IK, skinning and blendshapes, animation blending and
+layering, PBR materials, parametric primitives, particles, WebAssembly
+kernels, video export with encoding, and an external API — has been removed
+from this list rather than left to look pending. So has "AI text-to-prompt
+animation generation", though by a different route than that entry imagined:
+rather than the engine parsing a sentence, the format is designed so an LLM
+writes it directly, and a plain-text screenplay parses into one. Per-phase
+detail is in [docs/STATUS.md](docs/STATUS.md).
+
+### Modelling
+
+- **Boolean operations** — *skipped by decision.* It needs a CSG library,
+  which is both a dependency and a correctness surface of its own.
+- **Mirror and array modifiers, bevel, loop-cut, subdivision-surface
+  modelling.** `lathe` and `extrude` exist as *geometry* — a swept profile is
+  one primitive — and `subdivide` splits every triangle of a mesh to give a
+  sculpt brush more vertices to push. Neither is a modelling tool you can
+  point at a face.
+- **UV mapping tools, and painting a texture onto a 3D surface.** The paint
+  layer is 2D only; a procedural character carries no UVs.
+- **Sculpting beyond the legacy editor's six brushes.** Named in
+  [docs/14-CHARACTER-3D.md](docs/14-CHARACTER-3D.md) §6 as the largest
+  single gap: a face is still primitives positioned by typing numbers.
+
+### Rigging
+
+- **Auto-rigging an arbitrary imported mesh, and skin-weight painting** —
+  *skipped by decision.* Mixamo hands you a rigged character and retargeting
+  is wired up; auto-rigging an unknown mesh well is a research problem, and a
+  bad auto-rig is worse than none. The engine *does* build a 25-bone skeleton
+  with automatic weights for its own procedural character.
+- **Bone constraints** — lookAt, limit-rotation, copy-rotation.
+- **IK for the 3D character rig.** The 2D cutout rig has a real solver
+  (closed-form two-bone, CCD beyond that); the legacy editor has one-shot
+  CCD. The 3D character pipeline has neither.
+- **Correctives, teeth and tongue, eye convergence, hair, subsurface
+  scattering, cloth** — [docs/14-CHARACTER-3D.md](docs/14-CHARACTER-3D.md) §6.
+
+### Simulation and effects
+
+- **Fluid and cloth simulation.**
+- **Post-processing beyond bloom.** `OutputPass` is loaded; nothing else is
+  wired.
+
+### Performance
+
+- **Level-of-detail and occlusion culling.**
+
+### Export
+
+- **glTF and FBX export.** `GLTFExporter` is loaded in `index.html` but
+  nothing is wired to it, and there is no browser FBX *exporter* to wire up
+  at all. Project save/load uses Three's own `toJSON`/`ObjectLoader`.
+- **GIF from the frame-stepped renderer.** The legacy editor's encoder works
+  and is tested, but holds every frame in memory and has not been ported to
+  a sink — see [docs/18-EDITOR-ARCHITECTURE.md](docs/18-EDITOR-ARCHITECTURE.md) §7.
+
+### Collaboration and extensibility
+
+- **Real-time multi-user editing, version control, cloud storage, review
+  comments.** `src/core/history/` records labelled inverse patches, which is
+  exactly the data such a transport would carry, so this is a transport
+  problem rather than a rewrite — but none of it is built.
+- **A plugin system.**
+- **VR / AR.**
+
+### User interface
+
+- **The dockable workspace is a model without a page.** `src/editor/dock.js`
+  is tested, but `mountDock` is not used anywhere yet: `studio.html` keeps a
+  fixed two-column layout. Floating and tabbed panels, and arbitrary split
+  trees, are out of scope by design.
+- **No UI for rebinding hotkeys.** The keymap is data and describes itself;
+  nothing lets a user edit and persist their own bindings.
+
+---
+
 # animateEngine (legacy 3D editor)
 
 `index.html` + `animateEngine.js` — a single-file Three.js r128 editor,
@@ -202,16 +283,18 @@ audio import with microphone recording, a programmatic `runCommands()` API,
 and an MCP server (`mcp/`) that lets an AI drive a live browser session — see
 [mcp/README.md](mcp/README.md).
 
-**What `RigManager` actually does:** it *discovers* bones and morph targets in
-imported glTF, shows a `SkeletonHelper`, poses a bone chain with one-shot CCD,
-and sets morph influences. It **constructs nothing** — there is no
-`THREE.Bone`, `Skeleton` or `SkinnedMesh` anywhere, no skin weights and no
-auto-rig. (Earlier versions of this README were wrong in both directions
-about this.)
+**What `RigManager` does:** it discovers bones and morph targets in imported
+glTF or FBX, shows a `SkeletonHelper`, poses a bone chain with one-shot CCD,
+sets morph influences, and **retargets** a clip onto a differently-named
+skeleton through `SkeletonUtils.retargetClip` with a Mixamo name preset. It
+still *constructs* no skeleton of its own — that lives in
+`src/core/art/humanoid3d.js`, which builds a 25-bone `SkinnedMesh` with
+automatic weights for the procedural character.
 
-**Not implemented:** skinning, auto-rigging, bone constraints, retargeting,
-FBX/Mixamo import, boolean/extrude/bevel, PBR material properties beyond
-colour, MP4 export, animation blending, collaboration.
+**Not implemented here:** auto-rigging an arbitrary mesh, skin-weight
+painting, bone constraints, boolean/bevel/loop-cut, and MP4 without an
+injected muxer. Parametric primitives and full PBR material properties
+*were* added — colour had been the only reachable one.
 
 **Before relying on it, read [docs/DEFECTS.md](docs/DEFECTS.md).** Most
 pressing: autosave replays a lossy snapshot on every boot, so sculpted and
@@ -231,7 +314,7 @@ We welcome contributions to the Three.js Animation Engine! Here's how you can he
 ### Areas for Contribution
 - **UI/UX Improvements**: Enhance the user interface and experience
 - **Performance Optimization**: Improve rendering performance and memory usage
-- **New Features**: Implement missing features like advanced materials, undo/redo system
+- **New Features**: pick anything from [Not implemented](#not-implemented) above
 - **Bug Fixes**: Address issues in the issue tracker
 - **Documentation**: Improve documentation and create tutorials
 - **Testing**: Write tests to ensure code quality
@@ -475,68 +558,16 @@ editManager.sculptStrength = 1.2;
 // The handleSculpting method would be called during mouse/touch events
 ```
 
-## Future Development
-
-### AI Text-to-Prompt Animation Generation
-We plan to implement an AI-powered text-to-prompt system that will allow users to generate animations through natural language descriptions. This feature will:
-
-1. Parse user input to understand animation requirements
-2. Generate appropriate 3D scenes and objects based on the description
-3. Create plausible animations that match the user's intent
-4. Provide options for refinement and customization
-
-Example: A user might type "A bouncing ball that changes color when it hits the ground," and the system would generate a scene with a ball, apply physics properties, create keyframes for the bouncing motion, and add color change animations at impact points.
-
-### Planned Features
-
-1. **Advanced Animation Tools**
-   - Inverse kinematics for character animation
-   - Bone rigging and skinning system
-   - Morph targets for facial animation
-   - Animation blending and layering
-
-2. **Enhanced Materials and Textures**
-   - PBR (Physically Based Rendering) materials
-   - Texture painting tools
-   - Procedural texture generation
-   - UV mapping tools
-
-3. **Improved Modeling Tools**
-   - Boolean operations
-   - Bevel and extrude tools
-   - Subdivision surface modeling
-   - Parametric modeling
-
-4. **Visual Effects**
-   - Particle systems
-   - Fluid simulation
-   - Cloth simulation
-   - Post-processing effects
-
-5. **Collaboration Features**
-   - Real-time multi-user editing
-   - Version control system
-   - Cloud storage integration
-   - Comment and review system
-
-6. **Performance Enhancements**
-   - WebGL 2.0 support
-   - WebAssembly integration for heavy computations
-   - Level of detail (LOD) systems
-   - Occlusion culling
-
-7. **Export Options**
-   - Video export with encoding
-   - GIF export with optimization
-   - WebGL application export
-   - 3D model export in multiple formats
-
-8. **Integration Capabilities**
-   - Plugin system for extensibility
-   - API for external application integration
-   - VR/AR support
-   - Import/export to professional animation formats
-
 ## Conclusion
 
-The Three.js Animation Engine provides a solid foundation for browser-based 3D animation creation. While it already offers a comprehensive set of features for basic animation and modeling tasks, there are many opportunities for enhancement and expansion. We welcome contributions from the community to help realize the full potential of this project and make it a powerful tool for 3D animation on the web.
+jireX is two programs sharing one core: a 2D film pipeline that renders a
+voiced, lipsynced, deterministic video from a JSON script, and the legacy
+single-file 3D editor it grew out of. The core reads no clock, no DOM and no
+RNG, which is what makes frame *N* a pure function of *N*, the whole render
+loop testable in Node, and a second backend a backend rather than a rewrite.
+
+The lists above are meant to stay honest in both directions: nothing is
+claimed that is not wired up, and nothing that shipped is left looking
+pending. [docs/STATUS.md](docs/STATUS.md) is the per-phase register and
+[docs/DEFECTS.md](docs/DEFECTS.md) the defect one. Contributions welcome —
+start from [Not implemented](#not-implemented).

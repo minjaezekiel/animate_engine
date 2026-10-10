@@ -1,5 +1,6 @@
 import { samplePose, applyPose, createPoseBaseline, resetPose } from '../anim/Evaluator.js';
 import { characterParts, filmShots } from './compile.js';
+import { estimateFrameCost } from './budget.js';
 import { applyToPoint } from '../math/mat2d.js';
 
 /**
@@ -190,13 +191,53 @@ export function headHeight(char) {
     return height * ratio;
 }
 
+/** What a cast member is, which decides which checks apply to it. */
+export const CAST_ROLES = ['character', 'effect', 'prop'];
+
+/**
+ * The role of a cast member: `character`, `effect` or `prop`.
+ *
+ * A film's cast is not only characters. Beams, impact stars and speed
+ * lines are cast too, because that is how they inherit a transform, a z
+ * and an alpha channel to animate. They have no feet and they are
+ * *supposed* to float, so a ground check that treats every cast member as
+ * a person produces one false warning per effect -- six of them against
+ * eight real ones, on the film this was found on, which is how a warning
+ * list stops being read.
+ *
+ * Resolution order, most specific first:
+ *
+ *   1. `role` on the **cast entry** -- the same character staged as a
+ *      prop in one scene and a performer in another.
+ *   2. `role` on the **character**.
+ *   3. Inferred from the rig: anything with a `foot*` part is a character.
+ *
+ * The inference is the default rather than the rule, because it is a
+ * heuristic and heuristics should be overridable by the author who can see
+ * what the thing actually is. A hand-built rig that names its feet
+ * `boot_l` is a character that this would call an effect, and `role`
+ * is how you say so.
+ */
+export function castRole(character, castEntry = null) {
+    const declared = castEntry?.role ?? character?.role;
+    if (declared && CAST_ROLES.includes(declared)) return declared;
+    const parts = characterParts(character ?? {});
+    if (!parts.length) return 'effect';
+    return parts.some((p) => String(p.id).startsWith('foot')) ? 'character' : 'effect';
+}
+
 export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt } = {}) {
     const d = [];
     if (!compiled?.scene || !compiled.timeline || !trackValueAt) return d;
 
     const { scene, timeline, meta } = compiled;
     const baseline = createPoseBaseline(scene, timeline);
-    const shots = filmShots(film);
+    // The **expanded** scenes, so a template's ground, scenery and
+    // background are visible here exactly as the compiler saw them. Reading
+    // `film.scenes` instead meant a templated scene had no `ground` as far
+    // as this function was concerned, so the ground check never ran at all
+    // -- silently, and indistinguishably from a film that passed it.
+    const shots = filmShots(compiled.expanded ? { ...film, scenes: compiled.expanded } : film);
     const extents = new Map();
     const measureOf = (charName) => {
         if (!extents.has(charName)) {
@@ -205,27 +246,16 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
         return extents.get(charName);
     };
 
-    /**
-     * Whether a cast member is the kind of thing that stands on the floor.
-     *
-     * A film's cast is not only characters: beams, impact stars and speed
-     * lines are cast too, because that is how they inherit a transform and
-     * a z. They have no feet, they are *supposed* to float, and reporting
-     * every one of them as "feet off the ground" buries the character who
-     * genuinely is -- six such warnings against eight real ones, in the
-     * film this was found on.
-     *
-     * The test is the rig rather than a new flag in the schema: every
-     * generated and hand-built character has `footL`/`footR`, and nothing
-     * that is not a character does.
-     */
-    const feet = new Map();
-    const standsOnGround = (charName) => {
-        if (!feet.has(charName)) {
-            const parts = characterParts(film.characters?.[charName] ?? {});
-            feet.set(charName, parts.some((p) => String(p.id).startsWith('foot')));
+    const roles = new Map();
+    const roleOf = (charName, as) => {
+        const key = `${charName}\u0000${as}`;
+        if (!roles.has(key)) {
+            const entry = (film.scenes ?? [])
+                .flatMap((sc) => sc.cast ?? [])
+                .find((c) => (c.as ?? c.character) === as && c.character === charName);
+            roles.set(key, castRole(film.characters?.[charName], entry));
         }
-        return feet.get(charName);
+        return roles.get(key);
     };
 
     // Cast roots carry tags ['cast', charName]; that is how they are found
@@ -238,6 +268,12 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
             // message about feet. Name the cast member instead.
             return { node: n, charName: n.tags[1], sceneId, as: as ?? n.id };
         });
+
+    // What a frame will cost, before anything renders. A paced export does
+    // not degrade past its ceiling -- it writes an undecodable file -- so
+    // this belongs with the other things that are checked rather than
+    // discovered. See `budget.js`.
+    d.push(...estimateFrameCost(compiled, film, { trackValueAt }).notes);
 
     const seenOffFrame = new Set();
     const seenGround = new Set();
@@ -372,7 +408,8 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
                         });
                     }
 
-                    if (ground && standsOnGround(charName) && !seenGround.has(key)) {
+                    // Only a character stands on the floor. See [`castRole`].
+                    if (ground && roleOf(charName, as) === 'character' && !seenGround.has(key)) {
                         const gy = groundAt(ground, wx);
                         if (gy != null && Math.abs(box.bottom - gy) > (ground.tolerance ?? 12)) {
                             seenGround.add(key);

@@ -63,7 +63,12 @@ export async function renderOffline({
             if (physics) physics.stepTo(t);
             pose.reset();
             pose.apply(t);
-            if (beforeFrame) beforeFrame(t, n, scene);
+            // Awaited, so a hook can do asynchronous work *before* the
+            // synchronous draw -- which is the only seam a worker pool can
+            // use. `renderFrame` is synchronous by contract (that is what
+            // makes offline rendering possible at all), so anything
+            // parallel has to finish here.
+            if (beforeFrame) await beforeFrame(t, n, scene);
 
             backend.sync(scene);
             backend.renderFrame(scene, cameraId);

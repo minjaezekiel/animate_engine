@@ -1300,3 +1300,42 @@ test('the studio attaches painters, so a film with artwork does not render blank
             'the node still has no painter, so shapes.js will draw nothing');
     } finally { painters.forEach((p) => p.dispose()); }
 });
+
+test('preparePhotos is a no-op without a pool, and a pool renders identically', async () => {
+    // `canvasAt` cannot go parallel itself: it is called from
+    // `renderFrame`, which is synchronous by contract because that is what
+    // makes offline rendering deterministic. So the parallel work happens
+    // in the render loop's `beforeFrame` hook and leaves a finished canvas
+    // for the sync path to find.
+    const { preparePhotos } = await import('../../src/backends/canvas2d/PhotoPainter.js');
+    const out = compileFilm(photoFilm(), { assets: PHOTO_ASSETS });
+    const painters = attachPainters(out.scene, K);
+    try {
+        // Without a pool it must still be safe to call on every frame.
+        assert.equal(await painters[0].prepare(0.4), false);
+        assert.equal(await preparePhotos(out.scene), 1);
+    } finally { painters.forEach((p) => p.dispose()); }
+
+    const { loadParallelKernels } = await import('../../src/kernels/parallel.js');
+    const pool = await loadParallelKernels({ workers: 2 }).catch(() => null);
+    if (!pool) return;                       // no shared memory here; nothing to compare
+    try {
+        const spec = out.scene.get('s1/hero').props.photo;
+        const { PhotoMotion } = await import('../../src/core/motion/PhotoMotion.js');
+        // Allocated on the pool's own kernels: they own the shared heap, so
+        // a pointer from them is valid inside a worker. Allocating on a
+        // separate instance makes the workers write into another memory,
+        // which looks like a 46x speedup and is in fact nothing happening.
+        const photo = new PhotoMotion(pool.serial, {
+            width: 96, height: 64, duration: 6,
+            source: PIC.source, depth: PIC.depth, effects: spec.effects,
+        }, { pool });
+        try {
+            photo.renderAt(2);
+            const serial = Float32Array.from(photo.dst.array);
+            await photo.renderAtAsync(2);
+            assert.deepEqual(Array.from(photo.dst.array), Array.from(serial),
+                'the pooled warp does not match the serial one');
+        } finally { photo.dispose(); }
+    } finally { await pool.dispose?.(); }
+});

@@ -25,7 +25,9 @@ import { renderMix, decodeAudio } from './audio/OfflineMixer.js';
 import { audioBufferToWav } from './audio/wav.js';
 import { Canvas2DBackend } from './backends/canvas2d/Canvas2DBackend.js';
 import { attachPainters } from './backends/canvas2d/PaintPainter.js';
+import { preparePhotos } from './backends/canvas2d/PhotoPainter.js';
 import { loadKernels } from './kernels/index.js';
+import { loadParallelKernels } from './kernels/parallel.js';
 import { renderOffline, preflight } from './render/OfflineRenderer.js';
 import { MediaRecorderSink } from './render/sinks/MediaRecorderSink.js';
 import { WebCodecsSink } from './render/sinks/WebCodecsSink.js';
@@ -36,7 +38,13 @@ import { trackValueAt } from './core/anim/Track.js';
 const SAMPLE_RATE = 48000;
 
 export class FilmStudio {
-    constructor({ sampleRate = SAMPLE_RATE, muxerFactory = null, ttsModuleUrl, onLog = null } = {}) {
+    constructor({ sampleRate = SAMPLE_RATE, muxerFactory = null, ttsModuleUrl, onLog = null,
+                  parallel = null } = {}) {
+        /**
+         * Whether to build a kernel worker pool for photo warps. `null`
+         * means "yes in a browser, no in Node"; see `_attachPainters`.
+         */
+        this.parallel = parallel;
         this.sampleRate = sampleRate;
         this.muxerFactory = muxerFactory;
         this.onLog = onLog;
@@ -212,7 +220,22 @@ export class FilmStudio {
 
         if (this._kernels === undefined) {
             try {
-                this._kernels = await loadKernels();
+                // A worker pool when the page is cross-origin isolated:
+                // a photo warp is the heaviest thing in a frame and runs
+                // 2.8x faster across six workers, bit-identically. Its
+                // `serial` kernels own the shared heap, so buffers must be
+                // allocated there for a pointer to be valid in a worker.
+                //
+                // Browser only by default. In Node the studio is being
+                // driven by a test or a check, where spawning six workers
+                // per instance oversubscribes the machine for work that is
+                // never rendered -- the suite went from 40 seconds to not
+                // finishing. `parallel: true` forces it either way.
+                const wantPool = this.parallel
+                    ?? (typeof window !== 'undefined' && typeof Worker !== 'undefined');
+                this._pool = wantPool ? await loadParallelKernels().catch(() => null) : null;
+                this._kernels = this._pool ? this._pool.serial : await loadKernels();
+                if (this._pool) this.log('kernel worker pool ready');
             } catch (error) {
                 this._kernels = null;
                 notes.push({
@@ -224,7 +247,7 @@ export class FilmStudio {
         }
         if (!this._kernels) return [];
 
-        const painters = attachPainters(scene, this._kernels);
+        const painters = attachPainters(scene, this._kernels, { pool: this._pool ?? null });
         this.log(`${painters.length} drawing/photo painter(s) attached`);
         return painters;
     }
@@ -281,7 +304,13 @@ export class FilmStudio {
                 fps: rate, width: w, height: h,
                 durationSec: meta.duration,
                 sink: chosen, signal,
-                beforeFrame: (t) => applySwapSets(prepared.scene),
+                // Async, so photo warps run across the worker pool before
+                // the synchronous draw. Without a pool `preparePhotos`
+                // returns immediately and the sync path does the work.
+                beforeFrame: async () => {
+                    applySwapSets(prepared.scene);
+                    await preparePhotos(prepared.scene);
+                },
                 onProgress: (p) => { onProgress?.({ stage: 'render', ...p, preflight: pf }); },
             });
             return { blob, preflight: pf, meta, sink: chosen.constructor.name };

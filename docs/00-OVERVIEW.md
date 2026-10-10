@@ -123,6 +123,7 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [16-PAINT.md](16-PAINT.md) | **drawing tools** — SVG paths, 15 brushes, layers, grain, wet media, draw-on |
 | [17-MOTION-AND-MCP.md](17-MOTION-AND-MCP.md) | **picture into video**, and the headless agent surface |
 | [18-EDITOR-ARCHITECTURE.md](18-EDITOR-ARCHITECTURE.md) | **undo/redo, hotkeys, docking, onion skin, image-sequence export** |
+| [19-CONTRACTS-AND-BUDGET.md](19-CONTRACTS-AND-BUDGET.md) | **silent defaults**: the scene-graph contract, cast roles, and the frame budget — and why none of it is Rust |
 | [STATUS.md](STATUS.md) | **what is implemented and what is not** |
 | [DEFECTS.md](DEFECTS.md) | the defect register for the legacy 3D engine |
 | [CDN-AND-PWA.md](CDN-AND-PWA.md) | loading from a CDN, installing, offline |

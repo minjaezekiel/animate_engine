@@ -177,7 +177,17 @@ export class ParallelKernels {
         const url = new URL('./wasm/worker.js', import.meta.url);
         const isNode = typeof process !== 'undefined' && !!process.versions?.node
             && typeof Worker === 'undefined';
-        const NodeWorker = isNode ? (await import('node:worker_threads')).Worker : null;
+        // Assembled rather than written literally, so a bundler cannot see
+        // it. The import is already guarded by `isNode` and the browser
+        // never reaches it -- but esbuild (and every other bundler) tries
+        // to *resolve* a static specifier whatever the guard says, and a
+        // Node builtin does not exist on the web. This module became
+        // reachable from `studio.js` when the studio started using the
+        // pool, and the browser bundle stopped building on that line.
+        const nodeWorkers = `node:${'worker_threads'}`;
+        const NodeWorker = isNode
+            ? (await import(/* @vite-ignore */ /* webpackIgnore: true */ nodeWorkers)).Worker
+            : null;
 
         for (let i = 0; i < this.workerCount; i++) {
             // Each worker's stack comes out of the shared heap, allocated
@@ -185,6 +195,12 @@ export class ParallelKernels {
             // down, so the pointer starts at the top of the block.
             const stack = this.serial.u8(STACK_BYTES);
             const worker = NodeWorker ? new NodeWorker(url) : new Worker(url, { type: 'module' });
+            // A kernel worker is a compute resource, not a reason for the
+            // process to stay alive. Without this a Node host that builds a
+            // pool -- a test, a CLI render, a check -- hangs after its work
+            // is done, waiting on workers nobody is going to message again.
+            // Found by the suite going from 40 seconds to never finishing.
+            worker.unref?.();
 
             const handle = (data) => {
                 if (data.t === 'ready') return;

@@ -114,12 +114,37 @@ var Scene = class {
   get root() {
     return this.byId.get(this.rootId);
   }
-  add(spec, parentId = this.rootId) {
+  /**
+   * Add a node under `parentId`.
+   *
+   * The parent may be given **either** as the second argument or as
+   * `spec.parentId`, and the two must agree.
+   *
+   * That rule exists because the alternative cost real work. The second
+   * argument used to win unconditionally and silently discard
+   * `spec.parentId`, so `add({ ..., parentId: group })` -- which reads as
+   * obviously correct and is how every other field on a node is set --
+   * attached the node to the **root** instead. Nothing threw, nothing
+   * warned, and the node looked right in every structural test; it only
+   * showed once something was drawn, as a backdrop that ignored its
+   * scene's alpha and sorted its z against the wrong siblings.
+   *
+   * An argument a caller passes and the callee discards is the whole
+   * class of defect. Honouring both spellings and refusing a
+   * disagreement makes it unexpressible rather than merely fixed at the
+   * call sites that happened to be audited.
+   */
+  add(spec, parentId) {
+    const declared = spec.parentId;
+    if (parentId !== void 0 && declared !== void 0 && declared !== parentId) {
+      throw new Error(`Scene: node "${spec.id ?? "?"}" was given two different parents -- argument "${parentId}" and spec.parentId "${declared}". Pass one or the other.`);
+    }
+    const target = parentId ?? declared ?? this.rootId;
     const id = spec.id ?? this.nextId();
     if (this.byId.has(id)) throw new Error(`Scene: duplicate node id "${id}"`);
-    const parent = this.byId.get(parentId);
-    if (!parent) throw new Error(`Scene: no such parent "${parentId}"`);
-    const node = createNode({ ...spec, id, parentId });
+    const parent = this.byId.get(target);
+    if (!parent) throw new Error(`Scene: no such parent "${target}"`);
+    const node = createNode({ ...spec, id, parentId: target });
     this.byId.set(id, node);
     parent.childIds.push(id);
     this._invalidate(id);
@@ -2362,7 +2387,8 @@ var KNOWN = {
     "proportions",
     "generate",
     "view",
-    "expression"
+    "expression",
+    "role"
   ],
   generate: [
     "skin",
@@ -2389,7 +2415,8 @@ var KNOWN = {
     "view",
     "expression",
     "facing",
-    "echo"
+    "echo",
+    "role"
   ],
   template: ["template", "time", "props"],
   part: [
@@ -2446,7 +2473,9 @@ var KNOWN = {
     "grid",
     "overscan",
     "depthBlur",
-    "tear"
+    "tear",
+    "resolution",
+    "step"
   ],
   shot: [
     "id",
@@ -2899,6 +2928,445 @@ function generateActions(proportions = {}, generate = {}) {
 // src/core/motion/PhotoMotion.js
 var EFFECTS = ["kenBurns", "parallax", "wave", "puppet"];
 
+// src/core/script/budget.js
+var CALIBRATION = {
+  /** One output pixel of a photo warp, including the f32 to u8 pass. */
+  photoNsPerPixel: 64,
+  /** One brush dab of a drawing that is re-rendering this frame. */
+  dabNs: 1350,
+  /**
+   * Fraction of the ceiling above which a shot is *advised* against.
+   * Matches `preflight`'s own margin, which leaves room for the encoder
+   * running alongside the renderer.
+   */
+  advisory: 0.6
+};
+function dabsOf(drawing) {
+  let total = 0;
+  for (const layer of drawing.layers ?? [{ strokes: drawing.strokes ?? [] }]) {
+    for (const stroke of layer.strokes ?? []) {
+      if (Array.isArray(stroke.points)) {
+        total += stroke.points.length;
+        continue;
+      }
+      const size = stroke.size ?? 12;
+      const commands = String(stroke.path ?? "").match(/[MLHVCSQTAZmlhvcsqtaz]/g)?.length ?? 0;
+      total += Math.round(commands * 180 / Math.max(1, size * 0.1));
+    }
+  }
+  return total;
+}
+function estimateFrameCost(compiled, film, {
+  trackValueAt: trackValueAt2 = null,
+  calibration = CALIBRATION
+} = {}) {
+  const notes = [];
+  if (!compiled?.timeline || !compiled.meta) return { ceilingMs: 0, shots: [], notes, worstMs: 0 };
+  const fps = compiled.meta.fps || 24;
+  const ceilingMs = 1e3 / fps;
+  const scenes = compiled.expanded ?? film.scenes ?? [];
+  const spans = filmShots({ ...film, scenes });
+  const animates = (nodeId, span) => {
+    const track = compiled.timeline._index?.get(`${nodeId}\0props.progress`);
+    if (!track || !trackValueAt2) return true;
+    return trackValueAt2(track, span.start) !== trackValueAt2(track, span.end);
+  };
+  const shots = [];
+  for (const span of spans) {
+    const scene = span.scene;
+    const items = [];
+    for (const [i, photo] of (scene.photos ?? []).entries()) {
+      const id = photo.id ?? `photo${i + 1}`;
+      const scale2 = Math.min(1, Math.max(0.05, photo.resolution ?? 1));
+      const px = (photo.width ?? compiled.meta.width) * (photo.height ?? compiled.meta.height) * scale2 * scale2;
+      const perWarp = px * calibration.photoNsPerPixel / 1e6;
+      const held = photo.step > 0 ? Math.max(1, Math.round(photo.step * fps)) : 1;
+      items.push({ kind: "photo", id, ms: perWarp / held, peakMs: perWarp, held });
+    }
+    for (const [i, drawing] of (scene.drawings ?? []).entries()) {
+      const id = drawing.id ?? `drawing${i + 1}`;
+      if (!animates(`${span.sceneId}/${id}`, span)) continue;
+      const dabs = dabsOf(drawing);
+      items.push({
+        kind: "drawing",
+        id,
+        ms: dabs * calibration.dabNs / 1e6,
+        dabs,
+        approximate: true
+      });
+    }
+    const ms = items.reduce((sum, it) => sum + it.ms, 0);
+    const peakMs = items.reduce((sum, it) => sum + (it.peakMs ?? it.ms), 0);
+    shots.push({ shotId: span.shotId, sceneId: span.sceneId, ms, peakMs, items });
+    if (!items.length) continue;
+    const worst = items.slice().sort((a, b) => b.ms - a.ms)[0];
+    const fix = worst.kind === "photo" ? `lower "resolution" (now ${scene.photos.find((p, j) => (p.id ?? `photo${j + 1}`) === worst.id)?.resolution ?? 1}) or raise "step" to hold each warp across more frames` : "reveal fewer dabs, or split the drawing across shots";
+    if (ms > ceilingMs) {
+      notes.push({
+        severity: "error",
+        path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+        message: `Budget: about ${ms.toFixed(1)}ms a frame, over the ${ceilingMs.toFixed(1)}ms ceiling at ${fps}fps. A paced export does not degrade past this -- it writes an undecodable file. Heaviest: ${worst.kind} "${worst.id}" at ${worst.ms.toFixed(1)}ms. Try: ${fix}.`
+      });
+    } else if (ms > ceilingMs * calibration.advisory) {
+      notes.push({
+        severity: "warning",
+        path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+        message: `Budget: about ${ms.toFixed(1)}ms a frame against a ${ceilingMs.toFixed(1)}ms ceiling, leaving little room for the encoder. Heaviest: ${worst.kind} "${worst.id}". Try: ${fix}.`
+      });
+    }
+  }
+  return {
+    ceilingMs,
+    shots,
+    notes,
+    worstMs: shots.reduce((m, s) => Math.max(m, s.ms), 0)
+  };
+}
+
+// src/core/script/staging.js
+function measureCharacter(parts) {
+  const byId = new Map(parts.map((p) => [p.id, p]));
+  const offsetOf = (part) => {
+    let x = 0, y = 0;
+    for (let p = part; p; p = p.parent ? byId.get(p.parent) : null) {
+      const pivot = p.pivot ?? [0, 0];
+      x += (p.at?.[0] ?? 0) + pivot[0];
+      y += (p.at?.[1] ?? 0) + pivot[1];
+      if (!p.parent) break;
+    }
+    return [x, y];
+  };
+  let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
+  const take = (ox, oy, e) => {
+    if (!e) return;
+    left = Math.min(left, ox + e.left);
+    right = Math.max(right, ox + e.right);
+    top = Math.min(top, oy + e.top);
+    bottom = Math.max(bottom, oy + e.bottom);
+  };
+  for (const part of parts) {
+    const [ox, oy] = offsetOf(part);
+    const sw = part.strokeWidth ?? 0;
+    take(ox, oy, shapeExtent(part.shape, sw));
+    for (const set of Object.values(part.swap ?? {})) {
+      for (const shape of Object.values(set.shapes ?? set)) {
+        take(ox, oy, shapeExtent(shape, sw));
+      }
+    }
+    for (const layer of part.shapes ?? []) {
+      const lx = ox + (layer.at?.[0] ?? 0), ly = oy + (layer.at?.[1] ?? 0);
+      const lsw = layer.strokeWidth ?? sw;
+      take(lx, ly, shapeExtent(layer.shape, lsw));
+      for (const set of Object.values(layer.swap ?? {})) {
+        for (const shape of Object.values(set.shapes ?? set)) take(lx, ly, shapeExtent(shape, lsw));
+      }
+    }
+  }
+  if (!Number.isFinite(top)) return { top: 0, bottom: 0, left: 0, right: 0 };
+  return { top, bottom, left, right };
+}
+function shapeExtent(shape, strokeWidth) {
+  if (!shape) return null;
+  const pad = strokeWidth / 2;
+  switch (shape.kind) {
+    case "ellipse":
+      return {
+        left: -(shape.rx ?? 1) - pad,
+        right: (shape.rx ?? 1) + pad,
+        top: -(shape.ry ?? 1) - pad,
+        bottom: (shape.ry ?? 1) + pad
+      };
+    case "rect": {
+      const w = shape.w ?? 0, h = shape.h ?? 0;
+      return {
+        left: (shape.cx ? -w / 2 : 0) - pad,
+        right: (shape.cx ? w / 2 : w) + pad,
+        top: (shape.cy ? -h / 2 : 0) - pad,
+        bottom: (shape.cy ? h / 2 : h) + pad
+      };
+    }
+    case "image": {
+      const w = shape.w ?? 0, h = shape.h ?? 0;
+      return {
+        left: shape.cx ? -w / 2 : 0,
+        right: shape.cx ? w / 2 : w,
+        top: shape.cy ? -h / 2 : 0,
+        bottom: shape.cy ? h / 2 : h
+      };
+    }
+    case "path":
+      return pathExtent(shape.d, pad);
+    default:
+      return null;
+  }
+}
+function pathExtent(d, pad) {
+  if (!d) return null;
+  const nums = String(d).match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
+  if (!nums || nums.length < 2) return null;
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  for (let i = 0; i + 1 < nums.length; i += 2) {
+    const x = Number(nums[i]), y = Number(nums[i + 1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    left = Math.min(left, x);
+    right = Math.max(right, x);
+    top = Math.min(top, y);
+    bottom = Math.max(bottom, y);
+  }
+  if (!Number.isFinite(left)) return null;
+  return { left: left - pad, right: right + pad, top: top - pad, bottom: bottom + pad };
+}
+function groundAt(ground, x) {
+  if (!ground) return null;
+  if (typeof ground.y === "number") return ground.y;
+  const pts = ground.points;
+  if (!Array.isArray(pts) || pts.length === 0) return null;
+  if (x <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    if (x <= pts[i][0]) {
+      const [x0, y0] = pts[i - 1];
+      const [x1, y1] = pts[i];
+      const span = x1 - x0;
+      const u = span === 0 ? 0 : (x - x0) / span;
+      return y0 + (y1 - y0) * u;
+    }
+  }
+  return pts[pts.length - 1][1];
+}
+var trackOf = (timeline, path) => timeline._index?.get(`__camera\0${path}`);
+function cameraAt(timeline, t, meta, trackValueAt2) {
+  const read = (path, fallback) => {
+    const track = trackOf(timeline, path);
+    return track ? trackValueAt2(track, t) : fallback;
+  };
+  const zoom = read("props.zoom", 1) || 1;
+  const cx = read("transform.x", meta.width / 2);
+  const cy = read("transform.y", meta.height / 2);
+  const w = meta.width / zoom;
+  const h = meta.height / zoom;
+  return { left: cx - w / 2, right: cx + w / 2, top: cy - h / 2, bottom: cy + h / 2, zoom };
+}
+var FRAMINGS = {
+  wide: { min: 0.04, max: 0.15, says: "the whole figure with room around it" },
+  medium: { min: 0.13, max: 0.3, says: "roughly waist up" },
+  close: { min: 0.26, max: 0.75, says: "head and shoulders filling the frame" }
+};
+var FRAMING_NAMES = Object.keys(FRAMINGS);
+function headHeight(char) {
+  const p = char?.proportions ?? {};
+  const height = p.height ?? 180;
+  const ratio = p.headRatio ?? 1 / (p.heads ?? (char?.generate?.build === "child" ? 4.8 : 6.2));
+  return height * ratio;
+}
+var CAST_ROLES = ["character", "effect", "prop"];
+function castRole(character, castEntry = null) {
+  const declared = castEntry?.role ?? character?.role;
+  if (declared && CAST_ROLES.includes(declared)) return declared;
+  const parts = characterParts(character ?? {});
+  if (!parts.length) return "effect";
+  return parts.some((p) => String(p.id).startsWith("foot")) ? "character" : "effect";
+}
+function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt: trackValueAt2 } = {}) {
+  const d = [];
+  if (!compiled?.scene || !compiled.timeline || !trackValueAt2) return d;
+  const { scene, timeline, meta } = compiled;
+  const baseline = createPoseBaseline(scene, timeline);
+  const shots = filmShots(compiled.expanded ? { ...film, scenes: compiled.expanded } : film);
+  const extents = /* @__PURE__ */ new Map();
+  const measureOf = (charName) => {
+    if (!extents.has(charName)) {
+      extents.set(charName, measureCharacter(characterParts(film.characters?.[charName] ?? {})));
+    }
+    return extents.get(charName);
+  };
+  const roles = /* @__PURE__ */ new Map();
+  const roleOf = (charName, as) => {
+    const key2 = `${charName}\0${as}`;
+    if (!roles.has(key2)) {
+      const entry = (film.scenes ?? []).flatMap((sc) => sc.cast ?? []).find((c) => (c.as ?? c.character) === as && c.character === charName);
+      roles.set(key2, castRole(film.characters?.[charName], entry));
+    }
+    return roles.get(key2);
+  };
+  const casts = [...scene.byId.values()].filter((n2) => n2.tags?.includes("cast")).map((n2) => {
+    const [sceneId, as] = String(n2.id).split("/");
+    return { node: n2, charName: n2.tags[1], sceneId, as: as ?? n2.id };
+  });
+  d.push(...estimateFrameCost(compiled, film, { trackValueAt: trackValueAt2 }).notes);
+  const seenOffFrame = /* @__PURE__ */ new Set();
+  const seenGround = /* @__PURE__ */ new Set();
+  const seenFraming = /* @__PURE__ */ new Set();
+  try {
+    for (const span of shots) {
+      const ground = span.scene.ground ?? null;
+      for (let i = 0; i < samplesPerShot; i++) {
+        const t = span.start + span.duration * (i + 0.5) / samplesPerShot;
+        resetPose(scene, baseline);
+        applyPose(scene, samplePose(timeline, t));
+        scene.invalidateAll();
+        const frame = cameraAt(timeline, t, meta, trackValueAt2);
+        const onScreen = /* @__PURE__ */ new Map();
+        for (const { node, alpha } of scene.drawOrder()) onScreen.set(node.id, alpha);
+        const wanted = span.shot?.framing;
+        if (wanted && !seenFraming.has(span.shotId)) {
+          const band = FRAMINGS[wanted];
+          if (!band) {
+            seenFraming.add(span.shotId);
+            d.push({
+              severity: "warning",
+              path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+              message: `Framing: unknown framing "${wanted}" in shot ${span.shotId}. Known: ${FRAMING_NAMES.join(", ")}.`
+            });
+          } else {
+            const inScene = casts.filter((c) => c.sceneId === span.sceneId && (onScreen.get(c.node.id) ?? 0) >= 0.5);
+            const headOf = (c) => headHeight(film.characters?.[c.charName]) * (Math.abs(scene.worldMatrix(c.node.id)[0]) || 1);
+            const subject = span.shot.on ? inScene.find((c) => c.as === span.shot.on) : inScene.slice().sort((a, b) => headOf(b) - headOf(a))[0];
+            const subjectName = subject?.as ?? span.shot.on;
+            if (span.shot.on && !subject) {
+              seenFraming.add(span.shotId);
+              d.push({
+                severity: "warning",
+                path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+                message: `Framing: shot ${span.shotId} is framed on "${span.shot.on}", who is not on screen here.`
+              });
+            } else if (subject) {
+              const scale2 = Math.abs(scene.worldMatrix(subject.node.id)[0]) || 1;
+              const head = headHeight(film.characters?.[subject.charName]) * scale2;
+              const visible = frame.bottom - frame.top;
+              const ratio = visible > 0 ? head / visible : 0;
+              if (ratio < band.min || ratio > band.max) {
+                seenFraming.add(span.shotId);
+                const target = band.min + (band.max - band.min) * 0.3;
+                const suggest = meta.height * target / head;
+                d.push({
+                  severity: "warning",
+                  path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+                  message: `Framing: shot ${span.shotId} declares "${wanted}" (${band.says}) on "${subjectName}", but one head is ${(ratio * 100).toFixed(0)}% of the frame height at ${t.toFixed(1)}s -- "${wanted}" wants ${(band.min * 100).toFixed(0)}-${(band.max * 100).toFixed(0)}%. Try zoom ${suggest.toFixed(2)}.`
+                });
+              }
+            }
+          }
+        }
+        for (const { node, charName, sceneId, as } of casts) {
+          if (sceneId !== span.sceneId) continue;
+          if ((onScreen.get(node.id) ?? 0) < 0.5) continue;
+          const m = scene.worldMatrix(node.id);
+          const [wx, wy] = applyToPoint(m, 0, 0);
+          const scale2 = Math.abs(m[0]) || 1;
+          const e = measureOf(charName);
+          const box = {
+            left: wx + e.left * scale2,
+            right: wx + e.right * scale2,
+            top: wy + e.top * scale2,
+            bottom: wy + e.bottom * scale2
+          };
+          const outside = box.right < frame.left || box.left > frame.right || box.bottom < frame.top || box.top > frame.bottom;
+          const subjectOnly = span.shot?.on ?? (span.shot?.framing === "close" || span.shot?.framing === "medium");
+          const isSubject = span.shot?.on ? as === span.shot.on : false;
+          if (subjectOnly && !isSubject) continue;
+          const key2 = `${span.shotId}:${node.id}`;
+          if (outside && !seenOffFrame.has(key2)) {
+            seenOffFrame.add(key2);
+            d.push({
+              severity: "warning",
+              path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+              message: `Staging: "${as}" is outside the camera frame at ${t.toFixed(1)}s in shot ${span.shotId}. Cast box is [${box.left.toFixed(0)},${box.top.toFixed(0)} to ${box.right.toFixed(0)},${box.bottom.toFixed(0)}], frame is [${frame.left.toFixed(0)},${frame.top.toFixed(0)} to ${frame.right.toFixed(0)},${frame.bottom.toFixed(0)}].`
+            });
+          }
+          if (ground && roleOf(charName, as) === "character" && !seenGround.has(key2)) {
+            const gy = groundAt(ground, wx);
+            if (gy != null && Math.abs(box.bottom - gy) > (ground.tolerance ?? 12)) {
+              seenGround.add(key2);
+              d.push({
+                severity: "warning",
+                path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+                message: `Staging: "${as}" has its feet at y=${box.bottom.toFixed(0)} but the ground at x=${wx.toFixed(0)} is y=${gy.toFixed(0)} (${(box.bottom - gy).toFixed(0)}px ${box.bottom > gy ? "below" : "above"}) at ${t.toFixed(1)}s in shot ${span.shotId}.`
+              });
+            }
+          }
+        }
+      }
+    }
+  } finally {
+    resetPose(scene, baseline);
+    scene.invalidateAll();
+  }
+  return d;
+}
+function analyseMotion(compiled, film, { fps = null, visibleMove = 0.3 } = {}) {
+  const { scene, timeline, meta } = compiled ?? {};
+  if (!scene || !timeline) return { frames: 0, shots: [], frozen: 0, moving: 0 };
+  const rate = fps ?? meta?.fps ?? 24;
+  const frames = Math.round((meta?.duration ?? timeline.duration ?? 0) * rate);
+  const baseline = createPoseBaseline(scene, timeline);
+  const ids = [...scene.byId.values()].filter((n2) => n2.kind !== "group" && n2.kind !== "camera" && String(n2.id).split("/").length >= 3 && !String(n2.id).includes("/set")).map((n2) => n2.id);
+  if (!ids.length || frames < 2) return { frames: 0, shots: [], frozen: 0, moving: 0 };
+  const steps = timeline.steps ?? [];
+  const globalStep = timeline.step ?? 0;
+  const stepAt2 = (t) => {
+    for (const span of steps) if (t >= span.start && t < span.end) return span.step ?? 0;
+    return globalStep;
+  };
+  const perFrame = [];
+  let prev = null;
+  let lastDrawn = null;
+  for (let f = 0; f < frames; f++) {
+    const t = f / rate;
+    const step = stepAt2(t);
+    const drawing = step > 1 ? Math.floor(f / step) : f;
+    if (lastDrawn === drawing) continue;
+    lastDrawn = drawing;
+    resetPose(scene, baseline);
+    applyPose(scene, samplePose(timeline, t));
+    const cur = ids.map((id) => applyToPoint(scene.worldMatrix(id), 0, 0));
+    if (prev) {
+      let sum = 0;
+      for (let i = 0; i < cur.length; i++) {
+        sum += Math.hypot(cur[i][0] - prev[i][0], cur[i][1] - prev[i][1]);
+      }
+      perFrame.push({ t, v: sum / cur.length });
+    }
+    prev = cur;
+  }
+  const frozen = perFrame.filter((x) => x.v < 1e-3).length / perFrame.length;
+  const moving = perFrame.filter((x) => x.v >= visibleMove).length / perFrame.length;
+  const shots = filmShots(film).map((sh) => {
+    const seg = perFrame.filter((x) => x.t >= sh.start && x.t < sh.end).map((x) => x.v);
+    if (!seg.length) return { shotId: sh.shotId, frozen: 1, moving: 0, median: 0 };
+    const sorted = [...seg].sort((x, y) => x - y);
+    return {
+      shotId: sh.shotId,
+      sceneId: sh.sceneId,
+      frozen: seg.filter((v) => v < 1e-3).length / seg.length,
+      moving: seg.filter((v) => v >= visibleMove).length / seg.length,
+      median: sorted[Math.floor(sorted.length / 2)]
+    };
+  });
+  return { frames: perFrame.length, frozen, moving, shots, perFrame };
+}
+function checkMotion(compiled, film, options = {}) {
+  const d = [];
+  const { frozenShot = 0.95 } = options;
+  const report = analyseMotion(compiled, film, options);
+  for (const shot of report.shots) {
+    if (shot.frozen >= frozenShot) {
+      d.push({
+        severity: "warning",
+        path: `scenes.${shot.sceneId}.shots.${shot.shotId}`,
+        message: `Motion: shot ${shot.shotId} is completely still -- ${(shot.frozen * 100).toFixed(0)}% of its frames have zero cast movement. A camera move or shake will make it look busy while nothing is animating. Give it an idle clip, or a pose that changes across the shot.`
+      });
+    }
+  }
+  if (report.frames && report.frozen >= 0.5) {
+    d.push({
+      severity: "warning",
+      path: "scenes",
+      message: `Motion: ${(report.frozen * 100).toFixed(0)}% of the film's frames have no cast movement at all. For comparison a held dialogue scene runs near 2%.`
+    });
+  }
+  return d;
+}
+
 // src/core/script/validate.js
 var GENERATED_ACTIONS = Object.keys(generateActions());
 function validateFilm(film) {
@@ -2922,6 +3390,12 @@ function validateFilm(film) {
     unknown(`characters.${name}`, char, KNOWN.character, warn);
     if (!char.parts?.length && !char.generate) {
       warn(`characters.${name}`, "No parts and no generate block; nothing will be drawn.");
+    }
+    if (char.role != null && !CAST_ROLES.includes(char.role)) {
+      warn(
+        `characters.${name}.role`,
+        `Unknown role "${char.role}". Known: ${CAST_ROLES.join(", ")}.`
+      );
     }
     if (char.generate) validateGenerate(`characters.${name}.generate`, char.generate, warn);
     const ids = /* @__PURE__ */ new Set();
@@ -2958,6 +3432,12 @@ function validateFilm(film) {
       unknown(`${sp}.cast.${as}`, c, KNOWN.cast, warn);
       if (!characters[c.character]) {
         err(`${sp}.cast`, `Character "${c.character}" is not defined.`);
+      }
+      if (c.role != null && !CAST_ROLES.includes(c.role)) {
+        warn(
+          `${sp}.cast.${as}.role`,
+          `Unknown role "${c.role}". Known: ${CAST_ROLES.join(", ")}.`
+        );
       }
       for (const [key2, kit] of [["view", FACE_KITS.view], ["expression", FACE_KITS.expression]]) {
         if (c[key2] != null && !kit.includes(c[key2])) {
@@ -3156,332 +3636,6 @@ function validateAssets(film, d) {
 var hasFatal = (diagnostics) => diagnostics.some((x) => x.severity === "fatal");
 var hasError = (diagnostics) => diagnostics.some((x) => x.severity === "error");
 
-// src/core/script/staging.js
-function measureCharacter(parts) {
-  const byId = new Map(parts.map((p) => [p.id, p]));
-  const offsetOf = (part) => {
-    let x = 0, y = 0;
-    for (let p = part; p; p = p.parent ? byId.get(p.parent) : null) {
-      const pivot = p.pivot ?? [0, 0];
-      x += (p.at?.[0] ?? 0) + pivot[0];
-      y += (p.at?.[1] ?? 0) + pivot[1];
-      if (!p.parent) break;
-    }
-    return [x, y];
-  };
-  let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
-  const take = (ox, oy, e) => {
-    if (!e) return;
-    left = Math.min(left, ox + e.left);
-    right = Math.max(right, ox + e.right);
-    top = Math.min(top, oy + e.top);
-    bottom = Math.max(bottom, oy + e.bottom);
-  };
-  for (const part of parts) {
-    const [ox, oy] = offsetOf(part);
-    const sw = part.strokeWidth ?? 0;
-    take(ox, oy, shapeExtent(part.shape, sw));
-    for (const set of Object.values(part.swap ?? {})) {
-      for (const shape of Object.values(set.shapes ?? set)) {
-        take(ox, oy, shapeExtent(shape, sw));
-      }
-    }
-    for (const layer of part.shapes ?? []) {
-      const lx = ox + (layer.at?.[0] ?? 0), ly = oy + (layer.at?.[1] ?? 0);
-      const lsw = layer.strokeWidth ?? sw;
-      take(lx, ly, shapeExtent(layer.shape, lsw));
-      for (const set of Object.values(layer.swap ?? {})) {
-        for (const shape of Object.values(set.shapes ?? set)) take(lx, ly, shapeExtent(shape, lsw));
-      }
-    }
-  }
-  if (!Number.isFinite(top)) return { top: 0, bottom: 0, left: 0, right: 0 };
-  return { top, bottom, left, right };
-}
-function shapeExtent(shape, strokeWidth) {
-  if (!shape) return null;
-  const pad = strokeWidth / 2;
-  switch (shape.kind) {
-    case "ellipse":
-      return {
-        left: -(shape.rx ?? 1) - pad,
-        right: (shape.rx ?? 1) + pad,
-        top: -(shape.ry ?? 1) - pad,
-        bottom: (shape.ry ?? 1) + pad
-      };
-    case "rect": {
-      const w = shape.w ?? 0, h = shape.h ?? 0;
-      return {
-        left: (shape.cx ? -w / 2 : 0) - pad,
-        right: (shape.cx ? w / 2 : w) + pad,
-        top: (shape.cy ? -h / 2 : 0) - pad,
-        bottom: (shape.cy ? h / 2 : h) + pad
-      };
-    }
-    case "image": {
-      const w = shape.w ?? 0, h = shape.h ?? 0;
-      return {
-        left: shape.cx ? -w / 2 : 0,
-        right: shape.cx ? w / 2 : w,
-        top: shape.cy ? -h / 2 : 0,
-        bottom: shape.cy ? h / 2 : h
-      };
-    }
-    case "path":
-      return pathExtent(shape.d, pad);
-    default:
-      return null;
-  }
-}
-function pathExtent(d, pad) {
-  if (!d) return null;
-  const nums = String(d).match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
-  if (!nums || nums.length < 2) return null;
-  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
-  for (let i = 0; i + 1 < nums.length; i += 2) {
-    const x = Number(nums[i]), y = Number(nums[i + 1]);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-    left = Math.min(left, x);
-    right = Math.max(right, x);
-    top = Math.min(top, y);
-    bottom = Math.max(bottom, y);
-  }
-  if (!Number.isFinite(left)) return null;
-  return { left: left - pad, right: right + pad, top: top - pad, bottom: bottom + pad };
-}
-function groundAt(ground, x) {
-  if (!ground) return null;
-  if (typeof ground.y === "number") return ground.y;
-  const pts = ground.points;
-  if (!Array.isArray(pts) || pts.length === 0) return null;
-  if (x <= pts[0][0]) return pts[0][1];
-  for (let i = 1; i < pts.length; i++) {
-    if (x <= pts[i][0]) {
-      const [x0, y0] = pts[i - 1];
-      const [x1, y1] = pts[i];
-      const span = x1 - x0;
-      const u = span === 0 ? 0 : (x - x0) / span;
-      return y0 + (y1 - y0) * u;
-    }
-  }
-  return pts[pts.length - 1][1];
-}
-var trackOf = (timeline, path) => timeline._index?.get(`__camera\0${path}`);
-function cameraAt(timeline, t, meta, trackValueAt2) {
-  const read = (path, fallback) => {
-    const track = trackOf(timeline, path);
-    return track ? trackValueAt2(track, t) : fallback;
-  };
-  const zoom = read("props.zoom", 1) || 1;
-  const cx = read("transform.x", meta.width / 2);
-  const cy = read("transform.y", meta.height / 2);
-  const w = meta.width / zoom;
-  const h = meta.height / zoom;
-  return { left: cx - w / 2, right: cx + w / 2, top: cy - h / 2, bottom: cy + h / 2, zoom };
-}
-var FRAMINGS = {
-  wide: { min: 0.04, max: 0.15, says: "the whole figure with room around it" },
-  medium: { min: 0.13, max: 0.3, says: "roughly waist up" },
-  close: { min: 0.26, max: 0.75, says: "head and shoulders filling the frame" }
-};
-var FRAMING_NAMES = Object.keys(FRAMINGS);
-function headHeight(char) {
-  const p = char?.proportions ?? {};
-  const height = p.height ?? 180;
-  const ratio = p.headRatio ?? 1 / (p.heads ?? (char?.generate?.build === "child" ? 4.8 : 6.2));
-  return height * ratio;
-}
-function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt: trackValueAt2 } = {}) {
-  const d = [];
-  if (!compiled?.scene || !compiled.timeline || !trackValueAt2) return d;
-  const { scene, timeline, meta } = compiled;
-  const baseline = createPoseBaseline(scene, timeline);
-  const shots = filmShots(film);
-  const extents = /* @__PURE__ */ new Map();
-  const measureOf = (charName) => {
-    if (!extents.has(charName)) {
-      extents.set(charName, measureCharacter(characterParts(film.characters?.[charName] ?? {})));
-    }
-    return extents.get(charName);
-  };
-  const casts = [...scene.byId.values()].filter((n2) => n2.tags?.includes("cast")).map((n2) => {
-    const [sceneId, as] = String(n2.id).split("/");
-    return { node: n2, charName: n2.tags[1], sceneId, as: as ?? n2.id };
-  });
-  const seenOffFrame = /* @__PURE__ */ new Set();
-  const seenGround = /* @__PURE__ */ new Set();
-  const seenFraming = /* @__PURE__ */ new Set();
-  try {
-    for (const span of shots) {
-      const ground = span.scene.ground ?? null;
-      for (let i = 0; i < samplesPerShot; i++) {
-        const t = span.start + span.duration * (i + 0.5) / samplesPerShot;
-        resetPose(scene, baseline);
-        applyPose(scene, samplePose(timeline, t));
-        scene.invalidateAll();
-        const frame = cameraAt(timeline, t, meta, trackValueAt2);
-        const onScreen = /* @__PURE__ */ new Map();
-        for (const { node, alpha } of scene.drawOrder()) onScreen.set(node.id, alpha);
-        const wanted = span.shot?.framing;
-        if (wanted && !seenFraming.has(span.shotId)) {
-          const band = FRAMINGS[wanted];
-          if (!band) {
-            seenFraming.add(span.shotId);
-            d.push({
-              severity: "warning",
-              path: `scenes.${span.sceneId}.shots.${span.shotId}`,
-              message: `Framing: unknown framing "${wanted}" in shot ${span.shotId}. Known: ${FRAMING_NAMES.join(", ")}.`
-            });
-          } else {
-            const inScene = casts.filter((c) => c.sceneId === span.sceneId && (onScreen.get(c.node.id) ?? 0) >= 0.5);
-            const headOf = (c) => headHeight(film.characters?.[c.charName]) * (Math.abs(scene.worldMatrix(c.node.id)[0]) || 1);
-            const subject = span.shot.on ? inScene.find((c) => c.as === span.shot.on) : inScene.slice().sort((a, b) => headOf(b) - headOf(a))[0];
-            const subjectName = subject?.as ?? span.shot.on;
-            if (span.shot.on && !subject) {
-              seenFraming.add(span.shotId);
-              d.push({
-                severity: "warning",
-                path: `scenes.${span.sceneId}.shots.${span.shotId}`,
-                message: `Framing: shot ${span.shotId} is framed on "${span.shot.on}", who is not on screen here.`
-              });
-            } else if (subject) {
-              const scale2 = Math.abs(scene.worldMatrix(subject.node.id)[0]) || 1;
-              const head = headHeight(film.characters?.[subject.charName]) * scale2;
-              const visible = frame.bottom - frame.top;
-              const ratio = visible > 0 ? head / visible : 0;
-              if (ratio < band.min || ratio > band.max) {
-                seenFraming.add(span.shotId);
-                const target = band.min + (band.max - band.min) * 0.3;
-                const suggest = meta.height * target / head;
-                d.push({
-                  severity: "warning",
-                  path: `scenes.${span.sceneId}.shots.${span.shotId}`,
-                  message: `Framing: shot ${span.shotId} declares "${wanted}" (${band.says}) on "${subjectName}", but one head is ${(ratio * 100).toFixed(0)}% of the frame height at ${t.toFixed(1)}s -- "${wanted}" wants ${(band.min * 100).toFixed(0)}-${(band.max * 100).toFixed(0)}%. Try zoom ${suggest.toFixed(2)}.`
-                });
-              }
-            }
-          }
-        }
-        for (const { node, charName, sceneId, as } of casts) {
-          if (sceneId !== span.sceneId) continue;
-          if ((onScreen.get(node.id) ?? 0) < 0.5) continue;
-          const m = scene.worldMatrix(node.id);
-          const [wx, wy] = applyToPoint(m, 0, 0);
-          const scale2 = Math.abs(m[0]) || 1;
-          const e = measureOf(charName);
-          const box = {
-            left: wx + e.left * scale2,
-            right: wx + e.right * scale2,
-            top: wy + e.top * scale2,
-            bottom: wy + e.bottom * scale2
-          };
-          const outside = box.right < frame.left || box.left > frame.right || box.bottom < frame.top || box.top > frame.bottom;
-          const subjectOnly = span.shot?.on ?? (span.shot?.framing === "close" || span.shot?.framing === "medium");
-          const isSubject = span.shot?.on ? as === span.shot.on : false;
-          if (subjectOnly && !isSubject) continue;
-          const key2 = `${span.shotId}:${node.id}`;
-          if (outside && !seenOffFrame.has(key2)) {
-            seenOffFrame.add(key2);
-            d.push({
-              severity: "warning",
-              path: `scenes.${span.sceneId}.shots.${span.shotId}`,
-              message: `Staging: "${as}" is outside the camera frame at ${t.toFixed(1)}s in shot ${span.shotId}. Cast box is [${box.left.toFixed(0)},${box.top.toFixed(0)} to ${box.right.toFixed(0)},${box.bottom.toFixed(0)}], frame is [${frame.left.toFixed(0)},${frame.top.toFixed(0)} to ${frame.right.toFixed(0)},${frame.bottom.toFixed(0)}].`
-            });
-          }
-          if (ground && !seenGround.has(key2)) {
-            const gy = groundAt(ground, wx);
-            if (gy != null && Math.abs(box.bottom - gy) > (ground.tolerance ?? 12)) {
-              seenGround.add(key2);
-              d.push({
-                severity: "warning",
-                path: `scenes.${span.sceneId}.shots.${span.shotId}`,
-                message: `Staging: "${as}" has its feet at y=${box.bottom.toFixed(0)} but the ground at x=${wx.toFixed(0)} is y=${gy.toFixed(0)} (${(box.bottom - gy).toFixed(0)}px ${box.bottom > gy ? "below" : "above"}) at ${t.toFixed(1)}s in shot ${span.shotId}.`
-              });
-            }
-          }
-        }
-      }
-    }
-  } finally {
-    resetPose(scene, baseline);
-    scene.invalidateAll();
-  }
-  return d;
-}
-function analyseMotion(compiled, film, { fps = null, visibleMove = 0.3 } = {}) {
-  const { scene, timeline, meta } = compiled ?? {};
-  if (!scene || !timeline) return { frames: 0, shots: [], frozen: 0, moving: 0 };
-  const rate = fps ?? meta?.fps ?? 24;
-  const frames = Math.round((meta?.duration ?? timeline.duration ?? 0) * rate);
-  const baseline = createPoseBaseline(scene, timeline);
-  const ids = [...scene.byId.values()].filter((n2) => n2.kind !== "group" && n2.kind !== "camera" && String(n2.id).split("/").length >= 3 && !String(n2.id).includes("/set")).map((n2) => n2.id);
-  if (!ids.length || frames < 2) return { frames: 0, shots: [], frozen: 0, moving: 0 };
-  const steps = timeline.steps ?? [];
-  const globalStep = timeline.step ?? 0;
-  const stepAt2 = (t) => {
-    for (const span of steps) if (t >= span.start && t < span.end) return span.step ?? 0;
-    return globalStep;
-  };
-  const perFrame = [];
-  let prev = null;
-  let lastDrawn = null;
-  for (let f = 0; f < frames; f++) {
-    const t = f / rate;
-    const step = stepAt2(t);
-    const drawing = step > 1 ? Math.floor(f / step) : f;
-    if (lastDrawn === drawing) continue;
-    lastDrawn = drawing;
-    resetPose(scene, baseline);
-    applyPose(scene, samplePose(timeline, t));
-    const cur = ids.map((id) => applyToPoint(scene.worldMatrix(id), 0, 0));
-    if (prev) {
-      let sum = 0;
-      for (let i = 0; i < cur.length; i++) {
-        sum += Math.hypot(cur[i][0] - prev[i][0], cur[i][1] - prev[i][1]);
-      }
-      perFrame.push({ t, v: sum / cur.length });
-    }
-    prev = cur;
-  }
-  const frozen = perFrame.filter((x) => x.v < 1e-3).length / perFrame.length;
-  const moving = perFrame.filter((x) => x.v >= visibleMove).length / perFrame.length;
-  const shots = filmShots(film).map((sh) => {
-    const seg = perFrame.filter((x) => x.t >= sh.start && x.t < sh.end).map((x) => x.v);
-    if (!seg.length) return { shotId: sh.shotId, frozen: 1, moving: 0, median: 0 };
-    const sorted = [...seg].sort((x, y) => x - y);
-    return {
-      shotId: sh.shotId,
-      sceneId: sh.sceneId,
-      frozen: seg.filter((v) => v < 1e-3).length / seg.length,
-      moving: seg.filter((v) => v >= visibleMove).length / seg.length,
-      median: sorted[Math.floor(sorted.length / 2)]
-    };
-  });
-  return { frames: perFrame.length, frozen, moving, shots, perFrame };
-}
-function checkMotion(compiled, film, options = {}) {
-  const d = [];
-  const { frozenShot = 0.95 } = options;
-  const report = analyseMotion(compiled, film, options);
-  for (const shot of report.shots) {
-    if (shot.frozen >= frozenShot) {
-      d.push({
-        severity: "warning",
-        path: `scenes.${shot.sceneId}.shots.${shot.shotId}`,
-        message: `Motion: shot ${shot.shotId} is completely still -- ${(shot.frozen * 100).toFixed(0)}% of its frames have zero cast movement. A camera move or shake will make it look busy while nothing is animating. Give it an idle clip, or a pose that changes across the shot.`
-      });
-    }
-  }
-  if (report.frames && report.frozen >= 0.5) {
-    d.push({
-      severity: "warning",
-      path: "scenes",
-      message: `Motion: ${(report.frozen * 100).toFixed(0)}% of the film's frames have no cast movement at all. For comparison a held dialogue scene runs near 2%.`
-    });
-  }
-  return d;
-}
-
 // src/core/anim/echo.js
 var GHOST = "#echo";
 function buildEcho({ scene, timeline, meta }, rootId, spec = {}, spans = null) {
@@ -3613,6 +3767,7 @@ function compileFilm(film, { assets = {} } = {}) {
   });
   const palettes = film.palettes ?? {};
   const characters = film.characters ?? {};
+  const expanded = [];
   const sceneSpans = planScenes(film);
   let filmTime = 0;
   for (const [si, span] of sceneSpans.entries()) {
@@ -3637,6 +3792,7 @@ function compileFilm(film, { assets = {} } = {}) {
       key(timeline, groupId, "props.alpha", sceneEnd, 0, { type: "number", ease: "step" });
     }
     const spec = expandTemplate(sceneSpec, meta, palettes, diagnostics);
+    expanded.push(spec);
     const scenePalette = derivePalette(palettes[spec.palette] ?? {});
     buildBackground(
       scene,
@@ -3770,7 +3926,8 @@ function compileFilm(film, { assets = {} } = {}) {
     lipsyncJobs,
     diagnostics,
     meta: { ...meta, duration: filmTime, frames: Math.round(filmTime * meta.fps) },
-    cameraId
+    cameraId,
+    expanded
   };
 }
 function resolveImageProps(props, assets, diagnostics, path) {
@@ -4481,7 +4638,6 @@ function buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagno
     scene.add({
       id: nodeId,
       kind: "paint",
-      parentId: groupId,
       transform: { x: drawing.at?.[0] ?? meta.width / 2, y: drawing.at?.[1] ?? meta.height / 2 },
       z: drawing.z ?? 40,
       props: {
@@ -4498,7 +4654,7 @@ function buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagno
         cx: true,
         cy: true
       }
-    });
+    }, groupId);
   }
 }
 function buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diagnostics, sceneStart, sceneEnd) {
@@ -4546,7 +4702,6 @@ function buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diag
     scene.add({
       id: nodeId,
       kind: "photo",
-      parentId: groupId,
       transform: { x: photo.at?.[0] ?? meta.width / 2, y: photo.at?.[1] ?? meta.height / 2 },
       z: photo.z ?? 30,
       props: {
@@ -4560,7 +4715,13 @@ function buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diag
           grid: photo.grid,
           overscan: photo.overscan,
           depthBlur: photo.depthBlur,
-          tear: photo.tear ?? false
+          tear: photo.tear ?? false,
+          // Throttles. A warp is the most expensive thing in a
+          // frame; see PhotoPainter. `resolution` renders smaller
+          // and scales up on draw, `step` re-renders every N
+          // seconds instead of every frame.
+          resolution: photo.resolution,
+          step: photo.step
         },
         progress: 0,
         alpha: photo.alpha ?? 1,
@@ -4569,7 +4730,7 @@ function buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diag
         cx: true,
         cy: true
       }
-    });
+    }, groupId);
     if (!driven.has(id) && duration > 0) {
       key(timeline, nodeId, "props.progress", start, 0, { type: "number" });
       key(timeline, nodeId, "props.progress", start + duration, 1, { type: "number" });

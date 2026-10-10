@@ -45,7 +45,7 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Draw-on animation | **done** | A revealed stroke is a **prefix** of the whole one, so frame N is a pure function of N with no history. Driven by an ordinary number channel, so every easing and clip feature applies unchanged. |
 | Input stabilisation | **done** | `smoothPoints`, `pressureFromVelocity`. |
 | Brush sheet | **done** | `npm run make:brushes` → a PNG rendered entirely in Node, `node:zlib` only. |
-| Tests | **done** | paint, media, motion, ops and editor. Total now **464**. |
+| Tests | **done** | paint, media, motion, ops, editor and budget. Total now **473**. |
 | Mutation audit | **done** | `npm run audit:tests` — 112 deliberate defects across every module. |
 | Layers + 13 W3C blend modes | **done** | `Document.js`. Named addressing, because an index means something else the moment a layer is inserted. 33 MB per layer at 1080p. |
 | Grain / textured brushes | **done** | `texture.js` — generated, not loaded, so a brush is four numbers rather than an asset. Canvas-locked by default: **paper tooth belongs to the paper**. |
@@ -82,6 +82,28 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | GIF from the new renderer | — | A tested encoder exists in `animateEngine.js`; not extracted to a sink. 18-EDITOR-ARCHITECTURE.md §7. |
 | glTF / FBX export | — | `GLTFExporter` is a verified dependency, earmarked for the Phase 3 3D save/load rework. No browser FBX exporter exists. |
 | Floating / tabbed panels, split trees | — | Four fixed regions by design. §4. |
+
+### Contracts and the frame budget (docs/19-CONTRACTS-AND-BUDGET.md)
+
+The four defects below turned out to be one defect four times: **a silent
+default where there should have been a refusal or a measurement.** Fixed as
+contracts rather than at the call sites that happened to be audited.
+
+| Area | State | Notes |
+|---|---|---|
+| `Scene.add` parent contract | **done** | Honours `spec.parentId` *and* the second argument, and **throws** when both are given and disagree. An argument the callee discards is the whole class of defect. |
+| Cast `role` | **done** | `character` \| `effect` \| `prop`, resolved cast entry → character → rig. The feet heuristic stays as the default but is now overridable, and an unknown role warns rather than silently exempting a check. |
+| One film, read once | **done** | `compileFilm` returns `expanded`; the checker reads that instead of the raw film, so a template-supplied ground is checked. |
+| Frame budget as a diagnostic | **done** | `estimateFrameCost` predicted **73.5 ms** against **71.7 ms measured in a browser**, as an error, before any render. Merged into `analyseStaging` so every check surface gets it. Calibration is measured and exported. |
+| Worker pool on photo warps | **done** | 55.03 → 19.74 ms, **bit-identical**. `renderFrame` is synchronous by contract, so the parallel work runs in the render loop's now-awaited `beforeFrame` via `preparePhotos`. Browser-only by default; workers are `unref`'d. |
+| The budget models two node kinds | — | Everything else measured at 0.7 ms for a whole 23-shot film. Another measured term if that changes, not a fudge factor. |
+
+**Language choice, with evidence.** Three of the four are pure control flow
+whose entire output is diagnostic text — Rust would add a wasm boundary and
+buy nothing. The fourth is a throughput problem whose expensive part is
+*already* Rust: 48 ns/px for the warp, which `15-PERFORMANCE.md` had already
+established as bandwidth bound. The levers that moved it were fewer pixels
+and more cores (2.8× on six), not more Rust. **JavaScript for all four.**
 
 ### Found by a live test: directing a fight through the engine
 

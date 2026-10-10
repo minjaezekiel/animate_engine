@@ -4,6 +4,7 @@ import { generateActions, BUILDS } from './generate.js';
 import { FACE_KITS } from '../art/face.js';
 import { TEMPLATE_NAMES, TIME_NAMES, PROP_NAMES } from '../art/scenery.js';
 import { EFFECTS } from '../motion/PhotoMotion.js';
+import { CAST_ROLES } from './staging.js';
 
 const GENERATED_ACTIONS = Object.keys(generateActions());
 
@@ -36,6 +37,10 @@ export function validateFilm(film) {
         unknown(`characters.${name}`, char, KNOWN.character, warn);
         if (!char.parts?.length && !char.generate) {
             warn(`characters.${name}`, 'No parts and no generate block; nothing will be drawn.');
+        }
+        if (char.role != null && !CAST_ROLES.includes(char.role)) {
+            warn(`characters.${name}.role`,
+                 `Unknown role "${char.role}". Known: ${CAST_ROLES.join(', ')}.`);
         }
         if (char.generate) validateGenerate(`characters.${name}.generate`, char.generate, warn);
         const ids = new Set();
@@ -76,6 +81,13 @@ export function validateFilm(film) {
             // `view` and `expression` are the two channels a cast entry can
             // seed, and both are closed sets -- so a typo should name the set
             // rather than silently stage the character facing the wrong way.
+            // `role` decides which staging checks apply, so a typo would
+            // silently exempt a character from the ground check rather
+            // than being ignored harmlessly.
+            if (c.role != null && !CAST_ROLES.includes(c.role)) {
+                warn(`${sp}.cast.${as}.role`,
+                     `Unknown role "${c.role}". Known: ${CAST_ROLES.join(', ')}.`);
+            }
             for (const [key, kit] of [['view', FACE_KITS.view], ['expression', FACE_KITS.expression]]) {
                 if (c[key] != null && !kit.includes(c[key])) {
                     warn(`${sp}.cast.${as}.${key}`,

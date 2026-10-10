@@ -663,7 +663,8 @@
             "color": "flash"
           }
         }
-      ]
+      ],
+      "role": "effect"
     },
     "bolt": {
       "parts": [
@@ -706,7 +707,8 @@
             ]
           }
         }
-      ]
+      ],
+      "role": "effect"
     },
     "lines": {
       "parts": [
@@ -730,7 +732,8 @@
             "alpha": 0.97
           }
         }
-      ]
+      ],
+      "role": "effect"
     }
   },
   "scenes": [
@@ -1967,6 +1970,16 @@
               "ease": "smooth"
             },
             {
+              "target": "sora",
+              "do": "move",
+              "to": [
+                520
+              ],
+              "at": 0,
+              "for": 0.34,
+              "ease": "smooth"
+            },
+            {
               "target": "taiyo",
               "do": "pose",
               "pose": "squash",
@@ -2852,6 +2865,28 @@
               "do": "play",
               "action": "idle",
               "at": 0
+            },
+            {
+              "target": "sora",
+              "do": "move",
+              "to": [
+                300,
+                414
+              ],
+              "at": 1.5,
+              "for": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "taiyo",
+              "do": "move",
+              "to": [
+                960,
+                391
+              ],
+              "at": 1.5,
+              "for": 1.4,
+              "ease": "smooth"
             },
             {
               "target": "sora",

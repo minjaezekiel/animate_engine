@@ -21,12 +21,39 @@ export class Scene {
 
     get root() { return this.byId.get(this.rootId); }
 
-    add(spec, parentId = this.rootId) {
+    /**
+     * Add a node under `parentId`.
+     *
+     * The parent may be given **either** as the second argument or as
+     * `spec.parentId`, and the two must agree.
+     *
+     * That rule exists because the alternative cost real work. The second
+     * argument used to win unconditionally and silently discard
+     * `spec.parentId`, so `add({ ..., parentId: group })` -- which reads as
+     * obviously correct and is how every other field on a node is set --
+     * attached the node to the **root** instead. Nothing threw, nothing
+     * warned, and the node looked right in every structural test; it only
+     * showed once something was drawn, as a backdrop that ignored its
+     * scene's alpha and sorted its z against the wrong siblings.
+     *
+     * An argument a caller passes and the callee discards is the whole
+     * class of defect. Honouring both spellings and refusing a
+     * disagreement makes it unexpressible rather than merely fixed at the
+     * call sites that happened to be audited.
+     */
+    add(spec, parentId) {
+        const declared = spec.parentId;
+        if (parentId !== undefined && declared !== undefined && declared !== parentId) {
+            throw new Error(`Scene: node "${spec.id ?? '?'}" was given two different parents `
+                + `-- argument "${parentId}" and spec.parentId "${declared}". `
+                + 'Pass one or the other.');
+        }
+        const target = parentId ?? declared ?? this.rootId;
         const id = spec.id ?? this.nextId();
         if (this.byId.has(id)) throw new Error(`Scene: duplicate node id "${id}"`);
-        const parent = this.byId.get(parentId);
-        if (!parent) throw new Error(`Scene: no such parent "${parentId}"`);
-        const node = createNode({ ...spec, id, parentId });
+        const parent = this.byId.get(target);
+        if (!parent) throw new Error(`Scene: no such parent "${target}"`);
+        const node = createNode({ ...spec, id, parentId: target });
         this.byId.set(id, node);
         parent.childIds.push(id);
         this._invalidate(id);

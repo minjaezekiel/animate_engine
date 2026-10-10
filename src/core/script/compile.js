@@ -77,6 +77,18 @@ export function compileFilm(film, { assets = {} } = {}) {
 
     const palettes = film.palettes ?? {};
     const characters = film.characters ?? {};
+    /**
+     * Each scene **after** its template has been expanded.
+     *
+     * Returned because the checker needs the same film the compiler built
+     * from. It used to read `film.scenes` directly, so a scene whose
+     * `ground` came from a template had no ground as far as the checker was
+     * concerned -- and the ground check, which only runs when there is a
+     * ground, silently never ran. One film reported zero staging notes for
+     * its entire life on that basis, while a character hung five seconds in
+     * mid-air across two cuts.
+     */
+    const expanded = [];
 
     // --- scenes and shots: time resolves by accumulation, never by the author
     const sceneSpans = planScenes(film);
@@ -115,6 +127,7 @@ export function compileFilm(film, { assets = {} } = {}) {
         // author could have written by hand -- so nothing downstream has to
         // know a template was involved, and authored entries still win.
         const spec = expandTemplate(sceneSpec, meta, palettes, diagnostics);
+        expanded.push(spec);
 
         const scenePalette = derivePalette(palettes[spec.palette] ?? {});
         buildBackground(scene, timeline, spec, groupId, meta, assets, diagnostics,
@@ -222,6 +235,7 @@ export function compileFilm(film, { assets = {} } = {}) {
         diagnostics,
         meta: { ...meta, duration: filmTime, frames: Math.round(filmTime * meta.fps) },
         cameraId,
+        expanded,
     };
 }
 

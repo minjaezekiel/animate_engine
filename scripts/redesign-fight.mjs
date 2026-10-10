@@ -128,6 +128,12 @@ for (const entry of film.scenes[0].cast) {
     if (entry.as === 'taiyo') entry.expression = 'delighted';
 }
 
+// Beams, impact stars and speed lines are cast because that is how they get
+// a transform, a z and an alpha to animate -- but they are not people, and
+// checks that assume feet do not apply to them. Declared rather than left
+// to the rig heuristic, so the answer does not change if a part is renamed.
+for (const name of ['fx', 'bolt', 'lines']) film.characters[name].role = 'effect';
+
 // =====================================================================
 // the set
 // =====================================================================

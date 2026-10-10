@@ -1036,7 +1036,7 @@ test('draw from/to can run the reveal backwards', () => {
 
 test('draw at a drawing that does not exist is reported, not silent', () => {
     const out = compileFilm(filmWith([{ target: 'nope', do: 'draw' }]), {});
-    assert.ok(out.diagnostics.some((d) => /no drawing "nope"/.test(d.message)),
+    assert.ok(out.diagnostics.some((d) => /no drawing or photo "nope"/.test(d.message)),
         `expected a diagnostic, got ${JSON.stringify(out.diagnostics)}`);
     // And it must not be reported as a *cast* problem, which would send
     // whoever wrote it looking in the wrong place entirely.
@@ -1083,4 +1083,158 @@ test('attachPainters is idempotent and skips nodes without a spec', () => {
         assert.equal(first.length, 1);
         assert.equal(second.length, 0, 'a second pass re-created painters');
     } finally { first.forEach((p) => p.dispose()); }
+});
+
+// =====================================================================
+// photos: the film.json binding for photo motion
+// =====================================================================
+
+/** A tiny picture with a near right half, and its depth map. */
+function picture(w = 48, h = 32) {
+    const source = new Uint8Array(w * h * 4);
+    const depth = new Uint8Array(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const near = x >= w / 2;
+            source[i] = near ? 240 : 40;
+            source[i + 1] = 120;
+            source[i + 2] = near ? 40 : 240;
+            source[i + 3] = 255;
+            depth[i] = depth[i + 1] = depth[i + 2] = near ? 235 : 20;
+            depth[i + 3] = 255;
+        }
+    }
+    return { source: { data: source, width: w, height: h },
+             depth: { data: depth, width: w, height: h } };
+}
+
+const PIC = picture();
+const PHOTO_ASSETS = { shot: PIC.source, shot_d: PIC.depth };
+
+/** A one-scene film with one photo and whatever actions are given. */
+function photoFilm(actions = [], photo = {}, shotDuration = 6) {
+    return {
+        version: 'jirex.film/1',
+        meta: { title: 't', fps: 24, width: 96, height: 64 },
+        assets: { shot: { kind: 'image', src: 'shot.png' },
+                  shot_d: { kind: 'image', src: 'shot_d.png' } },
+        scenes: [{
+            id: 's1',
+            photos: [{
+                id: 'hero', source: 'shot', depth: 'shot_d',
+                width: 96, height: 64,
+                effects: [{ type: 'kenBurns', to: { zoom: 1.1 } },
+                          { type: 'parallax', amplitude: 0.05 }],
+                ...photo,
+            }],
+            shots: [{ id: 'a', duration: shotDuration, actions }],
+        }],
+    };
+}
+
+const heroKeys = (out) => out.timeline.tracks
+    .filter((t) => t.target === 's1/hero' && t.path === 'props.progress')
+    .flatMap((t) => t.keys.map((k) => [Number(k.t.toFixed(3)), k.v]));
+
+test('photos compile to photo nodes with their assets resolved', () => {
+    const out = compileFilm(photoFilm(), { assets: PHOTO_ASSETS });
+    const node = out.scene.get('s1/hero');
+    assert.equal(node.kind, 'photo');
+    // Resolved to the actual picture, not left as the asset id -- the trap
+    // `resolveImageProps` exists to close for every other image path.
+    assert.equal(node.props.photo.source, PIC.source);
+    assert.equal(node.props.photo.depth, PIC.depth);
+    assert.equal(node.props.photo.effects.length, 2);
+    assert.deepEqual(out.diagnostics, []);
+});
+
+test('a photo with no action plays once across the scene', () => {
+    // The opposite default from a drawing, which holds at progress 1: a
+    // photograph in a shot is there to move.
+    const out = compileFilm(photoFilm(), { assets: PHOTO_ASSETS });
+    assert.deepEqual(heroKeys(out), [[0, 0], [6, 1]]);
+    assert.equal(out.scene.get('s1/hero').props.photo.duration, 6);
+});
+
+test('an explicit duration and start are honoured', () => {
+    const out = compileFilm(photoFilm([], { start: 1, duration: 2 }),
+                            { assets: PHOTO_ASSETS });
+    assert.deepEqual(heroKeys(out), [[1, 0], [3, 1]]);
+});
+
+test('a draw action on a photo replaces the automatic track', () => {
+    // Two sources of keys on one channel interleave into a motion neither
+    // asked for, so the automatic ramp must stand down.
+    const out = compileFilm(photoFilm([
+        { target: 'hero', do: 'draw', at: 1, for: 2, from: 1, to: 0 },
+    ]), { assets: PHOTO_ASSETS });
+    assert.deepEqual(heroKeys(out), [[0, 1], [1, 1], [3, 0]]);
+    // And `draw` at a photo is not reported as a missing drawing.
+    assert.deepEqual(out.diagnostics, []);
+});
+
+test('a photo reports what it cannot do rather than doing it silently', () => {
+    const noSource = compileFilm(photoFilm([], { source: undefined }), { assets: PHOTO_ASSETS });
+    assert.ok(noSource.diagnostics.some((d) => /No "source"/.test(d.message)));
+
+    const noDepth = compileFilm(photoFilm([], { depth: undefined, tear: true }),
+                                { assets: PHOTO_ASSETS });
+    const messages = noDepth.diagnostics.map((d) => d.message).join(' | ');
+    assert.match(messages, /parallax does nothing without a "depth" map/);
+    assert.match(messages, /tear does nothing without a "depth" map/);
+
+    const badEffect = compileFilm(photoFilm([], { effects: [{ type: 'kenburns' }] }),
+                                  { assets: PHOTO_ASSETS });
+    assert.match(badEffect.diagnostics.map((d) => d.message).join(' | '),
+                 /Unknown effect "kenburns".*Known: kenBurns/);
+
+    // An undeclared asset is an error, because the photo cannot render.
+    const undeclared = compileFilm(photoFilm([], { source: 'missing' }), { assets: PHOTO_ASSETS });
+    assert.ok(undeclared.diagnostics.some(
+        (d) => d.severity === 'error' && /"missing" is not declared/.test(d.message)));
+});
+
+test('attachPainters picks up photo nodes and renders them from progress', () => {
+    const out = compileFilm(photoFilm(), { assets: PHOTO_ASSETS });
+    const painters = attachPainters(out.scene, K);
+    try {
+        assert.equal(painters.length, 1, 'a photo node got no painter');
+        const painter = painters[0];
+        // progress is the photo's clock: 0..1 maps onto 0..duration.
+        assert.equal(painter.timeAt(0.5), 3);
+
+        const at = (p) => Uint8Array.from(painter.imageDataAt(p));
+        const a = at(0), b = at(0.5);
+        assert.equal(a.length, 96 * 64 * 4);
+        assert.notDeepEqual(Array.from(a), Array.from(b), 'the photo never moved');
+        // Frame N is a pure function of N, through the painter too.
+        assert.deepEqual(Array.from(at(0.5)), Array.from(b));
+    } finally { painters.forEach((p) => p.dispose()); }
+});
+
+test('the studio attaches painters, so a film with artwork does not render blank', async () => {
+    // The gap this closes: the compiler emits unrasterised specs by design
+    // -- it may not touch a canvas -- and nothing downstream resolved them.
+    // A film with a `drawings` or `photos` block validated clean, rendered
+    // every other node, and left its artwork blank with no error anywhere.
+    const { FilmStudio } = await import('../../src/studio.js');
+    const studio = new FilmStudio({ onLog: () => {} });
+
+    const plain = compileFilm({
+        version: 'jirex.film/1', meta: { width: 64, height: 64 },
+        scenes: [{ id: 's', shots: [{ id: 'a', duration: 1 }] }],
+    }, {});
+    // Films without artwork must not pay for a wasm fetch.
+    assert.deepEqual(await studio._attachPainters(plain.scene, []), []);
+
+    const withArt = compileFilm(photoFilm(), { assets: PHOTO_ASSETS });
+    const notes = [];
+    const painters = await studio._attachPainters(withArt.scene, notes);
+    try {
+        assert.equal(painters.length, 1, 'the photo node got no painter');
+        assert.deepEqual(notes, []);
+        assert.ok(withArt.scene.get('s1/hero').props.painter,
+            'the node still has no painter, so shapes.js will draw nothing');
+    } finally { painters.forEach((p) => p.dispose()); }
 });

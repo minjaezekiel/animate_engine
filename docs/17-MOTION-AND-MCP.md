@@ -71,6 +71,9 @@ falls from 0.41 to 0.18 at the default radius.
 This runs through `blur_rgba`, which is three running-sum box passes, so
 the cost does not grow with radius — and a depth map wants a generous one.
 
+Softening a pinned edge is a treatment, not a cure; §3 removes the pinning
+itself, and `tear` therefore turns this blur **off** by default.
+
 ### Parallax with no depth map must do nothing
 
 Without one, every vertex reads depth 0, so `depth − focus` is the same
@@ -81,20 +84,72 @@ doing that silently is worse than doing nothing, so it is skipped and
 
 ---
 
-## 3. The honest limit: disocclusion
+## 3. Tearing the mesh, and the honest limit behind it
 
 Parallax moves a foreground across a background, exposing pixels that were
-never photographed. With a connected mesh the surface **stretches** rather
-than tears, which is the right failure — a smear reads as motion blur at
-small amplitudes and as rubber at large ones. There is no inpainting here,
-so the usable amplitude is bounded by how much stretch the subject
-tolerates; beyond about `0.08` a portrait starts to look like melted
-plastic.
+never photographed. A single connected grid cannot separate the two: the
+cell straddling a silhouette has one corner on the subject and one on the
+background, parallax sends them opposite ways, and the cell **stretches
+across the gap**. The subject's edge smears outward, and past about
+`amplitude: 0.05` a portrait turns to rubber.
 
-Tools that go further solve it by generating the background behind the
-subject, which needs a generative model and is out of scope. What *is*
-in scope and not yet done: tearing the mesh at depth discontinuities so a
-near object separates cleanly, leaving a hole to fill rather than a smear.
+`tear: true` cuts the surface instead.
+
+```js
+new PhotoMotion(kernels, { source, depth, tear: true,
+                           effects: [{ type: 'parallax', amplitude: 0.12 }] });
+new PhotoMotion(kernels, { source, depth, tear: { at: [0.35, 0.7], fill: 0.04 } });
+```
+
+Every triangle whose vertices do not all lie on one side of a depth level
+is cut along the contour, and the crossing points are **duplicated** —
+the near side's copy takes the depth of the near end of the edge it sits
+on, the far side's copy the far end's. The near piece then moves rigidly
+at its own depth. Measured on a hard depth step at `amplitude: 0.12`, the
+silhouette travels the full 4.9 px its depth calls for; the untorn mesh
+moves it **one** pixel and stretches the rest.
+
+Three decisions in there are not obvious:
+
+**No sharpness threshold.** A tear's size is already proportional to the
+depth jump across it, so cutting a smooth gradient separates its sides by
+an imperceptible amount while cutting a silhouette separates them fully. A
+threshold would only buy inconsistency — an edge cut in one triangle and
+left whole in its neighbour is a visible hairline.
+
+**A crossing point belongs to its edge, not to the triangle being cut**,
+so the two triangles sharing an edge agree on it exactly. Together with
+leaving the original vertices at their own depth, that means there are no
+cracks anywhere except along the contour, where a crack is the point.
+
+**The hole has to be filled, or the tear is worse than the smear.** The
+subject slides away and uncovers transparent nothing. So the far side's
+copy of each crossing is pushed `fill` pixels *past* the contour while its
+uv steps the same distance *back*, mirroring the strip of background just
+behind the silhouette forward over the hole. `fill` is derived from the
+parallax reach, because it is exactly as wide as the relative displacement
+of the two sides and no author should have to compute that.
+
+The mirror direction is one sign, and the wrong sign looks right on paper:
+advancing the uv along with the position continues the same affine patch,
+which is tidier — and carries the *subject's own edge pixels* into the
+hole, so the silhouette appears not to move at all. It measured within a
+pixel of the untorn mesh. The test now asserts the fill is background by
+colour.
+
+Tearing also turns the depth blur off by default (§2), since the blur
+exists only to soften the pinning that tearing removes outright; blurring
+a map about to be cut just moves the cut off the real edge.
+
+### The limit that remains
+
+Mirrored background is not inpainting. The fill is still edge content, now
+confined to the hole instead of deforming the subject, and the far triangle
+doing the mirroring has a different texture map from its neighbours — a
+seam in the background at the contour, hidden under the near piece except
+where the tear opens. Tools that go further **generate** the background
+behind the subject, which needs a generative model and is out of scope
+here.
 
 ---
 
@@ -185,27 +240,124 @@ diagnose than a refusal.
 
 ---
 
-## 6. What is not built
+## 6. Depth from one photograph
 
-- **Depth estimation.** A depth map must be supplied. `onnxruntime-web` is
-  already a verified dependency, so a small monocular depth model is the
-  natural next step.
-- **Mesh tearing at depth edges**, and inpainting the hole behind (§3).
-- **A `film.json` binding for photos.** `drawings` compile to paint nodes;
-  there is no `photos` equivalent yet, so photo motion is currently driven
-  through the API or the MCP ops rather than declaratively.
-- **Video output from the ops.** `photo_render_sequence` writes numbered
-  PNGs; turning those into a file is an `ffmpeg` call away but is not done
-  here.
-- **JPEG and WebP decoding** (§5).
+Parallax and tearing both need to know what is near, and nothing in a
+single photograph says so — depth from one view is a learned prior, not a
+measurement. `src/core/motion/depth.js` is the one place in the engine
+where a neural network earns its download.
+
+```js
+const est = new DepthEstimator({ modelUrl: DEPTH_MODELS.depthAnythingV2Small.url });
+if (await est.available()) {
+    const depth = await est.estimate({ data, width, height });   // u8 RGBA, white near
+}
+```
+
+It follows the rules the TTS voices set, which are the precedent:
+`onnxruntime-web` imported lazily by bare specifier through the page's
+import map, so nothing that does not estimate depth pays for it;
+`available()` that never throws, so a caller falls back to supplying a map
+by hand; and the model as a url rather than a bundled file, because depth
+models are tens of megabytes and would dwarf the engine.
+
+It is **model-agnostic**: the input and output names come off the session
+and the spatial dims off the output tensor, so any single-image model with
+an NCHW float input and an N(1)HW output works — MiDaS, Depth Anything,
+DPT — and a better model is a url change rather than a code change.
+
+Two things a caller must get right, and both are in `DEPTH_MODELS`:
+
+| | why it matters |
+|---|---|
+| `size` | the model's square input edge. The image is **squashed**, not letterboxed: padding is a colour the model reads as a surface at some distance, right at the frame edge where parallax displaces most. |
+| `near` | `high` for inverse-depth models (MiDaS, Depth Anything), `low` for metric ones. `PhotoMotion` reads white as near, so getting this wrong inverts the scene. |
+
+The prediction is normalised to its **own** extremes, since relative depth
+has no absolute scale, and `min`/`max` come back on the result because a
+flat prediction is a real failure mode: a map with no range makes parallax
+a uniform pan, which is the degenerate case §2 refuses outright.
+
+`onnxruntime-web` is a browser package, so estimation runs in the browser
+and there is no `photo_estimate_depth` op. Everything except the session
+creation is pure, and the Node tests drive the whole pipeline against a
+stub session — the same bargain the voice providers make with a fake
+provider.
+
+**Not built here:** the two URLs in `DEPTH_MODELS` are candidates to
+confirm against the model host, not promises; there is deliberately no
+default, because a wrong constant fails as a 404 halfway through a 50 MB
+fetch.
 
 ---
 
-## 7. Commands
+## 7. A photo in a film
+
+`photos` is the declarative half of all of the above: the same four
+effects, authored in the film rather than called through the API.
+
+```jsonc
+"scenes": [{
+  "id": "s1",
+  "photos": [{
+    "id": "hero",
+    "source": "portrait", "depth": "portrait_depth",   // asset ids
+    "duration": 6, "tear": true,
+    "effects": [
+      { "type": "kenBurns", "to": { "zoom": 1.12 } },
+      { "type": "parallax", "amplitude": 0.05 }
+    ]
+  }],
+  "shots": [{ "id": "a", "duration": 6 }]
+}]
+```
+
+**It reuses `draw`.** A photo's animation runs on `props.progress`, 0 to 1
+— the same channel a drawing's reveal uses — so `{ "do": "draw",
+"target": "hero", "at": 1, "for": 4 }` retimes a photo with no new verb,
+no new validation branch and no new compiler path. Every ease, hold and
+transition the animation system already has therefore applies to a photo
+for free, including running it backwards with `from: 1, to: 0`.
+
+**A photo with no action plays**, across its own duration, defaulting to
+the rest of the scene. That is the opposite default from a drawing, which
+holds at `progress: 1`: a drawing with no action should be *present*, a
+photograph in a shot should be *moving*.
+
+Nothing is rasterised in the compiler. The node carries an unrasterised
+spec in `props.photo` and `attachPainters` resolves it to a `PhotoPainter`
+at mount, exactly as a drawing resolves to a `PaintPainter`. One branch in
+`shapes.js` draws both, because both expose `canvasAt(progress)`.
+
+The validator checks what it can see: an undeclared source or depth asset
+is an **error**, an unknown effect name is a warning that lists the real
+ones, and `parallax` or `tear` without a depth map is a warning that says
+it will do nothing.
+
+---
+
+## 8. What is not built
+
+- **Inpainting the hole a tear opens** (§3). The fill is mirrored
+  background, not generated content.
+- **Multiple depth planes are supported but not automatic.** `tear.at`
+  takes a list of levels; the default is one level at the midpoint of the
+  depth present on the mesh, and nothing finds the planes for you.
+- **No depth estimation in Node** (§6), and no verified model url.
+- **Video output from the ops.** `photo_render_sequence` writes numbered
+  PNGs; turning those into a file is an `ffmpeg` call away but is not done
+  here.
+- **JPEG and WebP decoding** (§5). In a browser `createImageBitmap` plus a
+  canvas `getImageData` covers every format the browser decodes, which is
+  the path `PhotoPainter` already takes.
+
+---
+
+## 9. Commands
 
 ```bash
 npm run mcp:paint       # the MCP server, 20 tools, headless
-npm run test:motion     # Ken Burns, parallax, wave, puppet, overscan
+npm run test:motion     # effects, overscan, tearing, depth estimation
 npm run test:ops        # the op surface and the PNG codec
 npm run audit:tests     # mutation audit across everything
 ```

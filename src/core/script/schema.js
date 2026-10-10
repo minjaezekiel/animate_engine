@@ -45,11 +45,20 @@ export const KNOWN = {
            // draw-level: compositing, glow, trimmed strokes, repeaters
            'blend', 'glow', 'trim', 'repeat', 'gradient'],
     scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
-            'scenery', 'palette', 'ground', 'template', 'drawings'],
+            'scenery', 'palette', 'ground', 'template', 'drawings', 'photos'],
+    // A still photograph animated by `core/motion/PhotoMotion.js`. `source`
+    // and `depth` are asset ids; `start`/`duration` are scene-relative
+    // seconds, and `draw` retimes it like any drawing.
+    photo: ['id', 'source', 'image', 'depth', 'effects', 'duration', 'start',
+            'at', 'z', 'alpha', 'width', 'height', 'grid', 'overscan',
+            'depthBlur', 'tear'],
     shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle', 'step',
            // what the shot is MEANT to be, so the checker can say whether it is
            'framing', 'on'],
     action: ['target', 'do', 'action', 'pose', 'to', 'at', 'for', 'ease', 'h', 'loop', 'speed', 'value', 'channel',
+             // `draw` ramps from `from` to `to`; `from` was missing, so every
+             // backwards reveal reported its own option as unrecognized.
+             'from',
              'part', 'bones', 'bend',
              // the four principles that need a number rather than a keyframe
              'anticipate', 'overshoot', 'arc', 'weight'],

@@ -95,6 +95,205 @@ function autoOverscan(effects, hasDepth = true) {
     return 1 + margin * 2.2;
 }
 
+/**
+ * How far the far layer must reach under the near one, in pixels.
+ *
+ * A tear opens a hole exactly as wide as the relative displacement of the
+ * two sides, which for parallax is `amplitude * reach * depthSpan * width`.
+ * The far layer is extended by that much so there is picture to show in
+ * the hole instead of nothing -- see [`tearMesh`].
+ *
+ * Only parallax is counted: Ken Burns, wave and puppet move the whole
+ * surface together, so they open no hole at a depth edge.
+ */
+function autoFill(effects, width, span) {
+    let fill = 0;
+    for (const e of effects ?? []) {
+        if (e.type !== 'parallax') continue;
+        const reach = Array.isArray(e.path) && e.path.length
+            ? Math.max(...e.path.map(([x, y]) => Math.max(Math.abs(x), Math.abs(y))))
+            : Math.max(...(e.orbit ?? [1, 0.4]).map(Math.abs));
+        fill += (e.amplitude ?? 0.04) * width * reach * span;
+    }
+    return fill * 1.2;       // slack, as in `autoOverscan`
+}
+
+/**
+ * Cut the mesh along depth iso-contours so a near object separates from
+ * its background instead of stretching into it.
+ *
+ * # What the connected mesh does wrong
+ *
+ * A single grid is one continuous surface, so the cell that straddles a
+ * silhouette has one corner on the subject and one on the background.
+ * Parallax sends those corners opposite ways and the cell *stretches
+ * across the gap* -- the subject's edge smears outward and, at any
+ * useful amplitude, the face turns to rubber. Blurring the depth map
+ * (see [`blurDepth`]) spreads the damage over several cells and makes it
+ * a gradual shear rather than a pinned edge, but the surface is still
+ * connected and the subject still deforms.
+ *
+ * # The cut
+ *
+ * For each global `level`, every triangle whose vertices do not all lie
+ * on one side of it is cut along the contour. The lone vertex gives one
+ * sub-triangle, the other two give a quad, and both keep the original
+ * winding. The crossing points are **duplicated**: the near side's copy
+ * takes the depth of the near endpoint of the edge it sits on, the far
+ * side's copy takes the far endpoint's. So the surface is genuinely torn,
+ * and the near piece now moves rigidly at its own depth.
+ *
+ * Two properties make this safe to do per triangle:
+ *
+ *   - **The original vertices keep their own depth.** Only crossing
+ *     points are duplicated, so every vertex shared with a neighbouring
+ *     triangle still has exactly one position -- there are no cracks
+ *     anywhere except along the contour, where a crack is the point.
+ *   - **A crossing point is defined by its edge alone**, not by the
+ *     triangle being cut, so the two triangles sharing an edge agree on
+ *     it to the last bit. That is why `seam` is keyed on the edge.
+ *
+ * There is deliberately **no "is this edge sharp enough" threshold**. The
+ * size of a tear is already proportional to the depth jump across it, so
+ * a cut through a smooth gradient separates the two sides by an
+ * imperceptible amount while a cut through a silhouette separates them
+ * fully. A threshold would only buy inconsistency: an edge cut in one
+ * triangle and left whole in its neighbour is a visible hairline.
+ *
+ * # Filling the hole
+ *
+ * A tear with nothing behind it is *worse* than a smear -- the subject
+ * slides away and uncovers transparent nothing. So the far side's copy of
+ * each crossing point is pushed `fill` pixels **past** the contour while
+ * its uv steps the same distance **back**, which mirrors the strip of
+ * background lying just behind the silhouette forward over the hole. It
+ * is hidden under the near piece until the tear opens, and then it is
+ * what fills the hole.
+ *
+ * Mirroring, rather than continuing the uv along with the position: the
+ * latter is one sign away and looks right on paper, but it carries the
+ * *subject's* own edge pixels into the hole, so the silhouette appears
+ * not to move at all. Measured on a hard depth step it left the visible
+ * edge within a pixel of where the untorn mesh put it.
+ *
+ * Mirrored background is still not inpainting -- the honest limit of
+ * doing this without a generative model, documented in
+ * `docs/17-MOTION-AND-MCP.md` -- and the far triangle that does the
+ * mirroring has a different texture map from its neighbours, so there is
+ * a seam in the background at the contour. It sits under the near piece,
+ * and only the part of it inside the hole is ever seen.
+ *
+ * # Draw order
+ *
+ * `warp_mesh` has no depth test: it writes, and the last triangle over a
+ * pixel wins. Torn triangles overlap by construction, so they are
+ * emitted **far to near** and the near piece paints over the fill behind
+ * it. The sort is by mean depth and `Array.prototype.sort` is stable, so
+ * ties keep grid order and the result stays deterministic.
+ *
+ * @param {{verts: number[], uvs: number[], depths: number[], indices: number[]}} mesh
+ * @param {number[]} levels   depth values to cut along, each in 0..1
+ * @param {number} fill       pixels the far side reaches past the contour
+ * @returns {{verts: number[], uvs: number[], depths: number[], indices: number[]}}
+ */
+export function tearMesh(mesh, levels, fill) {
+    let m = mesh;
+    for (const level of levels) m = cutAtLevel(m, level, fill);
+
+    const d = m.depths;
+    const tris = m.indices.length / 3;
+    const mean = (t) => (d[m.indices[t * 3]] + d[m.indices[t * 3 + 1]]
+                       + d[m.indices[t * 3 + 2]]) / 3;
+    const order = Array.from({ length: tris }, (_, t) => t)
+        .sort((a, b) => mean(a) - mean(b));
+    const indices = [];
+    for (const t of order) {
+        indices.push(m.indices[t * 3], m.indices[t * 3 + 1], m.indices[t * 3 + 2]);
+    }
+    return { verts: m.verts, uvs: m.uvs, depths: d, indices };
+}
+
+/** One iso-contour cut. See [`tearMesh`] for the whole argument. */
+function cutAtLevel({ verts, uvs, depths, indices }, level, fill) {
+    const v = verts.slice(), u = uvs.slice(), d = depths.slice();
+    const out = [];
+    const seam = new Map();
+
+    const push = (x, y, s, t, depth) => {
+        const i = d.length;
+        v.push(x, y); u.push(s, t); d.push(depth);
+        return i;
+    };
+
+    /**
+     * The two copies of the point where the edge `near -> far` crosses
+     * `level`: `[nearCopy, farCopy]`. Keyed on the unordered edge so both
+     * triangles sharing it get the identical pair of vertices.
+     */
+    const cross = (near, far) => {
+        const key = near < far ? `${near},${far}` : `${far},${near}`;
+        const hit = seam.get(key);
+        if (hit) return hit;
+
+        const span = d[near] - d[far];
+        // Guarded rather than asserted: a level sitting exactly on both
+        // endpoints is a legitimate input, and the midpoint is as good a
+        // crossing as any.
+        const t = Math.abs(span) < 1e-9 ? 0.5 : (level - d[far]) / span;
+        const [fx, fy] = [v[far * 2], v[far * 2 + 1]];
+        const [dx, dy] = [v[near * 2] - fx, v[near * 2 + 1] - fy];
+        const [fu, fv] = [u[far * 2], u[far * 2 + 1]];
+        const [du, dv] = [u[near * 2] - fu, u[near * 2 + 1] - fv];
+
+        const nearIdx = push(fx + dx * t, fy + dy * t,
+                             fu + du * t, fv + dv * t, d[near]);
+        // The far copy reaches `fill` px *past* the contour while its uv
+        // steps the same distance *back* into the far side -- so the strip
+        // of background just behind the silhouette is mirrored forward
+        // across the hole. Advancing the uv with the position instead
+        // would carry the subject's own edge pixels into the hole, which
+        // reads as the subject smearing: the exact artefact the tear
+        // exists to remove. Measured on a hard step, that mistake left the
+        // visible silhouette at the untorn position.
+        const len = Math.hypot(dx, dy) || 1;
+        const k = fill / len;
+        const farIdx = push(fx + dx * (t + k), fy + dy * (t + k),
+                            fu + du * (t - k), fv + dv * (t - k), d[far]);
+
+        const pair = [nearIdx, farIdx];
+        seam.set(key, pair);
+        return pair;
+    };
+
+    for (let t = 0; t < indices.length; t += 3) {
+        const tri = [indices[t], indices[t + 1], indices[t + 2]];
+        const near = tri.map((i) => d[i] > level);
+        const count = (near[0] ? 1 : 0) + (near[1] ? 1 : 0) + (near[2] ? 1 : 0);
+        if (count === 0 || count === 3) {
+            out.push(tri[0], tri[1], tri[2]);
+            continue;
+        }
+
+        // Rotate so the vertex that is alone on its side comes first. That
+        // collapses six cases to one and preserves winding, because a
+        // rotation of a triangle's vertices is the same triangle.
+        const lone = count === 1 ? near.indexOf(true) : near.indexOf(false);
+        const [L, A, B] = [tri[lone], tri[(lone + 1) % 3], tri[(lone + 2) % 3]];
+        const [pa, pb] = near[lone]
+            ? [cross(L, A), cross(L, B)]
+            : [cross(A, L), cross(B, L)];
+        // Which copy each side takes: the lone side gets 0 (the near copy)
+        // when the lone vertex is the near one, and 1 otherwise.
+        const s = near[lone] ? 0 : 1;
+        const o = 1 - s;
+        out.push(L, pa[s], pb[s]);
+        out.push(pa[o], A, B);
+        out.push(pa[o], B, pb[o]);
+    }
+
+    return { verts: v, uvs: u, depths: d, indices: out };
+}
+
 /** Smoothstep, used by every effect that needs an eased parameter. */
 const smooth = (t) => t * t * (3 - 2 * t);
 
@@ -209,6 +408,7 @@ export class PhotoMotion {
         const div = Math.max(1, spec.grid ?? 32);
         this.div = div;
         const n = div + 1;
+        // Overwritten after a tear, which appends vertices.
         this.vertexCount = n * n;
 
         // Overscan: build the mesh larger than the frame.
@@ -250,37 +450,72 @@ export class PhotoMotion {
          * says so in its result.
          */
         this.hasDepth = !!spec.depth;
-        const depth = spec.depthBlur === 0
-            ? spec.depth
-            : blurDepth(kernels, spec.depth, spec.depthBlur ?? 0.02);
 
-        this.baseVerts = new Float32Array(this.vertexCount * 2);
-        this.depths = new Float32Array(this.vertexCount);
-        const uvs = new Float32Array(this.vertexCount * 2);
+        /**
+         * Whether the mesh is cut at depth discontinuities. See [`tearMesh`].
+         *
+         * `tear` turns the depth blur **off** by default, because the blur
+         * exists only to soften the pinned silhouette that tearing removes
+         * outright: blurring a map that is about to be cut just moves the
+         * cut off the real edge.
+         */
+        this.tear = !!spec.tear && this.hasDepth;
+        const blur = spec.depthBlur ?? (this.tear ? 0 : 0.02);
+        const depth = blur === 0 ? spec.depth : blurDepth(kernels, spec.depth, blur);
+
+        // Built as plain arrays rather than typed ones because tearing
+        // *appends* vertices, and the count is not known until the cut has
+        // run. They are converted once, below.
+        const mesh = { verts: [], uvs: [], depths: [], indices: [] };
         for (let r = 0; r < n; r++) {
             for (let c = 0; c < n; c++) {
-                const i = r * n + c;
                 const u = c / div, v = r / div;
-                uvs[i * 2] = u; uvs[i * 2 + 1] = v;
+                mesh.uvs.push(u, v);
                 // Placed with overscan about the frame centre, while the
                 // uv stays 0..1 -- so the same picture covers a larger
                 // area and the edges have somewhere to come from.
-                this.baseVerts[i * 2] = spec.width / 2
-                    + (u * spec.width - spec.width / 2) * this.overscan;
-                this.baseVerts[i * 2 + 1] = spec.height / 2
-                    + (v * spec.height - spec.height / 2) * this.overscan;
-                this.depths[i] = sampleDepth(depth, u, v);
+                mesh.verts.push(
+                    spec.width / 2 + (u * spec.width - spec.width / 2) * this.overscan,
+                    spec.height / 2 + (v * spec.height - spec.height / 2) * this.overscan);
+                mesh.depths.push(sampleDepth(depth, u, v));
             }
         }
-
-        const indices = [];
         for (let r = 0; r < div; r++) {
             for (let c = 0; c < div; c++) {
                 const i = r * n + c;
-                indices.push(i, i + 1, i + n + 1, i, i + n + 1, i + n);
+                mesh.indices.push(i, i + 1, i + n + 1, i, i + n + 1, i + n);
             }
         }
-        this.triangleCount = indices.length / 3;
+
+        // Cut the surface at depth discontinuities, so a near object
+        // separates instead of stretching across the gap.
+        //
+        // The levels default to the midpoint of the depth actually present
+        // on the mesh, which for a subject against a background sits in
+        // the gap between them. An author who knows better passes
+        // `tear: { at: 0.6 }`, or several levels for several planes --
+        // cutting is a fold over levels, so more cost nothing but time.
+        if (this.tear) {
+            const lo = Math.min(...mesh.depths), hi = Math.max(...mesh.depths);
+            const opts = typeof spec.tear === 'object' ? spec.tear : {};
+            const at = opts.at ?? (lo + hi) / 2;
+            this.tearLevels = (Array.isArray(at) ? at : [at]);
+            this.tearFill = opts.fill != null
+                ? opts.fill * spec.width
+                : autoFill(this.effects, spec.width, hi - lo);
+            Object.assign(mesh, tearMesh(mesh, this.tearLevels, this.tearFill));
+        }
+
+        this.vertexCount = mesh.depths.length;
+        this.triangleCount = mesh.indices.length / 3;
+        this.baseVerts = Float32Array.from(mesh.verts);
+        this.depths = Float32Array.from(mesh.depths);
+        // Kept on the instance because `wave` needs a vertex's uv: after a
+        // tear the vertices are no longer a grid, so a row/column index is
+        // not a thing any more.
+        this.uvArray = Float32Array.from(mesh.uvs);
+        const uvs = this.uvArray;
+        const indices = mesh.indices;
 
         // Kernel buffers, allocated once. `verts` is rewritten per frame;
         // the rest never change, which is why the mesh is built here and
@@ -317,7 +552,6 @@ export class PhotoMotion {
         const out = this.verts.array;
         out.set(this.baseVerts);
         const phase = this._phase(t);
-        const n = this.div + 1;
 
         for (const effect of this.effects) {
             switch (effect.type) {
@@ -326,7 +560,7 @@ export class PhotoMotion {
                 case 'parallax':
                     if (this.hasDepth) applyParallax(out, this, effect, phase, t);
                     break;
-                case 'wave': applyWave(out, this, effect, t, n); break;
+                case 'wave': applyWave(out, this, effect, t); break;
                 case 'puppet': applyPuppet(out, this, effect, phase); break;
                 default: break;      // unknown effects are ignored, never thrown on
             }
@@ -451,8 +685,15 @@ function applyParallax(out, photo, effect, phase, t) {
     }
 }
 
-/** A travelling sinusoid, for water, heat haze or cloth. */
-function applyWave(out, photo, effect, t, n) {
+/**
+ * A travelling sinusoid, for water, heat haze or cloth.
+ *
+ * Reads each vertex's uv rather than walking the grid by row and column:
+ * after a tear the vertices are no longer a grid, and indexing by row
+ * would leave every duplicated vertex un-waved -- which is a crack along
+ * the tear rather than a missing ripple.
+ */
+function applyWave(out, photo, effect, t) {
     const amp = (effect.amplitude ?? 0.005) * photo.height;
     const wavelength = Math.max(1e-3, effect.wavelength ?? 0.3);
     const speed = effect.speed ?? 0.5;
@@ -462,20 +703,16 @@ function applyWave(out, photo, effect, t, n) {
     // picture ripples, which never looks like water.
     const [v0, v1] = effect.range ?? [0, 1];
 
-    for (let r = 0; r < n; r++) {
-        const v = r / (n - 1);
+    for (let i = 0; i < photo.vertexCount; i++) {
+        const u = photo.uvArray[i * 2], v = photo.uvArray[i * 2 + 1];
         if (v < v0 || v > v1) continue;
         // Fade in from the boundary so the wave does not start abruptly
         // at a hard line, which reads as a seam.
         const edge = Math.min(1, Math.min(v - v0, v1 - v) / Math.max(1e-6, (v1 - v0) * 0.25));
-        for (let c = 0; c < n; c++) {
-            const i = r * n + c;
-            const u = c / (n - 1);
-            const along = axis === 'y' ? u : v;
-            const d = Math.sin((along / wavelength + t * speed) * 2 * Math.PI) * amp * smooth(edge);
-            if (axis === 'y') out[i * 2 + 1] += d;
-            else out[i * 2] += d;
-        }
+        const along = axis === 'y' ? u : v;
+        const d = Math.sin((along / wavelength + t * speed) * 2 * Math.PI) * amp * smooth(edge);
+        if (axis === 'y') out[i * 2 + 1] += d;
+        else out[i * 2] += d;
     }
 }
 

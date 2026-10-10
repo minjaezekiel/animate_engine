@@ -118,6 +118,43 @@ A shot:
 }
 ```
 
+### Drawings and photos
+
+Two more things a scene can hold, both animated by one channel —
+`props.progress`, 0 to 1 — and therefore both retimed by the same `draw`
+verb.
+
+```jsonc
+"drawings": [{
+  "id": "sketch", "at": [640, 360],
+  "layers": [{ "name": "ink", "blend": "multiply", "strokes": [
+      { "path": "M 100 400 C 300 120, 600 120, 800 400",
+        "brush": "pencil", "color": "ink", "size": 6 } ] }]
+}],
+"photos": [{
+  "id": "hero",
+  "source": "portrait", "depth": "portrait_depth",    // asset ids
+  "duration": 6, "tear": true,
+  "effects": [{ "type": "kenBurns", "to": { "zoom": 1.12 } },
+              { "type": "parallax", "amplitude": 0.05 }]
+}]
+```
+
+Strokes are **SVG path data**: one line instead of two hundred numbers, in
+the most widely published vector notation there is. Colours resolve through
+the scene palette like everything else painted, so a drawing restyles with
+the scene.
+
+The two defaults are deliberately opposite. A **drawing** with no `draw`
+action holds at `progress: 1` — it should be *present*, the way a character
+with no actions stands in its rest pose. A **photo** with no action
+*plays*, across its own duration, defaulting to the rest of the scene,
+because a photograph in a shot is there to move.
+
+Full detail: [16-PAINT.md](16-PAINT.md) for the brushes and
+[17-MOTION-AND-MCP.md](17-MOTION-AND-MCP.md) §3 and §7 for the effects,
+mesh tearing and depth maps.
+
 ### Verbs
 
 | `do` | Effect |
@@ -128,6 +165,7 @@ A shot:
 | `reach` | **IK** — put `part` on the point `to`, solving the bones above it |
 | `set` | key an arbitrary channel; `part` selects a sub-node |
 | `show` / `hide` | key the cast root's alpha |
+| `draw` | ramp a **drawing**'s reveal or a **photo**'s playback, `from` → `to` over `for` |
 
 #### `reach` — inverse kinematics
 

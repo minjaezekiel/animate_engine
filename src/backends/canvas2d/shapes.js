@@ -224,7 +224,12 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
             if (p.fill) { ctx.fillStyle = p.fill; ctx.fillText(p.text, 0, 0); }
             break;
         }
-        case 'paint': {
+        case 'paint':
+        case 'photo': {
+            // One branch for both, because a `PaintPainter` and a
+            // `PhotoPainter` expose the same thing -- `canvasAt(progress)`
+            // -- and the node's channel is `props.progress` either way.
+            //
             // A painter is attached by the backend at mount, the same way
             // an `image` node's asset id is resolved to a real image
             // before render. A bare spec here means nothing resolved it;

@@ -24,6 +24,8 @@ import { synthesizeDialogue } from './core/voice/synthesize.js';
 import { renderMix, decodeAudio } from './audio/OfflineMixer.js';
 import { audioBufferToWav } from './audio/wav.js';
 import { Canvas2DBackend } from './backends/canvas2d/Canvas2DBackend.js';
+import { attachPainters } from './backends/canvas2d/PaintPainter.js';
+import { loadKernels } from './kernels/index.js';
 import { renderOffline, preflight } from './render/OfflineRenderer.js';
 import { MediaRecorderSink } from './render/sinks/MediaRecorderSink.js';
 import { WebCodecsSink } from './render/sinks/WebCodecsSink.js';
@@ -174,6 +176,13 @@ export class FilmStudio {
             })
             : null;
 
+        // Drawings and photos arrive from the compiler as *unrasterised*
+        // specs, by design -- compilation is pure and may not touch a
+        // canvas. Nothing else resolved them, so until now a film with a
+        // `drawings` or `photos` block validated clean, rendered every
+        // other node, and left its artwork blank with no error anywhere.
+        const painters = await this._attachPainters(first.scene, notes);
+
         return {
             ...first,
             film: working,
@@ -181,7 +190,43 @@ export class FilmStudio {
             audio: mix,
             audioBuffers: voiced.buffers,
             cues,
+            painters,
         };
+    }
+
+    /**
+     * Resolve every paint and photo node to a painter.
+     *
+     * The kernels are loaded lazily and only when a film actually contains
+     * artwork, because that is a wasm fetch and most films do not. A
+     * failure is a diagnostic rather than a throw: the rest of the film is
+     * still worth rendering, and saying so beats taking the whole render
+     * down over one drawing.
+     */
+    async _attachPainters(scene, notes) {
+        let wanted = false;
+        scene.walk((node) => {
+            if (node.kind === 'paint' || node.kind === 'photo') wanted = true;
+        });
+        if (!wanted) return [];
+
+        if (this._kernels === undefined) {
+            try {
+                this._kernels = await loadKernels();
+            } catch (error) {
+                this._kernels = null;
+                notes.push({
+                    severity: 'warning', path: '',
+                    message: `Paint kernels failed to load (${error.message}); `
+                        + 'drawings and photos will render blank.',
+                });
+            }
+        }
+        if (!this._kernels) return [];
+
+        const painters = attachPainters(scene, this._kernels);
+        this.log(`${painters.length} drawing/photo painter(s) attached`);
+        return painters;
     }
 
     /**

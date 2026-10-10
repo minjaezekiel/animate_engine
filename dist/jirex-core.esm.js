@@ -40,8 +40,8 @@ function createNode(spec = {}) {
 
 // src/core/util/id.js
 function createIdFactory(prefix = "n") {
-  let n = 0;
-  return () => `${prefix}${++n}`;
+  let n2 = 0;
+  return () => `${prefix}${++n2}`;
 }
 function hashString(str) {
   let h = 2166136261;
@@ -373,12 +373,20 @@ var SWAP_FALLBACK = {
     squint: ["squint", "closed", "open"]
   }
 };
-function resolveSwap(channel, wanted, shapes) {
-  if (shapes[wanted]) return wanted;
-  for (const candidate of SWAP_FALLBACK[channel]?.[wanted] ?? []) {
-    if (shapes[candidate]) return candidate;
+function resolveSwap(channel, wanted, shapes, variant = null) {
+  const order = [wanted, ...SWAP_FALLBACK[channel]?.[wanted] ?? []];
+  if (variant) {
+    for (const name of order) if (shapes[`${name}@${variant}`]) return `${name}@${variant}`;
   }
+  for (const name of order) if (shapes[name]) return name;
   return Object.keys(shapes)[0] ?? null;
+}
+function channelValue(scene, node, channel) {
+  for (let n2 = node; n2; n2 = n2.parentId ? scene.byId.get(n2.parentId) : null) {
+    const v = n2.props?.[channel];
+    if (v != null) return v;
+  }
+  return void 0;
 }
 function applySwapSets(scene) {
   for (const node of scene.byId.values()) {
@@ -389,8 +397,10 @@ function applySwapSets(scene) {
     const applied = node._swapNames ??= {};
     let changed = false;
     const wanted = {};
+    const view = channels.view ? null : channelValue(scene, node, "view");
     for (const [channel, shapes] of Object.entries(channels)) {
-      const name = resolveSwap(channel, node.props[channel] ?? firstKey(shapes), shapes);
+      const asked = channelValue(scene, node, channel) ?? node.props.swapDefaults?.[channel] ?? firstKey(shapes);
+      const name = resolveSwap(channel, asked, shapes, channel === "view" ? null : view);
       wanted[channel] = name;
       if (applied[channel] !== name) changed = true;
     }
@@ -562,9 +572,9 @@ function trackValueAt(track, t) {
   if (t >= last.t) return last.v;
   let lo = 0, hi = keys.length - 1;
   while (hi - lo > 1) {
-    const mid = lo + hi >> 1;
-    if (keys[mid].t <= t) lo = mid;
-    else hi = mid;
+    const mid2 = lo + hi >> 1;
+    if (keys[mid2].t <= t) lo = mid2;
+    else hi = mid2;
   }
   const a = keys[lo], b = keys[lo + 1];
   const span = b.t - a.t;
@@ -574,13 +584,30 @@ function trackValueAt(track, t) {
 var trackDuration = (track) => track.keys.length ? track.keys[track.keys.length - 1].t : 0;
 
 // src/core/anim/Clip.js
-function createClip({ id, name = id, duration, loop = "once", tracks = [] }) {
+function createClip({
+  id,
+  name = id,
+  duration,
+  loop = "once",
+  tracks = [],
+  blend = "override",
+  mask = null
+}) {
   return {
     id,
     name,
     duration: duration ?? Math.max(0, ...tracks.map(trackDuration), 0),
     loop,
     // once | repeat | pingpong
+    // 'override' replaces the channel; 'add' layers a DELTA over whatever
+    // the base already resolved to. Without the additive mode a pose and a
+    // cycle fight over the same channel and the pose wins for the whole
+    // film -- which is what left a sixty-second fight 77% frozen.
+    blend,
+    // Part names this clip is allowed to touch, or null for all of them.
+    // The equivalent of an avatar mask: an upper-body gesture should not
+    // be able to stop the legs walking.
+    mask: mask ? new Set(mask) : null,
     tracks
   };
 }
@@ -638,8 +665,40 @@ function inferType(v) {
 }
 
 // src/core/anim/Evaluator.js
+var Additive = class _Additive {
+  constructor(delta = 0, ratio = 1) {
+    this.delta = delta;
+    this.ratio = ratio;
+  }
+  /** Resolve against the base this channel already holds. */
+  over(base) {
+    const b = typeof base === "number" ? base : 0;
+    return b * this.ratio + this.delta;
+  }
+  add(other) {
+    return new _Additive(this.delta + other.delta, this.ratio * other.ratio);
+  }
+};
+var RATIO_CHANNELS = /* @__PURE__ */ new Set(["transform.sx", "transform.sy"]);
+var SMOOTH_TARGETS = /* @__PURE__ */ new Set(["__camera", "__subtitle"]);
+function stepAt(timeline, tSec) {
+  for (const span of timeline.steps ?? []) {
+    if (tSec >= span.start && tSec < span.end) return span.step ?? 0;
+  }
+  return timeline.step ?? 0;
+}
+function quantise(tSec, step, fps) {
+  if (!step || step <= 1) return tSec;
+  const frame = Math.floor(tSec * fps + 1e-6);
+  return Math.floor(frame / step) * step / fps;
+}
 function samplePose(timeline, tSec) {
   const pose = /* @__PURE__ */ new Map();
+  const layered = [];
+  const step = stepAt(timeline, tSec);
+  const fps = timeline.fps || 24;
+  const held = quantise(tSec, step, fps);
+  const timeFor = (target) => SMOOTH_TARGETS.has(String(target).split("/")[0]) ? tSec : held;
   const write = (target, path, value) => {
     if (value === void 0) return;
     let channels = pose.get(target);
@@ -652,14 +711,34 @@ function samplePose(timeline, tSec) {
     const start = inst.start ?? 0;
     const end = inst.end ?? timeline.duration;
     if (tSec < start || tSec > end) continue;
-    const local = clipLocalTime(clip, (tSec - start) * (inst.speed ?? 1));
+    const sampleAt = timeFor(inst.scopeId ?? "");
+    if (sampleAt < start || sampleAt > end) continue;
+    const local = clipLocalTime(clip, (sampleAt - start) * (inst.speed ?? 1));
+    const weight = inst.weight ?? 1;
+    if (weight <= 0) continue;
     for (const track of clip.tracks) {
+      if (clip.mask && !clip.mask.has(track.target)) continue;
       const target = inst.scopeId ? `${inst.scopeId}/${track.target}` : track.target;
-      write(target, track.path, trackValueAt(track, local));
+      const value = trackValueAt(track, local);
+      if (clip.blend !== "add") {
+        write(target, track.path, value);
+        continue;
+      }
+      if (typeof value !== "number") continue;
+      const ref = trackValueAt(track, 0);
+      if (typeof ref !== "number") continue;
+      const contribution = RATIO_CHANNELS.has(track.path) ? new Additive(0, ref === 0 ? 1 : 1 + (value / ref - 1) * weight) : new Additive((value - ref) * weight, 1);
+      layered.push([target, track.path, contribution]);
     }
   }
   for (const track of timeline.tracks) {
-    write(track.target, track.path, trackValueAt(track, tSec));
+    write(track.target, track.path, trackValueAt(track, timeFor(track.target)));
+  }
+  for (const [target, path, contribution] of layered) {
+    let channels = pose.get(target);
+    if (!channels) pose.set(target, channels = /* @__PURE__ */ new Map());
+    const base = channels.get(path);
+    channels.set(path, base instanceof Additive ? base.add(contribution) : base === void 0 ? contribution : contribution.over(base));
   }
   return pose;
 }
@@ -677,12 +756,13 @@ function applyPose(scene, pose) {
       const group = path.slice(0, dot2);
       const field = path.slice(dot2 + 1);
       if (group === "transform") {
-        node.transform[field] = value;
+        node.transform[field] = value instanceof Additive ? value.over(node.transform[field]) : value;
         transformTouched = true;
       } else if (group === "props") {
-        node.props[field] = value;
+        node.props[field] = value instanceof Additive ? value.over(node.props[field]) : value;
       } else {
-        (node[group] ??= {})[field] = value;
+        const bag = node[group] ??= {};
+        bag[field] = value instanceof Additive ? value.over(bag[field]) : value;
       }
     }
     if (transformTouched) scene.invalidate(nodeId);
@@ -742,6 +822,7 @@ var Evaluator = {
   sample: samplePose,
   apply: applyPose,
   trackValueAt,
+  Additive,
   createBaseline: createPoseBaseline,
   reset: resetPose,
   channels: timelineChannels
@@ -957,6 +1038,30 @@ async function loadAssets(film, { registry, baseUrl = "", onProgress = null } = 
   }
   return { assets, diagnostics };
 }
+async function loadAudioAssets(film, { baseUrl = "", decode, fetchImpl, onProgress } = {}) {
+  const buffers = {};
+  const diagnostics = [];
+  const declared = Object.entries(film?.assets ?? {}).filter(([, a]) => a && a.kind === "audio" && a.src);
+  if (!declared.length || !decode) return { buffers, diagnostics };
+  const get = fetchImpl ?? globalThis.fetch;
+  let done = 0;
+  for (const [id, asset] of declared) {
+    const url = /^(https?:|data:|blob:)/.test(asset.src) ? asset.src : `${baseUrl}${asset.src}`;
+    try {
+      const res = await get(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      buffers[id] = await decode(await res.arrayBuffer());
+    } catch (error) {
+      diagnostics.push({
+        severity: "warning",
+        path: `assets.${id}`,
+        message: `Audio asset "${id}" failed to load from "${url}": ${error.message}. It will be silent.`
+      });
+    }
+    onProgress?.({ stage: "audio", done: ++done, total: declared.length, id });
+  }
+  return { buffers, diagnostics };
+}
 
 // src/core/art/providers/UrlProvider.js
 var UrlProvider = class {
@@ -1005,6 +1110,869 @@ var FileProvider = class {
     return createBitmap(file);
   }
 };
+
+// src/core/art/face.js
+var CY = -0.92;
+var VIEWS = { front: 0, threeQuarter: 0.55, profile: 1 };
+var VIEW_NAMES = Object.keys(VIEWS);
+var n = (v) => Math.round(v * 100) / 100;
+var pt = ([x, y]) => `${n(x)},${n(y)}`;
+var mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+function smoothClosed(points) {
+  const k = points.length;
+  if (k < 3) return "";
+  let d = `M${pt(mid(points[k - 1], points[0]))}`;
+  for (let i = 0; i < k; i++) {
+    d += ` Q${pt(points[i])} ${pt(mid(points[i], points[(i + 1) % k]))}`;
+  }
+  return `${d} Z`;
+}
+var circle = (cx, cy, r, sides = 8) => smoothClosed(
+  Array.from({ length: sides }, (_, i) => {
+    const a = i / sides * Math.PI * 2;
+    const k = r / Math.cos(Math.PI / sides);
+    return [cx + Math.cos(a) * k, cy + Math.sin(a) * k];
+  })
+);
+function polyPath(points) {
+  if (points.length < 3) return "";
+  return `M${points.map(pt).join(" L")} Z`;
+}
+var lerp2 = (a, b, t) => a + (b - a) * t;
+var lerpPts = (a, b, t) => a.map((p, i) => [lerp2(p[0], b[i][0], t), lerp2(p[1], b[i][1], t)]);
+var JAWS = {
+  round: { cheek: 1, jaw: 0.8, chin: 0.36 },
+  square: { cheek: 0.98, jaw: 0.96, chin: 0.62 },
+  tapered: { cheek: 0.96, jaw: 0.6, chin: 0.2 },
+  heavy: { cheek: 1.06, jaw: 1.02, chin: 0.54 }
+};
+var EYES = {
+  // Wider than tall. A near-circular eye reads as a googly cartoon eye, not
+  // as a drawing -- the first sheet made that unmistakable.
+  round: { w: 0.21, up: 0.12, low: 0.1 },
+  hooded: { w: 0.22, up: 0.07, low: 0.08 },
+  narrow: { w: 0.23, up: 0.05, low: 0.05 },
+  wide: { w: 0.21, up: 0.16, low: 0.12 },
+  "closed-happy": { w: 0.22, up: 0.09, low: 0.07, lidOnly: true }
+};
+var BROWS = {
+  flat: { rise: 0.3, thick: 0.055, arch: 0.02, tilt: 0 },
+  arched: { rise: 0.34, thick: 0.045, arch: 0.1, tilt: -0.02 },
+  heavy: { rise: 0.26, thick: 0.095, arch: 0.03, tilt: 0.01 },
+  thin: { rise: 0.32, thick: 0.028, arch: 0.06, tilt: 0 },
+  angled: { rise: 0.3, thick: 0.065, arch: 0.02, tilt: 0.09 }
+};
+var NOSES = {
+  button: { len: 0.2, w: 0.11, jut: 0.1 },
+  straight: { len: 0.3, w: 0.09, jut: 0.14 },
+  broad: { len: 0.24, w: 0.17, jut: 0.12 },
+  hooked: { len: 0.32, w: 0.1, jut: 0.2, hook: 0.07 },
+  small: { len: 0.16, w: 0.09, jut: 0.08 }
+};
+var LIPS = { full: 1.12, thin: 0.86, wide: 1.26, medium: 1 };
+var EARS = {
+  small: { r: 0.13, out: 0.02 },
+  round: { r: 0.18, out: 0.05 },
+  pointed: { r: 0.16, out: 0.04, point: 0.1 },
+  none: null
+};
+var EXPRESSIONS = {
+  neutral: {},
+  angry: { brow: "angled", browRise: -0.06, browTilt: 0.1, eyes: "narrow" },
+  surprised: { brow: "arched", browRise: 0.08, eyes: "wide" },
+  smug: { brow: "arched", browRise: 0.02, browTilt: -0.05, eyes: "hooded" },
+  weary: { brow: "flat", browRise: -0.03, browTilt: -0.06, eyes: "hooded" },
+  delighted: { brow: "arched", browRise: 0.06, eyes: "closed-happy" }
+};
+var HAIRS = [
+  "afro-large",
+  "afro-short",
+  "braids",
+  "short-fade",
+  "locs",
+  "wrap",
+  "spiky",
+  "flame",
+  "bald"
+];
+var FACE_KITS = {
+  jaw: Object.keys(JAWS),
+  eyes: Object.keys(EYES),
+  brow: Object.keys(BROWS),
+  nose: Object.keys(NOSES),
+  lips: Object.keys(LIPS),
+  ears: Object.keys(EARS),
+  hair: HAIRS,
+  expression: Object.keys(EXPRESSIONS),
+  view: VIEW_NAMES
+};
+var DEFAULT_FACE = {
+  jaw: "round",
+  eyes: "round",
+  brow: "flat",
+  nose: "button",
+  lips: "medium",
+  ears: "round"
+};
+function frontOutline(k) {
+  const m = (k.cheek + k.jaw) / 2;
+  return [
+    [0, -1],
+    [0.7, -0.78],
+    [1, -0.3],
+    [k.cheek, 0.14],
+    [m, 0.42],
+    [k.jaw, 0.64],
+    [k.chin, 0.9],
+    [0, 1],
+    [-k.chin, 0.9],
+    [-k.jaw, 0.64],
+    [-m, 0.42],
+    [-k.cheek, 0.14],
+    [-1, -0.3],
+    [-0.7, -0.78]
+  ];
+}
+function profileOutline(k, nose) {
+  const tip = 1.02 + nose.jut * 2.9 + (nose.hook ?? 0) * 0.8;
+  return [
+    [0.1, -1.04],
+    [0.78, -0.8],
+    [0.98, -0.32],
+    [tip, nose.len + 0.02],
+    // nose tip, well clear
+    [0.9, nose.len + 0.2],
+    // under the nose, recessed
+    [1, nose.len + 0.38],
+    // lip
+    [0.86 * (0.55 + k.chin * 0.8), 0.8],
+    [0.48, 0.98],
+    // chin
+    [-0.14, 0.94],
+    [-0.74, 0.7],
+    [-1.1, 0.28],
+    [-1.26, -0.12],
+    [-1.1, -0.58],
+    [-0.6, -0.94]
+  ];
+}
+var scalePts = (pts, W, R, sgn) => pts.map(([x, y]) => [sgn * x * W, CY * R + y * R]);
+function layout(dir) {
+  return {
+    // The near eye rides toward the facing edge; the far eye crowds the
+    // silhouette and narrows until it is gone.
+    nearEyeX: 0.34 + 0.44 * dir,
+    farEyeX: -(0.38 - 0.12 * dir),
+    // Foreshortens in width only, and vanishes at full profile. A linear
+    // ramp steep enough to reach zero by profile squeezed the
+    // three-quarter eye into a vertical sliver that read as a dot.
+    farEyeScale: dir >= 0.85 ? 0 : 1 - 0.55 * dir,
+    eyeY: 0.04,
+    browY: -0.26,
+    // The drawn nose tracks the silhouette's nose tip, so the shape and
+    // the outline agree instead of the nose floating on the cheek.
+    noseX: 0.06 + 0.98 * dir,
+    // An ear travels BACKWARD as the head turns -- it ends up behind the
+    // eye, not in front of it. Sliding it only slightly inward left it
+    // sitting on top of the eye in profile, which is what the sheet showed.
+    // When a head turns to face +x you see the OTHER side of it, so the
+    // ear that survives the turn is the far one, travelling forward from
+    // the back of the skull. Carrying the near ear through instead walked
+    // it across the middle of the face.
+    earX: 1 - 0.3 * dir,
+    // the facing-side ear, before it is lost
+    earBackX: -(1 - 0.76 * dir),
+    // the one you actually keep seeing
+    earY: -0.02 + 0.08 * dir,
+    earScale: 1 - 0.26 * dir,
+    nearEarVisible: dir < 0.35
+  };
+}
+function eyePath(cx, cy, e, scale2, R, W, sgn) {
+  const w = e.w * scale2 * W * (sgn || 1);
+  const up = e.up * R, low = e.low * R;
+  const x = cx, y = cy;
+  if (e.lidOnly) {
+    const t = Math.abs(up) * 0.34 + R * 0.012;
+    return smoothClosed([
+      [x - w, y + low * 0.3],
+      [x, y - up],
+      [x + w, y + low * 0.3],
+      [x + w * 0.8, y + low * 0.3 + t],
+      [x, y - up + t * 1.3],
+      [x - w * 0.8, y + low * 0.3 + t]
+    ]);
+  }
+  return smoothClosed([
+    [x - w, y + low * 0.1],
+    [x - w * 0.45, y - up],
+    [x + w * 0.45, y - up * 0.88],
+    [x + w, y + low * 0.15],
+    [x + w * 0.45, y + low],
+    [x - w * 0.45, y + low * 0.88]
+  ]);
+}
+function browPath(cx, cy, b, scale2, R, W, inner) {
+  const w = b.w ?? 0.2;
+  const halfW = w * scale2 * W;
+  const th = b.thick * R;
+  const tiltIn = b.tilt * R * inner * -1;
+  const a = [cx - halfW, cy + b.arch * R * 0.2 + (inner < 0 ? tiltIn : 0)];
+  const c = [cx + halfW, cy + b.arch * R * 0.2 + (inner > 0 ? tiltIn : 0)];
+  const peak = [cx, cy - b.arch * R];
+  return smoothClosed([
+    a,
+    peak,
+    c,
+    [c[0], c[1] + th],
+    [peak[0], peak[1] + th * 1.2],
+    [a[0], a[1] + th]
+  ]);
+}
+function earPath(cx, cy, k, R, W, sgn) {
+  const r = k.r * R, out = k.out * W * sgn;
+  const pts = [
+    [cx - r * 0.3 * sgn, cy - r],
+    [cx + r * 0.7 * sgn + out, cy - r * (k.point ? 1.6 : 0.5)],
+    [cx + r * 0.9 * sgn + out, cy + r * 0.3],
+    [cx + r * 0.2 * sgn, cy + r]
+  ];
+  return smoothClosed(pts);
+}
+function hairFront(style, k, R, W, sgn, dir) {
+  if (style === "bald") return null;
+  if (style === "spiky") {
+    return spikeCrown(
+      R,
+      W,
+      sgn,
+      dir,
+      { tips: 9, out: 1.66, inner: 1.02, sweep: 0.05, wobble: 0.14 }
+    );
+  }
+  if (style === "flame") {
+    return spikeCrown(
+      R,
+      W,
+      sgn,
+      dir,
+      { tips: 7, out: 1.8, inner: 1.04, sweep: 0.34, wobble: 0.22 }
+    );
+  }
+  const o = lerpPts(frontOutline(k), profileOutline(k, NOSES.button), dir);
+  const { grow, hairline } = HAIR_FRONT[style] ?? HAIR_FRONT["short-fade"];
+  const edge = [12, 13, 0, 1, 2].map((i) => [o[i][0] * grow, o[i][1] * grow]);
+  const inner = [
+    [o[2][0] * 0.8, hairline + 0.06],
+    [0, hairline],
+    [o[12][0] * 0.8, hairline + 0.06]
+  ];
+  return smoothClosed(scalePts([...edge, ...inner], W, R, sgn));
+}
+function spikeCrown(R, W, sgn, dir, {
+  tips = 9,
+  out = 1.62,
+  inner = 1,
+  sweep = 0,
+  wobble = 0
+} = {}) {
+  const pts = [];
+  const back = -sgn;
+  const lift = -0.05;
+  for (let i = 0; i <= tips; i++) {
+    const t = i / tips;
+    const a = Math.PI * (1 - t);
+    const cos = Math.cos(a), sin = Math.sin(a);
+    pts.push([cos * inner * W, (CY + lift - sin * inner) * R]);
+    if (i === tips) break;
+    const am = Math.PI * (1 - (t + 0.5 / tips));
+    const cm = Math.cos(am), sm = Math.sin(am);
+    const grow = out + (wobble ? wobble * Math.sin(i * 2.4) : 0);
+    pts.push([
+      (cm * grow + back * sweep) * W,
+      (CY + lift - sm * grow - sweep * 0.35) * R
+    ]);
+  }
+  pts.push([inner * 0.96 * W, (CY - 0.34) * R]);
+  pts.push([0, (CY - 0.46) * R]);
+  pts.push([-inner * 0.96 * W, (CY - 0.34) * R]);
+  return polyPath(pts.map(([x, y]) => [x * (1 - 0.1 * dir), y]));
+}
+var HAIR_FRONT = {
+  "short-fade": { grow: 1.04, hairline: -0.5 },
+  wrap: { grow: 1.14, hairline: -0.38 },
+  "afro-short": { grow: 1.12, hairline: -0.46 },
+  "afro-large": { grow: 1.16, hairline: -0.44 },
+  spiky: { grow: 1.04, hairline: -0.46 },
+  flame: { grow: 1.06, hairline: -0.44 },
+  braids: { grow: 1.08, hairline: -0.46 },
+  locs: { grow: 1.1, hairline: -0.48 }
+};
+function hairBackPath(style, k, R, W, sgn, dir) {
+  if (style === "bald") return null;
+  const cx = -sgn * 0.22 * W * dir;
+  switch (style) {
+    case "short-fade":
+      return circle(cx, (CY - 0.06) * R, W * 1.16, 10);
+    case "wrap":
+      return circle(cx, (CY - 0.1) * R, W * 1.22, 10);
+    case "afro-short":
+      return circle(cx, (CY - 0.22) * R, W * 1.34, 12);
+    case "afro-large":
+      return circle(cx, (CY - 0.3) * R, W * 1.74, 14);
+    case "spiky":
+      return circle(cx, (CY - 0.16) * R, W * 1.18, 10);
+    case "flame":
+      return circle(cx - sgn * 0.12 * W, (CY - 0.18) * R, W * 1.26, 10);
+    case "braids": {
+      const d = [circle(cx, (CY - 0.12) * R, W * 1.14, 10)];
+      for (const side of [-1, 1]) {
+        if (dir > 0.75 && side * sgn < 0) continue;
+        const x = side * W * 0.98 + cx;
+        d.push(smoothClosed([
+          [x, (CY - 0.1) * R],
+          [x + side * W * 0.26, (CY + 0.55) * R],
+          [x + side * W * 0.16, (CY + 1.45) * R],
+          [x - side * W * 0.16, (CY + 1.38) * R],
+          [x - side * W * 0.22, (CY + 0.45) * R]
+        ]));
+      }
+      return d.join(" ");
+    }
+    case "locs": {
+      const d = [circle(cx, (CY - 0.18) * R, W * 1.2, 10)];
+      for (let i = -2; i <= 2; i++) {
+        const x = cx + i * W * 0.5;
+        if (dir > 0.75 && i * sgn < 0) continue;
+        const drop = 1.1 + Math.abs(i) * 0.18;
+        d.push(smoothClosed([
+          [x - W * 0.13, (CY - 0.5) * R],
+          [x + W * 0.13, (CY - 0.45) * R],
+          [x + W * 0.11, (CY + drop) * R],
+          [x - W * 0.11, (CY + drop - 0.08) * R]
+        ]));
+      }
+      return d.join(" ");
+    }
+    default:
+      return circle(cx, (CY - 0.08) * R, W * 1.08, 10);
+  }
+}
+function headParts({ R, face = {}, hair = "short-fade", facing = 1, colors = {} }) {
+  const f = { ...DEFAULT_FACE, ...face };
+  const jaw = JAWS[f.jaw] ?? JAWS.round;
+  const nose = NOSES[f.nose] ?? NOSES.button;
+  const ear = f.ears in EARS ? EARS[f.ears] : EARS.round;
+  const sgn = facing >= 0 ? 1 : -1;
+  const W = R * 0.86;
+  const skin = colors.skin ?? "skin";
+  const parts = [];
+  const perView = (make) => {
+    const shapes = {};
+    for (const [name, dir] of Object.entries(VIEWS)) {
+      const d = make(dir, name);
+      if (d) shapes[name] = { kind: "path", d };
+    }
+    return Object.keys(shapes).length ? shapes : null;
+  };
+  const addSwap = (part, sets) => {
+    const kept = Object.fromEntries(Object.entries(sets).filter(([, v]) => v));
+    if (!Object.keys(kept).length) return;
+    part.swap = {};
+    for (const [channel, shapes] of Object.entries(kept)) {
+      part.swap[channel] = { default: channel === "view" ? "front" : "neutral", shapes };
+    }
+    parts.push(part);
+  };
+  const back = perView((dir) => hairBackPath(hair, jaw, R, W, sgn, dir));
+  if (back) addSwap({ id: "hairBack", parent: "head", z: 0, fill: `${colors.hair ?? "hair"}Shade` }, { view: back });
+  const farEar = ear && perView((dir) => {
+    const L = layout(dir);
+    return L.nearEarVisible ? earPath(sgn * L.earX * W, L.earY * R + CY * R, ear, R, W, sgn) : null;
+  });
+  if (farEar) {
+    addSwap({
+      id: "earFar",
+      parent: "head",
+      z: 1,
+      fill: `${skin}Shade`,
+      stroke: `${skin}Line`,
+      strokeWidth: Math.max(1, R * 0.045)
+    }, { view: farEar });
+  }
+  const skullViews = perView((dir) => smoothClosed(
+    scalePts(lerpPts(frontOutline(jaw), profileOutline(jaw, nose), dir), W, R, sgn)
+  ));
+  const shadeViews = perView((dir) => {
+    const o = lerpPts(frontOutline(jaw), profileOutline(jaw, nose), dir);
+    const take = sgn > 0 ? [12, 13, 0, 1, 2, 3, 4, 5, 6, 7] : [7, 6, 5, 4, 3, 2, 1, 0, 13, 12];
+    const edge = take.map((i) => o[i]);
+    const inner = edge.slice().reverse().map(([x, y]) => [x * (0.42 + 0.34 * dir) - sgn * 0.3 * (1 - dir), y * 0.72 - 0.1]);
+    return smoothClosed(scalePts([...edge, ...inner], W, R, sgn));
+  });
+  const skull = {
+    id: "skull",
+    parent: "head",
+    z: 10,
+    fill: skin,
+    stroke: `${skin}Line`,
+    strokeWidth: Math.max(1.2, R * 0.055)
+  };
+  if (skullViews) {
+    skull.swap = { view: { default: "front", shapes: skullViews } };
+    skull.shapes = [{
+      id: "shade",
+      z: 1,
+      fill: `${skin}Shade`,
+      swap: { view: { default: "front", shapes: shadeViews } }
+    }];
+  }
+  parts.push(skull);
+  const nearEar = ear && perView((dir) => {
+    const L = layout(dir);
+    return earPath(
+      sgn * L.earBackX * W,
+      L.earY * R + CY * R,
+      { ...ear, r: ear.r * L.earScale },
+      R,
+      W,
+      -sgn
+    );
+  });
+  if (nearEar) {
+    addSwap({
+      id: "earNear",
+      parent: "head",
+      z: 12,
+      fill: skin,
+      stroke: `${skin}Line`,
+      strokeWidth: Math.max(1, R * 0.045)
+    }, { view: nearEar });
+  }
+  const eyeSet = (kind) => perView((dir) => {
+    const L = layout(dir);
+    const e = EYES[kind] ?? EYES.round;
+    const near = eyePath(sgn * L.nearEyeX * W, (CY + L.eyeY) * R, e, 1, R, W, sgn);
+    if (L.farEyeScale <= 0.02) return near;
+    const far = eyePath(sgn * L.farEyeX * W, (CY + L.eyeY) * R, e, L.farEyeScale, R, W, sgn);
+    return `${far} ${near}`;
+  });
+  const lidOnly = (kind) => (EYES[kind] ?? EYES.round).lidOnly;
+  const white = colors.white ?? "white";
+  const tint = (shapes, kind) => Object.fromEntries(Object.entries(shapes).map(([k, v]) => [k, { ...v, fill: lidOnly(kind) ? `${skin}Line` : white }]));
+  addSwap({
+    id: "eyes",
+    parent: "head",
+    z: 20,
+    fill: lidOnly(f.eyes) ? `${skin}Line` : white,
+    stroke: `${skin}Line`,
+    strokeWidth: Math.max(1, R * 0.05)
+  }, {
+    view: tint(eyeSet(f.eyes), f.eyes),
+    expression: expressionSet(f, (ex) => ex.eyes ? tint(eyeSet(ex.eyes), ex.eyes) : null),
+    // `open` is EMPTY on purpose: a blink must not re-specify geometry the
+    // view and the expression already decided, or it silently reverts a
+    // turned head to a front-facing pair of eyes every frame it is open.
+    // Only `closed` draws, and it is view-qualified so a blink in profile
+    // closes one eye rather than two.
+    eyes: { open: {}, ...viewQualified(tint(eyeSet("closed-happy"), "closed-happy"), "closed") }
+  });
+  if (!lidOnly(f.eyes)) {
+    const pupils = perView((dir) => {
+      const L = layout(dir);
+      const r = Math.max(1.1, R * 0.062);
+      const near = circle(sgn * L.nearEyeX * W, (CY + L.eyeY + 0.02) * R, r);
+      if (L.farEyeScale <= 0.02) return near;
+      return `${circle(sgn * L.farEyeX * W, (CY + L.eyeY + 0.02) * R, r * L.farEyeScale)} ${near}`;
+    });
+    addSwap(
+      { id: "pupils", parent: "head", z: 21, fill: colors.eye ?? "eye" },
+      { view: pupils, eyes: { open: {}, closed: { kind: "path", d: "" } } }
+    );
+  }
+  const browSet = (kind, riseAdj = 0, tiltAdj = 0) => perView((dir) => {
+    const L = layout(dir);
+    const base = BROWS[kind] ?? BROWS.flat;
+    const b = {
+      ...base,
+      rise: base.rise + riseAdj,
+      tilt: base.tilt + tiltAdj,
+      w: (EYES[f.eyes] ?? EYES.round).w * 1.15
+    };
+    const near = browPath(
+      sgn * L.nearEyeX * W,
+      (CY + L.browY - b.rise + 0.26) * R,
+      b,
+      1,
+      R,
+      W,
+      -sgn
+    );
+    if (L.farEyeScale <= 0.02) return near;
+    const far = browPath(
+      sgn * L.farEyeX * W,
+      (CY + L.browY - b.rise + 0.26) * R,
+      b,
+      L.farEyeScale,
+      R,
+      W,
+      sgn
+    );
+    return `${far} ${near}`;
+  });
+  addSwap({ id: "brows", parent: "head", z: 22, fill: colors.hair ?? "hair" }, {
+    view: browSet(f.brow),
+    expression: expressionSet(f, (ex) => ex.brow ? browSet(ex.brow, ex.browRise ?? 0, ex.browTilt ?? 0) : null)
+  });
+  const noseViews = perView((dir) => {
+    const L = layout(dir);
+    if (dir < 0.25) {
+      const x = sgn * L.noseX * W, y = (CY + 0.06) * R;
+      const len2 = nose.len * R, w = nose.w * W;
+      return `M${n(x - w * 0.2 * sgn)},${n(y)} Q${n(x + nose.jut * W * sgn * 0.9)},${n(y + len2 * 0.8)} ${n(x + w * 0.5 * sgn)},${n(y + len2)}`;
+    }
+    const o = lerpPts(frontOutline(jaw), profileOutline(jaw, nose), dir);
+    const [tip, under] = scalePts([o[3], o[4]], W, R, sgn);
+    const start = [tip[0] * 0.3 + under[0] * 0.7, tip[1] * 0.3 + under[1] * 0.7];
+    return `M${pt(start)} Q${pt(under)} ${pt([under[0] - sgn * nose.w * W * 0.75, under[1] + R * 0.02])}`;
+  });
+  addSwap({
+    id: "nose",
+    parent: "head",
+    z: 23,
+    fill: null,
+    stroke: `${skin}Line`,
+    strokeWidth: Math.max(1, R * 0.05)
+  }, { view: noseViews });
+  const hairViews = perView((dir) => hairFront(hair, jaw, R, W, sgn, dir));
+  if (hairViews) {
+    addSwap(
+      {
+        id: "hair",
+        parent: "head",
+        z: 30,
+        fill: colors.hair ?? "hair",
+        stroke: `${colors.hair ?? "hair"}Line`,
+        strokeWidth: Math.max(1, R * 0.04)
+      },
+      { view: hairViews }
+    );
+  }
+  return parts;
+}
+function expressionSet(face, make) {
+  const shapes = { neutral: {} };
+  let any = false;
+  for (const [name, ex] of Object.entries(EXPRESSIONS)) {
+    if (name === "neutral") continue;
+    const set = make(ex);
+    if (!set) continue;
+    Object.assign(shapes, viewQualified(set, name));
+    any = true;
+  }
+  return any ? shapes : null;
+}
+function viewQualified(perViewShapes, name) {
+  const out = {};
+  for (const [view, shape] of Object.entries(perViewShapes)) {
+    out[view === "front" ? name : `${name}@${view}`] = shape;
+  }
+  return out;
+}
+
+// src/core/art/palette.js
+var SHADE = [0.8, 0.78, 0.84];
+var LINE = [0.26, 0.24, 0.28];
+function parseHex(hex) {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex ?? ""));
+  if (!m) return null;
+  let s = m[1];
+  if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+  return [0, 2, 4].map((i) => parseInt(s.slice(i, i + 2), 16));
+}
+var toHex = (rgb) => `#${rgb.map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0")).join("")}`;
+function scaleColor(hex, mul) {
+  const rgb = parseHex(hex);
+  return rgb ? toHex(rgb.map((v, i) => v * mul[i])) : hex;
+}
+var shadeOf = (hex) => scaleColor(hex, SHADE);
+var lineOf = (hex) => scaleColor(hex, LINE);
+function mixColor(a, b, t = 0.5) {
+  const ra = parseHex(a), rb = parseHex(b);
+  if (!ra || !rb) return a;
+  return toHex(ra.map((v, i) => v + (rb[i] - v) * t));
+}
+var DEFAULT_PALETTE = {
+  skin: "#c98a5e",
+  cloth: "#5a6f8c",
+  trouser: "#3c4457",
+  hair: "#241b17",
+  eye: "#17120f",
+  white: "#f4efe6",
+  shoe: "#2b2521",
+  coat: "#5a6f8c",
+  teeth: "#f1e8dc",
+  mouth: "#4a2421",
+  // Scenery. A template paints with these names, so a set renders with no
+  // palette declared and recolours entirely when one is.
+  sky: "#8fb6dc",
+  skyLow: "#cfdcea",
+  far: "#a9bcd0",
+  wall: "#cfc6b6",
+  floor: "#9a7b58",
+  wood: "#6f4f32",
+  stone: "#9c968b",
+  asphalt: "#53555c",
+  tile: "#d7cfc2",
+  metal: "#8a8e95",
+  light: "#fff4d8",
+  accent: "#8a5a48",
+  foliage: "#4f7a44",
+  bark: "#4a3526",
+  clay: "#a65e3e"
+};
+function derivePalette(palette = {}) {
+  const out = { ...DEFAULT_PALETTE, ...palette };
+  for (const [name, value] of Object.entries({ ...out })) {
+    if (name.endsWith("Shade") || name.endsWith("Line")) continue;
+    if (typeof value !== "string" || !parseHex(value)) continue;
+    out[`${name}Shade`] ??= shadeOf(value);
+    out[`${name}Line`] ??= lineOf(value);
+  }
+  return out;
+}
+
+// src/core/art/scenery.js
+var TIMES = {
+  morning: { sky: "#a8c8e0", skyLow: "#e3d3b6", wall: "#d8cfc0", light: "#ffe9bd", far: "#b9c6d4" },
+  afternoon: { sky: "#8fb6dc", skyLow: "#cfdcea", wall: "#cfc6b6", light: "#fff4d8", far: "#a9bcd0" },
+  evening: { sky: "#3f4f7a", skyLow: "#d98a52", wall: "#8d7a68", light: "#ffcf8a", far: "#6a6f92" },
+  night: { sky: "#17203a", skyLow: "#2b3457", wall: "#3b3c4a", light: "#cfd8ff", far: "#2a3150" }
+};
+var TEMPLATE_NAMES = ["living-room", "kitchen", "street", "hillside", "interior-wide"];
+var TIME_NAMES = Object.keys(TIMES);
+var rect = (id, x, y, w, h, fill, extra = {}) => ({
+  id,
+  at: [x, y],
+  shape: { kind: "rect", w, h },
+  fill,
+  ...extra
+});
+var poly = (id, d, fill, extra = {}) => ({
+  id,
+  at: [0, 0],
+  shape: { kind: "path", d },
+  fill,
+  ...extra
+});
+var PROPS = {
+  "framed-picture": (W, H, x, horizon) => [
+    rect("pic", W * x - 44, horizon - 210, 88, 66, "wood", { z: -460 }),
+    rect("picArt", W * x - 36, horizon - 202, 72, 50, "accent", { z: -455 })
+  ],
+  window: (W, H, x, horizon) => [
+    rect("win", W * x - 90, horizon - 300, 180, 170, "light", { z: -470 }),
+    rect("winFrame", W * x - 98, horizon - 308, 196, 186, "wood", { z: -475 }),
+    rect("winBar", W * x - 4, horizon - 300, 8, 170, "wood", { z: -465 })
+  ],
+  cabinet: (W, H, x, horizon) => [
+    rect("cab", W * x - 70, horizon - 190, 140, 190, "wood", { z: -450 }),
+    rect("cabLine", W * x - 2, horizon - 190, 4, 190, "woodShade", { z: -449 })
+  ],
+  sofa: (W, H, x, horizon) => [
+    rect("sofaBack", W * x - 170, horizon - 130, 340, 90, "accent", { z: -440 }),
+    rect("sofaSeat", W * x - 180, horizon - 56, 360, 56, "accentShade", { z: -435 }),
+    rect("sofaArmL", W * x - 196, horizon - 110, 28, 110, "accent", { z: -434 }),
+    rect("sofaArmR", W * x + 168, horizon - 110, 28, 110, "accent", { z: -434 })
+  ],
+  lamp: (W, H, x, horizon) => [
+    rect("lampPost", W * x - 4, horizon - 190, 8, 190, "metal", { z: -430 }),
+    poly("lampShade", `M${W * x - 44},${horizon - 250} L${W * x + 44},${horizon - 250} L${W * x + 30},${horizon - 196} L${W * x - 30},${horizon - 196} Z`, "light", { z: -429 })
+  ],
+  plant: (W, H, x, horizon) => [
+    rect("pot", W * x - 24, horizon - 46, 48, 46, "clay", { z: -430 }),
+    poly("leaves", `M${W * x},${horizon - 46} Q${W * x - 54},${horizon - 110} ${W * x - 14},${horizon - 150} Q${W * x + 6},${horizon - 100} ${W * x + 52},${horizon - 126} Q${W * x + 22},${horizon - 60} ${W * x},${horizon - 46} Z`, "foliage", { z: -429 })
+  ],
+  door: (W, H, x, horizon) => [
+    rect("doorFrame", W * x - 62, horizon - 300, 124, 300, "woodShade", { z: -470 }),
+    rect("door", W * x - 54, horizon - 292, 108, 292, "wood", { z: -468 })
+  ],
+  tree: (W, H, x, horizon) => [
+    rect("trunk", W * x - 12, horizon - 120, 24, 120, "bark", { z: -420 }),
+    poly("canopy", `M${W * x},${horizon - 290} Q${W * x + 96},${horizon - 220} ${W * x + 62},${horizon - 140} Q${W * x},${horizon - 108} ${W * x - 62},${horizon - 140} Q${W * x - 96},${horizon - 220} ${W * x},${horizon - 290} Z`, "foliage", { z: -419 })
+  ],
+  rock: (W, H, x, horizon) => [
+    poly("rock", `M${W * x - 54},${horizon} Q${W * x - 40},${horizon - 52} ${W * x},${horizon - 60} Q${W * x + 46},${horizon - 50} ${W * x + 56},${horizon} Z`, "stone", { z: -425 })
+  ]
+};
+var PROP_NAMES = Object.keys(PROPS);
+var SCENERY_TEMPLATES = {
+  "living-room": (W, H) => {
+    const horizon = H * 0.78;
+    return {
+      background: { color: "wall" },
+      ground: { y: horizon, tolerance: 14 },
+      scenery: [
+        rect("wall", 0, 0, W, horizon, "wall", { z: -600 }),
+        rect("floor", 0, horizon, W, H - horizon, "floor", { z: -590 }),
+        rect("skirting", 0, horizon - 18, W, 18, "woodShade", { z: -585 }),
+        // A second tone on the floor, hard-edged: the light falls from
+        // the window side, and a flat floor reads as paper.
+        poly(
+          "floorLight",
+          `M0,${horizon} L${W * 0.46},${horizon} L${W * 0.2},${H} L0,${H} Z`,
+          "floorShade",
+          { z: -588 }
+        )
+      ]
+    };
+  },
+  kitchen: (W, H) => {
+    const horizon = H * 0.8;
+    return {
+      background: { color: "wall" },
+      ground: { y: horizon, tolerance: 14 },
+      scenery: [
+        rect("wall", 0, 0, W, horizon, "wall", { z: -600 }),
+        rect("floor", 0, horizon, W, H - horizon, "floor", { z: -590 }),
+        rect("tile", 0, horizon - 150, W, 150, "tile", { z: -585 }),
+        rect("counter", 0, horizon - 96, W, 18, "stone", { z: -560 }),
+        rect("units", 0, horizon - 78, W, 78, "wood", { z: -565 }),
+        rect("uppers", W * 0.08, horizon - 320, W * 0.46, 120, "wood", { z: -570 }),
+        rect("upperLine", W * 0.31, horizon - 320, 4, 120, "woodShade", { z: -569 })
+      ]
+    };
+  },
+  street: (W, H) => {
+    const horizon = H * 0.72;
+    const blocks = [];
+    const widths = [0.16, 0.11, 0.19, 0.13, 0.17, 0.12, 0.18];
+    const heights = [0.4, 0.56, 0.31, 0.48, 0.36, 0.6, 0.44];
+    let x = -0.03;
+    widths.forEach((w, i) => {
+      const h = H * heights[i];
+      blocks.push(rect(
+        `block${i}`,
+        W * x,
+        horizon - h,
+        W * w + 2,
+        h,
+        i % 2 ? "far" : "farShade",
+        { z: -580 + i }
+      ));
+      x += w;
+    });
+    return {
+      background: { gradient: { stops: [[0, "sky"], [1, "skyLow"]] } },
+      ground: { y: horizon + 54, tolerance: 16 },
+      scenery: [
+        rect("sky", 0, 0, W, horizon, "sky", { z: -600 }),
+        ...blocks,
+        rect("kerb", 0, horizon + 54, W, 8, "stoneShade", { z: -540 }),
+        rect("pavement", 0, horizon, W, 62, "stone", { z: -550 }),
+        rect("road", 0, horizon + 62, W, H - horizon - 62, "asphalt", { z: -545 })
+      ]
+    };
+  },
+  hillside: (W, H) => {
+    const a = H * 0.86, b = H * 0.7;
+    return {
+      background: { gradient: { stops: [[0, "sky"], [1, "skyLow"]] } },
+      // A slope, declared once. Deriving a walk's y from this is the
+      // whole reason the ground is data and not just drawn.
+      ground: { points: [[0, a], [W * 0.5, (a + b) / 2], [W, b]], tolerance: 16 },
+      scenery: [
+        rect("sky", 0, 0, W, H, "sky", { z: -600 }),
+        poly("far", `M0,${H * 0.62} L${W * 0.3},${H * 0.44} L${W * 0.58},${H * 0.58} L${W * 0.82},${H * 0.4} L${W},${H * 0.56} L${W},${H} L0,${H} Z`, "far", { z: -590 }),
+        poly(
+          "mid",
+          `M0,${H * 0.74} L${W * 0.42},${H * 0.58} L${W},${H * 0.68} L${W},${H} L0,${H} Z`,
+          "farShade",
+          { z: -585 }
+        ),
+        poly("slope", `M0,${a} L${W},${b} L${W},${H} L0,${H} Z`, "foliage", { z: -580 }),
+        poly(
+          "slopeShade",
+          `M0,${a + 26} L${W},${b + 26} L${W},${H} L0,${H} Z`,
+          "foliageShade",
+          { z: -579 }
+        )
+      ]
+    };
+  },
+  "interior-wide": (W, H) => {
+    const horizon = H * 0.76;
+    return {
+      background: { color: "wall" },
+      ground: { y: horizon, tolerance: 14 },
+      scenery: [
+        rect("wall", 0, 0, W, horizon, "wall", { z: -600 }),
+        rect("wallShade", 0, 0, W * 0.34, horizon, "wallShade", { z: -599 }),
+        rect("floor", 0, horizon, W, H - horizon, "floor", { z: -590 }),
+        rect("skirting", 0, horizon - 16, W, 16, "woodShade", { z: -585 }),
+        rect("railing", 0, horizon - 150, W, 10, "woodShade", { z: -584 })
+      ]
+    };
+  }
+};
+function buildSceneryTemplate(spec, { width, height } = {}, diagnostics = [], path = "") {
+  const name = typeof spec === "string" ? spec : spec?.template;
+  const build = SCENERY_TEMPLATES[name];
+  if (!build) {
+    diagnostics.push({
+      severity: "warning",
+      path,
+      message: `Unknown scenery template "${name}". Known: ${TEMPLATE_NAMES.join(", ")}.`
+    });
+    return null;
+  }
+  const W = width ?? 1280, H = height ?? 720;
+  const out = build(W, H);
+  const horizon = out.ground.y ?? out.ground.points[0][1];
+  const extras = [];
+  const wanted = typeof spec === "string" ? [] : spec.props ?? [];
+  wanted.forEach((entry, i) => {
+    const [propName, at] = String(entry).split("@");
+    const make = PROPS[propName];
+    if (!make) {
+      diagnostics.push({
+        severity: "warning",
+        path,
+        message: `Unknown prop "${propName}". Known: ${PROP_NAMES.join(", ")}.`
+      });
+      return;
+    }
+    const x = at != null && at !== "" ? Number(at) : (i + 1) / (wanted.length + 1);
+    const groundHere = out.ground.y ?? interpolateGround(out.ground.points, W * x);
+    for (const item of make(W, H, x, groundHere)) {
+      extras.push({ ...item, id: `${propName}${i}_${item.id}` });
+    }
+  });
+  const time = typeof spec === "string" ? null : spec.time;
+  if (time && !TIMES[time]) {
+    diagnostics.push({
+      severity: "warning",
+      path,
+      message: `Unknown time "${time}". Known: ${TIME_NAMES.join(", ")}.`
+    });
+  }
+  return {
+    scenery: [...out.scenery, ...extras],
+    ground: out.ground,
+    background: out.background,
+    palette: TIMES[time] ?? null,
+    horizon
+  };
+}
+function interpolateGround(points, x) {
+  for (let i = 1; i < points.length; i++) {
+    if (x <= points[i][0]) {
+      const [x0, y0] = points[i - 1], [x1, y1] = points[i];
+      return x1 === x0 ? y0 : y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+    }
+  }
+  return points[points.length - 1][1];
+}
 
 // src/core/audio/cues.js
 function createCue({
@@ -1070,15 +2038,15 @@ function envelope(samples, sampleRate, fps, { smoothFrames = 2 } = {}) {
   if (smoothFrames <= 0) return raw;
   const out = new Float32Array(frames);
   for (let f = 0; f < frames; f++) {
-    let sum = 0, n = 0;
+    let sum = 0, n2 = 0;
     for (let k = -smoothFrames; k <= smoothFrames; k++) {
       const j = f + k;
       if (j >= 0 && j < frames) {
         sum += raw[j];
-        n++;
+        n2++;
       }
     }
-    out[f] = sum / n;
+    out[f] = sum / n2;
   }
   return out;
 }
@@ -1149,7 +2117,7 @@ function visemesFromText(nodeId, text, samples, { sampleRate, fps = 24, offsetSe
   if (seq.length === 0 || spans.length === 0) {
     return writeFrames(makeTrack(nodeId), frames, fps, offsetSec);
   }
-  const totalVoiced = spans.reduce((n, s) => n + (s.endFrame - s.startFrame + 1), 0);
+  const totalVoiced = spans.reduce((n2, s) => n2 + (s.endFrame - s.startFrame + 1), 0);
   let cursor = 0;
   spans.forEach((span, i) => {
     const spanFrames = span.endFrame - span.startFrame + 1;
@@ -1373,8 +2341,57 @@ var DEFAULTS = {
 };
 var KNOWN = {
   root: ["version", "meta", "voices", "assets", "palettes", "characters", "scenes"],
-  meta: ["title", "fps", "width", "height", "author", "description", "duration", "estimatedTiming"],
-  character: ["palette", "voice", "parts", "mouth", "poses", "actions", "proportions", "generate"],
+  meta: [
+    "title",
+    "fps",
+    "width",
+    "height",
+    "author",
+    "description",
+    "duration",
+    "estimatedTiming",
+    "step"
+  ],
+  character: [
+    "palette",
+    "voice",
+    "parts",
+    "mouth",
+    "poses",
+    "actions",
+    "proportions",
+    "generate",
+    "view",
+    "expression"
+  ],
+  generate: [
+    "skin",
+    "cloth",
+    "trouser",
+    "hair",
+    "hairColor",
+    "eye",
+    "white",
+    "shoe",
+    "face",
+    "build",
+    "facing"
+  ],
+  face: ["jaw", "eyes", "brow", "nose", "lips", "ears"],
+  cast: [
+    "character",
+    "as",
+    "at",
+    "scale",
+    "z",
+    "alpha",
+    "palette",
+    "view",
+    "expression",
+    "facing",
+    "echo"
+  ],
+  template: ["template", "time", "props"],
   part: [
     "id",
     "parent",
@@ -1387,7 +2404,13 @@ var KNOWN = {
     "strokeWidth",
     "z",
     "at",
-    "alpha"
+    "alpha",
+    // draw-level: compositing, glow, trimmed strokes, repeaters
+    "blend",
+    "glow",
+    "trim",
+    "repeat",
+    "gradient"
   ],
   scene: [
     "id",
@@ -1399,9 +2422,44 @@ var KNOWN = {
     "shots",
     "scenery",
     "palette",
-    "ground"
+    "ground",
+    "template",
+    "drawings",
+    "photos"
   ],
-  shot: ["id", "duration", "camera", "actions", "dialogue", "subtitleStyle"],
+  // A still photograph animated by `core/motion/PhotoMotion.js`. `source`
+  // and `depth` are asset ids; `start`/`duration` are scene-relative
+  // seconds, and `draw` retimes it like any drawing.
+  photo: [
+    "id",
+    "source",
+    "image",
+    "depth",
+    "effects",
+    "duration",
+    "start",
+    "at",
+    "z",
+    "alpha",
+    "width",
+    "height",
+    "grid",
+    "overscan",
+    "depthBlur",
+    "tear"
+  ],
+  shot: [
+    "id",
+    "duration",
+    "camera",
+    "actions",
+    "dialogue",
+    "subtitleStyle",
+    "step",
+    // what the shot is MEANT to be, so the checker can say whether it is
+    "framing",
+    "on"
+  ],
   action: [
     "target",
     "do",
@@ -1416,12 +2474,20 @@ var KNOWN = {
     "speed",
     "value",
     "channel",
+    // `draw` ramps from `from` to `to`; `from` was missing, so every
+    // backwards reveal reported its own option as unrecognized.
+    "from",
     "part",
     "bones",
-    "bend"
+    "bend",
+    // the four principles that need a number rather than a keyframe
+    "anticipate",
+    "overshoot",
+    "arc",
+    "weight"
   ],
   dialogue: ["speaker", "at", "text", "audio", "voice", "lipsync", "subtitle", "gain", "duration"],
-  camera: ["from", "to", "ease", "h", "at", "for"],
+  camera: ["from", "to", "ease", "h", "at", "for", "shake"],
   audioCue: ["asset", "at", "gain", "fadeIn", "fadeOut", "offset", "duration", "bus"],
   asset: ["kind", "src", "file", "provider", "frames", "grid", "pivot", "fit"],
   background: ["color", "gradient", "image", "fit"]
@@ -1441,26 +2507,95 @@ var KNOWN_SCENERY = [
   "screenSpace",
   "sx",
   "sy",
-  "rot"
+  "rot",
+  "blend",
+  "glow",
+  "trim",
+  "repeat"
 ];
 var SHAPE_KINDS = ["path", "ellipse", "rect", "image", "text", "group"];
 var TRANSITION_KINDS = ["fade", "crossfade", "none"];
-var DO_VERBS = ["play", "pose", "move", "reach", "set", "show", "hide"];
+var DO_VERBS = ["play", "pose", "move", "reach", "set", "show", "hide", "draw"];
+
+// src/core/anim/principles.js
+var ANTICIPATION_SHARE = 0.26;
+var OVERSHOOT_AT = 0.8;
+var anticipationValue = (from, to, amount = 0.12) => from - (to - from) * amount;
+var overshootValue = (from, to, amount = 0.1) => to + (to - from) * amount;
+function arcMidpoint([x0, y0], [x1, y1], bow = 0.18) {
+  const dx = x1 - x0, dy = y1 - y0;
+  const len2 = Math.hypot(dx, dy);
+  if (len2 < 1e-6) return [x0, y0];
+  return [
+    x0 + dx / 2 + dy / len2 * len2 * bow * -1,
+    y0 + dy / 2 + dx / len2 * len2 * bow * -1
+  ];
+}
+function overlapDelays(lag, chain = []) {
+  if (lag == null) return {};
+  if (typeof lag === "object") return lag;
+  const out = {};
+  chain.forEach((id, i) => {
+    out[id] = lag * i;
+  });
+  return out;
+}
+function squashKeys(duration, amount = 0.14, { recover = 0.6 } = {}) {
+  const sy = 1 - amount;
+  const peak = duration * (1 - recover);
+  return {
+    sy: [[0, 1], [peak, sy], [duration, 1]],
+    sx: [[0, 1], [peak, 1 / sy], [duration, 1]]
+  };
+}
+function applyOverlap(keysByChannel, delays) {
+  if (!delays || !Object.keys(delays).length) return keysByChannel;
+  const out = {};
+  for (const [channel, keys] of Object.entries(keysByChannel)) {
+    const part = channel.slice(0, channel.indexOf(".") < 0 ? channel.length : channel.indexOf("."));
+    const d = delays[part] ?? 0;
+    out[channel] = d ? keys.map((k) => Array.isArray(k) ? [k[0] + d, ...k.slice(1)] : { ...k, t: k.t + d }) : keys;
+  }
+  return out;
+}
 
 // src/core/script/generate.js
 var DEFAULT_PROPORTIONS = {
   height: 180,
   // head-to-foot in scene units
-  headRatio: 0.145,
-  // head height as a fraction of total
-  shoulderWidth: 0.26,
-  hipWidth: 0.19,
-  armThickness: 0.05,
-  legThickness: 0.062,
+  heads: 6.2,
+  // total height in head-heights, the unit animators use
+  shoulderWidth: 0.235,
+  hipWidth: 0.175,
+  armThickness: 0.052,
+  legThickness: 0.07,
   torsoTaper: 0.82
 };
+var BUILDS = {
+  slim: { shoulderWidth: 0.23, hipWidth: 0.17, armThickness: 0.046, legThickness: 0.06 },
+  average: { shoulderWidth: 0.26, hipWidth: 0.19, armThickness: 0.055, legThickness: 0.07 },
+  heavy: { shoulderWidth: 0.3, hipWidth: 0.25, armThickness: 0.072, legThickness: 0.09 },
+  athletic: { shoulderWidth: 0.29, hipWidth: 0.18, armThickness: 0.062, legThickness: 0.078 },
+  child: { heads: 4.8, shoulderWidth: 0.22, hipWidth: 0.19, armThickness: 0.052, legThickness: 0.066 }
+};
+function resolveProportions(proportions = {}, build) {
+  const named = typeof build === "string" ? BUILDS[build] ?? {} : build ?? {};
+  const p = { ...DEFAULT_PROPORTIONS, ...named, ...proportions };
+  p.headRatio = proportions.headRatio ?? named.headRatio ?? 1 / p.heads;
+  return p;
+}
+function limbPath(L, w0, w1, dx = 0) {
+  const a = w0 / 2, b = w1 / 2;
+  const r = (v) => Math.round(v * 100) / 100;
+  return `M${r(-a)},0 Q${r(-a * 1.08)},${r(L * 0.5)} ${r(dx - b)},${r(L)} Q${r(dx)},${r(L + b * 0.9)} ${r(dx + b)},${r(L)} Q${r(a * 1.08)},${r(L * 0.5)} ${r(a)},0 Q${r(a * 0.92)},${r(-a * 0.9)} 0,${r(-a * 0.95)} Q${r(-a * 0.92)},${r(-a * 0.9)} ${r(-a)},0 Z`;
+}
+function limbShadePath(L, w0, w1, dx = 0, side = 1) {
+  const a = w0 / 2 * side, b = w1 / 2 * side;
+  const r = (v) => Math.round(v * 100) / 100;
+  return `M${r(a)},0 Q${r(a * 1.06)},${r(L * 0.5)} ${r(dx + b)},${r(L * 0.97)} Q${r(dx + b * 0.3)},${r(L * 0.95)} ${r(a * 0.34)},${r(L * 0.45)} Q${r(a * 0.42)},${r(L * 0.2)} ${r(a * 0.4)},0 Z`;
+}
 function generateCharacterParts(generate = {}, proportions = {}) {
-  const p = { ...DEFAULT_PROPORTIONS, ...proportions };
+  const p = resolveProportions(proportions, generate.build);
   const H = p.height;
   const headH = H * p.headRatio;
   const headR = headH / 2;
@@ -1475,16 +2610,20 @@ function generateCharacterParts(generate = {}, proportions = {}) {
   const hipW = H * p.hipWidth;
   const armW = H * p.armThickness;
   const legW = H * p.legThickness;
+  const line = Math.max(1.2, H * 8e-3);
   const skin = generate.skin ?? "skin";
   const cloth = generate.cloth ?? "coat";
   const trouser = generate.trouser ?? cloth;
-  const hair = generate.hair ?? "hair";
+  const hair = generate.hair ?? "short-fade";
+  const hairColor = generate.hairColor ?? "hair";
+  const facing = generate.facing ?? 1;
+  const sgn = facing >= 0 ? 1 : -1;
   const half = shoulderW / 2;
   const hipHalf = hipW / 2;
   const taperHalf = half * p.torsoTaper;
   const parts = [
-    // hips is the root: everything hangs off it, so a single move or a
-    // bob on hips carries the whole body.
+    // hips is the root: everything hangs off it, so a single move or a bob
+    // on hips carries the whole body.
     {
       id: "hips",
       parent: null,
@@ -1497,145 +2636,195 @@ function generateCharacterParts(generate = {}, proportions = {}) {
       parent: "hips",
       pivot: [0, 0],
       z: 12,
+      // The shoulder line slopes down to the arms and lifts toward the
+      // neck. A flat lid across the top reads as a box with a head
+      // balanced on it.
       shape: {
         kind: "path",
-        d: `M${-hipHalf},0 L${hipHalf},0 L${taperHalf},${-torsoH} L${-taperHalf},${-torsoH} Z`
+        d: `M${-hipHalf},0 Q${-hipHalf * 1.06},${-torsoH * 0.52} ${-taperHalf},${-torsoH * 0.88} Q${-taperHalf * 0.86},${-torsoH * 1} ${-taperHalf * 0.4},${-torsoH * 1.02} Q0,${-torsoH * 1.08} ${taperHalf * 0.4},${-torsoH * 1.02} Q${taperHalf * 0.86},${-torsoH * 1} ${taperHalf},${-torsoH * 0.88} Q${hipHalf * 1.06},${-torsoH * 0.52} ${hipHalf},0 Z`
       },
-      fill: cloth
+      fill: cloth,
+      stroke: `${cloth}Line`,
+      strokeWidth: line,
+      shapes: [{
+        id: "shade",
+        z: 1,
+        fill: `${cloth}Shade`,
+        shape: {
+          kind: "path",
+          d: `M${sgn * taperHalf},${-torsoH} Q${sgn * hipHalf * 1.02},${-torsoH * 0.5} ${sgn * hipHalf},0 L${sgn * hipHalf * 0.48},0 Q${sgn * taperHalf * 0.5},${-torsoH * 0.55} ${sgn * taperHalf * 0.52},${-torsoH} Z`
+        }
+      }]
     },
     {
       id: "neck",
       parent: "torso",
       pivot: [0, -torsoH],
       z: 14,
-      shape: { kind: "rect", w: armW * 0.9, h: headR * 0.5, cx: true },
-      fill: skin
+      shape: { kind: "rect", w: armW * 0.95, h: headR * 0.6, cx: true },
+      fill: `${skin}Shade`
     },
-    {
-      id: "head",
-      parent: "neck",
-      pivot: [0, 0],
-      z: 20,
-      shape: { kind: "ellipse", rx: headR * 0.86, ry: headR },
-      fill: skin
-    },
-    {
-      id: "hair",
-      parent: "head",
-      pivot: [0, 0],
-      z: 21,
-      shape: {
-        kind: "path",
-        d: `M${-headR * 0.9},${-headR * 0.1} A${headR * 0.9},${headR} 0 0 1 ${headR * 0.9},${-headR * 0.1} L${headR * 0.75},${-headR * 0.45} L${-headR * 0.8},${-headR * 0.4} Z`
-      },
-      fill: hair
-    },
-    {
-      id: "eyeL",
-      parent: "head",
-      pivot: [-headR * 0.34, -headR * 0.08],
-      z: 22,
-      shape: { kind: "ellipse", rx: headR * 0.1, ry: headR * 0.13 },
-      fill: "eye"
-    },
-    {
-      id: "eyeR",
-      parent: "head",
-      pivot: [headR * 0.34, -headR * 0.08],
-      z: 22,
-      shape: { kind: "ellipse", rx: headR * 0.1, ry: headR * 0.13 },
-      fill: "eye"
-    }
+    // `head` is a GROUP, not a shape. drawOrder walks depth-first, so a
+    // child always draws over its parent and `z` only sorts siblings --
+    // which means anything behind the skull (hair mass, far ear) has to be
+    // the skull's sibling while still turning with the head.
+    { id: "head", parent: "neck", pivot: [0, 0], z: 20 },
+    ...headParts({
+      R: headR,
+      face: generate.face,
+      hair,
+      facing,
+      colors: {
+        skin,
+        hair: hairColor,
+        eye: generate.eye ?? "eye",
+        white: generate.white ?? "white"
+      }
+    })
   ];
   for (const side of ["L", "R"]) {
-    const sign = side === "L" ? -1 : 1;
-    const behind = side === "L";
+    const s = side === "L" ? -1 : 1;
+    const behind = s !== sgn;
     const armZ = behind ? 8 : 16;
     const legZ = behind ? 7 : 11;
+    const tone = (base) => behind ? `${base}Shade` : base;
+    const drift = s * armW * 0.18;
     parts.push(
       {
         id: `arm${side}`,
         parent: "torso",
-        pivot: [sign * taperHalf, -torsoH * 0.88],
+        pivot: [s * taperHalf * 0.94, -torsoH * 0.9],
         z: armZ,
-        shape: { kind: "path", d: `M0,0 L${sign * armW * 0.15},${upperArmH}` },
-        stroke: cloth,
-        strokeWidth: armW
+        shape: { kind: "path", d: limbPath(upperArmH, armW, armW * 0.82, drift) },
+        fill: tone(cloth),
+        stroke: `${cloth}Line`,
+        strokeWidth: line,
+        shapes: behind ? [] : [{
+          id: "shade",
+          z: 1,
+          fill: `${cloth}Shade`,
+          shape: { kind: "path", d: limbShadePath(upperArmH, armW, armW * 0.82, drift, sgn) }
+        }]
       },
       {
         id: `fore${side}`,
         parent: `arm${side}`,
-        pivot: [sign * armW * 0.15, upperArmH],
+        pivot: [drift, upperArmH],
         z: armZ,
-        shape: { kind: "path", d: `M0,0 L${sign * armW * 0.1},${foreArmH}` },
-        stroke: cloth,
-        strokeWidth: armW * 0.88
+        shape: { kind: "path", d: limbPath(foreArmH, armW * 0.82, armW * 0.56, s * armW * 0.1) },
+        fill: tone(skin),
+        stroke: `${skin}Line`,
+        strokeWidth: line
       },
+      // A mitten, not a capsule: a hand is wider than the wrist it hangs
+      // off, and a capsule the same width as the forearm disappears.
       {
         id: `hand${side}`,
         parent: `fore${side}`,
-        pivot: [sign * armW * 0.1, foreArmH],
+        pivot: [s * armW * 0.1, foreArmH],
         z: armZ,
-        shape: { kind: "ellipse", rx: armW * 0.52, ry: armW * 0.58 },
-        fill: skin
+        shape: {
+          kind: "path",
+          d: `M${-armW * 0.32},${-armW * 0.3} Q${-armW * 0.62},${armW * 0.35} ${-armW * 0.44},${armW * 0.95} Q${-armW * 0.1},${armW * 1.35} ${armW * 0.34},${armW * 1.05} Q${armW * 0.66},${armW * 0.6} ${armW * 0.5},${-armW * 0.1} Q${armW * 0.2},${-armW * 0.42} ${-armW * 0.32},${-armW * 0.3} Z`
+        },
+        fill: tone(skin),
+        stroke: `${skin}Line`,
+        strokeWidth: line
       },
       {
         id: `thigh${side}`,
         parent: "hips",
-        pivot: [sign * hipHalf * 0.62, legW * 0.3],
+        pivot: [s * hipHalf * 0.6, legW * 0.25],
         z: legZ,
-        shape: { kind: "path", d: `M0,0 L${sign * legW * 0.1},${thighH}` },
-        stroke: trouser,
-        strokeWidth: legW
+        shape: { kind: "path", d: limbPath(thighH, legW, legW * 0.84, s * legW * 0.08) },
+        fill: tone(trouser),
+        stroke: `${trouser}Line`,
+        strokeWidth: line,
+        shapes: behind ? [] : [{
+          id: "shade",
+          z: 1,
+          fill: `${trouser}Shade`,
+          shape: { kind: "path", d: limbShadePath(thighH, legW, legW * 0.84, s * legW * 0.08, sgn) }
+        }]
       },
       {
         id: `shin${side}`,
         parent: `thigh${side}`,
-        pivot: [sign * legW * 0.1, thighH],
+        pivot: [s * legW * 0.08, thighH],
         z: legZ,
-        shape: { kind: "path", d: `M0,0 L0,${shinH}` },
-        stroke: trouser,
-        strokeWidth: legW * 0.86
+        shape: { kind: "path", d: limbPath(shinH, legW * 0.84, legW * 0.5, 0) },
+        fill: tone(trouser),
+        stroke: `${trouser}Line`,
+        strokeWidth: line
       },
       {
         id: `foot${side}`,
         parent: `shin${side}`,
         pivot: [0, shinH],
         z: legZ,
-        shape: { kind: "path", d: `M${-legW * 0.3},0 L${legW * 1.1},0` },
-        stroke: "shoe",
-        strokeWidth: legW * 0.72
+        shape: {
+          kind: "path",
+          d: `M${-legW * 0.34},0 L${legW * 0.34},0 Q${sgn * legW * 1.15},${legW * 0.1} ${sgn * legW * 1.2},${legW * 0.44} Q${sgn * legW * 1.1},${legW * 0.56} ${-sgn * legW * 0.38},${legW * 0.56} Q${-legW * 0.42},${legW * 0.3} ${-legW * 0.34},0 Z`
+        },
+        fill: tone(generate.shoe ?? "shoe"),
+        stroke: `${generate.shoe ?? "shoe"}Line`,
+        strokeWidth: line
       }
     );
   }
   return parts;
 }
-function generateMouth(proportions = {}) {
-  const p = { ...DEFAULT_PROPORTIONS, ...proportions };
+function generateMouth(proportions = {}, generate = {}) {
+  const p = resolveProportions(proportions, generate.build);
   const headR = p.height * p.headRatio / 2;
-  const w = headR * 0.42;
+  const face = { ...DEFAULT_FACE, ...generate.face ?? {} };
+  const sgn = (generate.facing ?? 1) >= 0 ? 1 : -1;
+  const w = headR * 0.3 * (LIPS[face.lips] ?? 1);
+  const h = headR;
+  const views = { front: 0, threeQuarter: 0.55, profile: 1 };
+  const shift = (dir) => sgn * headR * 0.62 * dir;
+  const chart = (dir) => {
+    const x = shift(dir);
+    const k = 1 - 0.52 * dir;
+    const u = w * k;
+    return {
+      closed: { kind: "path", d: `M${x - u},0 Q${x},${h * 0.05} ${x + u},0` },
+      mid: { kind: "path", d: `M${x - u},0 Q${x},${h * 0.17} ${x + u},0 Z` },
+      open: { kind: "path", d: `M${x - u},0 Q${x},${h * 0.4} ${x + u},0 Q${x},${h * 0.08} ${x - u},0 Z` },
+      round: { kind: "path", d: `M${x - u * 0.6},${-h * 0.04} Q${x},${h * 0.32} ${x + u * 0.6},${-h * 0.04} Q${x},${h * 0.02} ${x - u * 0.6},${-h * 0.04} Z` },
+      wide: { kind: "path", d: `M${x - u * 1.15},0 Q${x},${h * 0.15} ${x + u * 1.15},0 Q${x},${h * 0.02} ${x - u * 1.15},0 Z` },
+      teeth: { kind: "path", d: `M${x - u * 0.9},0 L${x + u * 0.9},0 L${x + u * 0.85},${h * 0.11} L${x - u * 0.85},${h * 0.11} Z` }
+    };
+  };
+  const shapes = {};
+  for (const [name, dir] of Object.entries(views)) {
+    for (const [viseme, shape] of Object.entries(chart(dir))) {
+      shapes[name === "front" ? viseme : `${viseme}@${name}`] = shape;
+    }
+  }
   return {
     parent: "head",
-    pivot: [0, headR * 0.42],
-    strokeWidth: Math.max(2, headR * 0.1),
-    shapes: {
-      closed: { kind: "path", d: `M${-w},0 L${w},0` },
-      mid: { kind: "path", d: `M${-w},0 Q0,${headR * 0.16} ${w},0 Z` },
-      open: { kind: "path", d: `M${-w},0 Q0,${headR * 0.38} ${w},0 Q0,${headR * 0.08} ${-w},0 Z` },
-      round: { kind: "path", d: `M${-w * 0.6},${-headR * 0.04} Q0,${headR * 0.3} ${w * 0.6},${-headR * 0.04} Q0,${headR * 0.02} ${-w * 0.6},${-headR * 0.04} Z` },
-      wide: { kind: "path", d: `M${-w * 1.15},0 Q0,${headR * 0.14} ${w * 1.15},0 Q0,${headR * 0.02} ${-w * 1.15},0 Z` },
-      teeth: { kind: "path", d: `M${-w * 0.9},0 L${w * 0.9},0 L${w * 0.85},${headR * 0.1} L${-w * 0.85},${headR * 0.1} Z` }
-    }
+    pivot: [0, (CY + 0.52) * headR],
+    strokeWidth: Math.max(1.2, headR * 0.055),
+    stroke: "skinLine",
+    fill: "mouth",
+    shapes
   };
 }
-function generateActions(proportions = {}) {
-  const p = { ...DEFAULT_PROPORTIONS, ...proportions };
+function generateActions(proportions = {}, generate = {}) {
+  const p = resolveProportions(proportions, generate.build);
   const bob = p.height * 0.016;
   return {
     breathe: {
       duration: 3.4,
       loop: "repeat",
-      keys: { "torso.sy": [[0, 1], [1.7, 1.018], [3.4, 1]] }
+      blend: "add",
+      // Volume-preserving: the chest widens as it shortens. A scale on
+      // one axis alone reads as the character inflating.
+      keys: {
+        "torso.sy": [[0, 1], [1.7, 1.018], [3.4, 1]],
+        "torso.sx": [[0, 1], [1.7, 0.994], [3.4, 1]]
+      }
     },
     walk: {
       duration: 0.9,
@@ -1648,31 +2837,67 @@ function generateActions(proportions = {}) {
         "shinR.rot": [[0, 0.62], [0.32, 0.05], [0.72, 0.62], [0.9, 0.62]],
         "armL.rot": [[0, -0.42], [0.45, 0.42], [0.9, -0.42]],
         "armR.rot": [[0, 0.42], [0.45, -0.42], [0.9, 0.42]],
-        "foreL.rot": [[0, 0.22], [0.45, 0.42], [0.9, 0.22]],
-        "foreR.rot": [[0, 0.42], [0.45, 0.22], [0.9, 0.42]],
-        "torso.rot": [[0, 0.02], [0.45, -0.02], [0.9, 0.02]]
+        // Forearms and hands trail the limb above them: follow-through
+        // and overlapping action, which is what stops a walk reading
+        // as a single rigid hinge.
+        "foreL.rot": [[0, 0.3], [0.52, 0.46], [0.9, 0.3]],
+        "foreR.rot": [[0, 0.46], [0.52, 0.3], [0.9, 0.46]],
+        "handL.rot": [[0, 0.1], [0.58, 0.22], [0.9, 0.1]],
+        "handR.rot": [[0, 0.22], [0.58, 0.1], [0.9, 0.22]],
+        "torso.rot": [[0, 0.02], [0.45, -0.02], [0.9, 0.02]],
+        "head.rot": [[0, -0.015], [0.5, 0.012], [0.9, -0.015]]
       }
     },
     blink: {
       duration: 4.2,
       loop: "repeat",
+      // A discrete swap, not a scale. Squashing an eye node whose
+      // geometry carries its own position would pull both eyes toward
+      // the head's origin instead of closing them.
       keys: {
-        "eyeL.sy": [[0, 1], [3.9, 1], [3.98, 0.08], [4.06, 1], [4.2, 1]],
-        "eyeR.sy": [[0, 1], [3.9, 1], [3.98, 0.08], [4.06, 1], [4.2, 1]]
+        "eyes.props.eyes": [[0, "open"], [3.9, "closed"], [4.04, "open"]]
       }
     },
+    // A landing. Volume-preserving, so the character compresses rather
+    // than deflating, and it recovers faster than it compresses -- the
+    // asymmetry is what makes an impact read as an impact.
+    squash: (() => {
+      const k = squashKeys(0.5, 0.16);
+      return {
+        duration: 0.5,
+        loop: "once",
+        keys: {
+          "hips.sy": k.sy,
+          "hips.sx": k.sx,
+          "hips.y": [[0, 0], [0.2, bob * 0.6], [0.5, 0]],
+          "torso.sy": k.sy.map(([t, v]) => [t, 1 + (v - 1) * 0.5]),
+          "head.y": [[0, 0], [0.2, bob * 0.3], [0.5, 0]]
+        }
+      };
+    })(),
+    // Additive, like `breathe`: an idle is a drift ON TOP of whatever the
+    // character is doing, not a replacement for it. Authored as absolute
+    // numbers and converted to deltas against its own rest pose, so the
+    // cycle reads the same whether it layers over a guard or a standing
+    // pose.
     idle: {
       duration: 5.6,
       loop: "repeat",
+      blend: "add",
       keys: {
         "torso.rot": [[0, 8e-3], [2.8, -8e-3], [5.6, 8e-3]],
         "head.rot": [[0, -0.012], [2.1, 0.015], [4.2, -8e-3], [5.6, -0.012]],
         "armL.rot": [[0, 0.06], [2.8, 0.1], [5.6, 0.06]],
-        "armR.rot": [[0, -0.06], [2.8, -0.1], [5.6, -0.06]]
+        "armR.rot": [[0, -0.06], [2.8, -0.1], [5.6, -0.06]],
+        "foreL.rot": [[0, 0.08], [3.1, 0.14], [5.6, 0.08]],
+        "foreR.rot": [[0, -0.08], [3.1, -0.14], [5.6, -0.08]]
       }
     }
   };
 }
+
+// src/core/motion/PhotoMotion.js
+var EFFECTS = ["kenBurns", "parallax", "wave", "puppet"];
 
 // src/core/script/validate.js
 var GENERATED_ACTIONS = Object.keys(generateActions());
@@ -1698,6 +2923,7 @@ function validateFilm(film) {
     if (!char.parts?.length && !char.generate) {
       warn(`characters.${name}`, "No parts and no generate block; nothing will be drawn.");
     }
+    if (char.generate) validateGenerate(`characters.${name}.generate`, char.generate, warn);
     const ids = /* @__PURE__ */ new Set();
     for (const part of char.parts ?? []) {
       unknown(`characters.${name}.parts.${part.id}`, part, KNOWN.part, warn);
@@ -1724,12 +2950,22 @@ function validateFilm(film) {
         warn(`${sp}.${t}.kind`, `Unknown transition "${kind}"; treated as fade.`);
       }
     }
+    if (scene.template) validateTemplate(`${sp}.template`, scene.template, warn);
     const castNames = /* @__PURE__ */ new Set();
     for (const c of scene.cast ?? []) {
       const as = c.as ?? c.character;
       castNames.add(as);
+      unknown(`${sp}.cast.${as}`, c, KNOWN.cast, warn);
       if (!characters[c.character]) {
         err(`${sp}.cast`, `Character "${c.character}" is not defined.`);
+      }
+      for (const [key2, kit] of [["view", FACE_KITS.view], ["expression", FACE_KITS.expression]]) {
+        if (c[key2] != null && !kit.includes(c[key2])) {
+          warn(
+            `${sp}.cast.${as}.${key2}`,
+            `Unknown ${key2} "${c[key2]}". Known: ${kit.join(", ")}.`
+          );
+        }
       }
     }
     if (!scene.shots?.length) warn(`${sp}.shots`, "Scene has no shots; it will take no time.");
@@ -1741,12 +2977,20 @@ function validateFilm(film) {
       unknown(hp, shot, KNOWN.shot, warn);
       if (shot.duration == null) warn(`${hp}.duration`, "No duration; defaulting.");
       if (shot.camera) unknown(`${hp}.camera`, shot.camera, KNOWN.camera, warn);
+      const drawingNames = /* @__PURE__ */ new Set([
+        ...(scene.drawings ?? []).map((d2, di) => d2.id ?? `drawing${di + 1}`),
+        ...(scene.photos ?? []).map((d2, di) => d2.id ?? `photo${di + 1}`)
+      ]);
       for (const a of shot.actions ?? []) {
         unknown(`${hp}.actions`, a, KNOWN.action, warn);
         if (!DO_VERBS.includes(a.do)) {
           warn(`${hp}.actions`, `Unknown verb "${a.do}"; ignored. Known: ${DO_VERBS.join(", ")}.`);
         }
-        if (a.target && !castNames.has(a.target)) {
+        if (a.do === "draw") {
+          if (a.target && !drawingNames.has(a.target)) {
+            err(`${hp}.actions`, `draw: no drawing or photo "${a.target}" in this scene.` + (drawingNames.size ? ` Have: ${[...drawingNames].join(", ")}.` : ""));
+          }
+        } else if (a.target && !castNames.has(a.target)) {
           err(`${hp}.actions`, `Target "${a.target}" is not cast in this scene.`);
         }
         if (a.do === "pose" && a.target) {
@@ -1791,6 +3035,39 @@ function validateFilm(film) {
         warn(`${sp}.scenery`, `Unknown shape kind "${item.shape.kind}" on "${item.id}". Known: ${SHAPE_KINDS.join(", ")}.`);
       }
     }
+    (scene.photos ?? []).forEach((photo, pi) => {
+      const id = photo.id ?? `photo${pi + 1}`;
+      unknown(`${sp}.photos.${id}`, photo, KNOWN.photo, warn);
+      const src = photo.source ?? photo.image;
+      if (!src) {
+        err(`${sp}.photos.${id}`, 'No "source"; a photo needs a picture to animate.');
+      } else if (!film.assets?.[src]) {
+        err(`${sp}.photos.${id}`, `Image asset "${src}" is not declared.`);
+      }
+      if (photo.depth && !film.assets?.[photo.depth]) {
+        err(`${sp}.photos.${id}`, `Depth asset "${photo.depth}" is not declared.`);
+      }
+      for (const effect of photo.effects ?? []) {
+        if (!EFFECTS.includes(effect?.type)) {
+          warn(
+            `${sp}.photos.${id}.effects`,
+            `Unknown effect "${effect?.type}"; ignored. Known: ${EFFECTS.join(", ")}.`
+          );
+        }
+        if (effect?.type === "parallax" && !photo.depth) {
+          warn(
+            `${sp}.photos.${id}.effects`,
+            'parallax does nothing without a "depth" map.'
+          );
+        }
+      }
+      if (photo.tear && !photo.depth) {
+        warn(
+          `${sp}.photos.${id}.tear`,
+          'tear does nothing without a "depth" map.'
+        );
+      }
+    });
     for (const cue of scene.audio ?? []) {
       unknown(`${sp}.audio`, cue, KNOWN.audioCue, warn);
       if (cue.asset && !film.assets?.[cue.asset]) {
@@ -1799,6 +3076,43 @@ function validateFilm(film) {
     }
   });
   return d;
+}
+function validateGenerate(path, generate, warn) {
+  unknown(path, generate, KNOWN.generate, warn);
+  if (generate.build != null && typeof generate.build === "string" && !(generate.build in BUILDS)) {
+    warn(`${path}.build`, `Unknown build "${generate.build}". Known: ${Object.keys(BUILDS).join(", ")}.`);
+  }
+  if (generate.hair != null && !FACE_KITS.hair.includes(generate.hair)) {
+    warn(`${path}.hair`, `Unknown hair "${generate.hair}"; a default cap is drawn. Known: ${FACE_KITS.hair.join(", ")}.`);
+  }
+  if (generate.face) {
+    unknown(`${path}.face`, generate.face, KNOWN.face, warn);
+    for (const [slot, value] of Object.entries(generate.face)) {
+      const kit = FACE_KITS[slot === "brow" ? "brow" : slot];
+      if (kit && value != null && !kit.includes(value)) {
+        warn(
+          `${path}.face.${slot}`,
+          `Unknown ${slot} "${value}"; the default is used. Known: ${kit.join(", ")}.`
+        );
+      }
+    }
+  }
+}
+function validateTemplate(path, template, warn) {
+  const spec = typeof template === "string" ? { template } : template;
+  unknown(path, spec, KNOWN.template, warn);
+  if (!TEMPLATE_NAMES.includes(spec.template)) {
+    warn(path, `Unknown scenery template "${spec.template}". Known: ${TEMPLATE_NAMES.join(", ")}.`);
+  }
+  if (spec.time != null && !TIME_NAMES.includes(spec.time)) {
+    warn(`${path}.time`, `Unknown time "${spec.time}". Known: ${TIME_NAMES.join(", ")}.`);
+  }
+  for (const entry of spec.props ?? []) {
+    const name = String(entry).split("@")[0];
+    if (!PROP_NAMES.includes(name)) {
+      warn(`${path}.props`, `Unknown prop "${name}". Known: ${PROP_NAMES.join(", ")}.`);
+    }
+  }
 }
 function unknown(path, obj, known, warn) {
   for (const k of Object.keys(obj ?? {})) {
@@ -1856,14 +3170,30 @@ function measureCharacter(parts) {
     return [x, y];
   };
   let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
-  for (const part of parts) {
-    const [ox, oy] = offsetOf(part);
-    const e = shapeExtent(part.shape, part.strokeWidth ?? 0);
-    if (!e) continue;
+  const take = (ox, oy, e) => {
+    if (!e) return;
     left = Math.min(left, ox + e.left);
     right = Math.max(right, ox + e.right);
     top = Math.min(top, oy + e.top);
     bottom = Math.max(bottom, oy + e.bottom);
+  };
+  for (const part of parts) {
+    const [ox, oy] = offsetOf(part);
+    const sw = part.strokeWidth ?? 0;
+    take(ox, oy, shapeExtent(part.shape, sw));
+    for (const set of Object.values(part.swap ?? {})) {
+      for (const shape of Object.values(set.shapes ?? set)) {
+        take(ox, oy, shapeExtent(shape, sw));
+      }
+    }
+    for (const layer of part.shapes ?? []) {
+      const lx = ox + (layer.at?.[0] ?? 0), ly = oy + (layer.at?.[1] ?? 0);
+      const lsw = layer.strokeWidth ?? sw;
+      take(lx, ly, shapeExtent(layer.shape, lsw));
+      for (const set of Object.values(layer.swap ?? {})) {
+        for (const shape of Object.values(set.shapes ?? set)) take(lx, ly, shapeExtent(shape, lsw));
+      }
+    }
   }
   if (!Number.isFinite(top)) return { top: 0, bottom: 0, left: 0, right: 0 };
   return { top, bottom, left, right };
@@ -1949,6 +3279,18 @@ function cameraAt(timeline, t, meta, trackValueAt2) {
   const h = meta.height / zoom;
   return { left: cx - w / 2, right: cx + w / 2, top: cy - h / 2, bottom: cy + h / 2, zoom };
 }
+var FRAMINGS = {
+  wide: { min: 0.04, max: 0.15, says: "the whole figure with room around it" },
+  medium: { min: 0.13, max: 0.3, says: "roughly waist up" },
+  close: { min: 0.26, max: 0.75, says: "head and shoulders filling the frame" }
+};
+var FRAMING_NAMES = Object.keys(FRAMINGS);
+function headHeight(char) {
+  const p = char?.proportions ?? {};
+  const height = p.height ?? 180;
+  const ratio = p.headRatio ?? 1 / (p.heads ?? (char?.generate?.build === "child" ? 4.8 : 6.2));
+  return height * ratio;
+}
 function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt: trackValueAt2 } = {}) {
   const d = [];
   if (!compiled?.scene || !compiled.timeline || !trackValueAt2) return d;
@@ -1962,12 +3304,13 @@ function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt: trac
     }
     return extents.get(charName);
   };
-  const casts = [...scene.byId.values()].filter((n) => n.tags?.includes("cast")).map((n) => {
-    const [sceneId, as] = String(n.id).split("/");
-    return { node: n, charName: n.tags[1], sceneId, as: as ?? n.id };
+  const casts = [...scene.byId.values()].filter((n2) => n2.tags?.includes("cast")).map((n2) => {
+    const [sceneId, as] = String(n2.id).split("/");
+    return { node: n2, charName: n2.tags[1], sceneId, as: as ?? n2.id };
   });
   const seenOffFrame = /* @__PURE__ */ new Set();
   const seenGround = /* @__PURE__ */ new Set();
+  const seenFraming = /* @__PURE__ */ new Set();
   try {
     for (const span of shots) {
       const ground = span.scene.ground ?? null;
@@ -1979,6 +3322,46 @@ function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt: trac
         const frame = cameraAt(timeline, t, meta, trackValueAt2);
         const onScreen = /* @__PURE__ */ new Map();
         for (const { node, alpha } of scene.drawOrder()) onScreen.set(node.id, alpha);
+        const wanted = span.shot?.framing;
+        if (wanted && !seenFraming.has(span.shotId)) {
+          const band = FRAMINGS[wanted];
+          if (!band) {
+            seenFraming.add(span.shotId);
+            d.push({
+              severity: "warning",
+              path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+              message: `Framing: unknown framing "${wanted}" in shot ${span.shotId}. Known: ${FRAMING_NAMES.join(", ")}.`
+            });
+          } else {
+            const inScene = casts.filter((c) => c.sceneId === span.sceneId && (onScreen.get(c.node.id) ?? 0) >= 0.5);
+            const headOf = (c) => headHeight(film.characters?.[c.charName]) * (Math.abs(scene.worldMatrix(c.node.id)[0]) || 1);
+            const subject = span.shot.on ? inScene.find((c) => c.as === span.shot.on) : inScene.slice().sort((a, b) => headOf(b) - headOf(a))[0];
+            const subjectName = subject?.as ?? span.shot.on;
+            if (span.shot.on && !subject) {
+              seenFraming.add(span.shotId);
+              d.push({
+                severity: "warning",
+                path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+                message: `Framing: shot ${span.shotId} is framed on "${span.shot.on}", who is not on screen here.`
+              });
+            } else if (subject) {
+              const scale2 = Math.abs(scene.worldMatrix(subject.node.id)[0]) || 1;
+              const head = headHeight(film.characters?.[subject.charName]) * scale2;
+              const visible = frame.bottom - frame.top;
+              const ratio = visible > 0 ? head / visible : 0;
+              if (ratio < band.min || ratio > band.max) {
+                seenFraming.add(span.shotId);
+                const target = band.min + (band.max - band.min) * 0.3;
+                const suggest = meta.height * target / head;
+                d.push({
+                  severity: "warning",
+                  path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+                  message: `Framing: shot ${span.shotId} declares "${wanted}" (${band.says}) on "${subjectName}", but one head is ${(ratio * 100).toFixed(0)}% of the frame height at ${t.toFixed(1)}s -- "${wanted}" wants ${(band.min * 100).toFixed(0)}-${(band.max * 100).toFixed(0)}%. Try zoom ${suggest.toFixed(2)}.`
+                });
+              }
+            }
+          }
+        }
         for (const { node, charName, sceneId, as } of casts) {
           if (sceneId !== span.sceneId) continue;
           if ((onScreen.get(node.id) ?? 0) < 0.5) continue;
@@ -1993,6 +3376,9 @@ function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt: trac
             bottom: wy + e.bottom * scale2
           };
           const outside = box.right < frame.left || box.left > frame.right || box.bottom < frame.top || box.top > frame.bottom;
+          const subjectOnly = span.shot?.on ?? (span.shot?.framing === "close" || span.shot?.framing === "medium");
+          const isSubject = span.shot?.on ? as === span.shot.on : false;
+          if (subjectOnly && !isSubject) continue;
           const key2 = `${span.shotId}:${node.id}`;
           if (outside && !seenOffFrame.has(key2)) {
             seenOffFrame.add(key2);
@@ -2022,6 +3408,176 @@ function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt: trac
   }
   return d;
 }
+function analyseMotion(compiled, film, { fps = null, visibleMove = 0.3 } = {}) {
+  const { scene, timeline, meta } = compiled ?? {};
+  if (!scene || !timeline) return { frames: 0, shots: [], frozen: 0, moving: 0 };
+  const rate = fps ?? meta?.fps ?? 24;
+  const frames = Math.round((meta?.duration ?? timeline.duration ?? 0) * rate);
+  const baseline = createPoseBaseline(scene, timeline);
+  const ids = [...scene.byId.values()].filter((n2) => n2.kind !== "group" && n2.kind !== "camera" && String(n2.id).split("/").length >= 3 && !String(n2.id).includes("/set")).map((n2) => n2.id);
+  if (!ids.length || frames < 2) return { frames: 0, shots: [], frozen: 0, moving: 0 };
+  const steps = timeline.steps ?? [];
+  const globalStep = timeline.step ?? 0;
+  const stepAt2 = (t) => {
+    for (const span of steps) if (t >= span.start && t < span.end) return span.step ?? 0;
+    return globalStep;
+  };
+  const perFrame = [];
+  let prev = null;
+  let lastDrawn = null;
+  for (let f = 0; f < frames; f++) {
+    const t = f / rate;
+    const step = stepAt2(t);
+    const drawing = step > 1 ? Math.floor(f / step) : f;
+    if (lastDrawn === drawing) continue;
+    lastDrawn = drawing;
+    resetPose(scene, baseline);
+    applyPose(scene, samplePose(timeline, t));
+    const cur = ids.map((id) => applyToPoint(scene.worldMatrix(id), 0, 0));
+    if (prev) {
+      let sum = 0;
+      for (let i = 0; i < cur.length; i++) {
+        sum += Math.hypot(cur[i][0] - prev[i][0], cur[i][1] - prev[i][1]);
+      }
+      perFrame.push({ t, v: sum / cur.length });
+    }
+    prev = cur;
+  }
+  const frozen = perFrame.filter((x) => x.v < 1e-3).length / perFrame.length;
+  const moving = perFrame.filter((x) => x.v >= visibleMove).length / perFrame.length;
+  const shots = filmShots(film).map((sh) => {
+    const seg = perFrame.filter((x) => x.t >= sh.start && x.t < sh.end).map((x) => x.v);
+    if (!seg.length) return { shotId: sh.shotId, frozen: 1, moving: 0, median: 0 };
+    const sorted = [...seg].sort((x, y) => x - y);
+    return {
+      shotId: sh.shotId,
+      sceneId: sh.sceneId,
+      frozen: seg.filter((v) => v < 1e-3).length / seg.length,
+      moving: seg.filter((v) => v >= visibleMove).length / seg.length,
+      median: sorted[Math.floor(sorted.length / 2)]
+    };
+  });
+  return { frames: perFrame.length, frozen, moving, shots, perFrame };
+}
+function checkMotion(compiled, film, options = {}) {
+  const d = [];
+  const { frozenShot = 0.95 } = options;
+  const report = analyseMotion(compiled, film, options);
+  for (const shot of report.shots) {
+    if (shot.frozen >= frozenShot) {
+      d.push({
+        severity: "warning",
+        path: `scenes.${shot.sceneId}.shots.${shot.shotId}`,
+        message: `Motion: shot ${shot.shotId} is completely still -- ${(shot.frozen * 100).toFixed(0)}% of its frames have zero cast movement. A camera move or shake will make it look busy while nothing is animating. Give it an idle clip, or a pose that changes across the shot.`
+      });
+    }
+  }
+  if (report.frames && report.frozen >= 0.5) {
+    d.push({
+      severity: "warning",
+      path: "scenes",
+      message: `Motion: ${(report.frozen * 100).toFixed(0)}% of the film's frames have no cast movement at all. For comparison a held dialogue scene runs near 2%.`
+    });
+  }
+  return d;
+}
+
+// src/core/anim/echo.js
+var GHOST = "#echo";
+function buildEcho({ scene, timeline, meta }, rootId, spec = {}, spans = null) {
+  const frames = Math.max(0, Math.min(8, Math.round(spec.frames ?? 3)));
+  if (!frames) return 0;
+  const spacing = (spec.spacing ?? 2) / (meta?.fps ?? 24);
+  const falloff = spec.falloff ?? 0.45;
+  const root = scene.get(rootId);
+  if (!root) return 0;
+  const subtree = [];
+  scene.walk((n2) => subtree.push(n2), rootId);
+  let added = 0;
+  for (let k = 1; k <= frames; k++) {
+    const suffix = `${GHOST}${k}`;
+    const alpha = Math.pow(falloff, k);
+    for (const node of subtree) {
+      const isRoot = node.id === rootId;
+      scene.add({
+        ...structuredClone({
+          kind: node.kind,
+          name: node.name,
+          z: node.z,
+          transform: { ...node.transform },
+          props: { ...node.props }
+        }),
+        id: `${node.id}${suffix}`,
+        // The trail sits BEHIND the live drawing: a ghost in front of
+        // the character reads as a double exposure, not as speed.
+        z: (node.z ?? 0) - 1e-3 * k,
+        props: {
+          ...node.props,
+          alpha: (node.props.alpha ?? 1) * (isRoot ? alpha : 1),
+          // Ghosts never re-run the swap pass on their own account;
+          // they inherit whatever geometry the clone captured.
+          echo: void 0
+        }
+      }, isRoot ? node.parentId : `${node.parentId}${suffix}`);
+      added++;
+    }
+  }
+  const own = timeline.tracks.filter((t) => String(t.target).startsWith(rootId));
+  for (let k = 1; k <= frames; k++) {
+    const shift = k * spacing;
+    for (const track of own) {
+      const copy = {
+        ...track,
+        target: `${track.target}${GHOST}${k}`,
+        keys: track.keys.map((key2) => ({ ...key2, t: key2.t + shift }))
+      };
+      timeline.tracks.push(copy);
+      timeline._index?.set(`${copy.target}\0${copy.path}`, copy);
+    }
+  }
+  if (spans && spans.length) {
+    const fps = meta?.fps ?? 24;
+    const eps = 0.5 / fps;
+    for (let k = 1; k <= frames; k++) {
+      const id = `${rootId}${GHOST}${k}`;
+      const live = Math.pow(falloff, k);
+      keyAlpha(timeline, id, 0, 0);
+      for (const span of spans) {
+        keyAlpha(timeline, id, Math.max(0, span.start - eps), 0);
+        keyAlpha(timeline, id, span.start, live);
+        keyAlpha(timeline, id, Math.max(span.start, span.end - eps), live);
+        keyAlpha(timeline, id, span.end, 0);
+      }
+    }
+  }
+  const insts = timeline.instances.filter((i) => i.scopeId === rootId);
+  for (let k = 1; k <= frames; k++) {
+    const shift = k * spacing;
+    for (const inst of insts) {
+      timeline.instances.push({
+        ...inst,
+        scopeId: `${inst.scopeId}${GHOST}${k}`,
+        start: (inst.start ?? 0) + shift,
+        end: (inst.end ?? timeline.duration) + shift
+      });
+    }
+  }
+  return added;
+}
+function keyAlpha(timeline, target, t, v) {
+  const k = `${target}\0props.alpha`;
+  let track = timeline._index?.get(k);
+  if (!track) {
+    track = { target, path: "props.alpha", type: "number", keys: [] };
+    timeline.tracks.push(track);
+    timeline._index?.set(k, track);
+  }
+  const at = track.keys.findIndex((x) => x.t >= t);
+  const entry = { t, v, ease: "step" };
+  if (at >= 0 && Math.abs(track.keys[at].t - t) < 1e-9) track.keys[at] = entry;
+  else if (at < 0) track.keys.push(entry);
+  else track.keys.splice(at, 0, entry);
+}
 
 // src/core/script/compile.js
 var EPS = 1e-4;
@@ -2035,10 +3591,15 @@ function compileFilm(film, { assets = {} } = {}) {
     fps: film.meta?.fps ?? DEFAULTS.fps,
     width: film.meta?.width ?? DEFAULTS.width,
     height: film.meta?.height ?? DEFAULTS.height,
+    // Frames per drawing for the cast: 2 is the anime standard, 1 is
+    // every frame. A shot may override it.
+    step: film.meta?.step ?? 0,
     version: FILM_VERSION
   };
   const scene = new Scene();
   const timeline = createTimeline({ fps: meta.fps });
+  timeline.steps = [];
+  timeline.step = meta.step ?? 0;
   const audioCues = [];
   const lipsyncJobs = [];
   const { castBySpeaker, diagnostics: voiceDiag } = castVoices(film);
@@ -2075,9 +3636,35 @@ function compileFilm(film, { assets = {} } = {}) {
       key(timeline, groupId, "props.alpha", sceneEnd - EPS, 1, { type: "number", ease: "step" });
       key(timeline, groupId, "props.alpha", sceneEnd, 0, { type: "number", ease: "step" });
     }
-    buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics);
-    buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics);
+    const spec = expandTemplate(sceneSpec, meta, palettes, diagnostics);
+    const scenePalette = derivePalette(palettes[spec.palette] ?? {});
+    buildBackground(
+      scene,
+      timeline,
+      spec,
+      groupId,
+      meta,
+      assets,
+      diagnostics,
+      (c) => c == null ? null : scenePalette[c] ?? c
+    );
+    buildScenery(scene, spec, groupId, palettes, meta, assets, diagnostics);
+    buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagnostics);
+    buildPhotos(
+      scene,
+      timeline,
+      spec,
+      groupId,
+      sceneId,
+      meta,
+      assets,
+      diagnostics,
+      sceneStart,
+      sceneEnd
+    );
     const castMap = /* @__PURE__ */ new Map();
+    const echoes = [];
+    const shotSpans = [];
     for (const entry of sceneSpec.cast ?? []) {
       const charName = entry.character;
       const char = characters[charName];
@@ -2091,12 +3678,14 @@ function compileFilm(film, { assets = {} } = {}) {
         as,
         rootId,
         parentId: groupId,
-        entry,
+        entry: standOnGround(entry, char, spec.ground),
         palettes,
         diagnostics,
-        assets
+        assets,
+        scenePalette: spec.palette
       });
       castMap.set(as, { rootId, char, charName, entry });
+      if (entry.echo) echoes.push([rootId, entry.echo]);
     }
     for (const cue of sceneSpec.audio ?? []) {
       if (!cue.asset) continue;
@@ -2138,7 +3727,10 @@ function compileFilm(film, { assets = {} } = {}) {
           sceneId,
           characters,
           diagnostics,
-          ground: sceneSpec.ground ?? null
+          ground: spec.ground ?? null,
+          // So `set props.fill` can name a palette colour, exactly
+          // as a part or a scenery item does.
+          colorOf: (c) => c == null ? null : scenePalette[c] ?? c
         });
       }
       for (const line of shot.dialogue ?? []) {
@@ -2155,8 +3747,16 @@ function compileFilm(film, { assets = {} } = {}) {
           diagnostics
         });
       }
+      shotSpans.push({ id: shot.id ?? `shot${hi}`, start: shotStart, end: shotEnd });
+      const step = shot.step ?? meta.step ?? 0;
+      if (step > 1) timeline.steps.push({ start: shotStart, end: shotEnd, step });
       shotTime = shotEnd;
       if (hi === shots.length - 1) filmTime = shotEnd;
+    }
+    for (const [rootId, spec2] of echoes) {
+      const want = spec2.shots ? new Set([].concat(spec2.shots)) : null;
+      const spans = want ? shotSpans.filter((sp) => want.has(sp.id)).map(({ start, end }) => ({ start, end })) : null;
+      buildEcho({ scene, timeline, meta }, rootId, spec2, spans);
     }
     filmTime = sceneEnd;
   }
@@ -2190,7 +3790,11 @@ function resolveImageProps(props, assets, diagnostics, path) {
   props.image = image;
   return props;
 }
-function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics) {
+function resolveGradient(gradient, colorOf) {
+  if (!gradient?.stops) return gradient ?? null;
+  return { ...gradient, stops: gradient.stops.map(([at, c]) => [at, colorOf(c)]) };
+}
+function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diagnostics, colorOf = (c) => c) {
   const bg = sceneSpec.background;
   if (!bg) return;
   const id = `${groupId}/bg`;
@@ -2214,7 +3818,12 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
         cy: true,
         fit: bg.fit ?? "cover",
         screenSpace: true
-      } : { w: meta.width, h: meta.height, fill: bg.color ?? "#111317", screenSpace: true },
+      } : {
+        w: meta.width,
+        h: meta.height,
+        fill: colorOf(bg.color) ?? "#111317",
+        screenSpace: true
+      },
       transform: image ? { x: meta.width / 2, y: meta.height / 2 } : void 0,
       z: -1e3
     }, groupId);
@@ -2225,18 +3834,40 @@ function buildBackground(scene, timeline, sceneSpec, groupId, meta, assets, diag
       props: {
         w: meta.width,
         h: meta.height,
-        fill: bg.color ?? "#111317",
-        gradient: bg.gradient ?? null,
+        fill: colorOf(bg.color) ?? "#111317",
+        gradient: resolveGradient(bg.gradient, colorOf),
         screenSpace: true
       },
       z: -1e3
     }, groupId);
   }
 }
+function expandTemplate(sceneSpec, meta, palettes, diagnostics) {
+  if (!sceneSpec.template) return sceneSpec;
+  const built = buildSceneryTemplate(
+    sceneSpec.template,
+    meta,
+    diagnostics,
+    `scenes.${sceneSpec.id}.template`
+  );
+  if (!built) return sceneSpec;
+  if (built.palette && sceneSpec.palette) {
+    palettes[sceneSpec.palette] = { ...built.palette, ...palettes[sceneSpec.palette] };
+  } else if (built.palette) {
+    palettes[`__t_${sceneSpec.id}`] = built.palette;
+  }
+  return {
+    ...sceneSpec,
+    palette: sceneSpec.palette ?? (built.palette ? `__t_${sceneSpec.id}` : void 0),
+    background: sceneSpec.background ?? built.background,
+    ground: sceneSpec.ground ?? built.ground,
+    scenery: [...built.scenery, ...sceneSpec.scenery ?? []]
+  };
+}
 function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics) {
   const items = sceneSpec.scenery ?? [];
   if (!items.length) return;
-  const palette = palettes[sceneSpec.palette] ?? {};
+  const palette = derivePalette(palettes[sceneSpec.palette] ?? {});
   const colorOf = (c) => c == null ? null : palette[c] ?? c;
   items.forEach((item, i) => {
     const id = `${groupId}/set${i}_${item.id ?? ""}`;
@@ -2258,8 +3889,9 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnos
         fill: colorOf(item.fill),
         stroke: colorOf(item.stroke),
         strokeWidth: item.strokeWidth,
-        gradient: item.gradient ?? null,
+        gradient: resolveGradient(item.gradient, colorOf),
         alpha: item.alpha ?? 1,
+        ...drawProps(item, colorOf),
         screenSpace: item.screenSpace ?? false
       }, assets, diagnostics, `scenes.${sceneSpec.id}.scenery.${item.id ?? i}`),
       z: item.z ?? -500
@@ -2303,9 +3935,11 @@ function instantiateCharacter({
   entry,
   palettes,
   diagnostics,
-  assets = {}
+  assets = {},
+  scenePalette
 }) {
-  const palette = { ...palettes[char.palette] ?? {}, ...entry.palette ?? {} };
+  const named = palettes[char.palette] ?? palettes[scenePalette] ?? {};
+  const palette = derivePalette({ ...named, ...entry.palette ?? {} });
   const colorOf = (c) => c == null ? null : palette[c] ?? c;
   const scale2 = entry.scale ?? 1;
   const at = entry.at ?? [0, 0];
@@ -2313,7 +3947,18 @@ function instantiateCharacter({
     id: rootId,
     kind: "group",
     transform: { x: at[0], y: at[1], sx: scale2, sy: scale2 },
-    props: { alpha: entry.alpha ?? 1 },
+    // `view` and `expression` live on the root and are read by every
+    // feature below it through ancestor lookup, so one `set` turns a head
+    // whose dozen parts would otherwise need a dozen identical writes.
+    // Declared ONLY when the author asked for one. A blanket `view:
+    // 'front'` here would be the nearest declaration for every part below
+    // it, which silently overrides a part's own declared default -- the
+    // precedence has to run author > part default > first member.
+    props: {
+      alpha: entry.alpha ?? 1,
+      ...entry.view ?? char.view ? { view: entry.view ?? char.view } : {},
+      ...entry.expression ?? char.expression ? { expression: entry.expression ?? char.expression } : {}
+    },
     z: entry.z ?? 0,
     tags: ["cast", charName]
   }, parentId);
@@ -2328,7 +3973,11 @@ function instantiateCharacter({
     const layers = Array.isArray(part.shapes) ? part.shapes : null;
     scene.add({
       id: nodeId,
-      kind: layers ? "group" : part.shape?.kind ?? "group",
+      // A part with BOTH a shape and layers keeps its own shape: the
+      // layers are children, and children draw over their parent, which
+      // is exactly base-then-shade. Forcing `group` whenever layers
+      // existed silently dropped the base drawing.
+      kind: part.shape?.kind ?? "group",
       name: part.id,
       // The pivot is the joint: a limb rotates about where it attaches,
       // which is the whole trick behind a cutout rig reading correctly.
@@ -2344,6 +3993,7 @@ function instantiateCharacter({
         stroke: colorOf(part.stroke),
         strokeWidth: part.strokeWidth,
         alpha: part.alpha ?? 1,
+        ...drawProps(part, colorOf),
         ...swapProps(part, colorOf)
       }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
       z: part.z ?? 0
@@ -2360,6 +4010,7 @@ function instantiateCharacter({
           stroke: colorOf(layer.stroke),
           strokeWidth: layer.strokeWidth,
           alpha: layer.alpha ?? 1,
+          ...drawProps(layer, colorOf),
           ...swapProps(layer, colorOf)
         }, assets, diagnostics, `characters.${charName}.parts.${part.id}.${layer.id ?? i}`),
         z: layer.z ?? i
@@ -2368,7 +4019,7 @@ function instantiateCharacter({
     added.add(part.id);
   };
   for (const part of parts ?? []) addPart(part);
-  const mouthSpec = char.mouth ?? (char.generate ? generateMouth(char.proportions) : null);
+  const mouthSpec = char.mouth ?? (char.generate ? generateMouth(char.proportions, char.generate) : null);
   if (mouthSpec) {
     const m = mouthSpec;
     const shapes = {};
@@ -2389,7 +4040,7 @@ function instantiateCharacter({
       },
       z: m.z ?? 100
     }, parent);
-  } else if (char.parts?.length) {
+  } else if (char.parts?.length && char.voice) {
     diagnostics.push({
       severity: "warning",
       path: `characters.${charName}.mouth`,
@@ -2401,17 +4052,35 @@ function characterParts(char) {
   if (char.parts?.length) return char.parts;
   return char.generate ? generateCharacterParts(char.generate, char.proportions) : [];
 }
+function drawProps(part, colorOf) {
+  const out = {};
+  if (part.blend) out.blend = part.blend;
+  if (part.trim) out.trim = part.trim;
+  if (part.repeat) out.repeat = part.repeat;
+  if (part.gradient) out.gradient = resolveGradient(part.gradient, colorOf);
+  if (part.glow) {
+    out.glow = typeof part.glow === "object" ? { ...part.glow, ...part.glow.color != null && { color: colorOf(part.glow.color) } } : part.glow;
+  }
+  return out;
+}
 function swapProps(part, colorOf) {
   const spec = part.swap;
   if (!spec) return {};
   const swapSets = {};
-  const props = {};
+  const swapDefaults = {};
   for (const [channel, set] of Object.entries(spec)) {
     const shapes = set.shapes ?? set;
-    swapSets[channel] = shapes;
-    props[channel] = set.default ?? Object.keys(shapes)[0];
+    swapSets[channel] = Object.fromEntries(Object.entries(shapes).map(([k, v]) => [
+      k,
+      v && (v.fill != null || v.stroke != null) ? {
+        ...v,
+        ...v.fill != null && { fill: colorOf(v.fill) },
+        ...v.stroke != null && { stroke: colorOf(v.stroke) }
+      } : v
+    ]));
+    swapDefaults[channel] = set.default ?? Object.keys(shapes)[0];
   }
-  return { swapSets, ...props };
+  return { swapSets, swapDefaults };
 }
 function shapeProps(shape) {
   if (!shape) return {};
@@ -2439,9 +4108,54 @@ function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamer
   if (start.rot != null || end.rot != null) {
     write("transform.rot", start.rot ?? 0, end.rot ?? 0);
   }
+  if (cam?.shake) buildShake({ timeline, cameraId, cam, moveStart, startAt, dur, meta, centre, start, end });
   return { x: end.x ?? 0, y: end.y ?? 0, zoom: end.zoom ?? 1, rot: end.rot ?? 0 };
 }
-function writeChannel({ timeline, target, channel, value, at, span, ease, h }) {
+function buildShake({ timeline, cameraId, cam, moveStart, startAt, dur, meta, centre, start, end }) {
+  const spec = typeof cam.shake === "number" ? { amount: cam.shake } : cam.shake;
+  const amount = spec.amount ?? 12;
+  if (!(amount > 0)) return;
+  const fps = meta.fps || 24;
+  const at = Math.max(startAt, moveStart + (spec.at ?? 0));
+  const span = Math.min(spec.for ?? 0.45, dur - (at - moveStart));
+  const steps = Math.max(2, Math.round(span * fps));
+  const baseX = centre.x + (start.x ?? 0), endX = centre.x + (end.x ?? 0);
+  const baseY = centre.y + (start.y ?? 0), endY = centre.y + (end.y ?? 0);
+  for (let i = 0; i <= steps; i++) {
+    const t = at + i / steps * span;
+    const decay = 1 - i / steps;
+    const sign = i % 2 ? -1 : 1;
+    const u = dur > 0 ? Math.min(1, Math.max(0, (t - moveStart) / dur)) : 0;
+    key(
+      timeline,
+      cameraId,
+      "transform.x",
+      t,
+      baseX + (endX - baseX) * u + sign * amount * decay,
+      { type: "number", ease: "linear" }
+    );
+    key(
+      timeline,
+      cameraId,
+      "transform.y",
+      t,
+      baseY + (endY - baseY) * u + sign * amount * decay * 0.6,
+      { type: "number", ease: "linear" }
+    );
+  }
+}
+function writeChannel({
+  timeline,
+  target,
+  channel,
+  value,
+  at,
+  span,
+  ease,
+  h,
+  anticipate = 0,
+  overshoot = 0
+}) {
   const path = `transform.${channel}`;
   if (span == null) {
     key(timeline, target, path, at, value, { type: "number", ease, h });
@@ -2449,13 +4163,51 @@ function writeChannel({ timeline, target, channel, value, at, span, ease, h }) {
   }
   const prev = lastValueBefore(timeline, target, path, at) ?? defaultChannel(channel);
   key(timeline, target, path, at, prev, { type: "number", ease, h });
+  if (anticipate) {
+    key(
+      timeline,
+      target,
+      path,
+      at + span * ANTICIPATION_SHARE,
+      anticipationValue(prev, value, anticipate),
+      { type: "number", ease: "smooth" }
+    );
+  }
+  if (overshoot) {
+    key(
+      timeline,
+      target,
+      path,
+      at + span * OVERSHOOT_AT,
+      overshootValue(prev, value, overshoot),
+      { type: "number", ease: "smooth" }
+    );
+  }
   key(timeline, target, path, at + span, value, { type: "number" });
+}
+function standOnGround(entry, char, ground) {
+  const at = entry.at;
+  if (!ground || !Array.isArray(at) || at[1] != null) return entry;
+  const gy = groundAt(ground, at[0] ?? 0);
+  if (gy == null) return entry;
+  return { ...entry, at: [at[0] ?? 0, gy - castFeet(char, entry)] };
 }
 function castFeet(char, entry) {
   const parts = characterParts(char ?? {});
   if (!parts.length) return 0;
   return measureCharacter(parts).bottom * (entry?.scale ?? 1);
 }
+function seedChannel(scene, timeline, nodeId, path) {
+  if (timeline._index?.get(`${nodeId}\0${path}`)) return;
+  const node = scene.get(nodeId);
+  if (!node) return;
+  const dot2 = path.indexOf(".");
+  const bag = path.slice(0, dot2) === "props" ? node.props : node.transform;
+  const current = bag?.[path.slice(dot2 + 1)];
+  if (current === void 0) return;
+  key(timeline, nodeId, path, 0, current, { type: typeof current === "number" ? "number" : void 0, ease: "step" });
+}
+var COLOR_CHANNELS = /* @__PURE__ */ new Set(["props.fill", "props.stroke"]);
 function buildAction({
   scene,
   timeline,
@@ -2466,8 +4218,45 @@ function buildAction({
   sceneId,
   characters,
   diagnostics,
-  ground = null
+  ground = null,
+  colorOf = null
 }) {
+  const at0 = shotStart + (action.at ?? 0);
+  if (action.do === "draw") {
+    const nodeId = `${sceneId}/${action.target}`;
+    if (!scene.get(nodeId)) {
+      diagnostics.push({
+        severity: "warning",
+        path: `scenes.${sceneId}.actions`,
+        message: `draw: no drawing or photo "${action.target}" in this scene`
+      });
+      return;
+    }
+    const from = action.from ?? 0;
+    const to = action.to ?? 1;
+    const span0 = action.for ?? null;
+    const ease0 = action.ease ?? "smooth";
+    if (at0 > 0) {
+      key(timeline, nodeId, "props.progress", 0, from, { type: "number", ease: "step" });
+    }
+    key(
+      timeline,
+      nodeId,
+      "props.progress",
+      at0,
+      from,
+      { type: "number", ease: ease0, h: action.h }
+    );
+    key(
+      timeline,
+      nodeId,
+      "props.progress",
+      at0 + (span0 ?? 0),
+      to,
+      { type: "number", ease: ease0, h: action.h }
+    );
+    return;
+  }
   const cast = castMap.get(action.target);
   if (!cast) return;
   const { rootId, charName, entry } = cast;
@@ -2476,6 +4265,8 @@ function buildAction({
   const span = action.for ?? null;
   const ease = action.ease ?? "smooth";
   const h = action.h;
+  const anticipate = action.anticipate ?? 0;
+  const overshoot = action.overshoot ?? 0;
   switch (action.do) {
     case "pose": {
       const pose = char?.poses?.[action.pose];
@@ -2490,7 +4281,9 @@ function buildAction({
             at,
             span,
             ease,
-            h
+            h,
+            anticipate,
+            overshoot
           });
         }
       }
@@ -2506,9 +4299,53 @@ function buildAction({
       const prevX = lastValueBefore(timeline, rootId, "transform.x", at) ?? scene.get(rootId)?.transform.x ?? 0;
       const prevY = lastValueBefore(timeline, rootId, "transform.y", at) ?? scene.get(rootId)?.transform.y ?? 0;
       const end = at + (span ?? shotEnd - at);
+      const dur = end - at;
       key(timeline, rootId, "transform.x", at, prevX, { type: "number", ease, h });
-      key(timeline, rootId, "transform.x", end, to[0], { type: "number" });
       key(timeline, rootId, "transform.y", at, prevY, { type: "number", ease, h });
+      if (action.arc && dur > 0) {
+        const [mx, my] = arcMidpoint([prevX, prevY], [to[0], to[1]], action.arc);
+        key(timeline, rootId, "transform.x", at + dur / 2, mx, { type: "number", ease: "smooth" });
+        key(timeline, rootId, "transform.y", at + dur / 2, my, { type: "number", ease: "smooth" });
+      }
+      if (anticipate && dur > 0) {
+        const t = at + dur * ANTICIPATION_SHARE;
+        key(
+          timeline,
+          rootId,
+          "transform.x",
+          t,
+          anticipationValue(prevX, to[0], anticipate),
+          { type: "number", ease: "smooth" }
+        );
+        key(
+          timeline,
+          rootId,
+          "transform.y",
+          t,
+          anticipationValue(prevY, to[1], anticipate),
+          { type: "number", ease: "smooth" }
+        );
+      }
+      if (overshoot && dur > 0) {
+        const t = at + dur * OVERSHOOT_AT;
+        key(
+          timeline,
+          rootId,
+          "transform.x",
+          t,
+          overshootValue(prevX, to[0], overshoot),
+          { type: "number", ease: "smooth" }
+        );
+        key(
+          timeline,
+          rootId,
+          "transform.y",
+          t,
+          overshootValue(prevY, to[1], overshoot),
+          { type: "number", ease: "smooth" }
+        );
+      }
+      key(timeline, rootId, "transform.x", end, to[0], { type: "number" });
       key(timeline, rootId, "transform.y", end, to[1], { type: "number" });
       break;
     }
@@ -2524,6 +4361,7 @@ function buildAction({
         start: at,
         end: at + (span ?? shotEnd - at),
         speed: action.speed ?? 1,
+        weight: action.weight ?? 1,
         scopeId: rootId
       });
       break;
@@ -2555,7 +4393,9 @@ function buildAction({
           at,
           span,
           ease,
-          h
+          h,
+          anticipate,
+          overshoot
         });
       });
       if (solved.clamped) {
@@ -2570,11 +4410,14 @@ function buildAction({
     case "set": {
       if (!action.channel) return;
       const node = action.part ? `${rootId}/${action.part}` : rootId;
-      key(timeline, node, action.channel, at, action.value, { ease, h });
+      const value = COLOR_CHANNELS.has(action.channel) && typeof action.value === "string" ? colorOf?.(action.value) ?? action.value : action.value;
+      if (at > 0) seedChannel(scene, timeline, node, action.channel);
+      key(timeline, node, action.channel, at, value, { ease, h });
       break;
     }
     case "show":
     case "hide": {
+      if (at > 0) seedChannel(scene, timeline, rootId, "props.alpha");
       key(
         timeline,
         rootId,
@@ -2599,16 +4442,160 @@ function buildAction({
       break;
   }
 }
+function buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagnostics) {
+  const colorOf = (c) => c == null ? null : scenePalette[c] ?? c;
+  for (const [i, drawing] of (spec.drawings ?? []).entries()) {
+    const id = drawing.id ?? `drawing${i + 1}`;
+    const nodeId = `${sceneId}/${id}`;
+    const width = drawing.width ?? meta.width;
+    const height = drawing.height ?? meta.height;
+    const layers = (drawing.layers ?? [{ strokes: drawing.strokes ?? [] }]).map((layer, li) => ({
+      name: layer.name ?? `layer${li + 1}`,
+      blend: layer.blend ?? "normal",
+      opacity: layer.opacity ?? 1,
+      visible: layer.visible ?? true,
+      strokes: (layer.strokes ?? []).map((stroke) => ({
+        ...stroke,
+        color: colorOf(stroke.color) ?? "#000000"
+      }))
+    }));
+    const strokeCount = layers.reduce((n2, l) => n2 + l.strokes.length, 0);
+    if (strokeCount === 0) {
+      diagnostics.push({
+        severity: "warning",
+        path: `scenes.${sceneId}.drawings.${id}`,
+        message: "drawing has no strokes; it will render as nothing"
+      });
+    }
+    for (const layer of layers) {
+      for (const stroke of layer.strokes) {
+        if (!stroke.path && !stroke.points) {
+          diagnostics.push({
+            severity: "warning",
+            path: `scenes.${sceneId}.drawings.${id}`,
+            message: `a stroke in layer "${layer.name}" has neither "path" nor "points"`
+          });
+        }
+      }
+    }
+    scene.add({
+      id: nodeId,
+      kind: "paint",
+      parentId: groupId,
+      transform: { x: drawing.at?.[0] ?? meta.width / 2, y: drawing.at?.[1] ?? meta.height / 2 },
+      z: drawing.z ?? 40,
+      props: {
+        // The unrasterised spec. The backend turns this into a
+        // painter; the compiler never touches a canvas.
+        paint: { width, height, layers, background: drawing.background ?? null },
+        // Default 1, so a drawing with no `draw` action is simply
+        // present -- the same way a character with no actions
+        // stands in its rest pose rather than being invisible.
+        progress: drawing.progress ?? 1,
+        alpha: drawing.alpha ?? 1,
+        w: width,
+        h: height,
+        cx: true,
+        cy: true
+      }
+    });
+  }
+}
+function buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diagnostics, sceneStart, sceneEnd) {
+  const driven = /* @__PURE__ */ new Set();
+  for (const shot of spec.shots ?? []) {
+    for (const a of shot.actions ?? []) {
+      if (a.do === "draw" && a.target) driven.add(a.target);
+    }
+  }
+  for (const [i, photo] of (spec.photos ?? []).entries()) {
+    const id = photo.id ?? `photo${i + 1}`;
+    const nodeId = `${sceneId}/${id}`;
+    const path = `scenes.${sceneId}.photos.${id}`;
+    const resolve = (assetId, required) => {
+      if (assetId == null) return null;
+      const asset = assets[assetId];
+      if (!asset) {
+        diagnostics.push({
+          severity: required ? "error" : "warning",
+          path,
+          message: `Image asset "${assetId}" was not loaded; ` + (required ? "this photo cannot render." : "parallax and tearing will do nothing.")
+        });
+        return null;
+      }
+      return asset;
+    };
+    const source = resolve(photo.source ?? photo.image, true);
+    const depth = resolve(photo.depth, false);
+    if (photo.source == null && photo.image == null) {
+      diagnostics.push({
+        severity: "error",
+        path,
+        message: 'photo has no "source"; nothing will render.'
+      });
+    }
+    if (!depth && (photo.effects ?? []).some((e) => e.type === "parallax")) {
+      diagnostics.push({
+        severity: "warning",
+        path,
+        message: 'parallax needs a "depth" map; without one it is skipped.'
+      });
+    }
+    const start = sceneStart + (photo.start ?? 0);
+    const duration = photo.duration ?? Math.max(0, sceneEnd - start);
+    scene.add({
+      id: nodeId,
+      kind: "photo",
+      parentId: groupId,
+      transform: { x: photo.at?.[0] ?? meta.width / 2, y: photo.at?.[1] ?? meta.height / 2 },
+      z: photo.z ?? 30,
+      props: {
+        photo: {
+          width: photo.width ?? meta.width,
+          height: photo.height ?? meta.height,
+          source,
+          depth,
+          effects: photo.effects ?? [],
+          duration,
+          grid: photo.grid,
+          overscan: photo.overscan,
+          depthBlur: photo.depthBlur,
+          tear: photo.tear ?? false
+        },
+        progress: 0,
+        alpha: photo.alpha ?? 1,
+        w: photo.width ?? meta.width,
+        h: photo.height ?? meta.height,
+        cx: true,
+        cy: true
+      }
+    });
+    if (!driven.has(id) && duration > 0) {
+      key(timeline, nodeId, "props.progress", start, 0, { type: "number" });
+      key(timeline, nodeId, "props.progress", start + duration, 1, { type: "number" });
+    }
+  }
+}
 function buildClipFromAction(clipId, name, spec) {
   const tracks = [];
-  for (const [channelPath, keys] of Object.entries(spec.keys ?? {})) {
-    const dot2 = channelPath.lastIndexOf(".");
+  const keyed = applyOverlap(
+    spec.keys ?? {},
+    overlapDelays(spec.lag, spec.chain ?? [])
+  );
+  const blend = spec.blend ?? "override";
+  const mask = spec.mask ?? null;
+  for (const [channelPath, keys] of Object.entries(keyed)) {
+    const dot2 = channelPath.indexOf(".");
     const partId = dot2 < 0 ? channelPath : channelPath.slice(0, dot2);
     const channel = dot2 < 0 ? "y" : channelPath.slice(dot2 + 1);
+    const first = Array.isArray(keys?.[0]) ? keys[0][1] : keys?.[0]?.v;
     const track = createTrack({
       target: partId,
       path: channel.startsWith("props.") ? channel : `transform.${channel}`,
-      type: "number"
+      // A generated action may key a named shape rather than a number --
+      // a blink is a swap, not a scale -- and interpolating between two
+      // strings as numbers yields NaN.
+      type: typeof first === "string" ? "discrete" : "number"
     });
     for (const entry of keys) {
       const [t, v, ease, h] = Array.isArray(entry) ? entry : [entry.t, entry.v, entry.ease, entry.h];
@@ -2616,7 +4603,15 @@ function buildClipFromAction(clipId, name, spec) {
     }
     tracks.push(track);
   }
-  return createClip({ id: clipId, name, duration: spec.duration, loop: spec.loop ?? "repeat", tracks });
+  return createClip({
+    id: clipId,
+    name,
+    duration: spec.duration,
+    loop: spec.loop ?? "repeat",
+    tracks,
+    blend,
+    mask
+  });
 }
 function lastValueBefore(timeline, target, path, t) {
   const track = timeline._index?.get(`${target}\0${path}`);
@@ -2864,7 +4859,7 @@ function parseScreenplay(text, {
     meta: { title: title ?? "Untitled", fps, width, height, estimatedTiming: true },
     voices: {},
     assets: {},
-    palettes: { default: DEFAULT_PALETTE },
+    palettes: { default: DEFAULT_PALETTE2 },
     characters: {},
     scenes: []
   };
@@ -2934,7 +4929,7 @@ function parseScreenplay(text, {
   diagnostics.unshift({
     severity: "info",
     path: "",
-    message: `Parsed ${film.scenes.length} scene(s), ${speakerList.length} character(s), ${film.scenes.reduce((n, s) => n + s.shots.length, 0)} shot(s), ~${duration.toFixed(1)}s. Cast voices before rendering.`
+    message: `Parsed ${film.scenes.length} scene(s), ${speakerList.length} character(s), ${film.scenes.reduce((n2, s) => n2 + s.shots.length, 0)} shot(s), ~${duration.toFixed(1)}s. Cast voices before rendering.`
   });
   return { film, diagnostics, speakers: speakerList, estimatedDuration: duration };
 }
@@ -2967,7 +4962,7 @@ function retimeToAudio(film, lineDurations, {
   }
   return { film: next, changed: changes.length, changes };
 }
-var DEFAULT_PALETTE = {
+var DEFAULT_PALETTE2 = {
   skin: "#e8c39e",
   coat: "#c4452f",
   coat2: "#3d5a80",
@@ -2986,13 +4981,13 @@ var VOICE_SUGGESTIONS = [
   "tts:en_US-joe-medium"
 ];
 var suggestVoice = (i) => VOICE_SUGGESTIONS[i % VOICE_SUGGESTIONS.length];
-function layoutCast(n, width, height) {
+function layoutCast(n2, width, height) {
   const y = Math.round(height * 0.82);
-  if (n <= 0) return [];
-  if (n === 1) return [[Math.round(width * 0.5), y]];
+  if (n2 <= 0) return [];
+  if (n2 === 1) return [[Math.round(width * 0.5), y]];
   const out = [];
-  for (let i = 0; i < n; i++) {
-    const u = (i + 1) / (n + 1);
+  for (let i = 0; i < n2; i++) {
+    const u = (i + 1) / (n2 + 1);
     out.push([Math.round(width * (0.22 + u * 0.56)), y]);
   }
   return out;
@@ -3001,34 +4996,62 @@ var normalizeSpeaker = (s) => s.trim().replace(/\s+/g, " ");
 var slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 var truncate = (s) => s.length > 44 ? `${s.slice(0, 44)}...` : s;
 export {
+  ANTICIPATION_SHARE,
   AssetRegistry,
+  BROWS,
+  BUILDS,
   DEFAULTS,
   DEFAULT_BEZIER_HANDLES,
+  DEFAULT_FACE,
+  DEFAULT_PALETTE,
   DEFAULT_PROPORTIONS,
   DO_VERBS,
+  EARS,
+  EXPRESSIONS,
+  EYES,
   Evaluator,
+  FACE_KITS,
   FILM_VERSION,
+  FRAMINGS,
   FileProvider,
   FrameClock,
+  HAIRS,
+  JAWS,
   KNOWN,
+  LIPS,
+  NOSES,
+  OVERSHOOT_AT,
+  PROPS,
+  PROP_NAMES,
+  SCENERY_TEMPLATES,
   SWAP_FALLBACK,
   Scene,
+  TEMPLATE_NAMES,
+  TIMES,
+  TIME_NAMES,
   TRANSFORM2D_CHANNELS,
   TRANSITION_KINDS,
   UrlProvider,
+  VIEWS,
   VISEMES,
   VISEME_FALLBACK,
   VoiceRegistry,
   addClip,
   addInstance,
+  analyseMotion,
   analyseStaging,
+  anticipationValue,
+  applyOverlap,
   applyPose,
   applySwapSets,
   applyVisemeShapes,
+  arcMidpoint,
+  buildSceneryTemplate,
   castVoices,
   chainFromParts,
   chainRootOffset,
   characterParts,
+  checkMotion,
   clipLocalTime,
   compileFilm,
   createClip,
@@ -3042,6 +5065,7 @@ export {
   cubicBezierEase,
   cueGainAt,
   cueSampleWindow,
+  derivePalette,
   easeProgress,
   envelope,
   estimateSeconds,
@@ -3055,29 +5079,42 @@ export {
   hasError,
   hasFatal,
   hashString,
+  headHeight,
+  headParts,
   interpolateValue,
   key,
   lerpColor,
   lerpVec,
+  lineOf,
   lipsyncLine,
   loadAssets,
+  loadAudioAssets,
   mat2d_exports as mat2d,
   measureCharacter,
+  mixColor,
   mixDuration,
   normalize2 as normalize,
+  overlapDelays,
+  overshootValue,
+  parseHex,
   parseScreenplay,
   phonemeToViseme,
   resetPose,
+  resolveProportions,
   resolveSwap,
   resolveViseme,
   retimeToAudio,
   samplePose,
+  scaleColor,
   setKey,
+  shadeOf,
   shotAt,
   slerpQuat,
+  smoothClosed,
   smoothstep,
   solveChain,
   solveTwoBone,
+  squashKeys,
   synthesizeDialogue,
   textToVisemeSequence,
   timelineChannels,

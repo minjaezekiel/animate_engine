@@ -246,7 +246,7 @@ Current state — **9 checked, 9 ok**:
 | `three/addons` SkeletonUtils | no | the only clone that preserves a skeleton |
 | `three/addons` GLTFExporter | no | serialising imported models properly |
 | `three/addons` FBXLoader | no | Mixamo; drags in fflate + NURBS |
-| `onnxruntime-web@1.18.0` | no | inference under the TTS voices |
+| `onnxruntime-web@1.18.0` | no | inference under the TTS voices and monocular depth estimation |
 | `@diffusionstudio/vits-web@1.0.3` | no | in-browser Piper/VITS speech |
 | `cannon.js@0.6.2` | no | rigid bodies, legacy editor only |
 
@@ -301,17 +301,21 @@ authoring layer above them does not.
 
 ### 7.3 Motion graphics: a picture into a video
 
-`warp_mesh` is the whole engine for this; the layer above is missing.
+**Built.** `warp_mesh` is the whole engine for it; see
+[17-MOTION-AND-MCP.md](17-MOTION-AND-MCP.md).
 
 - **2.5D parallax** — grid over the photo, vertices displaced by depth ×
-  camera offset. Needs a monocular depth estimate; `onnxruntime-web` is
-  already a verified dependency, so a small depth model is the natural fit.
+  camera offset. **Done**, with monocular depth estimation through
+  `onnxruntime-web` in `core/motion/depth.js`.
 - **Depth maps must be blurred before they displace anything** — parallax
-  tears along any one-pixel depth discontinuity. At quarter resolution that
-  is 1.6 ms (§3).
+  pins the silhouette at any one-pixel depth discontinuity. At quarter
+  resolution that is 1.6 ms (§3). Superseded where `tear` is on, which
+  cuts the mesh at the discontinuity instead of smoothing it away.
 - **Puppet warp** — pinned and driven vertices over the same rasteriser.
-- **Not yet designed:** segmentation into layers, inpainting what parallax
-  reveals behind the subject, camera-path authoring UI.
+  **Done.**
+- **Not yet designed:** inpainting what a tear reveals behind the subject
+  (the fill is mirrored background), automatic detection of depth planes,
+  camera-path authoring UI.
 
 ### 7.4 Sculpting and modelling
 

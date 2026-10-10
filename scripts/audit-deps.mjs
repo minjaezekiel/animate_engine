@@ -146,7 +146,7 @@ const CHECKS = [
     },
     {
         name: 'onnxruntime-web@1.18.0',
-        why: 'inference runtime under the TTS voices',
+        why: 'inference runtime under the TTS voices and monocular depth estimation',
         required: false,
         probe: async () => {
             const ort = await import('onnxruntime-web');

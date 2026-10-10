@@ -3,6 +3,7 @@ import { FILM_VERSION, KNOWN, DO_VERBS, TRANSITION_KINDS, KNOWN_SCENERY,
 import { generateActions, BUILDS } from './generate.js';
 import { FACE_KITS } from '../art/face.js';
 import { TEMPLATE_NAMES, TIME_NAMES, PROP_NAMES } from '../art/scenery.js';
+import { EFFECTS } from '../motion/PhotoMotion.js';
 
 const GENERATED_ACTIONS = Object.keys(generateActions());
 
@@ -95,8 +96,13 @@ export function validateFilm(film) {
             if (shot.camera) unknown(`${hp}.camera`, shot.camera, KNOWN.camera, warn);
 
             // The same for every action in the shot, so computed once.
-            const drawingNames = new Set((scene.drawings ?? [])
-                .map((d, di) => d.id ?? `drawing${di + 1}`));
+            // Photos are in here too: they animate on `props.progress` and
+            // are retimed by the same `draw` verb, so a `draw` naming one
+            // is correct and must not be reported as a missing drawing.
+            const drawingNames = new Set([
+                ...(scene.drawings ?? []).map((d, di) => d.id ?? `drawing${di + 1}`),
+                ...(scene.photos ?? []).map((d, di) => d.id ?? `photo${di + 1}`),
+            ]);
 
             for (const a of shot.actions ?? []) {
                 unknown(`${hp}.actions`, a, KNOWN.action, warn);
@@ -107,7 +113,7 @@ export function validateFilm(film) {
                 // cast check does not apply to it.
                 if (a.do === 'draw') {
                     if (a.target && !drawingNames.has(a.target)) {
-                        err(`${hp}.actions`, `draw: no drawing "${a.target}" in this scene.`
+                        err(`${hp}.actions`, `draw: no drawing or photo "${a.target}" in this scene.`
                             + (drawingNames.size ? ` Have: ${[...drawingNames].join(', ')}.` : ''));
                     }
                 } else if (a.target && !castNames.has(a.target)) {
@@ -162,6 +168,37 @@ export function validateFilm(film) {
                     + `Known: ${SHAPE_KINDS.join(', ')}.`);
             }
         }
+        // A photo names its picture and its depth map as assets, and its
+        // effects from a closed set -- so both are checkable here, where an
+        // unknown effect can say what the known ones are rather than being
+        // silently ignored at solve time.
+        (scene.photos ?? []).forEach((photo, pi) => {
+            const id = photo.id ?? `photo${pi + 1}`;
+            unknown(`${sp}.photos.${id}`, photo, KNOWN.photo, warn);
+            const src = photo.source ?? photo.image;
+            if (!src) {
+                err(`${sp}.photos.${id}`, 'No "source"; a photo needs a picture to animate.');
+            } else if (!film.assets?.[src]) {
+                err(`${sp}.photos.${id}`, `Image asset "${src}" is not declared.`);
+            }
+            if (photo.depth && !film.assets?.[photo.depth]) {
+                err(`${sp}.photos.${id}`, `Depth asset "${photo.depth}" is not declared.`);
+            }
+            for (const effect of photo.effects ?? []) {
+                if (!EFFECTS.includes(effect?.type)) {
+                    warn(`${sp}.photos.${id}.effects`,
+                         `Unknown effect "${effect?.type}"; ignored. Known: ${EFFECTS.join(', ')}.`);
+                }
+                if (effect?.type === 'parallax' && !photo.depth) {
+                    warn(`${sp}.photos.${id}.effects`,
+                         'parallax does nothing without a "depth" map.');
+                }
+            }
+            if (photo.tear && !photo.depth) {
+                warn(`${sp}.photos.${id}.tear`,
+                     'tear does nothing without a "depth" map.');
+            }
+        });
         for (const cue of scene.audio ?? []) {
             unknown(`${sp}.audio`, cue, KNOWN.audioCue, warn);
             if (cue.asset && !film.assets?.[cue.asset]) {

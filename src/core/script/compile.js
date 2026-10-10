@@ -121,6 +121,8 @@ export function compileFilm(film, { assets = {} } = {}) {
                         (c) => (c == null ? null : (scenePalette[c] ?? c)));
         buildScenery(scene, spec, groupId, palettes, meta, assets, diagnostics);
         buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagnostics);
+        buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diagnostics,
+                    sceneStart, sceneEnd);
 
         // --- cast: instantiate each character's part tree
         const castMap = new Map();
@@ -819,7 +821,7 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
         if (!scene.get(nodeId)) {
             diagnostics.push({
                 severity: 'warning', path: `scenes.${sceneId}.actions`,
-                message: `draw: no drawing "${action.target}" in this scene`,
+                message: `draw: no drawing or photo "${action.target}" in this scene`,
             });
             return;
         }
@@ -1104,6 +1106,134 @@ function buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagno
                 w: width, h: height, cx: true, cy: true,
             },
         });
+    }
+}
+
+/**
+ * Instantiate a scene's `photos` as photo-motion nodes.
+ *
+ * ```json
+ * "photos": [{
+ *   "id": "hero",
+ *   "source": "portrait", "depth": "portrait_depth",
+ *   "duration": 6,
+ *   "tear": true,
+ *   "effects": [
+ *     { "type": "kenBurns", "to": { "zoom": 1.12 } },
+ *     { "type": "parallax", "amplitude": 0.05 }
+ *   ]
+ * }]
+ * ```
+ *
+ * This is the declarative half of `src/core/motion/PhotoMotion.js`: it is
+ * the same four effects, authored in the film rather than called through
+ * the API or an MCP op. A still photograph with a depth map becomes a shot.
+ *
+ * # It reuses `draw`, deliberately
+ *
+ * A photo's animation is driven by `props.progress` running 0 to 1, the
+ * same channel a drawing's reveal uses, so `{ "do": "draw", "target":
+ * "hero", "at": 1, "for": 4 }` retimes a photo with no new verb, no new
+ * validation branch and no new compiler path. Every ease, hold and
+ * transition the animation system already has therefore applies to a
+ * photo for free -- including running it backwards, which is just `from:
+ * 1, to: 0`.
+ *
+ * A photo with no `draw` action plays once across its own duration from
+ * `start`, because the useful default for a photograph in a shot is that
+ * it moves. That is the opposite default from a drawing, which holds at
+ * `progress: 1` and only animates when asked -- a drawing with no action
+ * should be *present*, a photo with no action should be *playing*.
+ *
+ * Nothing is rasterised here. The node carries an unrasterised spec in
+ * `props.photo` and the backend resolves it to a `PhotoPainter` at mount,
+ * exactly as `drawings` resolve to a `PaintPainter` and an `image` node's
+ * asset id resolves to a real image. Compilation stays pure: no canvas,
+ * no kernels, no DOM.
+ */
+function buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diagnostics,
+                     sceneStart, sceneEnd) {
+    // A photo whose progress a `draw` action drives must not also get the
+    // automatic track: two sources of keys on one channel interleave into
+    // a motion neither one asked for.
+    const driven = new Set();
+    for (const shot of spec.shots ?? []) {
+        for (const a of shot.actions ?? []) {
+            if (a.do === 'draw' && a.target) driven.add(a.target);
+        }
+    }
+
+    for (const [i, photo] of (spec.photos ?? []).entries()) {
+        const id = photo.id ?? `photo${i + 1}`;
+        const nodeId = `${sceneId}/${id}`;
+        const path = `scenes.${sceneId}.photos.${id}`;
+
+        // The source is the whole point, so a missing one is an error
+        // rather than a warning: a photo node with no picture renders an
+        // empty rectangle and looks like a layout bug.
+        const resolve = (assetId, required) => {
+            if (assetId == null) return null;
+            const asset = assets[assetId];
+            if (!asset) {
+                diagnostics.push({
+                    severity: required ? 'error' : 'warning', path,
+                    message: `Image asset "${assetId}" was not loaded; `
+                        + (required ? 'this photo cannot render.'
+                                    : 'parallax and tearing will do nothing.'),
+                });
+                return null;
+            }
+            return asset;
+        };
+        const source = resolve(photo.source ?? photo.image, true);
+        const depth = resolve(photo.depth, false);
+        if (photo.source == null && photo.image == null) {
+            diagnostics.push({
+                severity: 'error', path,
+                message: 'photo has no "source"; nothing will render.',
+            });
+        }
+        if (!depth && (photo.effects ?? []).some((e) => e.type === 'parallax')) {
+            diagnostics.push({
+                severity: 'warning', path,
+                message: 'parallax needs a "depth" map; without one it is skipped.',
+            });
+        }
+
+        const start = sceneStart + (photo.start ?? 0);
+        // Defaults to the rest of the scene, so the common case -- one
+        // photograph carrying one scene -- needs no number at all.
+        const duration = photo.duration ?? Math.max(0, sceneEnd - start);
+
+        scene.add({
+            id: nodeId,
+            kind: 'photo',
+            parentId: groupId,
+            transform: { x: photo.at?.[0] ?? meta.width / 2, y: photo.at?.[1] ?? meta.height / 2 },
+            z: photo.z ?? 30,
+            props: {
+                photo: {
+                    width: photo.width ?? meta.width,
+                    height: photo.height ?? meta.height,
+                    source, depth,
+                    effects: photo.effects ?? [],
+                    duration,
+                    grid: photo.grid,
+                    overscan: photo.overscan,
+                    depthBlur: photo.depthBlur,
+                    tear: photo.tear ?? false,
+                },
+                progress: 0,
+                alpha: photo.alpha ?? 1,
+                w: photo.width ?? meta.width, h: photo.height ?? meta.height,
+                cx: true, cy: true,
+            },
+        });
+
+        if (!driven.has(id) && duration > 0) {
+            key(timeline, nodeId, 'props.progress', start, 0, { type: 'number' });
+            key(timeline, nodeId, 'props.progress', start + duration, 1, { type: 'number' });
+        }
     }
 }
 

@@ -13,7 +13,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadKernels } from '../../src/kernels/index.js';
-import { PhotoMotion, EFFECTS } from '../../src/core/motion/PhotoMotion.js';
+import { PhotoMotion, EFFECTS, tearMesh } from '../../src/core/motion/PhotoMotion.js';
 
 const K = await loadKernels({ prefer: 'wasm' });
 
@@ -343,4 +343,349 @@ test('time is clamped, so a held photo keeps its final framing', () => {
         photo.solveAt(-3);
         assert.deepEqual(Array.from(photo.verts.array.slice(0, 2)), atStart);
     } finally { photo.dispose(); }
+});
+
+// =====================================================================
+// tearing the mesh at depth discontinuities
+// =====================================================================
+
+/**
+ * Where the silhouette is, on the middle scanline at `t`.
+ *
+ * The test picture's near half is bright red and its far half is not, so
+ * the first bright pixel across the row *is* the silhouette. This is the
+ * measurement that matters: an untorn mesh stretches the cell that
+ * straddles the edge, so the silhouette barely moves while the subject's
+ * interior does -- which is the rubber-face artefact, visible here as a
+ * number.
+ */
+function silhouetteX(photo, t) {
+    const a = photo.renderAt(t).array;
+    const y = photo.height >> 1;
+    for (let x = 0; x < photo.width; x++) {
+        if (a[(y * photo.width + x) * 4] > 0.5) return x;
+    }
+    return -1;
+}
+
+/** Parallax at its extreme: `orbit: [1, 0]` and `t = duration / 4`. */
+const PUSH = [{ type: 'parallax', amplitude: 0.12, orbit: [1, 0] }];
+
+test('tearing moves the silhouette by its own parallax, not an average', () => {
+    const plain = make(PUSH, { depthBlur: 0 });
+    const torn = make(PUSH, { depthBlur: 0, tear: true });
+
+    // The near half sits at depth 0.92 against a focus of 0.5, so at full
+    // push it should travel (0.92 - 0.5) * 0.12 * 96 = 4.9 px.
+    const rest = silhouetteX(plain, 0);
+    assert.equal(silhouetteX(torn, 0), rest, 'tearing moved the edge at rest');
+
+    const plainShift = silhouetteX(plain, 0.5) - rest;
+    const tornShift = silhouetteX(torn, 0.5) - rest;
+    assert.ok(Math.abs(plainShift) <= 1,
+        `the untorn mesh should pin the edge, moved ${plainShift}px`);
+    assert.ok(tornShift >= 4 && tornShift <= 6,
+        `expected about +5px of real displacement, got ${tornShift}px`);
+
+    // And symmetrically the other way, half a cycle later.
+    const back = silhouetteX(torn, 1.5) - rest;
+    assert.ok(back <= -4 && back >= -6, `expected about -5px, got ${back}px`);
+});
+
+test('a tear leaves no hole: the far side is mirrored forward to fill it', () => {
+    // A tear with nothing behind it is worse than a smear -- the subject
+    // slides off transparent nothing. `fill` is derived from the parallax
+    // reach, so this must hold without the author computing anything.
+    const torn = make(PUSH, { depthBlur: 0, tear: true });
+    for (let i = 0; i <= 16; i++) {
+        const t = (i / 16) * 2;
+        assert.equal(uncovered(torn, t), 0, `uncovered pixels at t=${t}`);
+    }
+    assert.ok(torn.tearFill > 10 && torn.tearFill < 20,
+        `fill should cover the ~10px tear, got ${torn.tearFill}`);
+});
+
+test('what fills the hole is background, not a copy of the subject', () => {
+    // The uv steps *back* while the position steps forward. Advancing both
+    // is one sign away, looks right on paper, and carries the subject's own
+    // edge pixels into the hole -- which leaves the visible silhouette
+    // exactly where the untorn mesh put it. Measured here as colour: the
+    // far half of the picture is blue-dominant, the near half red.
+    const torn = make(PUSH, { depthBlur: 0, tear: true });
+    // Both edges first: allocating another photo can grow the wasm memory,
+    // which detaches any typed-array view captured beforehand.
+    const rest = silhouetteX(torn, 0);
+    const moved = silhouetteX(torn, 0.5);
+    const a = torn.renderAt(0.5).array;
+    const y = torn.height >> 1;
+    let background = 0;
+    for (let x = rest; x < moved; x++) {
+        const i = (y * torn.width + x) * 4;
+        if (a[i + 2] > a[i]) background++;      // blue beats red
+    }
+    assert.ok(background >= 3,
+        `the hole should be filled with background, found ${background} such pixels`);
+});
+
+test('tearing appends vertices and emits triangles far to near', () => {
+    const plain = make(PUSH);
+    const torn = make(PUSH, { depthBlur: 0, tear: true });
+    assert.ok(torn.vertexCount > plain.vertexCount, 'nothing was duplicated');
+    assert.ok(torn.triangleCount > plain.triangleCount, 'nothing was cut');
+
+    // `warp_mesh` has no depth test -- it writes, and the last triangle
+    // over a pixel wins -- so torn triangles must be ordered far to near
+    // or the fill paints over the subject it is meant to hide behind.
+    const idx = torn.indices.array, d = torn.depths;
+    let previous = -Infinity;
+    for (let i = 0; i < torn.triangleCount; i++) {
+        const mean = (d[idx[i * 3]] + d[idx[i * 3 + 1]] + d[idx[i * 3 + 2]]) / 3;
+        assert.ok(mean >= previous - 1e-6, `triangle ${i} breaks the far-to-near order`);
+        previous = mean;
+    }
+});
+
+test('tear without a depth map is a no-op, not a different mesh', () => {
+    // There is nothing to tear along, and silently producing a differently
+    // tessellated mesh would make the flag look like it did something.
+    const s = scene();
+    const base = new PhotoMotion(K, { width: 96, height: 64, duration: 2,
+                                      source: s.source, effects: PUSH });
+    const asked = new PhotoMotion(K, { width: 96, height: 64, duration: 2,
+                                       source: s.source, effects: PUSH, tear: true });
+    assert.equal(asked.tear, false);
+    assert.equal(asked.vertexCount, base.vertexCount);
+    assert.equal(asked.triangleCount, base.triangleCount);
+});
+
+test('tear turns the depth blur off by default, and an explicit blur still wins', () => {
+    // The blur exists only to soften the pinned silhouette that tearing
+    // removes outright; blurring a map about to be cut moves the cut off
+    // the real edge.
+    // Measured as the largest depth step between neighbouring grid
+    // columns, which is what the blur exists to reduce. The overall range
+    // is the wrong metric: a box blur clamps at the image border, so the
+    // extremes survive it untouched.
+    const jump = (photo) => {
+        const n = photo.div + 1, r = n >> 1;
+        let worst = 0;
+        for (let c = 0; c < n - 1; c++) {
+            worst = Math.max(worst, Math.abs(photo.depths[r * n + c + 1] - photo.depths[r * n + c]));
+        }
+        return worst;
+    };
+    const torn = make(PUSH, { tear: true });
+    // 0.41 rather than the source's full 0.82: the grid samples the depth
+    // map bilinearly, so a step between two source pixels already lands
+    // across two cells. That is the baseline the blur has to beat.
+    assert.ok(jump(torn) > 0.4, `an unblurred step should be sharp, got ${jump(torn)}`);
+
+    const blurred = make(PUSH, { tear: true, depthBlur: 0.05 });
+    assert.ok(jump(blurred) < jump(torn) * 0.75,
+        `an explicit depthBlur was ignored: ${jump(blurred)} vs ${jump(torn)}`);
+});
+
+test('a wave reaches the vertices a tear duplicated', () => {
+    // `wave` used to walk the grid by row and column, which after a tear
+    // leaves every duplicated vertex un-waved -- a crack along the tear
+    // rather than a missing ripple. It reads uvs now, so this asserts the
+    // appended vertices actually move.
+    const grid = 33 * 33;
+    const torn = make([...PUSH, { type: 'wave', amplitude: 0.05, wavelength: 0.25 }],
+                      { depthBlur: 0, tear: true });
+    assert.ok(torn.vertexCount > grid, 'nothing was duplicated');
+    const out = torn.solveAt(0.7).array;
+    let moved = 0;
+    for (let i = grid; i < torn.vertexCount; i++) {
+        if (Math.abs(out[i * 2 + 1] - torn.baseVerts[i * 2 + 1]) > 1e-4) moved++;
+    }
+    assert.ok(moved > 0, 'every duplicated vertex was left behind by the wave');
+});
+
+test('tearMesh cuts one quad and gives each side its own depth', () => {
+    // The unit case, where the arithmetic is checkable by hand: a unit
+    // quad whose left edge is far and right edge is near, cut at 0.5.
+    const mesh = {
+        verts: [0, 0, 10, 0, 0, 10, 10, 10],
+        uvs: [0, 0, 1, 0, 0, 1, 1, 1],
+        depths: [0, 1, 0, 1],
+        indices: [0, 1, 3, 0, 3, 2],
+    };
+    const cut = tearMesh(mesh, [0.5], 0);
+    // Each triangle straddles the contour, so each becomes three: one for
+    // the lone vertex and two for the quad on the other side.
+    assert.equal(cut.indices.length / 3, 6);
+    // Three crossing edges, not four: the two triangles share the diagonal,
+    // and the seam is keyed on the edge so they agree on it exactly. Each
+    // crossing becomes two vertices, one per side.
+    assert.equal(cut.depths.length, 4 + 3 * 2);
+    // Every duplicate takes the depth of its own side's endpoint, which is
+    // what makes the surface genuinely torn rather than merely subdivided.
+    for (let i = 4; i < cut.depths.length; i++) {
+        assert.ok(cut.depths[i] === 0 || cut.depths[i] === 1,
+            `duplicate ${i} has an interpolated depth ${cut.depths[i]}`);
+    }
+    // A crossing at the midpoint of a 10-unit edge sits at 5.
+    assert.equal(cut.verts[8], 5);
+});
+
+test('a level below or above every depth cuts nothing', () => {
+    const mesh = {
+        verts: [0, 0, 10, 0, 0, 10, 10, 10],
+        uvs: [0, 0, 1, 0, 0, 1, 1, 1],
+        depths: [0.2, 0.3, 0.2, 0.3],
+        indices: [0, 1, 3, 0, 3, 2],
+    };
+    for (const level of [0, 1]) {
+        const cut = tearMesh(mesh, [level], 4);
+        assert.equal(cut.depths.length, 4, `level ${level} duplicated vertices`);
+        assert.equal(cut.indices.length, 6, `level ${level} cut a triangle`);
+    }
+});
+
+// =====================================================================
+// monocular depth estimation
+// =====================================================================
+
+const { DepthEstimator, DEPTH_MODELS, IMAGENET, resizeRgba, toNchw, depthToImage } =
+    await import('../../src/core/motion/depth.js');
+
+/**
+ * A stub onnxruntime.
+ *
+ * The real runtime is a browser package, so the model itself can never run
+ * in these tests -- but everything around it can, and that is where the
+ * bugs live: the normalisation, the input name, the output's dims, the
+ * rescale back to the source size, and which end of the range is near.
+ * This is the same bargain the voice providers make with a fake provider.
+ */
+function stubOrt(predict, dims) {
+    const seen = {};
+    const ort = {
+        Tensor: class { constructor(type, data, d) { this.type = type; this.data = data; this.dims = d; } },
+        InferenceSession: {
+            create: async () => ({
+                inputNames: ['pixel_values'],
+                outputNames: ['predicted_depth'],
+                run: async (feeds) => {
+                    Object.assign(seen, feeds);
+                    const [h, w] = dims;
+                    const data = new Float32Array(w * h);
+                    for (let y = 0; y < h; y++) {
+                        for (let x = 0; x < w; x++) data[y * w + x] = predict(x / (w - 1), y / (h - 1));
+                    }
+                    return { predicted_depth: { data, dims: [1, h, w] } };
+                },
+            }),
+        },
+    };
+    return { ort, seen };
+}
+
+/** A 4x2 picture whose left half is black and right half white. */
+const halfLit = () => {
+    const data = new Uint8Array(4 * 2 * 4);
+    for (let i = 0; i < 8; i++) {
+        const v = (i % 4) >= 2 ? 255 : 0;
+        data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = v;
+        data[i * 4 + 3] = 255;
+    }
+    return { data, width: 4, height: 2 };
+};
+
+test('resizeRgba samples pixel centres and preserves the corners', () => {
+    const up = resizeRgba(halfLit(), 8, 4);
+    assert.equal(up.data.length, 8 * 4 * 4);
+    assert.equal(up.data[0], 0, 'top-left corner changed value');
+    assert.equal(up.data[(8 * 4 - 1) * 4], 255, 'bottom-right corner changed value');
+    // Downsampling must average rather than drop pixels: a half-black,
+    // half-white row collapsed to two pixels keeps both ends.
+    const down = resizeRgba(halfLit(), 2, 1);
+    assert.ok(down.data[0] < 60 && down.data[4] > 195,
+        `expected the two halves to survive, got ${down.data[0]} and ${down.data[4]}`);
+});
+
+test('toNchw is plane-major and ImageNet-normalised', () => {
+    const t = toNchw(halfLit(), 2, IMAGENET);
+    assert.equal(t.length, 3 * 2 * 2);
+    // Plane-major: channel 0 is the first four values, not interleaved.
+    const black = (0 - IMAGENET.mean[0]) / IMAGENET.std[0];
+    const white = (1 - IMAGENET.mean[0]) / IMAGENET.std[0];
+    assert.ok(Math.abs(t[0] - black) < 1e-5, `${t[0]} is not a normalised 0`);
+    assert.ok(Math.abs(t[1] - white) < 1e-5, `${t[1]} is not a normalised 255`);
+    // The green plane starts a whole plane later and uses green's own mean.
+    assert.ok(Math.abs(t[4] - (0 - IMAGENET.mean[1]) / IMAGENET.std[1]) < 1e-5);
+});
+
+test('depthToImage normalises to the prediction\'s own extremes', () => {
+    // A relative-depth model has no absolute scale, so the observed range
+    // is the only sane mapping -- the same call `makeGrainTexture` makes.
+    const out = depthToImage([10, 12, 14, 16], 2, 2, 2, 2);
+    assert.equal(out.data[0], 0);
+    assert.equal(out.data[3 * 4], 255);
+    assert.equal(out.min, 10);
+    assert.equal(out.max, 16);
+    assert.equal(out.data[3], 255, 'the map must be opaque');
+
+    // `near: 'low'` is for metric models, where a larger number is further.
+    const flipped = depthToImage([10, 12, 14, 16], 2, 2, 2, 2, 'low');
+    assert.equal(flipped.data[0], 255);
+    assert.equal(flipped.data[3 * 4], 0);
+});
+
+test('a flat prediction is reported rather than divided by zero', () => {
+    // A map with no range makes parallax a uniform pan -- the degenerate
+    // case `PhotoMotion` refuses outright -- so it has to be visible.
+    const out = depthToImage([7, 7, 7, 7], 2, 2, 2, 2);
+    assert.equal(out.min, out.max);
+    assert.equal(out.data[0], 128);
+    assert.ok(out.data.every((v, i) => i % 4 === 3 || v === 128));
+});
+
+test('estimate returns a depth map at the source size, white near', async () => {
+    // The prediction is deliberately a different size from the picture, as
+    // every real model's is: the model sees a square and the photo is not.
+    const { ort, seen } = stubOrt((u) => u, [16, 16]);
+    const est = new DepthEstimator({ modelUrl: 'stub.onnx', size: 8, ort });
+    const image = { data: new Uint8Array(12 * 6 * 4).fill(128), width: 12, height: 6 };
+    const depth = await est.estimate(image);
+
+    assert.equal(depth.width, 12);
+    assert.equal(depth.height, 6);
+    assert.equal(depth.data.length, 12 * 6 * 4);
+    // The stub predicted depth rising to the right, and white is near.
+    const row = (x) => depth.data[(2 * 12 + x) * 4];
+    assert.ok(row(0) < 40, `left edge should be far, got ${row(0)}`);
+    assert.ok(row(11) > 215, `right edge should be near, got ${row(11)}`);
+    assert.ok(row(5) > row(0) && row(11) > row(5), 'the gradient is not monotonic');
+
+    // The feed is keyed on the session's own input name, not a guess, and
+    // shaped NCHW at the configured size.
+    assert.deepEqual(Object.keys(seen), ['pixel_values']);
+    assert.deepEqual(seen.pixel_values.dims, [1, 3, 8, 8]);
+});
+
+test('a missing model or runtime is false, never a throw', async () => {
+    // The whole ladder depends on this: a caller probes, and falls back to
+    // supplying a map by hand or to effects that need no depth.
+    const none = new DepthEstimator({});
+    assert.equal(await none.available(), false);
+    await assert.rejects(() => none.load(), /needs a modelUrl/);
+
+    const broken = new DepthEstimator({
+        modelUrl: 'x.onnx',
+        ort: { InferenceSession: { create: async () => { throw new Error('404'); } } },
+    });
+    assert.equal(await broken.available(), false);
+});
+
+test('the model table names a size and a polarity for every entry', () => {
+    // Those two are what a caller cannot guess and what silently produce a
+    // wrong map: the wrong input size distorts, the wrong polarity inverts.
+    for (const [name, model] of Object.entries(DEPTH_MODELS)) {
+        assert.match(model.url, /^https:\/\/\S+\.onnx$/, `${name} has no model url`);
+        assert.ok(model.size >= 64, `${name} has no input size`);
+        assert.ok(model.near === 'high' || model.near === 'low', `${name} has no polarity`);
+        assert.ok(model.note?.length > 20, `${name} has no note worth reading`);
+    }
 });

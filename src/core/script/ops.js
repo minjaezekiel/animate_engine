@@ -449,6 +449,9 @@ export const OPS = {
             effects: { type: 'array', doc: 'Effect specs, applied in order. '
                 + 'See list_effects for each one\'s fields.' },
             grid: N('Mesh quads across. Default 32; raise it for a detailed depth map.'),
+            tear: { type: 'boolean', doc: 'Cut the mesh at depth edges so a near subject '
+                + 'separates cleanly instead of stretching across the gap. Needs a depth '
+                + 'map. Use it whenever parallax amplitude is above about 0.05.' },
         },
         run: (ctx, a) => {
             if (ctx.photos.has(a.id)) throw new Error(`photo "${a.id}" already exists`);
@@ -461,6 +464,7 @@ export const OPS = {
                 duration: a.duration ?? 1,
                 effects: a.effects ?? [],
                 grid: a.grid,
+                tear: a.tear ?? false,
             });
             ctx.photos.set(a.id, photo);
             return {
@@ -468,6 +472,12 @@ export const OPS = {
                 duration: photo.duration, overscan: Number(photo.overscan.toFixed(3)),
                 effects: photo.effects.map((e) => e.type),
                 depth: depth ? 'loaded' : 'none -- parallax will do nothing',
+                // Reported rather than echoed: `tear` silently does nothing
+                // without a depth map, and a caller that cannot see the
+                // screen has no other way to learn that.
+                tear: photo.tear
+                    ? { levels: photo.tearLevels, fillPx: Number(photo.tearFill.toFixed(1)) }
+                    : (a.tear ? 'ignored -- tearing needs a depth map' : false),
             };
         },
     },

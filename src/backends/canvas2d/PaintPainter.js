@@ -24,6 +24,7 @@
  * the most expensive operation in the frame.
  */
 import { PaintDocument } from '../../core/paint/Document.js';
+import { attachPhotoPainters } from './PhotoPainter.js';
 
 /** Make an offscreen canvas, in a browser or a worker. */
 function defaultCanvas(width, height) {
@@ -145,13 +146,18 @@ export class PaintPainter {
 }
 
 /**
- * Attach a painter to every paint node in a scene.
+ * Attach a painter to every paint node and every photo node in a scene.
  *
  * Call once after compiling and before rendering. Nodes whose spec is
  * missing are skipped rather than throwing, matching how an unresolved
  * image asset is handled.
  *
- * @returns {PaintPainter[]} so the caller can dispose them
+ * Photos are included here rather than left to a second call because the
+ * caller has no way to know whether a film contains any, and forgetting
+ * the second call would make its photographs silently blank.
+ *
+ * @returns {Array<PaintPainter|import('./PhotoPainter.js').PhotoPainter>}
+ *   so the caller can dispose them
  */
 export function attachPainters(scene, kernels, options = {}) {
     const made = [];
@@ -161,5 +167,6 @@ export function attachPainters(scene, kernels, options = {}) {
         node.props.painter = painter;
         made.push(painter);
     });
+    made.push(...attachPhotoPainters(scene, kernels, options));
     return made;
 }

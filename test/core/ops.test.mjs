@@ -234,6 +234,24 @@ test('photo_create reports whether parallax will actually do anything', async ()
     assert.match(without.depth, /parallax will do nothing/);
 });
 
+test('photo_create reports what tearing actually did', async () => {
+    fixtures();
+    const torn = await run(ctx, 'photo_create', {
+        id: 'p3', source: 'pic.png', depth: 'dep.png', duration: 2, tear: true,
+        effects: [{ type: 'parallax', amplitude: 0.1 }],
+    });
+    assert.ok(torn.tear.fillPx > 0, `nothing was reserved to fill the tear: ${torn.tear.fillPx}`);
+    assert.equal(torn.tear.levels.length, 1);
+
+    // `tear` without a depth map is inert, and a caller who cannot see the
+    // screen has no other way to find that out.
+    const inert = await run(ctx, 'photo_create', {
+        id: 'p4', source: 'pic.png', tear: true,
+        effects: [{ type: 'kenBurns', to: { zoom: 1.1 } }],
+    });
+    assert.match(inert.tear, /tearing needs a depth map/);
+});
+
 test('photo frames render, differ over time, and fill the frame', async () => {
     const a = await run(ctx, 'photo_render', { id: 'p1', t: 0, out: 'f0.png' });
     await run(ctx, 'photo_render', { id: 'p1', t: 0.5, out: 'f1.png' });

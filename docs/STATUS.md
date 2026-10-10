@@ -45,8 +45,8 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Draw-on animation | **done** | A revealed stroke is a **prefix** of the whole one, so frame N is a pure function of N with no history. Driven by an ordinary number channel, so every easing and clip feature applies unchanged. |
 | Input stabilisation | **done** | `smoothPoints`, `pressureFromVelocity`. |
 | Brush sheet | **done** | `npm run make:brushes` → a PNG rendered entirely in Node, `node:zlib` only. |
-| Tests | **done** | paint, media, motion and ops. Total now **401**. |
-| Mutation audit | **done** | `npm run audit:tests` — 87 deliberate defects across every module. |
+| Tests | **done** | paint, media, motion and ops. Total now **425**. |
+| Mutation audit | **done** | `npm run audit:tests` — 101 deliberate defects across every module. |
 | Layers + 13 W3C blend modes | **done** | `Document.js`. Named addressing, because an index means something else the moment a layer is inserted. 33 MB per layer at 1080p. |
 | Grain / textured brushes | **done** | `texture.js` — generated, not loaded, so a brush is four numbers rather than an asset. Canvas-locked by default: **paper tooth belongs to the paper**. |
 | Wet media and colour mixing | **done** | `smudge_stroke`. `smudge` and `colorRate` are **independent** — coupling them, as Krita's original engine did, makes a pure smear inexpressible. |
@@ -62,7 +62,11 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Picture → video | **done** | `core/motion/PhotoMotion.js` — Ken Burns, 2.5D parallax, wave, puppet, over `warp_mesh`. |
 | Headless MCP surface | **done** | `mcp/paint-server.js`, 20 tools **generated** from `core/script/ops.js`. No browser required. |
 | PNG codec | **done** | `src/io/png.js`, `node:zlib` only. All five scanline filters; refuses 16-bit and interlaced rather than misdecoding. |
-| Depth estimation, mesh tearing, `photos` in film.json | — | 17-MOTION-AND-MCP.md §6. |
+| Mesh tearing at depth edges | **done** | `tearMesh` cuts the surface along depth iso-contours, so a near subject moves rigidly instead of stretching across the gap. Measured: the silhouette travels its full 4.9 px, against 1 px untorn. The hole is filled by mirroring the background forward. |
+| Monocular depth estimation | **done** | `core/motion/depth.js` — model-agnostic ONNX adapter over `onnxruntime-web`, following the TTS voices' rules (lazy bare-specifier import, `available()` never throws, model as a url). Runs in the browser; the Node tests drive it against a stub session. |
+| `photos` in `film.json` | **done** | `kind:'photo'` nodes from a scene's `photos`, animated on `props.progress` by the **same `draw` verb** as a drawing — no new verb, no new compiler path. A photo with no action plays; a drawing with no action holds. |
+| Inpainting a tear | — | The fill is mirrored background, not generated content. 17-MOTION-AND-MCP.md §8. |
+| Finding depth planes automatically | — | `tear.at` takes a list of levels; the default is one, at the midpoint. |
 
 ### Verified by measurement, not assumption
 

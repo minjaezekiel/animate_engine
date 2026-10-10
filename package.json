@@ -49,7 +49,9 @@
     "audit:deps": "node scripts/audit-deps.mjs",
     "probe": "node scripts/probe-capabilities.mjs",
     "test:parallel": "node --test test/core/kernels-parallel.test.mjs",
-    "test:kernels:browser": "node test/e2e/kernels-browser.mjs"
+    "test:kernels:browser": "node test/e2e/kernels-browser.mjs",
+    "test:paint": "node --test test/core/paint.test.mjs",
+    "make:brushes": "node scripts/make-brush-sheet.mjs"
   },
   "keywords": [
     "animation",

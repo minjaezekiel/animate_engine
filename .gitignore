@@ -4,3 +4,4 @@ demo/out
 *.log
 .DS_Store
 demo/assets/*.wav
+demo/out/

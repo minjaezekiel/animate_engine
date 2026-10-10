@@ -29,7 +29,41 @@ Full detail, with every measurement, in
 | Worker pool — wasm threads over shared memory | **done** | `src/kernels/parallel.js`. 11 workers, one `WebAssembly.Memory({shared:true})`, **zero copies**. Pooled results are **bit-identical** to serial. |
 | Dev server with COOP/COEP | **done** | `scripts/serve.mjs`, Node stdlib only. Replaces `python3 -m http.server`, which cannot enable `SharedArrayBuffer`. |
 | GPU compute backend | — | Scoped in 15-PERFORMANCE.md §7.1, and **less urgent than it was**: the pool brought both over-budget kernels inside the frame budget on the CPU, with determinism intact. |
-| Drawing tools, motion graphics, sculpting | — | Kernels exist; the authoring layers do not. §7.2–7.4. |
+| Motion graphics, sculpting | — | Kernels exist; the authoring layers do not. §7.3–7.4. |
+
+---
+
+## Phase 18 — the paint layer — **done**
+
+Full detail in [16-PAINT.md](16-PAINT.md).
+
+| Area | State | Notes |
+|---|---|---|
+| `core/paint/stroke.js` | **done** | Arc-length resampling with pressure, taper, seeded jitter. Pure and deterministic. |
+| `core/paint/brushes.js` | **done** | Nine brushes as plain data: pencil, pen, ink, marker, airbrush, charcoal, chalk, eraser, softEraser. |
+| `core/paint/Surface.js` | **done** | Premultiplied f32 RGBA, per-stroke resample cache, erase, `drawAll` with progressive reveal. |
+| Draw-on animation | **done** | A revealed stroke is a **prefix** of the whole one, so frame N is a pure function of N with no history. Driven by an ordinary number channel, so every easing and clip feature applies unchanged. |
+| Input stabilisation | **done** | `smoothPoints`, `pressureFromVelocity`. |
+| Brush sheet | **done** | `npm run make:brushes` → a PNG rendered entirely in Node, `node:zlib` only. |
+| Tests | **done** | 28. Total now **312**. |
+| Layers, textured brushes, wet media, tilt | — | 16-PAINT.md §6. |
+| Binding to a scene node / `film.json` | — | The mechanism is ready (`progress` is a number); only the binding is missing. |
+
+### Verified by measurement, not assumption
+
+- **The smoothing control did nothing at its maximum.** The three-tap
+  kernel's gain against the jitter frequency is `|1 - 2k|`, which is not
+  monotonic: at `k = 1` it is 1.0, so maximum smoothing inverted the
+  wobble's phase and left its amplitude untouched. `amount` now maps to
+  `k = amount/2`. The original test *passed*, because it measured peak
+  displacement and a phase-inverted signal has the same peak; it now
+  measures the mean absolute second difference, which is what a wobble is.
+- A flow-0.5 marker drawn over 200 densely sampled points peaks at exactly
+  0.5, confirming that mask-then-composite prevents a stroke's darkness
+  from recording input sampling rate.
+- An airbrush and a marker composite *identically* across separate
+  strokes; `mode` is a within-stroke property, and the test that compares
+  them had to be rewritten to use one self-crossing stroke.
 
 ### Verified by measurement, not assumption
 

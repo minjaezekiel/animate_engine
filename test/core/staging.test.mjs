@@ -452,3 +452,38 @@ test('an additive clip is a delta around its own rest pose, scaled by weight', a
     assert.ok(Math.abs(make(0.5) - 2.25) < 1e-9, `half weight, got ${make(0.5)}`);
     assert.ok(Math.abs(make(0) - 2) < 1e-9, 'zero weight contributes nothing');
 });
+
+test('cast without feet is not ground-checked', () => {
+    // A film's cast is not only characters: beams, impact stars and speed
+    // lines are cast too, because that is how they inherit a transform and
+    // a z. They are *supposed* to float, and reporting every one of them as
+    // "feet off the ground" buries the character who genuinely is -- six
+    // such warnings against eight real ones, on the film this was found on.
+    const film = base({
+        id: 's1',
+        ground: { y: 600 },
+        cast: [
+            { character: 'boy', as: 'boy', at: [400] },
+            { character: 'flash', as: 'flash', at: [640, 200] },
+        ],
+        shots: [{ id: 'a', duration: 2 }],
+    });
+    film.characters.flash = {
+        palette: 'p',
+        parts: [{ id: 'star', shape: { kind: 'rect', w: 40, h: 40, cx: true, cy: true },
+                  fill: 'coat', z: 60 }],
+    };
+
+    const notes = analyse(film).filter((d) => /feet/.test(d.message));
+    assert.deepEqual(notes.map((d) => d.message), [],
+        `an FX cast member was ground-checked: ${notes.map((d) => d.message).join(' | ')}`);
+
+    // And the check still fires for something that does have feet.
+    const floating = base({
+        id: 's1', ground: { y: 600 },
+        cast: [{ character: 'boy', as: 'boy', at: [400, 120] }],
+        shots: [{ id: 'a', duration: 2 }],
+    });
+    assert.ok(analyse(floating).some((d) => /feet/.test(d.message)),
+        'a character left in mid-air was not reported');
+});

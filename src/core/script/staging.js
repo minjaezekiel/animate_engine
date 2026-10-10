@@ -205,6 +205,29 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
         return extents.get(charName);
     };
 
+    /**
+     * Whether a cast member is the kind of thing that stands on the floor.
+     *
+     * A film's cast is not only characters: beams, impact stars and speed
+     * lines are cast too, because that is how they inherit a transform and
+     * a z. They have no feet, they are *supposed* to float, and reporting
+     * every one of them as "feet off the ground" buries the character who
+     * genuinely is -- six such warnings against eight real ones, in the
+     * film this was found on.
+     *
+     * The test is the rig rather than a new flag in the schema: every
+     * generated and hand-built character has `footL`/`footR`, and nothing
+     * that is not a character does.
+     */
+    const feet = new Map();
+    const standsOnGround = (charName) => {
+        if (!feet.has(charName)) {
+            const parts = characterParts(film.characters?.[charName] ?? {});
+            feet.set(charName, parts.some((p) => String(p.id).startsWith('foot')));
+        }
+        return feet.get(charName);
+    };
+
     // Cast roots carry tags ['cast', charName]; that is how they are found
     // without re-deriving the id convention.
     const casts = [...scene.byId.values()]
@@ -349,7 +372,7 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
                         });
                     }
 
-                    if (ground && !seenGround.has(key)) {
+                    if (ground && standsOnGround(charName) && !seenGround.has(key)) {
                         const gy = groundAt(ground, wx);
                         if (gy != null && Math.abs(box.bottom - gy) > (ground.tolerance ?? 12)) {
                             seenGround.add(key);

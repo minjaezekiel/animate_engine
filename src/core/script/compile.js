@@ -1088,10 +1088,16 @@ function buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagno
             }
         }
 
+        // The parent is `add`'s **second argument**; a `parentId` in the spec
+        // is overwritten by it. Passing it in the spec parented every
+        // drawing and every photo to the scene *root*, where it neither
+        // inherits the scene group's alpha -- so it ignored every fade and
+        // crossfade -- nor sorts by z against the scenery it belongs
+        // behind. The backdrop of this film was drawn *under* the scene's
+        // own background rect because of it.
         scene.add({
             id: nodeId,
             kind: 'paint',
-            parentId: groupId,
             transform: { x: drawing.at?.[0] ?? meta.width / 2, y: drawing.at?.[1] ?? meta.height / 2 },
             z: drawing.z ?? 40,
             props: {
@@ -1105,7 +1111,7 @@ function buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagno
                 alpha: drawing.alpha ?? 1,
                 w: width, h: height, cx: true, cy: true,
             },
-        });
+        }, groupId);
     }
 }
 
@@ -1205,10 +1211,10 @@ function buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diag
         // photograph carrying one scene -- needs no number at all.
         const duration = photo.duration ?? Math.max(0, sceneEnd - start);
 
+        // Second argument, as in `buildDrawings` -- see the note there.
         scene.add({
             id: nodeId,
             kind: 'photo',
-            parentId: groupId,
             transform: { x: photo.at?.[0] ?? meta.width / 2, y: photo.at?.[1] ?? meta.height / 2 },
             z: photo.z ?? 30,
             props: {
@@ -1222,13 +1228,19 @@ function buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diag
                     overscan: photo.overscan,
                     depthBlur: photo.depthBlur,
                     tear: photo.tear ?? false,
+                    // Throttles. A warp is the most expensive thing in a
+                    // frame; see PhotoPainter. `resolution` renders smaller
+                    // and scales up on draw, `step` re-renders every N
+                    // seconds instead of every frame.
+                    resolution: photo.resolution,
+                    step: photo.step,
                 },
                 progress: 0,
                 alpha: photo.alpha ?? 1,
                 w: photo.width ?? meta.width, h: photo.height ?? meta.height,
                 cx: true, cy: true,
             },
-        });
+        }, groupId);
 
         if (!driven.has(id) && duration > 0) {
             key(timeline, nodeId, 'props.progress', start, 0, { type: 'number' });

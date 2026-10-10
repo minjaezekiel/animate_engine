@@ -51,7 +51,7 @@ export const KNOWN = {
     // seconds, and `draw` retimes it like any drawing.
     photo: ['id', 'source', 'image', 'depth', 'effects', 'duration', 'start',
             'at', 'z', 'alpha', 'width', 'height', 'grid', 'overscan',
-            'depthBlur', 'tear'],
+            'depthBlur', 'tear', 'resolution', 'step'],
     shot: ['id', 'duration', 'camera', 'actions', 'dialogue', 'subtitleStyle', 'step',
            // what the shot is MEANT to be, so the checker can say whether it is
            'framing', 'on'],

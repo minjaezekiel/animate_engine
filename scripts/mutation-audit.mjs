@@ -512,6 +512,21 @@ const MUTATIONS = [
     { group: 'export', file: 'src/render/sinks/PngSequenceSink.js',
       what: 'an impossible render is accepted and fails thousands of frames in',
       find: '        if (config?.totalFrames > this.maxFrames) {', replace: '        if (false) {' },
+
+    { group: 'filmnodes', file: 'src/core/script/staging.js',
+      what: 'FX cast with no feet are ground-checked, burying the characters that really float',
+      find: '                    if (ground && standsOnGround(charName) && !seenGround.has(key)) {',
+      replace: '                    if (ground && !seenGround.has(key)) {' },
+
+    // --- film: scene nodes the compiler builds from drawings and photos
+    { group: 'filmnodes', file: 'src/core/script/compile.js',
+      what: 'a photo is parented to the scene root, so it ignores the scene alpha and sorts wrong',
+      find: '                cx: true, cy: true,\n            },\n        }, groupId);',
+      replace: '                cx: true, cy: true,\n            },\n        });' },
+    { group: 'filmnodes', file: 'src/core/script/compile.js',
+      what: 'a drawing is parented to the scene root rather than to its scene group',
+      find: '                w: width, h: height, cx: true, cy: true,\n            },\n        }, groupId);',
+      replace: '                w: width, h: height, cx: true, cy: true,\n            },\n        });' },
 ];
 
 const selected = only ? MUTATIONS.filter((m) => m.group === only) : MUTATIONS;

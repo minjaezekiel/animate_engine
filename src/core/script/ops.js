@@ -37,7 +37,7 @@
  */
 import { loadKernels } from '../../kernels/index.js';
 import { PaintDocument } from '../paint/Document.js';
-import { PaintSurface } from '../paint/Surface.js';
+import { PaintSurface, parseColor } from '../paint/Surface.js';
 import { BRUSHES, BRUSH_NAMES, brush as resolveBrush } from '../paint/brushes.js';
 import { BLEND_MODE_NAMES } from '../../kernels/index.js';
 import { PhotoMotion, EFFECTS } from '../motion/PhotoMotion.js';
@@ -302,6 +302,28 @@ export const OPS = {
             + 'blend mode, opacity and mask.',
         params: { doc: S('Document id.', true), layer: S('Layer name.', true) },
         run: (ctx, a) => { doc(ctx, a.doc).layer(a.layer).clear(); return { cleared: a.layer }; },
+    },
+
+    paint_fill: {
+        summary: 'Flood a whole layer with one colour, opaquely. Use this for a base '
+            + 'coat -- a sky, a ground, the opaque backing of a plate -- instead of '
+            + 'painting overlapping strokes, which cannot reach full coverage with a '
+            + 'brush whose flow is below 1 and which band where the passes meet.',
+        params: {
+            doc: S('Document id.', true),
+            layer: S('Layer name.', true),
+            color: S('Hex colour, e.g. "#1a2b3c".', true),
+            opacity: N('0..1. Default 1. Below 1 this is a translucent wash that still '
+                + 'replaces whatever the layer held.'),
+        },
+        run: (ctx, a) => {
+            const surface = doc(ctx, a.doc).layer(a.layer).surface;
+            const [r, g, b] = parseColor(a.color);
+            const alpha = a.opacity ?? 1;
+            surface.fill(r, g, b, alpha);
+            return { layer: a.layer, color: a.color, opacity: alpha,
+                     pixels: surface.width * surface.height };
+        },
     },
 
     // --- masks ----------------------------------------------------------

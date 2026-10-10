@@ -45,7 +45,7 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Draw-on animation | **done** | A revealed stroke is a **prefix** of the whole one, so frame N is a pure function of N with no history. Driven by an ordinary number channel, so every easing and clip feature applies unchanged. |
 | Input stabilisation | **done** | `smoothPoints`, `pressureFromVelocity`. |
 | Brush sheet | **done** | `npm run make:brushes` → a PNG rendered entirely in Node, `node:zlib` only. |
-| Tests | **done** | paint, media, motion, ops and editor. Total now **461**. |
+| Tests | **done** | paint, media, motion, ops and editor. Total now **464**. |
 | Mutation audit | **done** | `npm run audit:tests` — 112 deliberate defects across every module. |
 | Layers + 13 W3C blend modes | **done** | `Document.js`. Named addressing, because an index means something else the moment a layer is inserted. 33 MB per layer at 1080p. |
 | Grain / textured brushes | **done** | `texture.js` — generated, not loaded, so a brush is four numbers rather than an asset. Canvas-locked by default: **paper tooth belongs to the paper**. |
@@ -82,6 +82,31 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | GIF from the new renderer | — | A tested encoder exists in `animateEngine.js`; not extracted to a sink. 18-EDITOR-ARCHITECTURE.md §7. |
 | glTF / FBX export | — | `GLTFExporter` is a verified dependency, earmarked for the Phase 3 3D save/load rework. No browser FBX exporter exists. |
 | Floating / tabbed panels, split trees | — | Four fixed regions by design. §4. |
+
+### Found by a live test: directing a fight through the engine
+
+Redesigning `demo/fight.json` against reference art turned up four engine
+defects that no unit test had reached, because each needed something to be
+*drawn* before it showed.
+
+| Found | Fix |
+|---|---|
+| **Every `drawings` and `photos` node was parented to the scene root.** `Scene.add(spec, parentId)` takes the parent as its second argument and overwrites any `parentId` in the spec. So a drawing inherited no scene alpha (ignoring every fade and crossfade) and sorted by z against the root — a backdrop at z −700 drew *under* its own scene's background rect at z −1000, and the film came back black. | Pass `groupId` as the argument. Test + 2 mutations. |
+| **FX cast were ground-checked.** Beams, impact stars and speed lines are cast too, and `analyseStaging` reported all of them as "feet off the ground" — six false warnings burying eight real ones. | Skip cast whose rig has no `foot*` part. Test + 1 mutation. |
+| **A scene whose ground comes from a `template` is never ground-checked.** `analyseStaging` reads `scene.ground` off the raw film; a template only supplies it during compile. The fight reported 0 staging notes for its whole life because the check never ran. | Not fixed — documented. Declaring `ground` explicitly turns it on. |
+| **A photo warp is the most expensive thing in a frame** — 71.7 ms for a 1400×820 backdrop against a 41.67 ms paced ceiling, on a film that ran at 0.7 ms without it. The export does not degrade over the ceiling; it writes an undecodable 110-byte file. | `resolution` and `step` on the photo spec: 0.9 ms median, 27.4 ms p95. Tests + docs. |
+
+It also found a **5.3-second mid-air hang** in the film itself: a leap keyed
+y upward and nothing keyed it back, across two cuts. Invisible until the
+ground check was switched on.
+
+New tools from the same pass: `paint_fill` (op #22 — `PaintSurface.fill()`
+existed but nothing reached it, and painting a flat base with strokes
+cannot work: `marker` has `flow: 0.5` in peak mode, so one stroke caps at
+half coverage and overlapping passes band), `scripts/contact-sheet.mjs`
+(key frames of a film as one PNG, so a look is checked before a render) and
+`scripts/bench-film.mjs` (per-frame cost with and without a named element,
+which is what turned "over budget" into "the backdrop is 100% of it").
 
 ### Verified by measurement, not assumption
 

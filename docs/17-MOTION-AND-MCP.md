@@ -424,10 +424,47 @@ spec in `props.photo` and `attachPainters` resolves it to a `PhotoPainter`
 at mount, exactly as a drawing resolves to a `PaintPainter`. One branch in
 `shapes.js` draws both, because both expose `canvasAt(progress)`.
 
+### A warp is the most expensive thing in a frame
+
+Measured on a 1400×820 backdrop in a 24fps film: **71.7 ms a frame**,
+against a paced-export ceiling of 41.67 ms. The same film with the
+backdrop removed ran at **0.7 ms** — the backdrop was the entire cost. Over
+that ceiling the export does not degrade gracefully; it writes an
+undecodable file, which is how this was found.
+
+A warp is three passes over every output pixel — rasterise the mesh,
+convert premultiplied f32 to straight u8, put it on a canvas — so two
+controls, both on the photo spec:
+
+| | what it does | why it is nearly free |
+|---|---|---|
+| `resolution` | renders the mesh at a fraction of its drawn size and lets `drawImage` scale it back | cost is linear in output pixels, and a backdrop is the softest thing in the shot |
+| `step` | re-renders every N **seconds** instead of every frame | a sky drifting across a minute needs a new warp no more often than a held cel does; the cast is already on twos |
+
+At `resolution: 0.55, step: 1/6` the same film measured **0.9 ms median,
+27.4 ms p95** and exported cleanly.
+
+`step` is a *hold*, so the key floors rather than rounds — rounding snaps
+to the nearest boundary and the backdrop arrives a third of a step early.
+It is applied in `timeAt`, not in `canvasAt`, so `renderAt` and
+`imageDataAt` return the same picture the film draws for that frame
+instead of quietly ignoring the hold.
+
 The validator checks what it can see: an undeclared source or depth asset
 is an **error**, an unknown effect name is a warning that lists the real
 ones, and `parallax` or `tear` without a depth map is a warning that says
 it will do nothing.
+
+**Both drawings and photos are parented to the scene group**, which is a
+sentence worth writing because they were not. `Scene.add(spec, parentId)`
+takes the parent as its *second argument* and overwrites any `parentId` in
+the spec, so passing it in the spec silently parented every drawing and
+every photo to the scene **root**. Two consequences, invisible until
+something was actually drawn: the node never inherited the scene group's
+alpha, so it ignored every fade and crossfade; and it sorted by z against
+the root instead of against the scenery, so a backdrop at z −700 was drawn
+*underneath* its own scene's background rect at z −1000, and the film came
+back black.
 
 ---
 

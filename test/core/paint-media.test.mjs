@@ -1137,6 +1137,30 @@ const heroKeys = (out) => out.timeline.tracks
     .filter((t) => t.target === 's1/hero' && t.path === 'props.progress')
     .flatMap((t) => t.keys.map((k) => [Number(k.t.toFixed(3)), k.v]));
 
+test('drawings and photos are parented to the scene, not the root', () => {
+    // `Scene.add(spec, parentId)` takes the parent as its **second
+    // argument** and overwrites any `parentId` in the spec, so passing it
+    // in the spec silently parented every drawing and every photo to the
+    // scene root. Two consequences, both invisible until something is
+    // drawn: the node never inherits the scene group's alpha, so it
+    // ignores every fade and crossfade; and it sorts by z against the root
+    // instead of against the scenery, so a backdrop at z -700 was drawn
+    // *under* its own scene's background rect at z -1000.
+    const out = compileFilm(photoFilm(), { assets: PHOTO_ASSETS });
+    const group = out.scene.get('scene/s1');
+    assert.ok(group, 'no scene group');
+    assert.equal(out.scene.get('s1/hero').parentId, group.id);
+    assert.ok(group.childIds.includes('s1/hero'));
+
+    const drawn = compileFilm(filmWith([]), {});
+    assert.equal(drawn.scene.get('s1/sketch').parentId, 'scene/s1');
+
+    // The point of being in the group: the scene's alpha reaches it.
+    const root = out.scene.get(out.scene.rootId);
+    assert.ok(!root.childIds.includes('s1/hero'),
+        'the photo is still a sibling of the scene it belongs to');
+});
+
 test('photos compile to photo nodes with their assets resolved', () => {
     const out = compileFilm(photoFilm(), { assets: PHOTO_ASSETS });
     const node = out.scene.get('s1/hero');
@@ -1211,6 +1235,44 @@ test('attachPainters picks up photo nodes and renders them from progress', () =>
         // Frame N is a pure function of N, through the painter too.
         assert.deepEqual(Array.from(at(0.5)), Array.from(b));
     } finally { painters.forEach((p) => p.dispose()); }
+});
+
+test('a photo can be rendered smaller than it is drawn, and held across frames', async () => {
+    // A warp is the most expensive thing in a frame: measured at 71.7 ms
+    // for a 1400x820 backdrop against a 41.67 ms paced-export ceiling, on
+    // a film that ran at 0.7 ms without it. Over the ceiling the export
+    // does not degrade, it writes an undecodable file -- so these two are
+    // correctness controls, not polish.
+    const out = compileFilm(photoFilm([], { resolution: 0.5, step: 1 }), { assets: PHOTO_ASSETS });
+    assert.deepEqual(out.diagnostics, []);
+    const painters = attachPainters(out.scene, K);
+    try {
+        const [painter] = painters;
+        // Rendered at half size; the node still *draws* at the authored
+        // size, so the only thing traded is sharpness in the backdrop.
+        assert.equal(painter.width, 48);
+        assert.equal(painter.height, 32);
+        assert.equal(out.scene.get('s1/hero').props.w, 96, 'the draw size shrank too');
+        assert.equal(painter.imageDataAt(0).length, 48 * 32 * 4);
+
+        // `step: 1` over a 6s photo is six renders, so progress 0.02 and
+        // 0.10 share one -- and must give the *identical* picture, not
+        // whichever frame asked first.
+        assert.equal(painter._key(0.02), painter._key(0.10));
+        const a = Uint8Array.from(painter.imageDataAt(0.02));
+        const b = Uint8Array.from(painter.imageDataAt(0.10));
+        assert.deepEqual(Array.from(a), Array.from(b));
+        // Far enough apart, it moves again.
+        assert.notEqual(painter._key(0.02), painter._key(0.5));
+    } finally { painters.forEach((p) => p.dispose()); }
+
+    // Without a step, neighbouring progress still renders independently.
+    const fine = compileFilm(photoFilm(), { assets: PHOTO_ASSETS });
+    const [plain] = attachPainters(fine.scene, K);
+    try {
+        assert.equal(plain.width, 96, 'resolution defaulted to something other than 1');
+        assert.notEqual(plain._key(0.02), plain._key(0.10));
+    } finally { plain.dispose(); }
 });
 
 test('the studio attaches painters, so a film with artwork does not render blank', async () => {

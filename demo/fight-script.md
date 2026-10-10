@@ -11,12 +11,31 @@ cannot draw Toriyama's or Oda's linework, and calling the output by their
 names would be a lie about what came out of it.
 
 What it *can* do is the design language, which is what makes a fight read at
-all. From the reference:
+all. From the reference art:
 
 | | reference | here |
 |---|---|---|
-| the martial artist | bright orange gi, deep blue undershirt and boots, spiky black hair; the silhouette plus the orange is enough to recognise him at a glance | **SORA** — orange gi, blue boots, spiky black hair, hard angled brows |
-| the pirate, awakened | stark white flame-like hair, white clothes, a constant joyous grin, rubbery exaggerated "toon force" motion | **TAIYO** — white flame hair, white coat, wide eyes, permanent smile |
+| the martial artist | long white-silver mane, teal eyes, a green gi with orange trim, pale baggy trousers, green boots, heavily built | **SORA** — `spiky` silver mane with a cool blue line, green gi with an authored orange trim line, pale blue-white trousers, green boots, shoulders widened to 0.325 |
+| the pirate, awakened | stark white flame-like hair, white coat over a purple sash, white shorts, a constant joyous grin, rubbery "toon force" motion | **TAIYO** — `flame` pure-white hair, white coat with a violet line standing in for the sash, straw sandals, plum eyes, `delighted` as his resting expression |
+
+### Both have white hair, which is a staging problem first
+
+Two white-haired figures in a fast fight lose each other in silhouette. Four
+independent channels separate them, so the read survives at the size the
+wide shots put them at:
+
+| channel | the martial artist | the pirate |
+|---|---|---|
+| hair silhouette | `spiky` — hard triangles | `flame` — soft curls |
+| hair value | silver, cool blue line | pure white, violet line |
+| costume | saturated green | white |
+| eyes | teal | plum |
+
+**The charge changes colour, not just brightness.** His mane went gold when
+his hair started black. From silver, gold reads as a *colour change* rather
+than a power change, so it goes incandescent teal-white instead and matches
+his eyes — and it stays that way for the rest of the film, because he does
+not power back down.
 
 The contrast is the test. One fighter is crisp and grounded; the other is
 elastic and absurd. "Toon force" is squash-and-stretch and exaggeration under
@@ -29,8 +48,26 @@ that absorbs hits by deforming, and a giant inflated arm.
 
 ## Setting
 
-A hillside at dusk. Open ground and a clear horizon — nothing to read but the
-two figures, which is correct for a fight and keeps the eye on the animation.
+A ridge at dusk under a storm bank, with mesas on the horizon — the first
+reference's desert landforms under the second's violet cloud and hot rim
+light. Open ground and a clear horizon: nothing to read but the two figures,
+which is correct for a fight and keeps the eye on the animation.
+
+The set is built from three different tools, each doing what it is good at:
+
+| element | tool | why |
+|---|---|---|
+| sky, cloud bank, rim light, light shafts | **paint layer** (`scripts/make-fight-sky.mjs`) | brushes are for soft, graded, atmospheric things |
+| mesas, ridge, dust, floor | **scenery path fills** | a brush cannot make a flat silhouette: `marker` has `flow: 0.5` in peak mode, so one stroke caps at half coverage and overlapping passes band where they meet. Both happened before this was moved |
+| the sky's *motion* | **photo-motion mesh** (`photos`) | the painted sky is driven as a deformable mesh with a painted depth map, so the cloud bank drifts against the sky instead of the whole backdrop sliding as one flat rect |
+
+The sky is **torn** between the two depth planes at level 0.46, found by
+`depthPlanes` rather than chosen — the painted depth map has two flat
+plateaus and therefore one unambiguous valley between them. The hole the
+tear opens is filled from an inpainted background plate.
+
+The ground is declared as an explicit polyline matching the painted ridge,
+so `do:'move'` and the staging check read the same floor the art drew.
 
 ## Rhythm
 

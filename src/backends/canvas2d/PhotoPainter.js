@@ -28,6 +28,24 @@
  * and the output -- several megabytes for a large photograph. A film with
  * eight scenes should not hold all eight at once before the first frame,
  * so construction waits until something actually asks for a frame.
+ *
+ * # It is the most expensive thing in a frame, so it has two throttles
+ *
+ * A warp is three passes over every output pixel: rasterise the mesh,
+ * convert premultiplied f32 to straight u8, and put it on a canvas.
+ * Measured on a 1400x820 backdrop that is **71.7 ms a frame**, against a
+ * paced-export ceiling of 41.67 ms at 24fps -- the same film without it
+ * ran in 0.7 ms. Over the ceiling the export does not degrade, it emits an
+ * undecodable file, so this is a correctness limit and not a nicety.
+ *
+ *   - **`resolution`** renders the mesh smaller and lets `drawImage` scale
+ *     it back up on the way to the frame. Cost is linear in output pixels
+ *     and a backdrop is the softest thing in the shot, so this is nearly
+ *     free visually.
+ *   - **`step`** re-renders only every N seconds. A backdrop drifting
+ *     across a minute does not need a new warp every frame any more than a
+ *     held cel does; it is the same "on twos" the film's own `meta.step`
+ *     applies to the cast, in seconds rather than frames.
  */
 import { PhotoMotion } from '../../core/motion/PhotoMotion.js';
 
@@ -80,9 +98,15 @@ export class PhotoPainter {
         this.kernels = kernels;
         this.pool = pool;
         this.createCanvas = createCanvas;
-        this.width = spec.width;
-        this.height = spec.height;
+        // The size the mesh is *rendered* at. The node still draws at the
+        // authored width and height, so lowering this trades sharpness in
+        // the backdrop for frames everywhere else.
+        const scale = Math.min(1, Math.max(0.05, spec.resolution ?? 1));
+        this.width = Math.max(1, Math.round(spec.width * scale));
+        this.height = Math.max(1, Math.round(spec.height * scale));
+        this.resolution = scale;
         this.duration = spec.duration ?? 1;
+        this.step = Math.max(0, spec.step ?? 0);
         this.motion = null;
 
         this._canvas = null;
@@ -116,9 +140,16 @@ export class PhotoPainter {
         return this.motion;
     }
 
-    /** Seconds into the photo's own animation, from the node's channel. */
+    /**
+     * Seconds into the photo's own animation, from the node's channel.
+     *
+     * The `step` hold is applied **here**, not in [`canvasAt`], so every
+     * entry point agrees: `renderAt` and `imageDataAt` would otherwise
+     * ignore the hold and return a different picture from the one the film
+     * draws for the same frame.
+     */
     timeAt(progress) {
-        return Math.min(1, Math.max(0, progress)) * this.duration;
+        return this._progressOf(this._key(progress)) * this.duration;
     }
 
     /** Premultiplied f32 RGBA at `progress`, or null without a source. */
@@ -134,12 +165,36 @@ export class PhotoPainter {
     }
 
     /**
-     * A canvas showing the photo at `progress`.
+     * The progress a given progress is rounded to, honouring `step`.
      *
-     * Memoised on progress quantised to 1e-4, which is finer than any
-     * frame of any plausible shot and exists only so a *held* photo -- one
-     * whose channel is not moving this frame -- costs a comparison instead
-     * of a full warp.
+     * Without a step this is quantised to 1e-4, which is finer than any
+     * frame of any plausible shot and exists only so a *held* photo costs
+     * a comparison instead of a full warp. With one, neighbouring frames
+     * collapse onto the same render and the warp runs `duration / step`
+     * times across the whole shot instead of once a frame.
+     */
+    _key(progress) {
+        const p = Math.min(1, Math.max(0, progress));
+        if (this.step > 0 && this.duration > 0) {
+            // Floor, not round: a step is a **hold**. Rounding snaps to the
+            // nearest boundary, so a frame a third of the way into a step
+            // shows the *next* step's picture -- the backdrop arrives early
+            // and the hold straddles two of them.
+            return Math.floor(p * (this.duration / this.step));
+        }
+        return Math.round(p * 1e4);
+    }
+
+    /** The progress a key maps back to: the start of the step it holds. */
+    _progressOf(key) {
+        if (this.step > 0 && this.duration > 0) {
+            return Math.min(1, key / (this.duration / this.step));
+        }
+        return Math.min(1, key / 1e4);
+    }
+
+    /**
+     * A canvas showing the photo at `progress`, memoised per [`_key`].
      */
     canvasAt(progress) {
         const motion = this._motion();
@@ -151,12 +206,13 @@ export class PhotoPainter {
         }
         if (!this._ctx) return null;
 
-        const key = Math.round(Math.min(1, Math.max(0, progress)) * 1e4);
+        const key = this._key(progress);
         if (key === this._renderedKey) return this._canvas;
 
         // Straight into the ImageData: `imageDataAt` already owns a u8
         // staging buffer and writes into a target, so a second one here
         // would be a megabyte of duplication per photo.
+        //
         motion.imageDataAt(this.timeAt(progress), this._imageData.data);
         this._ctx.putImageData(this._imageData, 0, 0);
         this._renderedKey = key;

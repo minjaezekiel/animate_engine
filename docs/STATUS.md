@@ -45,7 +45,7 @@ Full detail in [16-PAINT.md](16-PAINT.md).
 | Draw-on animation | **done** | A revealed stroke is a **prefix** of the whole one, so frame N is a pure function of N with no history. Driven by an ordinary number channel, so every easing and clip feature applies unchanged. |
 | Input stabilisation | **done** | `smoothPoints`, `pressureFromVelocity`. |
 | Brush sheet | **done** | `npm run make:brushes` → a PNG rendered entirely in Node, `node:zlib` only. |
-| Tests | **done** | paint, media, motion, ops, editor and budget. Total now **473**. |
+| Tests | **done** | paint, media, motion, ops, editor and budget. Total now **478**, with 160 mutations in the audit (12 new for the calibration path, 4 stale patterns repaired). |
 | Mutation audit | **done** | `npm run audit:tests` — 112 deliberate defects across every module. |
 | Layers + 13 W3C blend modes | **done** | `Document.js`. Named addressing, because an index means something else the moment a layer is inserted. 33 MB per layer at 1080p. |
 | Grain / textured brushes | **done** | `texture.js` — generated, not loaded, so a brush is four numbers rather than an asset. Canvas-locked by default: **paper tooth belongs to the paper**. |
@@ -97,6 +97,24 @@ contracts rather than at the call sites that happened to be audited.
 | Frame budget as a diagnostic | **done** | `estimateFrameCost` predicted **73.5 ms** against **71.7 ms measured in a browser**, as an error, before any render. Merged into `analyseStaging` so every check surface gets it. Calibration is measured and exported. |
 | Worker pool on photo warps | **done** | 55.03 → 19.74 ms, **bit-identical**. `renderFrame` is synchronous by contract, so the parallel work runs in the render loop's now-awaited `beforeFrame` via `preparePhotos`. Browser-only by default; workers are `unref`'d. |
 | The budget models two node kinds | — | Everything else measured at 0.7 ms for a whole 23-shot film. Another measured term if that changes, not a fudge factor. |
+
+#### Closing the three approximations (§7 of the same doc)
+
+Each was a known limit, and none needed a new mechanism — all three were
+already solved elsewhere in the repo and simply not wired through.
+
+| Area | State | Notes |
+|---|---|---|
+| Exact dab count | **done** | `dabsOf` guessed from the path's command count because the real number supposedly "needs kernels". It does not: `resampleStroke` is pure JS. `strokeDabs` is now the single derivation, shared with `Surface._prepare`, and the `approximate` flag is gone. The guess was wrong by however long the strokes were — `M 0 0 L 600 0` and `M 0 0 L 6 0` are both two commands. |
+| Preflight measures the right frames | **done** | It sampled frames 0..47 — the opening two seconds — so **a film whose backdrop starts 40 s in passed preflight and then wrote an undecodable file**. It now takes `startSec`/`endSec` from `worstSpan(estimate)`, and runs the render loop's `beforeFrame`, without which it timed the serial fallback while the render used the pool (2.8× out). |
+| Calibration from measurement | **done** | `calibrate(predicted, measured)` scales both terms by one ratio — one observation supports one parameter — and the studio stores the fit in `localStorage`, since the thing measured is the machine. `analyseStaging` takes a `calibration` so a later check is anchored. |
+| Bimodal frame cost | **done** | A held warp makes per-frame cost bimodal: median **1.0 ms**, p95 **35.7 ms** on the fight film. `meanMs` is what the amortised estimate compares to, `p95Ms` is what `withinBudget` judges, `medianMs` is a trap. |
+| First-frame warm-up | **done** | The first frame pays for the mesh and the inpainted plate: **317 ms** once, against ~9 ms steady state. Measured, excluded from the samples, reported as `warmupMs`. Averaged in, it was 6 ms of phantom per-frame cost — enough to calibrate the model nearly 2× pessimistic. |
+| Isolation on a static host | **done** | `sw.js` attaches COOP/COEP to its own responses, which is the one mechanism a static host leaves open. **Two** kinds of response need them: the document, and every worker script — rewriting only navigations isolated the page and then could not start one worker. `COEP=off npm run serve` reproduces a header-less host; the e2e runs the whole sequence there. |
+| A blocked kernel worker | **done** | Used to leave `loadParallelKernels` neither resolved nor rejected — the pool hanging, nothing logged. It rejects now and the caller falls back to serial. The studio logs which path it took every time. |
+| One ratio, one observation | — | `calibrate` scales both terms together. A machine whose dab throughput and pixel bandwidth differ relative to each other needs a film that isolates each, and two fits. |
+| Residual shape error | — | 5.6 ms predicted against 9.0 ms measured over the same shot, of which 0.8 ms is the vector baseline the model does not claim to cost. The ratio absorbs it; that is not a guarantee for another film. |
+| Safari has no pool | — | `credentialless` is unimplemented there, so the service-worker route does not isolate it. `COEP=require-corp` would, and is tested, at the cost of blocking user assets from origins that send no CORP. |
 
 **Language choice, with evidence.** Three of the four are pure control flow
 whose entire output is diagnostic text — Rust would add a wasm boundary and

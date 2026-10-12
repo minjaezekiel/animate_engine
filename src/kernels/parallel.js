@@ -221,6 +221,21 @@ export class ParallelKernels {
                 };
                 if (NodeWorker) worker.once('message', onReady);
                 else worker.addEventListener('message', (e) => onReady(e.data), { once: true });
+                // A worker whose script never loads sends no message at all,
+                // and this promise would simply never settle -- the pool
+                // hanging forever with nothing logged anywhere. That is how it
+                // behaved when `Cross-Origin-Embedder-Policy` was missing from
+                // the worker script's own response: the document was isolated,
+                // the load was rejected with ERR_BLOCKED_BY_RESPONSE, and
+                // `loadParallelKernels` neither resolved nor threw. A rejection
+                // falls through to the caller's `catch`, which falls back to
+                // serial kernels -- slower, which is the correct failure.
+                if (NodeWorker) worker.once('error', reject);
+                else {
+                    worker.addEventListener('error', (e) => reject(new Error(
+                        `kernel worker failed to load (${e.message || 'blocked'}): ${url}`)),
+                        { once: true });
+                }
             });
 
             worker.postMessage({

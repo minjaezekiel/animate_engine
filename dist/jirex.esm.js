@@ -2769,6 +2769,680 @@ function resetPose(scene, baseline) {
   return scene;
 }
 
+// src/core/paint/brushes.js
+var BASE = {
+  size: 16,
+  hardness: 0.6,
+  flow: 1,
+  opacity: 1,
+  spacing: 0.1,
+  mode: 0,
+  minSize: 1,
+  sizeCurve: 1,
+  minFlow: 1,
+  flowCurve: 1,
+  taper: 0,
+  taperMin: 0.12,
+  jitterPos: 0,
+  jitterSize: 0,
+  jitterFlow: 0,
+  aspect: 1,
+  angle: 0,
+  angleMode: "fixed",
+  grain: 0,
+  grainScale: 1,
+  grainMode: "canvas",
+  grainSeed: 1,
+  /**
+   * A named tile from the surface's texture map, for a real scanned
+   * paper or canvas. Null uses the generated field, which has
+   * statistics but no structure.
+   */
+  grainAsset: null,
+  wet: false,
+  smudge: 0,
+  colorRate: 1,
+  sampleRadius: 0,
+  erase: false
+};
+var deg = (d) => d * Math.PI / 180;
+var BRUSHES = {
+  /**
+   * Graphite. The tooth of the paper is the whole character, so this is
+   * the one brush where jitter carries the identity: pressure changes
+   * how much graphite is laid down far more than how wide the line is,
+   * which is why `minFlow` is low while `minSize` stays high.
+   */
+  pencil: {
+    ...BASE,
+    size: 4,
+    hardness: 0.75,
+    flow: 0.55,
+    spacing: 0.055,
+    minSize: 0.82,
+    sizeCurve: 1.3,
+    minFlow: 0.16,
+    flowCurve: 1.5,
+    taper: 0.9,
+    taperMin: 0.55,
+    jitterPos: 0.14,
+    jitterSize: 0.3,
+    jitterFlow: 0.42,
+    grain: 0.45,
+    grainScale: 1.1,
+    grainSeed: 11
+  },
+  /**
+   * A technical pen. Deliberately inert: no pressure response, no
+   * taper, full flow, hard edge. Every other brush here varies with the
+   * hand, so the library needs one that does not -- for lettering,
+   * panel borders and anything that must look drafted rather than drawn.
+   */
+  pen: {
+    ...BASE,
+    size: 3,
+    hardness: 1,
+    flow: 1,
+    spacing: 0.06
+  },
+  /**
+   * A flexible nib. The opposite of `pen`: size follows pressure hard
+   * (`sizeCurve` below 1 makes it respond early in the stroke) and both
+   * ends taper, which together give the swelling line of brush
+   * lettering and comic inking.
+   */
+  ink: {
+    ...BASE,
+    size: 18,
+    hardness: 0.92,
+    flow: 1,
+    spacing: 0.045,
+    minSize: 0.08,
+    sizeCurve: 0.7,
+    taper: 1.6,
+    taperMin: 0.05
+  },
+  /**
+   * A chisel marker. Wide, slightly soft, and -- the characteristic
+   * part -- `flow` well below 1 in **peak** mode. So one pass is
+   * translucent and uniform however slowly it is drawn, while a second
+   * crossing pass darkens. That is exactly how marker ink behaves and it
+   * is impossible to reproduce by compositing dabs individually.
+   */
+  marker: {
+    ...BASE,
+    size: 26,
+    hardness: 0.55,
+    flow: 0.5,
+    spacing: 0.08,
+    minSize: 0.95
+  },
+  /**
+   * Airbrush. The only brush whose identity is `mode: 1`: coverage
+   * accumulates, so dwelling darkens and the stroke records speed. Very
+   * soft edge and low flow, so it is built up in passes.
+   */
+  airbrush: {
+    ...BASE,
+    size: 48,
+    hardness: 0.04,
+    flow: 0.08,
+    spacing: 0.035,
+    mode: 1,
+    minFlow: 0.1,
+    flowCurve: 1.6
+  },
+  /**
+   * Charcoal. Build-up like the airbrush, but with heavy positional and
+   * flow jitter, so it accumulates *unevenly* -- which is what reads as
+   * a dry medium dragged across a surface rather than a sprayed one.
+   */
+  charcoal: {
+    ...BASE,
+    size: 22,
+    hardness: 0.3,
+    flow: 0.3,
+    spacing: 0.05,
+    mode: 1,
+    minSize: 0.7,
+    minFlow: 0.25,
+    flowCurve: 1.3,
+    jitterPos: 0.34,
+    jitterSize: 0.4,
+    jitterFlow: 0.55,
+    grain: 0.7,
+    grainScale: 2.2,
+    grainSeed: 23
+  },
+  /**
+   * Chalk. Granular like charcoal but **peak** mode, so a pass has a
+   * ceiling and the grain stays legible instead of filling in. Harder
+   * edge, for the crisper mark of a compressed stick.
+   */
+  chalk: {
+    ...BASE,
+    size: 20,
+    hardness: 0.7,
+    flow: 0.72,
+    spacing: 0.07,
+    minSize: 0.78,
+    minFlow: 0.4,
+    jitterPos: 0.26,
+    jitterSize: 0.34,
+    jitterFlow: 0.3,
+    grain: 0.6,
+    grainScale: 1.6,
+    grainSeed: 31
+  },
+  /**
+   * A chisel marker, held at a fixed 45 degrees. The stroke is broad
+   * across one diagonal and thin across the other, so it swells and
+   * narrows purely from where the line is going.
+   */
+  chiselMarker: {
+    ...BASE,
+    size: 34,
+    hardness: 0.7,
+    flow: 0.55,
+    spacing: 0.04,
+    minSize: 0.95,
+    aspect: 0.3,
+    angle: deg(45)
+  },
+  /**
+   * A broad-edge calligraphic nib. Narrower and harder than the chisel
+   * marker, at the conventional 30-degree hand, with a taper so entries
+   * and exits thin out as a real nib does when it lifts.
+   */
+  calligraphy: {
+    ...BASE,
+    size: 30,
+    hardness: 0.95,
+    flow: 1,
+    spacing: 0.03,
+    minSize: 0.85,
+    aspect: 0.14,
+    angle: deg(-30),
+    taper: 0.5,
+    taperMin: 0.35
+  },
+  /**
+   * A flat bristle brush dragged edge-on: `angleMode: 'follow'`, so the
+   * nib turns with the stroke and the ribbon keeps its width. Grain is
+   * dab-locked here because the texture *is* the bristle cluster, not
+   * the paper.
+   */
+  flatBristle: {
+    ...BASE,
+    size: 30,
+    hardness: 0.5,
+    flow: 0.7,
+    spacing: 0.035,
+    minSize: 0.7,
+    aspect: 0.38,
+    angleMode: "follow",
+    angle: deg(90),
+    grain: 0.55,
+    grainMode: "dab",
+    grainSeed: 47
+  },
+  /**
+   * Watercolour. Heavy pickup and very little fresh paint, so colours
+   * run into one another instead of covering, and build-up accumulation
+   * so repeated passes deepen rather than cap.
+   */
+  watercolor: {
+    ...BASE,
+    size: 44,
+    hardness: 0.12,
+    flow: 0.3,
+    opacity: 0.85,
+    spacing: 0.04,
+    mode: 1,
+    minFlow: 0.3,
+    wet: true,
+    smudge: 0.62,
+    colorRate: 0.14,
+    sampleRadius: 0
+  },
+  /**
+   * Oil paint. Balanced pickup and fresh colour, so a stroke both
+   * carries and deposits, with canvas grain for the weave.
+   */
+  oil: {
+    ...BASE,
+    size: 26,
+    hardness: 0.6,
+    flow: 0.95,
+    spacing: 0.03,
+    minSize: 0.8,
+    aspect: 0.6,
+    angleMode: "follow",
+    angle: deg(90),
+    wet: true,
+    smudge: 0.45,
+    colorRate: 0.42,
+    grain: 0.3,
+    grainScale: 1.4,
+    grainSeed: 53
+  },
+  /**
+   * Pure smear: picks up everything, deposits no new colour. This is the
+   * case that `smudge` and `colorRate` being independent exists for --
+   * with them coupled it cannot be expressed at all.
+   */
+  smudge: {
+    ...BASE,
+    size: 36,
+    hardness: 0.3,
+    flow: 1,
+    spacing: 0.02,
+    wet: true,
+    smudge: 0.9,
+    colorRate: 0
+  },
+  /** Hard eraser. Composites destination-out at full strength. */
+  eraser: {
+    ...BASE,
+    size: 24,
+    hardness: 0.95,
+    flow: 1,
+    spacing: 0.06,
+    erase: true
+  },
+  /**
+   * Soft eraser. Separate from `eraser` because feathering an erase is
+   * the common case for lifting a highlight, and asking a user to
+   * remember to drop hardness is a worse tool than offering both.
+   */
+  softEraser: {
+    ...BASE,
+    size: 56,
+    hardness: 0.08,
+    flow: 0.3,
+    spacing: 0.04,
+    mode: 1,
+    erase: true
+  }
+};
+var BRUSH_NAMES = Object.keys(BRUSHES);
+function brush(nameOrSpec, overrides = {}) {
+  if (typeof nameOrSpec === "object" && nameOrSpec) {
+    return { ...BASE, ...nameOrSpec, ...overrides };
+  }
+  const found = BRUSHES[nameOrSpec];
+  if (!found) {
+    throw new Error(
+      `unknown brush "${nameOrSpec}"; available: ${BRUSH_NAMES.join(", ")}`
+    );
+  }
+  return { ...found, ...overrides };
+}
+
+// src/core/paint/path.js
+var DEFAULT_TOLERANCE = 3;
+function pathToRuns(d, { tolerance = DEFAULT_TOLERANCE, pressure, diagnostics } = {}) {
+  const tokens = tokenize(String(d ?? ""));
+  const runs = [];
+  let run = [];
+  let x = 0, y = 0;
+  let startX = 0, startY = 0;
+  let lastC = null;
+  let lastQ = null;
+  const moveTo = (nx, ny) => {
+    if (run.length > 1) runs.push(run);
+    run = [{ x: nx, y: ny }];
+    x = nx;
+    y = ny;
+    startX = nx;
+    startY = ny;
+  };
+  const lineTo = (nx, ny) => {
+    run.push({ x: nx, y: ny });
+    x = nx;
+    y = ny;
+  };
+  const cubicTo = (x1, y1, x2, y2, nx, ny) => {
+    const n2 = samples(
+      Math.hypot(x1 - x, y1 - y) + Math.hypot(x2 - x1, y2 - y1) + Math.hypot(nx - x2, ny - y2),
+      tolerance
+    );
+    for (let i2 = 1; i2 <= n2; i2++) {
+      const t = i2 / n2, u = 1 - t;
+      run.push({
+        x: u * u * u * x + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * nx,
+        y: u * u * u * y + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * ny
+      });
+    }
+    lastC = [x2, y2];
+    lastQ = null;
+    x = nx;
+    y = ny;
+  };
+  const quadTo = (x1, y1, nx, ny) => {
+    const n2 = samples(Math.hypot(x1 - x, y1 - y) + Math.hypot(nx - x1, ny - y1), tolerance);
+    for (let i2 = 1; i2 <= n2; i2++) {
+      const t = i2 / n2, u = 1 - t;
+      run.push({
+        x: u * u * x + 2 * u * t * x1 + t * t * nx,
+        y: u * u * y + 2 * u * t * y1 + t * t * ny
+      });
+    }
+    lastQ = [x1, y1];
+    lastC = null;
+    x = nx;
+    y = ny;
+  };
+  let i = 0;
+  let command = "";
+  while (i < tokens.length) {
+    if (typeof tokens[i] === "string") {
+      command = tokens[i];
+      i++;
+    }
+    const rel = command === command.toLowerCase();
+    const up = command.toUpperCase();
+    const num = () => tokens[i++];
+    const ox = rel ? x : 0, oy = rel ? y : 0;
+    switch (up) {
+      case "M": {
+        moveTo(num() + ox, num() + oy);
+        command = rel ? "l" : "L";
+        break;
+      }
+      case "L":
+        lineTo(num() + ox, num() + oy);
+        break;
+      case "H":
+        lineTo(num() + ox, y);
+        break;
+      case "V":
+        lineTo(x, num() + oy);
+        break;
+      case "C": {
+        const x1 = num() + ox, y1 = num() + oy;
+        const x2 = num() + ox, y2 = num() + oy;
+        cubicTo(x1, y1, x2, y2, num() + ox, num() + oy);
+        break;
+      }
+      case "S": {
+        const rx = lastC ? 2 * x - lastC[0] : x;
+        const ry = lastC ? 2 * y - lastC[1] : y;
+        const x2 = num() + ox, y2 = num() + oy;
+        cubicTo(rx, ry, x2, y2, num() + ox, num() + oy);
+        break;
+      }
+      case "Q": {
+        const x1 = num() + ox, y1 = num() + oy;
+        quadTo(x1, y1, num() + ox, num() + oy);
+        break;
+      }
+      case "T": {
+        const rx = lastQ ? 2 * x - lastQ[0] : x;
+        const ry = lastQ ? 2 * y - lastQ[1] : y;
+        quadTo(rx, ry, num() + ox, num() + oy);
+        break;
+      }
+      case "Z":
+        lineTo(startX, startY);
+        if (run.length > 1) runs.push(run);
+        run = [{ x: startX, y: startY }];
+        lastC = null;
+        lastQ = null;
+        break;
+      case "A":
+        diagnostics?.push({
+          severity: "warning",
+          message: 'path command "A" (elliptical arc) is not supported; use circlePath()/rectPath() or approximate with C'
+        });
+        for (let k = 0; k < 7; k++) num();
+        x = tokens[i - 2] ?? x;
+        y = tokens[i - 1] ?? y;
+        break;
+      default:
+        diagnostics?.push({
+          severity: "warning",
+          message: `unknown path command "${command}"`
+        });
+        i++;
+        break;
+    }
+    if (up !== "C") lastC = up === "S" ? lastC : null;
+    if (up !== "Q") lastQ = up === "T" ? lastQ : null;
+  }
+  if (run.length > 1) runs.push(run);
+  return runs.map((r) => withPressure(r, pressure));
+}
+function pathToPoints(d, options) {
+  const runs = pathToRuns(d, options);
+  return runs.length ? runs[0] : [];
+}
+function withPressure(run, pressure) {
+  if (!pressure) return run.map((q) => ({ ...q, p: q.p ?? 1 }));
+  const [from, to] = Array.isArray(pressure) ? pressure : [pressure, pressure];
+  const last = Math.max(1, run.length - 1);
+  return run.map((q, i) => ({ ...q, p: from + (to - from) * (i / last) }));
+}
+function samples(length, tolerance) {
+  return Math.max(2, Math.min(240, Math.ceil(length / Math.max(0.25, tolerance))));
+}
+function tokenize(d) {
+  const out = [];
+  const re = /([MmLlHhVvCcSsQqTtAaZz])|(-?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?)/g;
+  let m;
+  while ((m = re.exec(d)) !== null) {
+    if (m[1]) out.push(m[1]);
+    else out.push(parseFloat(m[2]));
+  }
+  return out;
+}
+
+// src/core/paint/stroke.js
+function hash(n2) {
+  let x = n2 | 0;
+  x = x ^ 61 ^ x >>> 16;
+  x = x + (x << 3) | 0;
+  x ^= x >>> 4;
+  x = Math.imul(x, 668265261);
+  x ^= x >>> 15;
+  return x >>> 0;
+}
+var rand = (seed, i, k) => hash(seed * 7919 + i * 131 + k * 2654435761) / 4294967296;
+function arcLengths(points) {
+  const out = new Float64Array(points.length);
+  for (let i = 1; i < points.length; i++) {
+    const dx = points[i].x - points[i - 1].x;
+    const dy = points[i].y - points[i - 1].y;
+    out[i] = out[i - 1] + Math.hypot(dx, dy);
+  }
+  return out;
+}
+var STAMP_STRIDE = 6;
+function resampleStroke(stroke, brush2) {
+  const points = stroke.points ?? [];
+  if (points.length === 0) return { stamps: new Float32Array(0), count: 0, length: 0 };
+  const size = Math.max(0.1, stroke.size ?? brush2.size ?? 16);
+  const lengths = arcLengths(points);
+  const total = lengths[lengths.length - 1];
+  const quads = [];
+  const follow = brush2.angleMode === "follow";
+  const push = (x, y, s, i, dirAngle) => {
+    const pressure = Math.min(1, Math.max(0, s));
+    const sizeF = brush2.minSize + (1 - brush2.minSize) * pressure ** brush2.sizeCurve;
+    const flowF = brush2.minFlow + (1 - brush2.minFlow) * pressure ** brush2.flowCurve;
+    let diameter = size * sizeF * taperAt(i, total, size, brush2);
+    let flow = brush2.flow * flowF;
+    if (brush2.jitterSize > 0) {
+      diameter *= 1 - brush2.jitterSize * rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 1);
+    }
+    let jx = 0, jy = 0;
+    if (brush2.jitterPos > 0) {
+      const r = brush2.jitterPos * size * 0.5;
+      jx = (rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 2) * 2 - 1) * r;
+      jy = (rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 3) * 2 - 1) * r;
+    }
+    if (brush2.jitterFlow > 0) {
+      flow *= 1 - brush2.jitterFlow * rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 4);
+    }
+    const radius = Math.max(0.05, diameter * 0.5);
+    const angle = follow ? dirAngle + brush2.angle : brush2.angle;
+    if (flow > 0) {
+      quads.push(x + jx, y + jy, radius, Math.min(1, flow), angle, brush2.aspect);
+    }
+  };
+  if (total <= 1e-9) {
+    push(points[0].x, points[0].y, points[0].p ?? 1, 0, 0);
+    return { stamps: Float32Array.from(quads), count: quads.length / STAMP_STRIDE, length: 0 };
+  }
+  let travelled = 0;
+  let segment = 1;
+  const limit = Math.ceil(total / Math.max(0.05, brush2.spacing * size * brush2.minSize)) + 8;
+  while (travelled <= total && quads.length / STAMP_STRIDE < limit) {
+    while (segment < points.length - 1 && lengths[segment] < travelled) segment++;
+    const a = points[segment - 1], b = points[segment];
+    const span = lengths[segment] - lengths[segment - 1];
+    const t = span > 1e-9 ? (travelled - lengths[segment - 1]) / span : 0;
+    const tc = Math.min(1, Math.max(0, t));
+    const x = a.x + (b.x - a.x) * tc;
+    const y = a.y + (b.y - a.y) * tc;
+    const p = (a.p ?? 1) + ((b.p ?? 1) - (a.p ?? 1)) * tc;
+    const dirAngle = follow ? Math.atan2(b.y - a.y, b.x - a.x) : 0;
+    push(x, y, p, travelled, dirAngle);
+    const localSize = Math.max(
+      size * brush2.minSize,
+      size * (brush2.minSize + (1 - brush2.minSize) * Math.min(1, Math.max(0, p)) ** brush2.sizeCurve)
+    );
+    travelled += Math.max(0.35, brush2.spacing * localSize);
+  }
+  return { stamps: Float32Array.from(quads), count: quads.length / STAMP_STRIDE, length: total };
+}
+function taperAt(at, total, size, brush2) {
+  if (brush2.taper <= 0 || total <= 0) return 1;
+  const span = Math.min(brush2.taper * size, total / 3);
+  if (span <= 1e-9) return 1;
+  const fromStart = Math.min(1, at / span);
+  const fromEnd = Math.min(1, (total - at) / span);
+  const t = Math.min(fromStart, fromEnd);
+  return brush2.taperMin + (1 - brush2.taperMin) * (t * t * (3 - 2 * t));
+}
+function stampCountAt(resampled, progress) {
+  const p = Math.min(1, Math.max(0, progress));
+  if (p >= 1) return resampled.count;
+  return Math.floor(resampled.count * p);
+}
+function strokeDabs(stroke, resolved = brush(stroke.brush ?? "pen", stroke.brushOverrides)) {
+  const points = stroke.points ?? (stroke.path ? pathToPoints(stroke.path, { pressure: stroke.pressure, tolerance: stroke.tolerance }) : []);
+  return resampleStroke({ ...stroke, points }, resolved);
+}
+
+// src/core/script/budget.js
+var CALIBRATION = {
+  /** One output pixel of a photo warp, including the f32 to u8 pass. */
+  photoNsPerPixel: 64,
+  /** One brush dab of a drawing that is re-rendering this frame. */
+  dabNs: 1350,
+  /**
+   * Fraction of the ceiling above which a shot is *advised* against.
+   * Matches `preflight`'s own margin, which leaves room for the encoder
+   * running alongside the renderer.
+   */
+  advisory: 0.6
+};
+function dabsOf(drawing) {
+  let total = 0;
+  for (const layer of drawing.layers ?? [{ strokes: drawing.strokes ?? [] }]) {
+    for (const stroke of layer.strokes ?? []) total += strokeDabs(stroke).count;
+  }
+  return total;
+}
+function estimateFrameCost(compiled, film, {
+  trackValueAt: trackValueAt2 = null,
+  calibration = CALIBRATION
+} = {}) {
+  const notes = [];
+  if (!compiled?.timeline || !compiled.meta) return { ceilingMs: 0, shots: [], notes, worstMs: 0 };
+  const fps = compiled.meta.fps || 24;
+  const ceilingMs = 1e3 / fps;
+  const scenes = compiled.expanded ?? film.scenes ?? [];
+  const spans = filmShots({ ...film, scenes });
+  const animates = (nodeId, span) => {
+    const track = compiled.timeline._index?.get(`${nodeId}\0props.progress`);
+    if (!track || !trackValueAt2) return true;
+    return trackValueAt2(track, span.start) !== trackValueAt2(track, span.end);
+  };
+  const shots = [];
+  for (const span of spans) {
+    const scene = span.scene;
+    const items = [];
+    for (const [i, photo] of (scene.photos ?? []).entries()) {
+      const id = photo.id ?? `photo${i + 1}`;
+      if (!animates(`${span.sceneId}/${id}`, span)) continue;
+      const scale = Math.min(1, Math.max(0.05, photo.resolution ?? 1));
+      const px = (photo.width ?? compiled.meta.width) * (photo.height ?? compiled.meta.height) * scale * scale;
+      const perWarp = px * calibration.photoNsPerPixel / 1e6;
+      const held = photo.step > 0 ? Math.max(1, Math.round(photo.step * fps)) : 1;
+      items.push({ kind: "photo", id, ms: perWarp / held, peakMs: perWarp, held });
+    }
+    for (const [i, drawing] of (scene.drawings ?? []).entries()) {
+      const id = drawing.id ?? `drawing${i + 1}`;
+      if (!animates(`${span.sceneId}/${id}`, span)) continue;
+      const dabs = dabsOf(drawing);
+      items.push({ kind: "drawing", id, ms: dabs * calibration.dabNs / 1e6, dabs });
+    }
+    const ms = items.reduce((sum, it) => sum + it.ms, 0);
+    const peakMs = items.reduce((sum, it) => sum + (it.peakMs ?? it.ms), 0);
+    shots.push({
+      shotId: span.shotId,
+      sceneId: span.sceneId,
+      ms,
+      peakMs,
+      items,
+      startSec: span.start,
+      endSec: span.end
+    });
+    if (!items.length) continue;
+    const worst = items.slice().sort((a, b) => b.ms - a.ms)[0];
+    const fix = worst.kind === "photo" ? `lower "resolution" (now ${scene.photos.find((p, j) => (p.id ?? `photo${j + 1}`) === worst.id)?.resolution ?? 1}) or raise "step" to hold each warp across more frames` : "reveal fewer dabs, or split the drawing across shots";
+    if (ms > ceilingMs) {
+      notes.push({
+        severity: "error",
+        path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+        message: `Budget: about ${ms.toFixed(1)}ms a frame, over the ${ceilingMs.toFixed(1)}ms ceiling at ${fps}fps. A paced export does not degrade past this -- it writes an undecodable file. Heaviest: ${worst.kind} "${worst.id}" at ${worst.ms.toFixed(1)}ms. Try: ${fix}.`
+      });
+    } else if (ms > ceilingMs * calibration.advisory) {
+      notes.push({
+        severity: "warning",
+        path: `scenes.${span.sceneId}.shots.${span.shotId}`,
+        message: `Budget: about ${ms.toFixed(1)}ms a frame against a ${ceilingMs.toFixed(1)}ms ceiling, leaving little room for the encoder. Heaviest: ${worst.kind} "${worst.id}". Try: ${fix}.`
+      });
+    }
+  }
+  return {
+    ceilingMs,
+    shots,
+    notes,
+    worstMs: shots.reduce((m, s) => Math.max(m, s.ms), 0)
+  };
+}
+function worstSpan(estimate) {
+  let worst = null;
+  for (const shot of estimate?.shots ?? []) {
+    if (shot.ms > 0 && (!worst || shot.ms > worst.ms)) worst = shot;
+  }
+  if (!worst) return null;
+  return { shotId: worst.shotId, startSec: worst.startSec, endSec: worst.endSec, ms: worst.ms };
+}
+function calibrate(predictedMs, measuredMs, base = CALIBRATION) {
+  const ratio = predictedMs > 0 && measuredMs > 0 ? measuredMs / predictedMs : 1;
+  return {
+    ...base,
+    photoNsPerPixel: base.photoNsPerPixel * ratio,
+    dabNs: base.dabNs * ratio,
+    ratio,
+    measured: ratio !== 1
+  };
+}
+
 // src/core/script/staging.js
 function measureCharacter(parts) {
   const byId = new Map(parts.map((p) => [p.id, p]));
@@ -4116,6 +4790,29 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnos
       z: item.z ?? -500
     }, groupId);
   });
+}
+function filmShots(film) {
+  const out = [];
+  let t = 0;
+  for (const [si, scene] of (film.scenes ?? []).entries()) {
+    const sceneId = scene.id ?? `s${si + 1}`;
+    for (const [shi, shot] of (scene.shots ?? []).entries()) {
+      const duration = shot.duration ?? DEFAULTS.shotDuration;
+      out.push({
+        sceneId,
+        sceneIndex: si,
+        shotIndex: shi,
+        shotId: shot.id ?? `${sceneId}.${shi + 1}`,
+        start: t,
+        end: t + duration,
+        duration,
+        scene,
+        shot
+      });
+      t += duration;
+    }
+  }
+  return out;
 }
 function instantiateCharacter({
   scene,
@@ -6035,568 +6732,6 @@ function repeatStep(rep, i) {
   });
 }
 
-// src/core/paint/stroke.js
-function hash(n2) {
-  let x = n2 | 0;
-  x = x ^ 61 ^ x >>> 16;
-  x = x + (x << 3) | 0;
-  x ^= x >>> 4;
-  x = Math.imul(x, 668265261);
-  x ^= x >>> 15;
-  return x >>> 0;
-}
-var rand = (seed, i, k) => hash(seed * 7919 + i * 131 + k * 2654435761) / 4294967296;
-function arcLengths(points) {
-  const out = new Float64Array(points.length);
-  for (let i = 1; i < points.length; i++) {
-    const dx = points[i].x - points[i - 1].x;
-    const dy = points[i].y - points[i - 1].y;
-    out[i] = out[i - 1] + Math.hypot(dx, dy);
-  }
-  return out;
-}
-var STAMP_STRIDE = 6;
-function resampleStroke(stroke, brush2) {
-  const points = stroke.points ?? [];
-  if (points.length === 0) return { stamps: new Float32Array(0), count: 0, length: 0 };
-  const size = Math.max(0.1, stroke.size ?? brush2.size ?? 16);
-  const lengths = arcLengths(points);
-  const total = lengths[lengths.length - 1];
-  const quads = [];
-  const follow = brush2.angleMode === "follow";
-  const push = (x, y, s, i, dirAngle) => {
-    const pressure = Math.min(1, Math.max(0, s));
-    const sizeF = brush2.minSize + (1 - brush2.minSize) * pressure ** brush2.sizeCurve;
-    const flowF = brush2.minFlow + (1 - brush2.minFlow) * pressure ** brush2.flowCurve;
-    let diameter = size * sizeF * taperAt(i, total, size, brush2);
-    let flow = brush2.flow * flowF;
-    if (brush2.jitterSize > 0) {
-      diameter *= 1 - brush2.jitterSize * rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 1);
-    }
-    let jx = 0, jy = 0;
-    if (brush2.jitterPos > 0) {
-      const r = brush2.jitterPos * size * 0.5;
-      jx = (rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 2) * 2 - 1) * r;
-      jy = (rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 3) * 2 - 1) * r;
-    }
-    if (brush2.jitterFlow > 0) {
-      flow *= 1 - brush2.jitterFlow * rand(stroke.seed ?? 0, quads.length / STAMP_STRIDE, 4);
-    }
-    const radius = Math.max(0.05, diameter * 0.5);
-    const angle = follow ? dirAngle + brush2.angle : brush2.angle;
-    if (flow > 0) {
-      quads.push(x + jx, y + jy, radius, Math.min(1, flow), angle, brush2.aspect);
-    }
-  };
-  if (total <= 1e-9) {
-    push(points[0].x, points[0].y, points[0].p ?? 1, 0, 0);
-    return { stamps: Float32Array.from(quads), count: quads.length / STAMP_STRIDE, length: 0 };
-  }
-  let travelled = 0;
-  let segment = 1;
-  const limit = Math.ceil(total / Math.max(0.05, brush2.spacing * size * brush2.minSize)) + 8;
-  while (travelled <= total && quads.length / STAMP_STRIDE < limit) {
-    while (segment < points.length - 1 && lengths[segment] < travelled) segment++;
-    const a = points[segment - 1], b = points[segment];
-    const span = lengths[segment] - lengths[segment - 1];
-    const t = span > 1e-9 ? (travelled - lengths[segment - 1]) / span : 0;
-    const tc = Math.min(1, Math.max(0, t));
-    const x = a.x + (b.x - a.x) * tc;
-    const y = a.y + (b.y - a.y) * tc;
-    const p = (a.p ?? 1) + ((b.p ?? 1) - (a.p ?? 1)) * tc;
-    const dirAngle = follow ? Math.atan2(b.y - a.y, b.x - a.x) : 0;
-    push(x, y, p, travelled, dirAngle);
-    const localSize = Math.max(
-      size * brush2.minSize,
-      size * (brush2.minSize + (1 - brush2.minSize) * Math.min(1, Math.max(0, p)) ** brush2.sizeCurve)
-    );
-    travelled += Math.max(0.35, brush2.spacing * localSize);
-  }
-  return { stamps: Float32Array.from(quads), count: quads.length / STAMP_STRIDE, length: total };
-}
-function taperAt(at, total, size, brush2) {
-  if (brush2.taper <= 0 || total <= 0) return 1;
-  const span = Math.min(brush2.taper * size, total / 3);
-  if (span <= 1e-9) return 1;
-  const fromStart = Math.min(1, at / span);
-  const fromEnd = Math.min(1, (total - at) / span);
-  const t = Math.min(fromStart, fromEnd);
-  return brush2.taperMin + (1 - brush2.taperMin) * (t * t * (3 - 2 * t));
-}
-function stampCountAt(resampled, progress) {
-  const p = Math.min(1, Math.max(0, progress));
-  if (p >= 1) return resampled.count;
-  return Math.floor(resampled.count * p);
-}
-
-// src/core/paint/brushes.js
-var BASE = {
-  size: 16,
-  hardness: 0.6,
-  flow: 1,
-  opacity: 1,
-  spacing: 0.1,
-  mode: 0,
-  minSize: 1,
-  sizeCurve: 1,
-  minFlow: 1,
-  flowCurve: 1,
-  taper: 0,
-  taperMin: 0.12,
-  jitterPos: 0,
-  jitterSize: 0,
-  jitterFlow: 0,
-  aspect: 1,
-  angle: 0,
-  angleMode: "fixed",
-  grain: 0,
-  grainScale: 1,
-  grainMode: "canvas",
-  grainSeed: 1,
-  /**
-   * A named tile from the surface's texture map, for a real scanned
-   * paper or canvas. Null uses the generated field, which has
-   * statistics but no structure.
-   */
-  grainAsset: null,
-  wet: false,
-  smudge: 0,
-  colorRate: 1,
-  sampleRadius: 0,
-  erase: false
-};
-var deg = (d) => d * Math.PI / 180;
-var BRUSHES = {
-  /**
-   * Graphite. The tooth of the paper is the whole character, so this is
-   * the one brush where jitter carries the identity: pressure changes
-   * how much graphite is laid down far more than how wide the line is,
-   * which is why `minFlow` is low while `minSize` stays high.
-   */
-  pencil: {
-    ...BASE,
-    size: 4,
-    hardness: 0.75,
-    flow: 0.55,
-    spacing: 0.055,
-    minSize: 0.82,
-    sizeCurve: 1.3,
-    minFlow: 0.16,
-    flowCurve: 1.5,
-    taper: 0.9,
-    taperMin: 0.55,
-    jitterPos: 0.14,
-    jitterSize: 0.3,
-    jitterFlow: 0.42,
-    grain: 0.45,
-    grainScale: 1.1,
-    grainSeed: 11
-  },
-  /**
-   * A technical pen. Deliberately inert: no pressure response, no
-   * taper, full flow, hard edge. Every other brush here varies with the
-   * hand, so the library needs one that does not -- for lettering,
-   * panel borders and anything that must look drafted rather than drawn.
-   */
-  pen: {
-    ...BASE,
-    size: 3,
-    hardness: 1,
-    flow: 1,
-    spacing: 0.06
-  },
-  /**
-   * A flexible nib. The opposite of `pen`: size follows pressure hard
-   * (`sizeCurve` below 1 makes it respond early in the stroke) and both
-   * ends taper, which together give the swelling line of brush
-   * lettering and comic inking.
-   */
-  ink: {
-    ...BASE,
-    size: 18,
-    hardness: 0.92,
-    flow: 1,
-    spacing: 0.045,
-    minSize: 0.08,
-    sizeCurve: 0.7,
-    taper: 1.6,
-    taperMin: 0.05
-  },
-  /**
-   * A chisel marker. Wide, slightly soft, and -- the characteristic
-   * part -- `flow` well below 1 in **peak** mode. So one pass is
-   * translucent and uniform however slowly it is drawn, while a second
-   * crossing pass darkens. That is exactly how marker ink behaves and it
-   * is impossible to reproduce by compositing dabs individually.
-   */
-  marker: {
-    ...BASE,
-    size: 26,
-    hardness: 0.55,
-    flow: 0.5,
-    spacing: 0.08,
-    minSize: 0.95
-  },
-  /**
-   * Airbrush. The only brush whose identity is `mode: 1`: coverage
-   * accumulates, so dwelling darkens and the stroke records speed. Very
-   * soft edge and low flow, so it is built up in passes.
-   */
-  airbrush: {
-    ...BASE,
-    size: 48,
-    hardness: 0.04,
-    flow: 0.08,
-    spacing: 0.035,
-    mode: 1,
-    minFlow: 0.1,
-    flowCurve: 1.6
-  },
-  /**
-   * Charcoal. Build-up like the airbrush, but with heavy positional and
-   * flow jitter, so it accumulates *unevenly* -- which is what reads as
-   * a dry medium dragged across a surface rather than a sprayed one.
-   */
-  charcoal: {
-    ...BASE,
-    size: 22,
-    hardness: 0.3,
-    flow: 0.3,
-    spacing: 0.05,
-    mode: 1,
-    minSize: 0.7,
-    minFlow: 0.25,
-    flowCurve: 1.3,
-    jitterPos: 0.34,
-    jitterSize: 0.4,
-    jitterFlow: 0.55,
-    grain: 0.7,
-    grainScale: 2.2,
-    grainSeed: 23
-  },
-  /**
-   * Chalk. Granular like charcoal but **peak** mode, so a pass has a
-   * ceiling and the grain stays legible instead of filling in. Harder
-   * edge, for the crisper mark of a compressed stick.
-   */
-  chalk: {
-    ...BASE,
-    size: 20,
-    hardness: 0.7,
-    flow: 0.72,
-    spacing: 0.07,
-    minSize: 0.78,
-    minFlow: 0.4,
-    jitterPos: 0.26,
-    jitterSize: 0.34,
-    jitterFlow: 0.3,
-    grain: 0.6,
-    grainScale: 1.6,
-    grainSeed: 31
-  },
-  /**
-   * A chisel marker, held at a fixed 45 degrees. The stroke is broad
-   * across one diagonal and thin across the other, so it swells and
-   * narrows purely from where the line is going.
-   */
-  chiselMarker: {
-    ...BASE,
-    size: 34,
-    hardness: 0.7,
-    flow: 0.55,
-    spacing: 0.04,
-    minSize: 0.95,
-    aspect: 0.3,
-    angle: deg(45)
-  },
-  /**
-   * A broad-edge calligraphic nib. Narrower and harder than the chisel
-   * marker, at the conventional 30-degree hand, with a taper so entries
-   * and exits thin out as a real nib does when it lifts.
-   */
-  calligraphy: {
-    ...BASE,
-    size: 30,
-    hardness: 0.95,
-    flow: 1,
-    spacing: 0.03,
-    minSize: 0.85,
-    aspect: 0.14,
-    angle: deg(-30),
-    taper: 0.5,
-    taperMin: 0.35
-  },
-  /**
-   * A flat bristle brush dragged edge-on: `angleMode: 'follow'`, so the
-   * nib turns with the stroke and the ribbon keeps its width. Grain is
-   * dab-locked here because the texture *is* the bristle cluster, not
-   * the paper.
-   */
-  flatBristle: {
-    ...BASE,
-    size: 30,
-    hardness: 0.5,
-    flow: 0.7,
-    spacing: 0.035,
-    minSize: 0.7,
-    aspect: 0.38,
-    angleMode: "follow",
-    angle: deg(90),
-    grain: 0.55,
-    grainMode: "dab",
-    grainSeed: 47
-  },
-  /**
-   * Watercolour. Heavy pickup and very little fresh paint, so colours
-   * run into one another instead of covering, and build-up accumulation
-   * so repeated passes deepen rather than cap.
-   */
-  watercolor: {
-    ...BASE,
-    size: 44,
-    hardness: 0.12,
-    flow: 0.3,
-    opacity: 0.85,
-    spacing: 0.04,
-    mode: 1,
-    minFlow: 0.3,
-    wet: true,
-    smudge: 0.62,
-    colorRate: 0.14,
-    sampleRadius: 0
-  },
-  /**
-   * Oil paint. Balanced pickup and fresh colour, so a stroke both
-   * carries and deposits, with canvas grain for the weave.
-   */
-  oil: {
-    ...BASE,
-    size: 26,
-    hardness: 0.6,
-    flow: 0.95,
-    spacing: 0.03,
-    minSize: 0.8,
-    aspect: 0.6,
-    angleMode: "follow",
-    angle: deg(90),
-    wet: true,
-    smudge: 0.45,
-    colorRate: 0.42,
-    grain: 0.3,
-    grainScale: 1.4,
-    grainSeed: 53
-  },
-  /**
-   * Pure smear: picks up everything, deposits no new colour. This is the
-   * case that `smudge` and `colorRate` being independent exists for --
-   * with them coupled it cannot be expressed at all.
-   */
-  smudge: {
-    ...BASE,
-    size: 36,
-    hardness: 0.3,
-    flow: 1,
-    spacing: 0.02,
-    wet: true,
-    smudge: 0.9,
-    colorRate: 0
-  },
-  /** Hard eraser. Composites destination-out at full strength. */
-  eraser: {
-    ...BASE,
-    size: 24,
-    hardness: 0.95,
-    flow: 1,
-    spacing: 0.06,
-    erase: true
-  },
-  /**
-   * Soft eraser. Separate from `eraser` because feathering an erase is
-   * the common case for lifting a highlight, and asking a user to
-   * remember to drop hardness is a worse tool than offering both.
-   */
-  softEraser: {
-    ...BASE,
-    size: 56,
-    hardness: 0.08,
-    flow: 0.3,
-    spacing: 0.04,
-    mode: 1,
-    erase: true
-  }
-};
-var BRUSH_NAMES = Object.keys(BRUSHES);
-function brush(nameOrSpec, overrides = {}) {
-  if (typeof nameOrSpec === "object" && nameOrSpec) {
-    return { ...BASE, ...nameOrSpec, ...overrides };
-  }
-  const found = BRUSHES[nameOrSpec];
-  if (!found) {
-    throw new Error(
-      `unknown brush "${nameOrSpec}"; available: ${BRUSH_NAMES.join(", ")}`
-    );
-  }
-  return { ...found, ...overrides };
-}
-
-// src/core/paint/path.js
-var DEFAULT_TOLERANCE = 3;
-function pathToRuns(d, { tolerance = DEFAULT_TOLERANCE, pressure, diagnostics } = {}) {
-  const tokens = tokenize(String(d ?? ""));
-  const runs = [];
-  let run = [];
-  let x = 0, y = 0;
-  let startX = 0, startY = 0;
-  let lastC = null;
-  let lastQ = null;
-  const moveTo = (nx, ny) => {
-    if (run.length > 1) runs.push(run);
-    run = [{ x: nx, y: ny }];
-    x = nx;
-    y = ny;
-    startX = nx;
-    startY = ny;
-  };
-  const lineTo = (nx, ny) => {
-    run.push({ x: nx, y: ny });
-    x = nx;
-    y = ny;
-  };
-  const cubicTo = (x1, y1, x2, y2, nx, ny) => {
-    const n2 = samples(
-      Math.hypot(x1 - x, y1 - y) + Math.hypot(x2 - x1, y2 - y1) + Math.hypot(nx - x2, ny - y2),
-      tolerance
-    );
-    for (let i2 = 1; i2 <= n2; i2++) {
-      const t = i2 / n2, u = 1 - t;
-      run.push({
-        x: u * u * u * x + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * nx,
-        y: u * u * u * y + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * ny
-      });
-    }
-    lastC = [x2, y2];
-    lastQ = null;
-    x = nx;
-    y = ny;
-  };
-  const quadTo = (x1, y1, nx, ny) => {
-    const n2 = samples(Math.hypot(x1 - x, y1 - y) + Math.hypot(nx - x1, ny - y1), tolerance);
-    for (let i2 = 1; i2 <= n2; i2++) {
-      const t = i2 / n2, u = 1 - t;
-      run.push({
-        x: u * u * x + 2 * u * t * x1 + t * t * nx,
-        y: u * u * y + 2 * u * t * y1 + t * t * ny
-      });
-    }
-    lastQ = [x1, y1];
-    lastC = null;
-    x = nx;
-    y = ny;
-  };
-  let i = 0;
-  let command = "";
-  while (i < tokens.length) {
-    if (typeof tokens[i] === "string") {
-      command = tokens[i];
-      i++;
-    }
-    const rel = command === command.toLowerCase();
-    const up = command.toUpperCase();
-    const num = () => tokens[i++];
-    const ox = rel ? x : 0, oy = rel ? y : 0;
-    switch (up) {
-      case "M": {
-        moveTo(num() + ox, num() + oy);
-        command = rel ? "l" : "L";
-        break;
-      }
-      case "L":
-        lineTo(num() + ox, num() + oy);
-        break;
-      case "H":
-        lineTo(num() + ox, y);
-        break;
-      case "V":
-        lineTo(x, num() + oy);
-        break;
-      case "C": {
-        const x1 = num() + ox, y1 = num() + oy;
-        const x2 = num() + ox, y2 = num() + oy;
-        cubicTo(x1, y1, x2, y2, num() + ox, num() + oy);
-        break;
-      }
-      case "S": {
-        const rx = lastC ? 2 * x - lastC[0] : x;
-        const ry = lastC ? 2 * y - lastC[1] : y;
-        const x2 = num() + ox, y2 = num() + oy;
-        cubicTo(rx, ry, x2, y2, num() + ox, num() + oy);
-        break;
-      }
-      case "Q": {
-        const x1 = num() + ox, y1 = num() + oy;
-        quadTo(x1, y1, num() + ox, num() + oy);
-        break;
-      }
-      case "T": {
-        const rx = lastQ ? 2 * x - lastQ[0] : x;
-        const ry = lastQ ? 2 * y - lastQ[1] : y;
-        quadTo(rx, ry, num() + ox, num() + oy);
-        break;
-      }
-      case "Z":
-        lineTo(startX, startY);
-        if (run.length > 1) runs.push(run);
-        run = [{ x: startX, y: startY }];
-        lastC = null;
-        lastQ = null;
-        break;
-      case "A":
-        diagnostics?.push({
-          severity: "warning",
-          message: 'path command "A" (elliptical arc) is not supported; use circlePath()/rectPath() or approximate with C'
-        });
-        for (let k = 0; k < 7; k++) num();
-        x = tokens[i - 2] ?? x;
-        y = tokens[i - 1] ?? y;
-        break;
-      default:
-        diagnostics?.push({
-          severity: "warning",
-          message: `unknown path command "${command}"`
-        });
-        i++;
-        break;
-    }
-    if (up !== "C") lastC = up === "S" ? lastC : null;
-    if (up !== "Q") lastQ = up === "T" ? lastQ : null;
-  }
-  if (run.length > 1) runs.push(run);
-  return runs.map((r) => withPressure(r, pressure));
-}
-function pathToPoints(d, options) {
-  const runs = pathToRuns(d, options);
-  return runs.length ? runs[0] : [];
-}
-function withPressure(run, pressure) {
-  if (!pressure) return run.map((q) => ({ ...q, p: q.p ?? 1 }));
-  const [from, to] = Array.isArray(pressure) ? pressure : [pressure, pressure];
-  const last = Math.max(1, run.length - 1);
-  return run.map((q, i) => ({ ...q, p: from + (to - from) * (i / last) }));
-}
-function samples(length, tolerance) {
-  return Math.max(2, Math.min(240, Math.ceil(length / Math.max(0.25, tolerance))));
-}
-function tokenize(d) {
-  const out = [];
-  const re = /([MmLlHhVvCcSsQqTtAaZz])|(-?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?)/g;
-  let m;
-  while ((m = re.exec(d)) !== null) {
-    if (m[1]) out.push(m[1]);
-    else out.push(parseFloat(m[2]));
-  }
-  return out;
-}
-
 // src/core/paint/texture.js
 function hash2(n2) {
   let x = n2 | 0;
@@ -6750,8 +6885,7 @@ var PaintSurface = class {
     const hit = this._cache.get(stroke);
     if (hit && hit.brushKey === key2) return { ...hit, brushSpec: b };
     if (hit) hit.buf.free();
-    const points = stroke.points ?? (stroke.path ? pathToPoints(stroke.path, { pressure: stroke.pressure, tolerance: stroke.tolerance }) : []);
-    const resampled = resampleStroke({ ...stroke, points }, b);
+    const resampled = strokeDabs(stroke, b);
     const buf = this.kernels.f32(Math.max(4, resampled.stamps.length));
     buf.array.set(resampled.stamps);
     const entry = { resampled, buf, brushKey: key2 };
@@ -8841,6 +8975,16 @@ var ParallelKernels = class {
         };
         if (NodeWorker) worker.once("message", onReady);
         else worker.addEventListener("message", (e) => onReady(e.data), { once: true });
+        if (NodeWorker) worker.once("error", reject);
+        else {
+          worker.addEventListener(
+            "error",
+            (e) => reject(new Error(
+              `kernel worker failed to load (${e.message || "blocked"}): ${url}`
+            )),
+            { once: true }
+          );
+        }
       });
       worker.postMessage({
         t: "init",
@@ -9155,27 +9299,43 @@ async function preflight({
   cameraId,
   fps = 24,
   frames = 48,
-  poser = null
+  poser = null,
+  startSec = 0,
+  endSec = null,
+  beforeFrame = null
 }) {
   const clock = new FrameClock(fps);
   const pose = poser ?? defaultPoser(scene, timeline);
+  const first = Math.max(0, Math.round(startSec * fps));
+  const span = endSec !== null ? Math.max(1, Math.round((endSec - startSec) * fps)) : frames;
+  const count = Math.max(1, Math.min(frames, span));
+  const warmup = await sample2(first);
   const samples2 = [];
-  for (let n2 = 0; n2 < frames; n2++) {
+  for (let n2 = first + 1; n2 <= first + count; n2++) {
+    samples2.push(await sample2(n2));
+  }
+  async function sample2(n2) {
     const t = clock.timeOf(n2);
     const start = performance.now();
     pose.reset();
     pose.apply(t);
+    if (beforeFrame) await beforeFrame(t, n2, scene);
     backend.sync(scene);
     backend.renderFrame(scene, cameraId);
-    samples2.push(performance.now() - start);
+    return performance.now() - start;
   }
   pose.reset();
   samples2.sort((a, b) => a - b);
   const at = (q) => samples2[Math.min(samples2.length - 1, Math.floor(q * samples2.length))];
+  const mean = samples2.reduce((a, b) => a + b, 0) / samples2.length;
   return {
-    frames,
+    frames: count,
+    startSec,
+    meanMs: +mean.toFixed(2),
+    warmupMs: +warmup.toFixed(2),
     medianMs: +at(0.5).toFixed(2),
     p95Ms: +at(0.95).toFixed(2),
+    maxMs: +samples2[samples2.length - 1].toFixed(2),
     ceilingMs: +(1e3 / fps).toFixed(2),
     withinBudget: at(0.95) < 1e3 / fps * 0.6
     // leave room for encode
@@ -9557,6 +9717,7 @@ var FilmStudio = class {
     parallel = null
   } = {}) {
     this.parallel = parallel;
+    this.calibration = loadCalibration() ?? CALIBRATION;
     this.sampleRate = sampleRate;
     this.muxerFactory = muxerFactory;
     this.onLog = onLog;
@@ -9714,7 +9875,11 @@ var FilmStudio = class {
         const wantPool = this.parallel ?? (typeof window !== "undefined" && typeof Worker !== "undefined");
         this._pool = wantPool ? await loadParallelKernels().catch(() => null) : null;
         this._kernels = this._pool ? this._pool.serial : await loadKernels();
-        if (this._pool) this.log("kernel worker pool ready");
+        if (this._pool) {
+          this.log(`kernel worker pool ready (${this._pool.workerCount} workers)`);
+        } else if (wantPool) {
+          this.log(parallelAvailable() ? "kernel worker pool unavailable; running single-threaded" : "not cross-origin isolated, so no SharedArrayBuffer and no kernel worker pool -- photo warps run single-threaded, about 2.8x slower. Serve with the COOP/COEP headers (npm run serve), or let the service worker supply them and reload.", "warn");
+        }
       } catch (error) {
         this._kernels = null;
         notes.push({
@@ -9753,14 +9918,33 @@ var FilmStudio = class {
     const rate = fps ?? meta.fps;
     const backend = new Canvas2DBackend({ width: w, height: h });
     backend.mount(canvas, { width: w, height: h });
+    const beforeFrame = async () => {
+      applySwapSets(prepared.scene);
+      await preparePhotos(prepared.scene);
+    };
+    const estimate = estimateFrameCost(
+      prepared,
+      prepared.film,
+      { trackValueAt, calibration: this.calibration }
+    );
+    const span = worstSpan(estimate);
     const pf = await preflight({
       scene: prepared.scene,
       timeline: prepared.timeline,
       backend,
       cameraId: prepared.cameraId,
-      fps: rate
+      fps: rate,
+      beforeFrame,
+      startSec: span?.startSec ?? 0,
+      endSec: span?.endSec ?? null
     });
-    this.log(`preflight: median ${pf.medianMs}ms, p95 ${pf.p95Ms}ms per frame (ceiling ${pf.ceilingMs}ms)${pf.withinBudget ? "" : " -- OVER BUDGET"}`);
+    this.log(`preflight: mean ${pf.meanMs}ms, median ${pf.medianMs}ms, p95 ${pf.p95Ms}ms per frame (ceiling ${pf.ceilingMs}ms${span ? `, sampled from ${span.startSec.toFixed(1)}s, shot "${span.shotId}"` : ""})${pf.withinBudget ? "" : " -- OVER BUDGET"}`);
+    if (span) {
+      const fitted = calibrate(span.ms, pf.meanMs, this.calibration);
+      this.log(`budget: predicted ${span.ms.toFixed(1)}ms, measured ${pf.meanMs}ms (${fitted.ratio.toFixed(2)}x) -- calibration updated for this machine`);
+      this.calibration = fitted;
+      saveCalibration(fitted);
+    }
     let chosen = sink;
     if (!chosen) {
       const canWebCodecs = preferWebCodecs && await WebCodecsSink.available({ muxerFactory: this.muxerFactory });
@@ -9791,10 +9975,7 @@ var FilmStudio = class {
         // Async, so photo warps run across the worker pool before
         // the synchronous draw. Without a pool `preparePhotos`
         // returns immediately and the sync path does the work.
-        beforeFrame: async () => {
-          applySwapSets(prepared.scene);
-          await preparePhotos(prepared.scene);
-        },
+        beforeFrame,
         onProgress: (p) => {
           onProgress?.({ stage: "render", ...p, preflight: pf });
         }
@@ -9862,6 +10043,25 @@ var describeProgress = (p) => {
   if (p.total) return `${Math.round(p.loaded / p.total * 100)}%`;
   return p.url ? String(p.url).split("/").pop() : "";
 };
+var CALIBRATION_KEY = "jirex.calibration";
+function loadCalibration() {
+  try {
+    const raw = globalThis.localStorage?.getItem(CALIBRATION_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!(saved.ratio > 0.1 && saved.ratio < 10)) return null;
+    return { ...CALIBRATION, ...saved };
+  } catch {
+    return null;
+  }
+}
+function saveCalibration(calibration) {
+  try {
+    if (!(calibration.ratio > 0.1 && calibration.ratio < 10)) return;
+    globalThis.localStorage?.setItem(CALIBRATION_KEY, JSON.stringify(calibration));
+  } catch {
+  }
+}
 export {
   Canvas2DBackend,
   FilmStudio,

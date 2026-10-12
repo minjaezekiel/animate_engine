@@ -470,6 +470,45 @@ Either way `loadParallelKernels` returns `null` rather than throwing when
 isolation is absent, so the fallback is one line and the degradation is
 slower, never broken.
 
+### A host that sends no headers at all
+
+Which is every static deployment. GitHub Pages, an S3 bucket and a CDN send
+no policy and cannot be asked to, so on all of them there was no pool --
+silently, at full serial cost, which is the worst version of this failure:
+the app still works and nobody investigates something that works.
+
+A service worker synthesises its own responses, so it can attach the headers
+the server omitted, and `sw.js` was already there for offline support. **Two
+kinds of response need them**, and the second is the one that bites:
+
+1. the **document** -- isolation is a property of the document;
+2. every **worker script** -- a worker started from an isolated document must
+   assert the same policy, and a script response without the header is
+   rejected with `ERR_BLOCKED_BY_RESPONSE`.
+
+Rewriting only navigations isolated the page and then could not start one
+worker. `scripts/serve.mjs` happens to send the headers on everything it
+serves, which is exactly why that never showed up in development.
+
+The first visit cannot be rescued, since its document was fetched before the
+worker existed, so `registerServiceWorker` reloads once -- guarded by a
+`sessionStorage` flag, so a browser that cannot be isolated runs
+single-threaded instead of refreshing forever. Both pages call it before the
+app boots, so the reload lands on an empty page.
+
+```bash
+COEP=off npm run serve          # reproduce a static host, then watch the SW rescue it
+```
+
+Measured in that mode: not isolated on load, isolated after the reload,
+`SharedArrayBuffer` present, five workers, bit-identical output.
+
+Two related silences closed with it: a kernel worker whose script fails to
+load used to leave `loadParallelKernels` neither resolved nor rejected -- the
+pool hanging with nothing logged anywhere -- and it rejects now; and the
+studio logs which path it took every time, naming the cause and the fix when
+the pool is absent.
+
 ### Where this leaves the GPU path
 
 Less urgent than §7.1 claimed. Both over-budget kernels now fit a frame on
@@ -482,6 +521,7 @@ or per-pixel simulation — and for nothing that feeds a key or a hash.
 ```bash
 npm run serve                   # dev server with COOP/COEP
 COEP=require-corp npm run serve # the stricter value, for Safari
+COEP=off npm run serve          # no headers: the service worker supplies them
 npm run test:parallel           # 12 tests: bit-identity with serial, bands, barriers
 npm run test:kernels:browser    # the pool and all CDN deps, in a real browser, both modes
 ```

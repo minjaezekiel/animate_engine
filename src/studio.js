@@ -27,13 +27,14 @@ import { Canvas2DBackend } from './backends/canvas2d/Canvas2DBackend.js';
 import { attachPainters } from './backends/canvas2d/PaintPainter.js';
 import { preparePhotos } from './backends/canvas2d/PhotoPainter.js';
 import { loadKernels } from './kernels/index.js';
-import { loadParallelKernels } from './kernels/parallel.js';
+import { loadParallelKernels, parallelAvailable } from './kernels/parallel.js';
 import { renderOffline, preflight } from './render/OfflineRenderer.js';
 import { MediaRecorderSink } from './render/sinks/MediaRecorderSink.js';
 import { WebCodecsSink } from './render/sinks/WebCodecsSink.js';
 import { MemorySink } from './render/sinks/MemorySink.js';
 import { applySwapSets } from './core/scene/swapSets.js';
 import { trackValueAt } from './core/anim/Track.js';
+import { CALIBRATION, calibrate, estimateFrameCost, worstSpan } from './core/script/budget.js';
 
 const SAMPLE_RATE = 48000;
 
@@ -45,6 +46,14 @@ export class FilmStudio {
          * means "yes in a browser, no in Node"; see `_attachPainters`.
          */
         this.parallel = parallel;
+        /**
+         * Per-unit frame costs for the budget model. Starts at the measured
+         * defaults and is replaced by `render`'s own preflight, which times
+         * the shot the estimate called heaviest. Stored, because the thing
+         * being measured is the machine: once fitted here, every later
+         * estimate in this browser is anchored rather than borrowed.
+         */
+        this.calibration = loadCalibration() ?? CALIBRATION;
         this.sampleRate = sampleRate;
         this.muxerFactory = muxerFactory;
         this.onLog = onLog;
@@ -235,7 +244,21 @@ export class FilmStudio {
                     ?? (typeof window !== 'undefined' && typeof Worker !== 'undefined');
                 this._pool = wantPool ? await loadParallelKernels().catch(() => null) : null;
                 this._kernels = this._pool ? this._pool.serial : await loadKernels();
-                if (this._pool) this.log('kernel worker pool ready');
+                // Say which path is in use, always. A missing pool is a 2.8x
+                // slowdown on photo warps and it used to be announced by
+                // nothing at all, so the usual cause -- a host that sends no
+                // cross-origin isolation headers -- went uninvestigated
+                // because the app still worked.
+                if (this._pool) {
+                    this.log(`kernel worker pool ready (${this._pool.workerCount} workers)`);
+                } else if (wantPool) {
+                    this.log(parallelAvailable()
+                        ? 'kernel worker pool unavailable; running single-threaded'
+                        : 'not cross-origin isolated, so no SharedArrayBuffer and no kernel '
+                            + 'worker pool -- photo warps run single-threaded, about 2.8x slower. '
+                            + 'Serve with the COOP/COEP headers (npm run serve), or let the '
+                            + 'service worker supply them and reload.', 'warn');
+                }
             } catch (error) {
                 this._kernels = null;
                 notes.push({
@@ -272,12 +295,38 @@ export class FilmStudio {
         const backend = new Canvas2DBackend({ width: w, height: h });
         backend.mount(canvas, { width: w, height: h });
 
+        // One frame hook, used by both the measurement and the render, so
+        // preflight cannot measure a different frame than the one drawn.
+        const beforeFrame = async () => {
+            applySwapSets(prepared.scene);
+            await preparePhotos(prepared.scene);
+        };
+
+        // Measure the shot the estimate says is heaviest, not the opening
+        // two seconds, and feed the result back into the model so the next
+        // estimate is anchored to this machine instead of to the hardware
+        // the defaults were measured on.
+        const estimate = estimateFrameCost(prepared, prepared.film,
+            { trackValueAt, calibration: this.calibration });
+        const span = worstSpan(estimate);
         const pf = await preflight({
             scene: prepared.scene, timeline: prepared.timeline,
-            backend, cameraId: prepared.cameraId, fps: rate,
+            backend, cameraId: prepared.cameraId, fps: rate, beforeFrame,
+            startSec: span?.startSec ?? 0, endSec: span?.endSec ?? null,
         });
-        this.log(`preflight: median ${pf.medianMs}ms, p95 ${pf.p95Ms}ms per frame `
-            + `(ceiling ${pf.ceilingMs}ms)${pf.withinBudget ? '' : ' -- OVER BUDGET'}`);
+        this.log(`preflight: mean ${pf.meanMs}ms, median ${pf.medianMs}ms, p95 ${pf.p95Ms}ms per frame `
+            + `(ceiling ${pf.ceilingMs}ms${span ? `, sampled from ${span.startSec.toFixed(1)}s, `
+                + `shot "${span.shotId}"` : ''})${pf.withinBudget ? '' : ' -- OVER BUDGET'}`);
+        if (span) {
+            // The mean, not the median: the estimate is amortised over a
+            // held warp and so is the mean, while the median of a bimodal
+            // sample is whichever mode happens to be more common.
+            const fitted = calibrate(span.ms, pf.meanMs, this.calibration);
+            this.log(`budget: predicted ${span.ms.toFixed(1)}ms, measured ${pf.meanMs}ms `
+                + `(${fitted.ratio.toFixed(2)}x) -- calibration updated for this machine`);
+            this.calibration = fitted;
+            saveCalibration(fitted);
+        }
 
         let chosen = sink;
         if (!chosen) {
@@ -307,10 +356,7 @@ export class FilmStudio {
                 // Async, so photo warps run across the worker pool before
                 // the synchronous draw. Without a pool `preparePhotos`
                 // returns immediately and the sync path does the work.
-                beforeFrame: async () => {
-                    applySwapSets(prepared.scene);
-                    await preparePhotos(prepared.scene);
-                },
+                beforeFrame,
                 onProgress: (p) => { onProgress?.({ stage: 'render', ...p, preflight: pf }); },
             });
             return { blob, preflight: pf, meta, sink: chosen.constructor.name };
@@ -383,3 +429,36 @@ export {
     MemorySink, MediaRecorderSink, WebCodecsSink,
     Canvas2DBackend, renderOffline, preflight, audioBufferToWav, trackValueAt,
 };
+
+/**
+ * The fitted calibration, kept per machine in `localStorage`.
+ *
+ * A ratio measured on this hardware is worth more than the defaults, and
+ * it does not change between sessions -- so re-deriving it on every reload
+ * would mean the first render of every session is the one that pays for
+ * the measurement. Every access is wrapped: storage is absent in Node,
+ * throws in a private window, and comes back empty after a site-data
+ * clear, and none of that may take a render down.
+ *
+ * A stored ratio outside 0.1x..10x is rejected rather than trusted: that
+ * range covers every real machine, and a number outside it came from a
+ * backgrounded tab or a thermal stall, not from hardware.
+ */
+const CALIBRATION_KEY = 'jirex.calibration';
+
+function loadCalibration() {
+    try {
+        const raw = globalThis.localStorage?.getItem(CALIBRATION_KEY);
+        if (!raw) return null;
+        const saved = JSON.parse(raw);
+        if (!(saved.ratio > 0.1 && saved.ratio < 10)) return null;
+        return { ...CALIBRATION, ...saved };
+    } catch { return null; }
+}
+
+function saveCalibration(calibration) {
+    try {
+        if (!(calibration.ratio > 0.1 && calibration.ratio < 10)) return;
+        globalThis.localStorage?.setItem(CALIBRATION_KEY, JSON.stringify(calibration));
+    } catch { /* unavailable or full: the fit still holds for this session */ }
+}

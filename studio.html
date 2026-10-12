@@ -163,6 +163,11 @@ import { Canvas2DBackend } from './src/backends/canvas2d/Canvas2DBackend.js';
 import { identity, multiply, invert, applyToPoint } from './src/core/math/mat2d.js';
 import { History, replaceAll } from './src/core/history/History.js';
 import { OnionSkin } from './src/render/onionSkin.js';
+import { registerServiceWorker } from './src/pwa/register.js';
+
+// First, so that the one reload that applies the isolation headers happens on
+// a page with no work in it. See src/pwa/register.js.
+await registerServiceWorker('sw.js').catch(() => {});
 import { Keymap } from './src/editor/keymap.js';
 
 const $ = (id) => document.getElementById(id);
@@ -850,9 +855,6 @@ $('toHarnessBtn').onclick = () => {
     } catch (e) { log(`could not hand off: ${e.message}`, 'err'); }
 };
 
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-}
 
 // Pick up a film handed back from the harness, otherwise start on something.
 try {

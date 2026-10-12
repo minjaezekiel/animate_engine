@@ -89,9 +89,13 @@ const server = createServer(async (req, res) => {
     const file = join(ROOT, path);
 
     const headers = {
-        // The two headers this server exists for.
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': COEP,
+        // The two headers this server exists for. `COEP=off` omits them, to
+        // reproduce a static host that sends no policy of its own -- which
+        // is every real deployment, and the case `sw.js` exists to rescue.
+        ...(COEP === 'off' ? {} : {
+            'Cross-Origin-Opener-Policy': 'same-origin',
+            'Cross-Origin-Embedder-Policy': COEP,
+        }),
         // Same-origin workers and wasm are fetched by the page itself, so
         // they need a CORP header under require-corp.
         'Cross-Origin-Resource-Policy': 'same-origin',
@@ -118,6 +122,16 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
     console.log(`jireX dev server  http://localhost:${PORT}`);
+    if (COEP === 'off') {
+        console.log('  isolation headers: NOT SENT (COEP=off)');
+        console.log('');
+        console.log('  Reproduces a static host. The service worker supplies the headers');
+        console.log('  itself from the second load on, so the pool still comes up -- that');
+        console.log('  path is what test/e2e/kernels-browser.mjs checks in this mode.');
+        console.log('');
+        console.log(`  studio      http://localhost:${PORT}/film.html`);
+        return;
+    }
     console.log(`  Cross-Origin-Opener-Policy:   same-origin`);
     console.log(`  Cross-Origin-Embedder-Policy: ${COEP}`);
     console.log('');

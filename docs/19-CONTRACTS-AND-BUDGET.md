@@ -233,21 +233,135 @@ open.
 | `new FilmStudio({ parallel })` | force the worker pool on or off |
 | `scripts/bench-film.mjs` | per-frame cost with and without a named element |
 | `scripts/contact-sheet.mjs` | key frames as one PNG, to look before rendering |
+| `strokeDabs(stroke, brush?)` | the painter's own dab derivation, shared with the budget |
+| `worstSpan(estimate)` | the shot to measure: `{ shotId, startSec, endSec, ms }` |
+| `calibrate(predicted, measured, base?)` | the model, scaled to this machine |
+| `preflight({ startSec, endSec, beforeFrame })` | measure that window, through the render's own hook |
+| `preflight` result | `meanMs`, `medianMs`, `p95Ms`, `maxMs`, `warmupMs` |
+| `analyseStaging(…, { calibration })` | check a film with a fitted model |
+| `registerServiceWorker(url)` | register, and reload once if that is what isolates the page |
+| `COEP=off npm run serve` | reproduce a static host that sends no policy |
 
 ---
 
-## 7. What is still silent
+## 7. Three approximations, closed
+
+Each of these was written down as a known limit. None of them needed a new
+mechanism -- all three were already solved somewhere else in the repo and
+simply not wired through.
+
+### The dab count was never an approximation
+
+`dabsOf` guessed a path's dab count from its command count over the brush
+size, with a comment saying the real number "needs kernels". It does not.
+`resampleStroke` is pure JavaScript -- no kernel, no canvas -- and
+`pathToPoints` flattens the SVG. Running the painter's own derivation for a
+whole film costs a few hundred microseconds.
+
+The guess was wrong by however long the strokes were: `M 0 0 L 600 0` and
+`M 0 0 L 6 0` are both two commands and differ a hundredfold in dabs.
+
+There were two derivations, so now there is one: `strokeDabs(stroke, brush?)`
+in `core/paint/stroke.js`, called by `Surface._prepare` and by the budget.
+The budget's `dabs` is now the exact number the painter will stamp, and the
+`approximate` flag is gone because there is nothing approximate left.
+
+### Preflight and the estimate now measure the same frames
+
+They could disagree because they described *different things*, and the
+estimate was not the weaker of the two:
+
+* preflight measured frames 0..47 -- the opening two seconds, which in most
+  films is a title card. **A film whose photo backdrop starts forty seconds
+  in passed preflight and then wrote an undecodable file**, which is the
+  exact failure preflight exists to prevent.
+* it did not run the render loop's `beforeFrame` hook, so it measured the
+  serial fallback while the render used the worker pool: 2.8x out on the
+  heaviest kernel in the film.
+
+Both are now parameters. `worstSpan(estimate)` hands back the shot the
+estimate called heaviest, and preflight samples that window through the same
+hook the renderer awaits. Then `calibrate(predicted, measured)` scales the
+model by the single ratio between them, because both terms are per-unit
+costs of the same bandwidth-bound kernels -- fitting two parameters to one
+observation would be overfitting whichever shot happened to be heaviest. The
+studio stores the fit in `localStorage`, since the thing being measured is
+the machine.
+
+Two measurement defects fell out of pointing them at the same frames:
+
+| | measured on the fight film |
+|---|---|
+| a held warp makes per-frame cost **bimodal** | median 1.0 ms, p95 35.7 ms |
+| the **first** frame pays for the mesh and the inpainted plate | 317 ms, once |
+
+So `meanMs` is the number to calibrate from (the estimate is amortised and so
+is the mean), `p95Ms` is what `withinBudget` judges, `medianMs` is a trap, and
+`warmupMs` is reported and excluded -- averaged into 48 samples that one frame
+was 6 ms of phantom per-frame cost, enough to calibrate the model nearly 2x
+pessimistic.
+
+This is not a claim of agreement. After a calibration the prediction is
+anchored to this machine, so the residual is the model's *shape* error rather
+than its scale error. That is the part a measurement can honestly fix.
+
+### Cross-origin isolation, on a host that will not send it
+
+`scripts/serve.mjs` sends COOP and COEP. GitHub Pages, an S3 bucket and a CDN
+do not, and cannot be asked to -- so on every real deployment there was no
+`SharedArrayBuffer`, no worker pool, and everything ran at full serial cost.
+**Silently**, which is the worst version: the app still worked, four times
+slower, and nobody investigates something that works.
+
+A service worker synthesises its own responses, so it can attach the headers
+the server omitted. That is the one mechanism a static host leaves open, and
+`sw.js` was already there for offline support. Two kinds of response need the
+headers, and the second is easy to miss:
+
+1. the **document**, since isolation is a property of the document;
+2. every **worker script**, because a worker started from an isolated document
+   must assert the same policy, and a script response without the header is
+   rejected with `ERR_BLOCKED_BY_RESPONSE`.
+
+Only rewriting navigations isolated the page and then could not start a single
+worker -- the pool still absent, now for a second reason. The dev server sends
+the headers on everything it serves, which is why that never showed up there.
+`COEP=off npm run serve` now reproduces a header-less host, and
+`test/e2e/kernels-browser.mjs` runs the whole sequence in that mode.
+
+The first visit cannot be rescued -- its document was fetched before the
+worker existed -- so `registerServiceWorker` reloads once, guarded by a
+`sessionStorage` flag so a browser that *cannot* be isolated (Safari, which
+does not implement `credentialless`) runs single-threaded instead of
+refreshing forever. Both pages call it before the app boots, so the reload
+lands on an empty page rather than part-way through someone's session.
+
+Two things stopped being silent on the way:
+
+- a kernel worker that fails to load used to leave `loadParallelKernels`
+  neither resolved nor rejected -- the pool hanging with nothing logged. It
+  rejects now, and the caller falls back to serial.
+- the studio says which path it is on, every time, and names the cause and the
+  fix when the pool is missing.
+
+---
+
+## 8. What is still silent
 
 - **The budget models two node kinds.** If vector scenery or cast rigs ever
   stop being free, the fix is another measured term, not a fudge factor.
-- **`dabsOf` approximates a path's dab count** from its command count and
-  brush size, because the real number needs arc-length resampling and the
-  kernels. It is marked `approximate` in the result. A drawing-heavy film
-  would want the real count.
-- **Preflight and the budget can disagree.** Preflight samples 48 real
-  frames in a browser and is the authority; this is the cheap estimate that
-  runs first. They are 2.5% apart on the one film where both were measured,
-  which is not a guarantee.
-- **The pool needs cross-origin isolation.** Without COOP/COEP there is no
-  `SharedArrayBuffer`, `loadParallelKernels` returns null, and everything
-  falls back to the serial path at full cost.
+- **One ratio, one observation.** `calibrate` scales both terms together. A
+  machine whose dab throughput and pixel bandwidth differ *relative to each
+  other* would need a film that isolates each, and two fits.
+- **Residual shape error.** On the fight film the calibrated model predicted
+  5.6 ms against 9.0 ms measured over the same shot, of which 0.8 ms is the
+  vector baseline the model does not claim to cost. That residual is real and
+  the ratio absorbs it; it is not a guarantee for a different film.
+- **A calibration is per machine and per configuration.** It folds in whether
+  the pool was engaged. Switching between an isolated and un-isolated host
+  invalidates it, and nothing detects that -- the stored ratio is rejected
+  only if it falls outside 0.1x..10x.
+- **Safari has no pool.** `credentialless` is unimplemented there, so the
+  service-worker route does not isolate it. `COEP=require-corp` would, and is
+  tested, at the cost of blocking any user-supplied asset from an origin that
+  sends no CORP.

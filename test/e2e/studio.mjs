@@ -23,7 +23,17 @@ const server = createServer(async (req, res) => {
     try {
         const p = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname));
         const body = await readFile(join(ROOT, p === '/' ? 'studio.html' : p));
-        res.writeHead(200, { 'content-type': TYPES[extname(p)] ?? 'application/octet-stream' });
+        res.writeHead(200, {
+            'content-type': TYPES[extname(p)] ?? 'application/octet-stream',
+            // As `scripts/serve.mjs` does, and for the same reason: without
+            // them the page is not cross-origin isolated, the service worker
+            // supplies them itself and reloads once to apply them -- which
+            // would restart the studio in the middle of this test. The
+            // service-worker path has its own coverage in
+            // `test/e2e/kernels-browser.mjs`; here the point is the editor.
+            'Cross-Origin-Opener-Policy': 'same-origin',
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+        });
         res.end(body);
     } catch { if (!res.headersSent) res.writeHead(404); res.end('not found'); }
 });

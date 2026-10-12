@@ -226,7 +226,8 @@ export function castRole(character, castEntry = null) {
     return parts.some((p) => String(p.id).startsWith('foot')) ? 'character' : 'effect';
 }
 
-export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt } = {}) {
+export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueAt,
+                                                calibration = undefined } = {}) {
     const d = [];
     if (!compiled?.scene || !compiled.timeline || !trackValueAt) return d;
 
@@ -273,7 +274,12 @@ export function analyseStaging(compiled, film, { samplesPerShot = 5, trackValueA
     // not degrade past its ceiling -- it writes an undecodable file -- so
     // this belongs with the other things that are checked rather than
     // discovered. See `budget.js`.
-    d.push(...estimateFrameCost(compiled, film, { trackValueAt }).notes);
+    // `calibration` is how a measurement gets back in: a studio that has
+    // run preflight on this machine passes its fitted numbers, so the
+    // second check of a film is calibrated rather than using the
+    // defaults from the machine the model was measured on.
+    d.push(...estimateFrameCost(compiled, film,
+        { trackValueAt, ...(calibration ? { calibration } : {}) }).notes);
 
     const seenOffFrame = new Set();
     const seenGround = new Set();

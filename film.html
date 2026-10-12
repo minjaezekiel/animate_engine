@@ -193,6 +193,14 @@ BEN: Then sit down.
 
 <script type="module">
 import { FilmStudio } from './src/studio.js';
+import { registerServiceWorker } from './src/pwa/register.js';
+
+// Before anything else runs. The worker supplies the cross-origin isolation
+// headers a static host will not (see src/pwa/register.js), and the first
+// visit has to reload once for them to apply -- so it happens here, on a page
+// that has not booted yet, rather than part-way through someone's session.
+const isolation = await registerServiceWorker('./sw.js')
+    .catch((e) => ({ error: e.message }));
 
 const $ = (id) => document.getElementById(id);
 const logEl = $('log');
@@ -554,10 +562,13 @@ $('installBtn').onclick = async () => {
     $('installBtn').hidden = true;
 };
 
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-        .then(() => log('offline support registered'))
-        .catch((e) => log(`service worker not registered: ${e.message}`, 'warn'));
+// Registered at the top of the module; report it now that `log` exists.
+if (isolation.error) log(`service worker not registered: ${isolation.error}`, 'warn');
+else {
+    if (isolation.registered) log('offline support registered');
+    log(isolation.isolated
+        ? 'cross-origin isolated: kernel worker pool available'
+        : 'not cross-origin isolated: photo warps will run single-threaded');
 }
 
 // Expose the studio so an agent (or the console) can drive it directly.

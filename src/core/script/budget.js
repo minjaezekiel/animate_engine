@@ -49,6 +49,7 @@
  * a fudge factor.
  */
 import { filmShots } from './compile.js';
+import { strokeDabs } from '../paint/stroke.js';
 
 /**
  * Per-unit costs, in nanoseconds. Measured on wasm kernels, single thread.
@@ -67,21 +68,25 @@ export const CALIBRATION = {
     advisory: 0.6,
 };
 
-/** Dabs in a drawing spec, cheaply: the painter's own count needs kernels. */
+/**
+ * Dabs in a drawing spec: exactly the number the painter will stamp.
+ *
+ * [`strokeDabs`] is the painter's own derivation -- flatten the path,
+ * resample by arc length, apply the brush's spacing, taper and pressure
+ * curve. It is pure JavaScript with no kernel and no canvas behind it, so
+ * running it here costs a few hundred microseconds for a whole film and
+ * removes the last approximation from this model.
+ *
+ * It used to guess, from the path's command count over the brush size,
+ * because "the painter's own count needs kernels" -- which was simply
+ * untrue. The guess was wrong by a factor that depended on how long the
+ * strokes were: `M 0 0 L 600 0` and `M 0 0 L 6 0` are both two commands
+ * and differ a hundredfold in dabs.
+ */
 function dabsOf(drawing) {
     let total = 0;
     for (const layer of drawing.layers ?? [{ strokes: drawing.strokes ?? [] }]) {
-        for (const stroke of layer.strokes ?? []) {
-            // Points are dabs directly; a path is resampled by arc length,
-            // which needs the geometry. The path's own command count is a
-            // poor proxy, so this estimates from the brush size and a
-            // nominal stroke length instead -- deliberately rough, and
-            // reported as such by `approximate`.
-            if (Array.isArray(stroke.points)) { total += stroke.points.length; continue; }
-            const size = stroke.size ?? 12;
-            const commands = String(stroke.path ?? '').match(/[MLHVCSQTAZmlhvcsqtaz]/g)?.length ?? 0;
-            total += Math.round((commands * 180) / Math.max(1, size * 0.1));
-        }
+        for (const stroke of layer.strokes ?? []) total += strokeDabs(stroke).count;
     }
     return total;
 }
@@ -106,7 +111,16 @@ export function estimateFrameCost(compiled, film, { trackValueAt = null,
     const scenes = compiled.expanded ?? film.scenes ?? [];
     const spans = filmShots({ ...film, scenes });
 
-    /** Does this node's progress channel move inside the span? */
+    /**
+     * Does this node's progress channel move inside the span?
+     *
+     * Both painters memoise on a key derived from `progress`, so a shot in
+     * which it does not move re-draws nothing after its first frame. A
+     * scene's `photos` and `drawings` are declared once and exist for every
+     * shot in it, so without this a four-shot scene is charged four times
+     * for a backdrop that plays during one of them -- and the shot reported
+     * as worst is then whichever came first, not whichever is expensive.
+     */
     const animates = (nodeId, span) => {
         const track = compiled.timeline._index?.get(`${nodeId}\u0000props.progress`);
         if (!track || !trackValueAt) return true;        // assume the worst
@@ -120,6 +134,7 @@ export function estimateFrameCost(compiled, film, { trackValueAt = null,
 
         for (const [i, photo] of (scene.photos ?? []).entries()) {
             const id = photo.id ?? `photo${i + 1}`;
+            if (!animates(`${span.sceneId}/${id}`, span)) continue;   // held: memoised
             const scale = Math.min(1, Math.max(0.05, photo.resolution ?? 1));
             const px = (photo.width ?? compiled.meta.width) * (photo.height ?? compiled.meta.height)
                 * scale * scale;
@@ -136,13 +151,13 @@ export function estimateFrameCost(compiled, film, { trackValueAt = null,
             const id = drawing.id ?? `drawing${i + 1}`;
             if (!animates(`${span.sceneId}/${id}`, span)) continue;   // held: memoised
             const dabs = dabsOf(drawing);
-            items.push({ kind: 'drawing', id, ms: (dabs * calibration.dabNs) / 1e6,
-                         dabs, approximate: true });
+            items.push({ kind: 'drawing', id, ms: (dabs * calibration.dabNs) / 1e6, dabs });
         }
 
         const ms = items.reduce((sum, it) => sum + it.ms, 0);
         const peakMs = items.reduce((sum, it) => sum + (it.peakMs ?? it.ms), 0);
-        shots.push({ shotId: span.shotId, sceneId: span.sceneId, ms, peakMs, items });
+        shots.push({ shotId: span.shotId, sceneId: span.sceneId, ms, peakMs, items,
+                     startSec: span.start, endSec: span.end });
 
         if (!items.length) continue;
         const worst = items.slice().sort((a, b) => b.ms - a.ms)[0];
@@ -173,5 +188,74 @@ export function estimateFrameCost(compiled, film, { trackValueAt = null,
         shots,
         notes,
         worstMs: shots.reduce((m, s) => Math.max(m, s.ms), 0),
+    };
+}
+
+/**
+ * The shot this estimate says is heaviest, as a time span.
+ *
+ * `preflight` measures real frames, and it used to measure the *first*
+ * forty-eight of them -- which says nothing about a film whose expensive
+ * shot is forty seconds in. Pointing it at this span instead makes the
+ * measurement and the estimate describe the same frames, which is the
+ * precondition for either comparing or calibrating them.
+ *
+ * @param {object} estimate the result of [`estimateFrameCost`]
+ * @returns {{shotId: string, startSec: number, endSec: number, ms: number}|null}
+ */
+export function worstSpan(estimate) {
+    let worst = null;
+    for (const shot of estimate?.shots ?? []) {
+        if (shot.ms > 0 && (!worst || shot.ms > worst.ms)) worst = shot;
+    }
+    if (!worst) return null;
+    return { shotId: worst.shotId, startSec: worst.startSec, endSec: worst.endSec, ms: worst.ms };
+}
+
+/**
+ * Correct the model with a real measurement from this machine.
+ *
+ * ```js
+ * const estimate = estimateFrameCost(compiled, film, { trackValueAt });
+ * const span = worstSpan(estimate);
+ * const pf = await preflight({ ..., startSec: span.startSec });
+ * const calibration = calibrate(span.ms, pf.medianMs);   // reuse from here on
+ * ```
+ *
+ * # Why a single scalar
+ *
+ * Both terms are per-unit costs of the same bandwidth-bound kernels over
+ * the same memory system, so a machine that runs one 30% slow runs the
+ * other 30% slow. Fitting them separately would need a film that isolates
+ * each, would be fitting two parameters to one observation, and would
+ * overfit whichever shot happened to be heaviest. One ratio is what the
+ * single measurement actually supports.
+ *
+ * # Why this closes the gap rather than papering over it
+ *
+ * The estimate is a prediction and preflight is a measurement; they were
+ * two independent numbers, 2.5% apart on the one film where both were
+ * taken, and nothing made that a guarantee. It still is not one -- but
+ * after a calibration the prediction is anchored to this machine, and the
+ * residual is the model's *shape* error rather than its scale error. That
+ * is the part a measurement can honestly fix, so the fix is to feed the
+ * measurement back in rather than to claim an accuracy the model never had.
+ *
+ * `ratio` is kept so a caller can say how far off the defaults were, and a
+ * wild ratio (a backgrounded tab, a thermal throttle) can be rejected
+ * rather than cached.
+ *
+ * @param {number} predictedMs what [`estimateFrameCost`] said for that span
+ * @param {number} measuredMs  what `preflight` measured over it
+ * @param {object} [base]      the calibration to scale, [`CALIBRATION`]
+ */
+export function calibrate(predictedMs, measuredMs, base = CALIBRATION) {
+    const ratio = predictedMs > 0 && measuredMs > 0 ? measuredMs / predictedMs : 1;
+    return {
+        ...base,
+        photoNsPerPixel: base.photoNsPerPixel * ratio,
+        dabNs: base.dabNs * ratio,
+        ratio,
+        measured: ratio !== 1,
     };
 }

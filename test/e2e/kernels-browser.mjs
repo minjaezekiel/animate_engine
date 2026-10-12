@@ -174,6 +174,89 @@ for (const coep of ['credentialless', 'require-corp']) {
     }
 }
 
+// =====================================================================
+// A host that sends no isolation headers at all: every static deployment.
+// =====================================================================
+//
+// `scripts/serve.mjs` sends COOP and COEP, but GitHub Pages, an S3 bucket
+// and a CDN do not, and cannot be made to. On those the document is not
+// isolated, there is no `SharedArrayBuffer`, and the worker pool is simply
+// absent -- silently, which is the worst version: the app still works, four
+// times slower, and nobody investigates something that works.
+//
+// `sw.js` attaches the headers to its own navigation responses, which is the
+// one mechanism a static host leaves open. The first load cannot be rescued
+// (the document was fetched before the worker existed), so the sequence
+// below is the real one: load, register, reload, and only then isolated.
+console.log('\n=== COEP: off (static host, rescued by the service worker) ===');
+{
+    const server = await serve('off');
+    const page = await browser.newPage();
+    try {
+        await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+
+        // The premise: without the headers there is no isolation and no pool.
+        const before = await page.evaluate(() => window.crossOriginIsolated);
+        check('a header-less host is not isolated to begin with', before === false);
+
+        const registered = await page.evaluate(async () => {
+            const { registerServiceWorker } = await import('./src/pwa/register.js');
+            // The helper reloads by itself; here the reload is driven below
+            // so the navigation is observable, so clear its guard first.
+            sessionStorage.setItem('jirex.coi-reload', '1');
+            const result = await registerServiceWorker('./sw.js');
+            await navigator.serviceWorker.ready;
+            return result;
+        });
+        check('the service worker registers', registered.registered === true);
+        check('it reports the un-isolated state rather than hiding it',
+            registered.isolated === false);
+
+        await page.reload({ waitUntil: 'domcontentloaded' });
+
+        const after = await page.evaluate(() => ({
+            isolated: window.crossOriginIsolated,
+            sab: typeof SharedArrayBuffer !== 'undefined',
+            coep: null,
+        }));
+        check('the worker makes the second load cross-origin isolated',
+            after.isolated === true);
+        check('SharedArrayBuffer is available on a host that sends no headers',
+            after.sab === true);
+
+        // And the pool actually comes up, which is the whole point of the
+        // exercise: the headers are a means, the 2.8x is the end.
+        const pool = await page.evaluate(async () => {
+            const { loadParallelKernels } = await import('./src/kernels/parallel.js');
+            const P = await loadParallelKernels({ minPixels: 0 });
+            if (!P) return { created: false };
+            const out = { created: true, workers: P.workerCount,
+                          shared: P.memory.buffer instanceof SharedArrayBuffer };
+            await P.dispose();
+            return out;
+        });
+        check('the worker pool comes up on a header-less host',
+            pool.created === true && pool.shared === true,
+            pool.created ? `${pool.workers} workers` : 'not created');
+
+        // The loop guard. If isolation were impossible -- Safari, a framed
+        // document -- the reload would not fix it, and reloading again next
+        // load would be an endless refresh of someone's studio.
+        const guard = await page.evaluate(async () => {
+            const { registerServiceWorker } = await import('./src/pwa/register.js');
+            sessionStorage.removeItem('jirex.coi-reload');
+            // Already isolated, so it must not reload at all.
+            const first = await registerServiceWorker('./sw.js');
+            return { reloading: first.reloading, flag: sessionStorage.getItem('jirex.coi-reload') };
+        });
+        check('an already-isolated document is not reloaded', guard.reloading === false);
+    } finally {
+        await page.close();
+        server.kill();
+        await once(server, 'exit').catch(() => {});
+    }
+}
+
 await browser.close();
 
 console.log('');

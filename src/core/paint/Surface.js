@@ -41,9 +41,8 @@
  * that, and a long editing session that creates and drops many strokes
  * should call [`forget`].
  */
-import { resampleStroke, stampCountAt } from './stroke.js';
+import { strokeDabs, stampCountAt } from './stroke.js';
 import { brush as resolveBrush } from './brushes.js';
-import { pathToPoints } from './path.js';
 import { makeGrainTexture, TEXTURE_MODES } from './texture.js';
 
 /**
@@ -199,13 +198,7 @@ export class PaintSurface {
         if (hit && hit.brushKey === key) return { ...hit, brushSpec: b };
 
         if (hit) hit.buf.free();
-        // `path` is the form anybody should normally reach for: one line
-        // of SVG data instead of two hundred coordinates. `points` wins if
-        // both are present, since it is the more explicit statement.
-        const points = stroke.points ?? (stroke.path
-            ? pathToPoints(stroke.path, { pressure: stroke.pressure, tolerance: stroke.tolerance })
-            : []);
-        const resampled = resampleStroke({ ...stroke, points }, b);
+        const resampled = strokeDabs(stroke, b);
         const buf = this.kernels.f32(Math.max(4, resampled.stamps.length));
         buf.array.set(resampled.stamps);
         const entry = { resampled, buf, brushKey: key };

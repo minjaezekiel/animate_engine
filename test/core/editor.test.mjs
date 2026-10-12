@@ -340,7 +340,17 @@ test('the archive is a real zip: signatures, CRCs, and reproducible', () => {
     // Timestamps are zeroed, so the same frames give the same bytes --
     // which is what lets a determinism test compare whole exports.
     assert.deepEqual([...zipBytes([{ name: 'a', data }])], [...zipBytes([{ name: 'a', data }])]);
-    assert.throws(() => zipBytes([{ name: 'big', data: { length: 0x100000000 } }]), /ZIP64/);
+    // The 4GB guard has to refuse *before* the data is coerced, because
+    // `new Uint8Array(somethingHuge)` tries to allocate it and the process
+    // is wedged before any guard behind it runs. This entry's data throws
+    // the moment anything reads it, so a guard in the wrong place fails
+    // this assertion in microseconds -- where a plain `{length: 2**32}`
+    // would simply hang, and a hang is not a test result.
+    const untouchable = {
+        length: 0x100000000,
+        [Symbol.iterator]() { throw new Error('the data was read before the size was checked'); },
+    };
+    assert.throws(() => zipBytes([{ name: 'big', data: untouchable }]), /ZIP64/);
 });
 
 test('PngSequenceSink numbers frames, keeps no pixels, and refuses up front', async () => {

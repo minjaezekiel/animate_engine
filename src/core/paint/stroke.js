@@ -48,6 +48,8 @@
  * and the stroke's `seed`, so the same stroke always produces the same
  * dabs on every machine and every run.
  */
+import { brush as resolveBrush } from './brushes.js';
+import { pathToPoints } from './path.js';
 
 /**
  * Hash an integer to a well-distributed `u32`.
@@ -346,4 +348,34 @@ export function stampCountAt(resampled, progress) {
     const p = Math.min(1, Math.max(0, progress));
     if (p >= 1) return resampled.count;
     return Math.floor(resampled.count * p);
+}
+
+/**
+ * Resample a stroke in whichever form it was authored: `points` or `path`.
+ *
+ * This is the one place a stroke spec becomes dabs. It exists because
+ * there were two: the painter resolved `path` through `pathToPoints` and
+ * then resampled, while the frame budget *approximated* a count from the
+ * path's command string and the brush size -- and reported itself
+ * `approximate` because there was no cheap way to be right. There was: the
+ * resampler is pure JavaScript with no kernel and no canvas behind it, so
+ * the exact count costs one call. The budget now predicts the number of
+ * dabs the painter will actually stamp, not a proxy for it.
+ *
+ * The brush is a parameter because a caller that has already resolved one
+ * (to key a cache on it, say) must not resolve it twice and risk the two
+ * disagreeing.
+ *
+ * @param {object} stroke
+ * @param {object} [resolved] a brush from `brush()`; derived if omitted
+ * @returns {{stamps: Float32Array, count: number, length: number}}
+ */
+export function strokeDabs(stroke, resolved = resolveBrush(stroke.brush ?? 'pen', stroke.brushOverrides)) {
+    // `path` is the form anybody should normally reach for: one line of
+    // SVG data instead of two hundred coordinates. `points` wins if both
+    // are present, since it is the more explicit statement.
+    const points = stroke.points ?? (stroke.path
+        ? pathToPoints(stroke.path, { pressure: stroke.pressure, tolerance: stroke.tolerance })
+        : []);
+    return resampleStroke({ ...stroke, points }, resolved);
 }

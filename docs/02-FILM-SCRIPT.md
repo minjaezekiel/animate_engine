@@ -168,6 +168,15 @@ mesh tearing and depth maps.
 | `show` / `hide` | key the cast root's alpha |
 | `draw` | ramp a **drawing**'s reveal or a **photo**'s playback, `from` → `to` over `for` |
 
+#### Characters from an uploaded image
+
+A character's `parts` can be crops of an uploaded picture rather than drawn
+paths, which is what `trace_character` and **Trace a character from an image**
+in `film.html` produce. The parts are named like the generated rig, so
+everything in this document applies to one unchanged — including the free
+`idle`/`walk`/`breathe` cycles, which key off `proportions` rather than
+`generate`. See [20-IMPORT.md](20-IMPORT.md).
+
 #### `grip` — hands and fingers
 
 A cutout's hand used to be a single mitten path, which is why a character

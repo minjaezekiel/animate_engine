@@ -103,17 +103,30 @@ export class FilmStudio {
         let working = film;
         const notes = [];
 
-        // Load the film's declared images unless the caller already did.
-        // Without this a film can name a background and never show it --
-        // which is exactly what `npm run produce` did, passing no assets at
-        // all, so a headless render could never display one.
-        let images = assets;
-        if (!images) {
+        /**
+         * Load the film's declared images that the caller has not already
+         * supplied.
+         *
+         * MERGE, not either-or. The first version skipped loading entirely
+         * whenever `assets` was passed at all -- and `film.html` passes a map
+         * it fills with uploads, which starts as `{}` and is therefore
+         * always truthy. So every film opened in the authoring page declared
+         * its images, validated clean and drew none of them, with no
+         * diagnostic anywhere: the one place a caller supplies SOME assets is
+         * exactly the place that needs the rest fetched.
+         */
+        const supplied = assets ?? {};
+        const wanted = Object.entries(film.assets ?? {})
+            .filter(([id, a]) => a && a.kind === 'image' && !supplied[id]);
+        let images = supplied;
+        if (wanted.length) {
             const loaded = await loadAssets(film, {
                 registry: this.art, baseUrl,
                 onProgress: (p) => { this.log(`asset ${p.done}/${p.total}: ${p.id}`); onProgress?.(p); },
             });
-            images = loaded.assets;
+            // The caller's own images win: an upload held as a File is fresher
+            // than anything a URL would return.
+            images = { ...loaded.assets, ...supplied };
             notes.push(...loaded.diagnostics);
         }
 

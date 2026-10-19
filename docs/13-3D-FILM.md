@@ -472,3 +472,25 @@ rotations across a plane of symmetry.
 The dome fix also closed a defect nobody had traced: the speckled band at the
 waist, where the jacket's and the trouser's flat cap discs met at the spine
 and z-fought.
+
+---
+
+## 11. `models` and `environment` — somebody else's assets
+
+Added in [Phase 26](STATUS.md) and documented in full in
+[20-IMPORT.md](20-IMPORT.md).
+
+```jsonc
+"models": { "chair": { "src": "assets/chair.glb" } },
+"cast":   [ { "model": "chair", "as": "chair", "at": [0, 0, 0] } ],
+"meta":   { "environment": { "src": "assets/studio.hdr", "intensity": 1.2 } }
+```
+
+A model is **one node in the core scene** however many it contains, because a
+downloaded environment can carry thousands and the core scene exists to be
+walked and measured. Its named nodes are still addressable as
+`chair/Seat`, and the animations that came in the file are playable by name —
+converted through `clipToTracks` before the film compiles, so the compiler can
+list the clips a file *does* have when you ask for one it does not.
+
+`meta.environment` had been parsed here since Phase 14 and read by nothing.

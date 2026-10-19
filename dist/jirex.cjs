@@ -723,7 +723,10 @@ var KNOWN = {
     "shoe",
     "face",
     "build",
-    "facing"
+    "facing",
+    // 'none' | 'mitten' | 'fingers' -- how much hand to draw below
+    // the wrist. See generate.js `handParts`.
+    "hands"
   ],
   face: ["jaw", "eyes", "brow", "nose", "lips", "ears"],
   cast: [
@@ -831,6 +834,8 @@ var KNOWN = {
     "part",
     "bones",
     "bend",
+    // `grip` blends toward a named hand pose
+    "amount",
     // the four principles that need a number rather than a keyframe
     "anticipate",
     "overshoot",
@@ -866,7 +871,7 @@ var KNOWN_SCENERY = [
 ];
 var SHAPE_KINDS = ["path", "ellipse", "rect", "image", "text", "group"];
 var TRANSITION_KINDS = ["fade", "crossfade", "none"];
-var DO_VERBS = ["play", "pose", "move", "reach", "set", "show", "hide", "draw"];
+var DO_VERBS = ["play", "pose", "move", "reach", "grip", "set", "show", "hide", "draw"];
 
 // src/core/art/face.js
 var CY = -0.92;
@@ -1437,6 +1442,145 @@ function viewQualified(perViewShapes, name) {
   return out;
 }
 
+// src/core/art/hands.js
+var DEG = Math.PI / 180;
+var DIGITS = [
+  {
+    id: "thumb",
+    at: [-0.148, -0.12, -0.022],
+    bones: [0.225, 0.17, 0.135],
+    r: [0.062, 0.051, 0.043],
+    splay: 30,
+    lift: -40,
+    curl: [12, 16, 12]
+  },
+  {
+    id: "index",
+    at: [-0.14, -0.43, 0.016],
+    bones: [0.21, 0.126, 0.096],
+    r: [0.05, 0.042, 0.035],
+    splay: 5,
+    curl: [12, 20, 12]
+  },
+  {
+    id: "middle",
+    at: [-0.046, -0.45, 0],
+    bones: [0.23, 0.142, 0.106],
+    r: [0.052, 0.044, 0.036],
+    splay: 0,
+    curl: [14, 24, 13]
+  },
+  {
+    id: "ring",
+    at: [0.05, -0.437, -0.014],
+    bones: [0.215, 0.131, 0.1],
+    r: [0.049, 0.041, 0.034],
+    splay: -6,
+    curl: [16, 27, 14]
+  },
+  {
+    id: "pinky",
+    at: [0.146, -0.39, -0.03],
+    bones: [0.168, 0.1, 0.084],
+    r: [0.043, 0.036, 0.03],
+    splay: -13,
+    curl: [18, 30, 15]
+  }
+];
+var DIGIT_IDS = DIGITS.map((d) => d.id);
+var HAND_LENGTH_OVER_PALM = 1 / 0.45;
+var grip = (curl, splay = 0, lift = 0) => ({ curl, splay, lift });
+var HAND_POSES = {
+  // The bind pose itself.
+  relaxed: {
+    thumb: grip([0, 0, 0]),
+    index: grip([0, 0, 0]),
+    middle: grip([0, 0, 0]),
+    ring: grip([0, 0, 0]),
+    pinky: grip([0, 0, 0])
+  },
+  // Flat, as in a wave or a karate chop: the baked curl taken back out.
+  open: {
+    thumb: grip([-10, -14, -10], 6, -8),
+    index: grip([-12, -20, -12]),
+    middle: grip([-14, -24, -13]),
+    ring: grip([-16, -27, -14]),
+    pinky: grip([-18, -30, -15])
+  },
+  spread: {
+    thumb: grip([-10, -14, -10], 22, -16),
+    index: grip([-12, -20, -12], 12),
+    middle: grip([-14, -24, -13], 3),
+    ring: grip([-16, -27, -14], -10),
+    pinky: grip([-18, -30, -15], -20)
+  },
+  fist: {
+    thumb: grip([18, 30, 26], -12, 26),
+    index: grip([76, 78, 56], -3),
+    middle: grip([74, 76, 55]),
+    ring: grip([72, 73, 53], 3),
+    pinky: grip([70, 70, 51], 6)
+  },
+  point: {
+    thumb: grip([14, 24, 18], -8, 14),
+    index: grip([-10, -18, -10], -2),
+    middle: grip([76, 80, 56]),
+    ring: grip([74, 78, 55]),
+    pinky: grip([72, 74, 53])
+  },
+  pinch: {
+    thumb: grip([14, 20, 12], -16, 30),
+    index: grip([34, 42, 26], -4),
+    middle: grip([28, 44, 28], 2),
+    ring: grip([44, 56, 34]),
+    pinky: grip([52, 62, 38])
+  },
+  // Holding something cylindrical -- a handle, a pointer, a mug.
+  grasp: {
+    thumb: grip([16, 22, 16], -14, 28),
+    index: grip([52, 56, 32]),
+    middle: grip([54, 58, 33]),
+    ring: grip([56, 59, 34]),
+    pinky: grip([58, 60, 35])
+  },
+  thumbsUp: {
+    thumb: grip([-12, -16, -12], 10, -20),
+    index: grip([80, 84, 58]),
+    middle: grip([78, 82, 57]),
+    ring: grip([76, 80, 56]),
+    pinky: grip([74, 78, 55])
+  }
+};
+var HAND_POSE_NAMES = Object.keys(HAND_POSES);
+function gripAngles(name, amount = 1) {
+  const pose = HAND_POSES[name];
+  if (!pose) return null;
+  const k = Math.max(0, Math.min(1, amount));
+  const out = {};
+  for (const digit of DIGIT_IDS) {
+    const g = pose[digit] ?? HAND_POSES.relaxed[digit];
+    out[digit] = {
+      curl: g.curl.map((v) => v * k * DEG),
+      splay: (g.splay ?? 0) * k * DEG,
+      lift: (g.lift ?? 0) * k * DEG
+    };
+  }
+  return out;
+}
+function gripMitt(name, amount = 1) {
+  const angles = gripAngles(name, amount);
+  if (!angles) return null;
+  const fingers = DIGIT_IDS.filter((d) => d !== "thumb");
+  const at = (joint) => fingers.reduce((s, d) => s + angles[d].curl[joint], 0) / fingers.length;
+  return {
+    // Two joints, because the mitt is drawn as two segments: the knuckle
+    // fold and everything past it.
+    knuckle: at(0),
+    tip: (at(1) + at(2)) / 2,
+    thumb: { curl: angles.thumb.curl, splay: angles.thumb.splay, lift: angles.thumb.lift }
+  };
+}
+
 // src/core/anim/principles.js
 var ANTICIPATION_SHARE = 0.26;
 var OVERSHOOT_AT = 0.8;
@@ -1513,6 +1657,121 @@ function limbShadePath(L, w0, w1, dx = 0, side = 1) {
   const a = w0 / 2 * side, b = w1 / 2 * side;
   const r = (v) => Math.round(v * 100) / 100;
   return `M${r(a)},0 Q${r(a * 1.06)},${r(L * 0.5)} ${r(dx + b)},${r(L * 0.97)} Q${r(dx + b * 0.3)},${r(L * 0.95)} ${r(a * 0.34)},${r(L * 0.45)} Q${r(a * 0.42)},${r(L * 0.2)} ${r(a * 0.4)},0 Z`;
+}
+function handParts({ side, s, sgn, pivot, armW, z, skin: skin2, line, tone, detail }) {
+  const id = (n2, j = "") => `${n2}${side}${j}`;
+  const hand = armW * 2.1;
+  const palmL = hand * 0.42;
+  const digitL = hand - palmL;
+  const wristW = armW * 0.56;
+  const knuckW = armW * 0.82;
+  const r = (v) => Math.round(v * 100) / 100;
+  const palm = {
+    id: id("hand"),
+    parent: `fore${side}`,
+    pivot,
+    z,
+    shape: { kind: "path", d: limbPath(palmL, wristW, knuckW, 0) },
+    fill: tone(skin2),
+    stroke: `${skin2}Line`,
+    strokeWidth: line
+  };
+  if (detail === "none") {
+    return [{ ...palm, shape: {
+      kind: "path",
+      d: `M${r(-armW * 0.32)},${r(-armW * 0.3)} Q${r(-armW * 0.62)},${r(armW * 0.35)} ${r(-armW * 0.44)},${r(armW * 0.95)} Q${r(-armW * 0.1)},${r(armW * 1.35)} ${r(armW * 0.34)},${r(armW * 1.05)} Q${r(armW * 0.66)},${r(armW * 0.6)} ${r(armW * 0.5)},${r(-armW * 0.1)} Q${r(armW * 0.2)},${r(-armW * 0.42)} ${r(-armW * 0.32)},${r(-armW * 0.3)} Z`
+    } }];
+  }
+  const digitLine = Math.max(0.5, line * 0.58);
+  const digit = (name, parent, at, len, w0, w1, dx, dz) => ({
+    id: name,
+    parent,
+    pivot: at,
+    z: z + dz,
+    shape: { kind: "path", d: limbPath(len, w0, w1, dx) },
+    fill: tone(skin2),
+    stroke: `${skin2}Line`,
+    strokeWidth: digitLine
+  });
+  const thumbL = digitL * 0.78;
+  const thumbDrift = sgn * thumbL * 0.34;
+  const out = [
+    palm,
+    digit(
+      id("thumb", 1),
+      id("hand"),
+      [sgn * knuckW * 0.46, palmL * 0.24],
+      thumbL * 0.56,
+      knuckW * 0.46,
+      knuckW * 0.38,
+      thumbDrift,
+      0.5
+    ),
+    digit(
+      id("thumb", 2),
+      id("thumb", 1),
+      [thumbDrift, thumbL * 0.56],
+      thumbL * 0.44,
+      knuckW * 0.38,
+      knuckW * 0.3,
+      sgn * thumbL * 0.12,
+      0.5
+    )
+  ];
+  if (detail !== "fingers") {
+    out.push(
+      digit(
+        id("mitt", 1),
+        id("hand"),
+        [0, palmL],
+        digitL * 0.56,
+        knuckW * 0.94,
+        knuckW * 0.84,
+        0,
+        0
+      ),
+      digit(
+        id("mitt", 2),
+        id("mitt", 1),
+        [0, digitL * 0.56],
+        digitL * 0.44,
+        knuckW * 0.84,
+        knuckW * 0.58,
+        0,
+        0
+      )
+    );
+    return out;
+  }
+  for (const [i, d] of DIGITS.filter((x) => x.id !== "thumb").entries()) {
+    const x = -sgn * d.at[0] * hand;
+    const base = -(d.at[1] + 0.45) * hand;
+    const len = (d.bones[0] + d.bones[1] + d.bones[2]) * hand;
+    const w = d.r[0] * hand * 2;
+    out.push(
+      digit(
+        id(d.id, 1),
+        id("hand"),
+        [x, palmL + base],
+        len * 0.52,
+        w,
+        w * 0.9,
+        -sgn * d.splay * len * 4e-3,
+        0.4 - i * 0.1
+      ),
+      digit(
+        id(d.id, 2),
+        id(d.id, 1),
+        [-sgn * d.splay * len * 4e-3, len * 0.52],
+        len * 0.48,
+        w * 0.9,
+        w * 0.62,
+        0,
+        0.4 - i * 0.1
+      )
+    );
+  }
+  return out;
 }
 function generateCharacterParts(generate = {}, proportions = {}) {
   const p = resolveProportions(proportions, generate.build);
@@ -1636,21 +1895,18 @@ function generateCharacterParts(generate = {}, proportions = {}) {
         stroke: `${skin2}Line`,
         strokeWidth: line
       },
-      // A mitten, not a capsule: a hand is wider than the wrist it hangs
-      // off, and a capsule the same width as the forearm disappears.
-      {
-        id: `hand${side}`,
-        parent: `fore${side}`,
+      ...handParts({
+        side,
+        s,
+        sgn,
         pivot: [s * armW * 0.1, foreArmH],
+        armW,
         z: armZ,
-        shape: {
-          kind: "path",
-          d: `M${-armW * 0.32},${-armW * 0.3} Q${-armW * 0.62},${armW * 0.35} ${-armW * 0.44},${armW * 0.95} Q${-armW * 0.1},${armW * 1.35} ${armW * 0.34},${armW * 1.05} Q${armW * 0.66},${armW * 0.6} ${armW * 0.5},${-armW * 0.1} Q${armW * 0.2},${-armW * 0.42} ${-armW * 0.32},${-armW * 0.3} Z`
-        },
-        fill: tone(skin2),
-        stroke: `${skin2}Line`,
-        strokeWidth: line
-      },
+        skin: skin2,
+        line,
+        tone,
+        detail: generate.hands ?? "mitten"
+      }),
       {
         id: `thigh${side}`,
         parent: "hips",
@@ -3714,8 +3970,9 @@ function validateFilm(film) {
         }
         if (a.do === "play" && a.target) {
           const charName = [...scene.cast ?? []].find((c) => (c.as ?? c.character) === a.target)?.character;
-          const generated = characters[charName]?.generate ? GENERATED_ACTIONS : [];
-          if (charName && a.action && !characters[charName]?.actions?.[a.action] && !generated.includes(a.action)) {
+          const char = characters[charName];
+          const generated = char?.generate || char?.proportions ? GENERATED_ACTIONS : [];
+          if (charName && a.action && !char?.actions?.[a.action] && !generated.includes(a.action)) {
             err(
               `${hp}.actions`,
               `Action "${a.action}" is not defined on "${charName}".` + (generated.length ? ` Generated: ${generated.join(", ")}.` : "")
@@ -5018,7 +5275,8 @@ function shapeProps(shape) {
 function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamera }) {
   const cam = shot.camera;
   const centre = { x: meta.width / 2, y: meta.height / 2, zoom: 1 };
-  const start = cam?.from ?? prevCamera ?? centre;
+  const rest = { x: 0, y: 0, zoom: 1 };
+  const start = cam?.from ?? prevCamera ?? rest;
   const end = cam?.to ?? start;
   const ease = cam?.ease ?? "smooth";
   const h = cam?.h;
@@ -5278,7 +5536,17 @@ function buildAction({
       break;
     }
     case "play": {
-      const spec = char?.actions?.[action.action] ?? (char?.generate ? generateActions(char.proportions)[action.action] : null);
+      const spec = char?.actions?.[action.action] ?? (char?.generate || char?.proportions ? generateActions(char.proportions)[action.action] : null);
+      if (!spec) {
+        diagnostics.push({
+          severity: "warning",
+          path: `scenes.${sceneId}.actions`,
+          message: `play: "${charName}" has no action "${action.action}". Known: ${[.../* @__PURE__ */ new Set([
+            ...Object.keys(char?.actions ?? {}),
+            ...Object.keys(generateActions(char?.proportions ?? {}))
+          ])].join(", ")}.`
+        });
+      }
       if (!spec) return;
       const clipId = `${charName}:${action.action}`;
       if (!timeline.clips.has(clipId)) {
@@ -5331,6 +5599,100 @@ function buildAction({
           severity: "info",
           path: `scenes.${sceneId}.actions`,
           message: `reach: [${action.to}] is out of range for "${action.part}" (off by ${solved.error.toFixed(1)}); limb extended as far as it goes.`
+        });
+      }
+      break;
+    }
+    /**
+     * A named hand pose: `grip handR to fist`.
+     *
+     * The same table the 3D rig uses, via `core/art/hands.js`, so `fist`
+     * is the same shape on both paths. It writes onto whichever hand
+     * parts the character actually has -- a mitten rig gets the four
+     * fingers' average curl on one mitt, a fingered rig gets each digit
+     * -- so a film written for one detail level plays on the other
+     * rather than silently doing nothing.
+     */
+    case "grip": {
+      const side = /^hand([LR])$/.exec(action.part ?? "")?.[1];
+      if (!side) {
+        diagnostics.push({
+          severity: "warning",
+          path: `scenes.${sceneId}.actions`,
+          message: `grip: \`part\` must be "handL" or "handR"; got "${action.part}".`
+        });
+        return;
+      }
+      const amount = action.amount ?? 1;
+      const angles = gripAngles(action.pose, amount);
+      if (!angles) {
+        diagnostics.push({
+          severity: "warning",
+          path: `scenes.${sceneId}.actions`,
+          message: `grip: unknown hand pose "${action.pose}". Known: ${HAND_POSE_NAMES.join(", ")}.`
+        });
+        return;
+      }
+      const parts = characterParts(char ?? {});
+      const have = new Set(parts.map((part) => part.id));
+      const dir = -((char?.generate?.facing ?? 1) >= 0 ? 1 : -1);
+      const gripSpan = span ?? 0.3;
+      let written = 0;
+      const view = entry?.view ?? char?.view ?? "front";
+      const flat = view === "profile" ? 0 : view === "threeQuarter" ? 0.45 : 1;
+      const shorten = (angle) => {
+        const projected = Math.cos(Math.min(Math.abs(angle), Math.PI * 0.62));
+        return 1 - (1 - projected) * flat;
+      };
+      const put = (id, value, scale = null) => {
+        if (!have.has(id)) return;
+        writeChannel({
+          timeline,
+          target: `${rootId}/${id}`,
+          channel: "rot",
+          value: dir * value * (1 - flat * 0.62),
+          at,
+          span: gripSpan,
+          ease,
+          h,
+          anticipate,
+          overshoot
+        });
+        if (scale != null) {
+          writeChannel({
+            timeline,
+            target: `${rootId}/${id}`,
+            channel: "sy",
+            value: scale,
+            at,
+            span: gripSpan,
+            ease,
+            h
+          });
+        }
+        written++;
+      };
+      const split = (c0, total) => {
+        const near = shorten(c0);
+        return [near, Math.max(0.28, Math.min(1, shorten(total) / near))];
+      };
+      const mitt = gripMitt(action.pose, amount);
+      const mittScale = split(mitt.knuckle, mitt.knuckle + mitt.tip);
+      put(`mitt${side}1`, mitt.knuckle, mittScale[0]);
+      put(`mitt${side}2`, mitt.tip, mittScale[1]);
+      for (const digit of DIGIT_IDS) {
+        const a = angles[digit];
+        const first = digit === "thumb" ? a.curl[0] - a.splay * 0.8 : a.curl[0];
+        const rest = a.curl[1] + a.curl[2];
+        const scale = split(first, first + rest);
+        put(`${digit}${side}1`, first, scale[0]);
+        put(`${digit}${side}2`, rest, scale[1]);
+      }
+      if (!written) {
+        diagnostics.push({
+          severity: "info",
+          path: `scenes.${sceneId}.actions`,
+          message: `grip: "${charName}" has no hand parts below the wrist; set \`generate.hands\` to "mitten" or "fingers".`
         });
       }
       break;
@@ -6540,8 +6902,8 @@ function drawImageNode(ctx, img, p) {
     w = srcW * scale;
     h = srcH * scale;
   }
-  const dx = p.cx ? -w / 2 : 0;
-  const dy = p.cy ? -h / 2 : 0;
+  const dx = p.cx ? -w / 2 : -(p.ax ?? 0);
+  const dy = p.cy ? -h / 2 : -(p.ay ?? 0);
   if (p.sx != null || p.sy != null || p.sw != null || p.sh != null) {
     ctx.drawImage(img, p.sx ?? 0, p.sy ?? 0, srcW, srcH, dx, dy, w, h);
   } else {
@@ -9811,8 +10173,10 @@ var FilmStudio = class {
   } = {}) {
     let working = film;
     const notes = [];
-    let images = assets;
-    if (!images) {
+    const supplied = assets ?? {};
+    const wanted = Object.entries(film.assets ?? {}).filter(([id, a]) => a && a.kind === "image" && !supplied[id]);
+    let images = supplied;
+    if (wanted.length) {
       const loaded = await loadAssets(film, {
         registry: this.art,
         baseUrl,
@@ -9821,7 +10185,7 @@ var FilmStudio = class {
           onProgress?.(p);
         }
       });
-      images = loaded.assets;
+      images = { ...loaded.assets, ...supplied };
       notes.push(...loaded.diagnostics);
     }
     const sound = await loadAudioAssets(film, {

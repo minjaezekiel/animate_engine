@@ -1,0 +1,165 @@
+{
+ "version": 1,
+ "meta": {
+  "title": "import",
+  "fps": 24,
+  "width": 800,
+  "height": 500,
+  "background": "#10151c"
+ },
+ "materials": {
+  "floor": {
+   "color": "#1a2029",
+   "roughness": 0.7
+  }
+ },
+ "models": {
+  "pedestal": {
+   "src": "demo/out/models/pedestal.glb"
+  }
+ },
+ "lights": [
+  {
+   "id": "amb",
+   "type": "ambient",
+   "color": "#9aa8bb",
+   "intensity": 1.8
+  },
+  {
+   "id": "key",
+   "type": "directional",
+   "color": "#fff4e6",
+   "intensity": 3.0,
+   "at": [
+    -2,
+    3,
+    3
+   ],
+   "castShadow": true
+  },
+  {
+   "id": "rim",
+   "type": "directional",
+   "color": "#8fb6ff",
+   "intensity": 1.6,
+   "at": [
+    2,
+    2,
+    -2
+   ]
+  }
+ ],
+ "assemblies": {
+  "set": {
+   "parts": [
+    {
+     "id": "floor",
+     "geometry": {
+      "kind": "plane",
+      "width": 12,
+      "height": 12
+     },
+     "material": "floor",
+     "at": [
+      0,
+      0,
+      0
+     ],
+     "rot": [
+      -90,
+      0,
+      0
+     ]
+    }
+   ]
+  }
+ },
+ "cast": [
+  {
+   "assembly": "set",
+   "as": "set"
+  },
+  {
+   "model": "pedestal",
+   "as": "podA",
+   "at": [
+    -0.9,
+    0,
+    0
+   ]
+  },
+  {
+   "model": "pedestal",
+   "as": "podB",
+   "at": [
+    0.9,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1.6,
+    1
+   ]
+  }
+ ],
+ "scenes": [
+  {
+   "id": "s",
+   "shots": [
+    {
+     "id": "a",
+     "duration": 3.0,
+     "camera": {
+      "from": {
+       "at": [
+        0,
+        1.5,
+        3.4
+       ],
+       "look": [
+        0,
+        0.6,
+        0
+       ],
+       "fov": 42
+      },
+      "to": {
+       "at": [
+        0.6,
+        1.4,
+        3.2
+       ],
+       "look": [
+        0,
+        0.6,
+        0
+       ],
+       "fov": 42
+      }
+     },
+     "actions": [
+      {
+       "do": "play",
+       "target": "podA",
+       "action": "Turn",
+       "at": 0,
+       "for": 3
+      },
+      {
+       "do": "turn",
+       "target": "podB/Pedestal",
+       "to": [
+        0,
+        45,
+        0
+       ],
+       "at": 0.3,
+       "for": 1.2
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

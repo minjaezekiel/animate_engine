@@ -50,6 +50,19 @@ MIT licensed — see [LICENSE](LICENSE).
   **SVG path data**, so one line replaces two hundred coordinates and an
   agent can write them. Draw-on reveal is one number channel, so every
   easing the animation system has applies to it.
+- **Bring your own artwork.** Upload a drawing of a character and get a
+  rigged cutout back: it reads the silhouette for the neck, the shoulders and
+  the crotch, finds the arms by colour where the outline has no gap, and cuts
+  the picture into parts with a pivot at each joint. The parts are named like
+  the generated rig, so the traced character walks, reaches and grips with no
+  special case anywhere. It does **not** vectorise — a traced path of a
+  painted figure loses the painting.
+- **Bring your own models.** Import `.glb`, `.gltf` or `.fbx` from Blender,
+  Mixamo or an asset site, cast it as many times as you like, address any
+  named node inside it as `chair/Seat`, and play the animations that came in
+  the file. Plus HDR environments for image-based lighting. An agent can do
+  the whole loop headless: fetch a URL, read the node and clip names out of
+  the container with no renderer, write the film, render it.
 - **A photograph into a shot.** Ken Burns, 2.5D parallax, wave and puppet
   warp over one textured-mesh kernel, with monocular depth estimation, the
   mesh **torn** at depth edges so a subject separates instead of
@@ -178,6 +191,8 @@ recovers both from the encoded file.
 | [docs/16-PAINT.md](docs/16-PAINT.md) | **the drawing tools** — SVG paths, 15 brushes, layers, grain, wet media |
 | [docs/17-MOTION-AND-MCP.md](docs/17-MOTION-AND-MCP.md) | **picture into video** — tearing, inpainting, depth — and the agent surface |
 | [docs/18-EDITOR-ARCHITECTURE.md](docs/18-EDITOR-ARCHITECTURE.md) | **undo/redo, hotkeys, docking, onion skin, image-sequence export** |
+| [docs/19-CONTRACTS-AND-BUDGET.md](docs/19-CONTRACTS-AND-BUDGET.md) | the contracts the renderer keeps, and the frame budget |
+| [docs/20-IMPORT.md](docs/20-IMPORT.md) | **bring your own assets** — trace a 2D character from a picture, import 3D models and HDR environments |
 | [docs/STATUS.md](docs/STATUS.md) | **implemented vs not** |
 | [docs/DEFECTS.md](docs/DEFECTS.md) | defect register — the legacy 3D engine, and what tests found in the new code |
 | [docs/CDN-AND-PWA.md](docs/CDN-AND-PWA.md) | library use, installing, offline |

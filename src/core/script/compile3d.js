@@ -40,7 +40,32 @@ const vec3 = (v, fallback = 0) => (Array.isArray(v)
     ? [v[0] ?? fallback, v[1] ?? fallback, v[2] ?? fallback]
     : [v ?? fallback, v ?? fallback, v ?? fallback]);
 
-export function compileFilm3D(film = {}, { assets = {} } = {}) {
+/**
+ * `"environment": "sky.hdr"` and the long form both mean the same thing.
+ */
+function normalizeEnvironment(spec) {
+    if (!spec) return null;
+    const src = typeof spec === 'string' ? spec : spec.src;
+    if (!src) return null;
+    return {
+        src,
+        // An environment lights the scene by default and is only the visible
+        // sky if you ask: most shots want the lighting and their own backdrop.
+        background: typeof spec === 'string' ? false : spec.background === true,
+        intensity: (typeof spec === 'string' ? 1 : spec.intensity) ?? 1,
+        blur: (typeof spec === 'string' ? 0 : spec.blur) ?? 0,
+    };
+}
+
+/**
+ * `models` is what the PAGE already loaded, keyed by the id the film used:
+ * `{ nodes: ['Seat', ...], clips: [coreClip, ...] }`. Passing it in rather
+ * than loading here keeps this module pure and Node-testable, the same
+ * bargain it already makes with THREE -- and it is the only way the compiler
+ * can know which node names and which animations a downloaded file actually
+ * contains, which is exactly what it has to validate.
+ */
+export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     const diagnostics = [];
     const warn = (message, location) => diagnostics.push({ severity: 'warning', message, location });
 
@@ -50,7 +75,15 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
         width: film.meta?.width ?? DEFAULTS.width,
         height: film.meta?.height ?? DEFAULTS.height,
         background: film.meta?.background ?? '#0b0b0d',
-        environment: film.meta?.environment ?? null,
+        /**
+         * An image-based lighting environment: an HDR panorama that lights
+         * the scene and can also be its sky.
+         *
+         * Parsed since Phase 14 and read by nothing, so a film could declare
+         * one and render under its three point lights with no diagnostic. It
+         * is normalised here and loaded by the page, which owns the network.
+         */
+        environment: normalizeEnvironment(film.meta?.environment),
         bloom: film.meta?.bloom ?? null,
         step: film.meta?.step ?? 0,
         post: null,         // filled below, once `warn` can be used
@@ -121,7 +154,44 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
     const constraintSpecs = [];
     const characters = new Map();
     for (const entry of film.cast ?? []) {
-        const as = entry.as ?? entry.character ?? entry.assembly;
+        const as = entry.as ?? entry.character ?? entry.assembly ?? entry.model;
+
+        /**
+         * An imported model: a chair from Blender, a city from an asset site,
+         * a rigged robot from Mixamo.
+         *
+         * One node in the core scene, not one per glTF node. A downloaded
+         * environment can carry thousands, and the core scene exists to be
+         * walked and measured. Its named children are still addressable --
+         * the backend registers each as `<cast>/<node name>` -- which is
+         * what `loaded.nodes` is checked against here, so a film that
+         * animates a part that is not in the file says so at compile time
+         * rather than by not moving.
+         */
+        if (entry.model) {
+            const spec = film.models?.[entry.model];
+            if (!spec) { warn(`unknown model '${entry.model}'`, `cast.${as}`); continue; }
+            const loaded = models[entry.model] ?? null;
+            scene.add({
+                id: as, kind: 'model',
+                props: {
+                    model: entry.model, src: spec.src ?? null,
+                    at: vec3(entry.at ?? [0, 0, 0]),
+                    rot: vec3(entry.rot ?? [0, 0, 0]).map((d) => d * DEG),
+                    scale: vec3(entry.scale ?? spec.scale ?? 1, 1),
+                    castShadow: entry.castShadow ?? spec.castShadow ?? true,
+                    receiveShadow: entry.receiveShadow ?? spec.receiveShadow ?? true,
+                    // A downloaded environment is usually lit already and
+                    // looks wrong taking a shadow from this film's key.
+                    environment: spec.environment === true,
+                },
+            });
+            const parts = new Map();
+            for (const node of loaded?.nodes ?? []) parts.set(node, `${as}/${node}`);
+            castMap.set(as, { rootId: as, parts, assembly: spec, model: entry.model,
+                              clips: loaded?.clips ?? [], nodes: loaded?.nodes ?? null });
+            continue;
+        }
 
         // A character is a rig, not a parts list: the backend builds its
         // bones and skins a surface over them. Its extra geometry -- eyes,
@@ -263,6 +333,13 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
             parts.set(part.id, nodeId);
         }
         castMap.set(as, { rootId, parts, assembly });
+    }
+
+    for (const [id, spec] of Object.entries(film.models ?? {})) {
+        if (!spec?.src) warn(`model '${id}' has no \`src\``, `models.${id}`);
+        if (![...castMap.values()].some((c) => c.model === id)) {
+            warn(`model '${id}' is declared and never cast`, `models.${id}`);
+        }
     }
 
     // ---------------------------------------------------------------- cloth
@@ -851,6 +928,36 @@ function buildAction3D({ scene, timeline, action, castMap, emitters, shot, camer
         case 'play': {
             const cast = castMap.get(action.target);
             if (!cast) return warn(`unknown cast '${action.target}'`, location);
+
+            /**
+             * An imported model plays the animations that came IN the file.
+             *
+             * A downloaded character arrives with its clips -- Mixamo names
+             * them, Blender exports them -- and the page has already turned
+             * them into core clips by the time this runs. So `play` looks
+             * there first, and a name that is not in the file is reported
+             * WITH the names that are, because the one thing a caller cannot
+             * do is guess what a stranger called their walk cycle.
+             */
+            if (cast.model) {
+                const clip = cast.clips.find((c) => c.name === action.action);
+                if (!clip) {
+                    return warn(`model '${cast.model}' has no animation `
+                        + `'${action.action}'. ${cast.clips.length
+                            ? `Known: ${cast.clips.map((c) => c.name).join(', ')}.`
+                            : 'The file declares none.'}`, location);
+                }
+                const clipId = `${action.target}.${action.action}.${clipSeq.n++}`;
+                addClip(timeline, { ...clip, id: clipId,
+                                    loop: action.loop ?? clip.loop ?? 'repeat' });
+                addInstance(timeline, {
+                    clipId, scopeId: cast.rootId, start: at,
+                    end: at + (action.for ?? clip.duration ?? (shot.end - at)),
+                    speed: action.speed ?? 1, weight: action.weight ?? 1,
+                });
+                return;
+            }
+
             const spec = cast.assembly.actions?.[action.action];
             if (!spec) return warn(`unknown action '${action.action}'`, location);
             const clipId = `${action.target}.${action.action}.${clipSeq.n++}`;

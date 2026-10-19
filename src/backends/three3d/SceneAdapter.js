@@ -767,11 +767,31 @@ function buildFluid(T, node) {
     };
 }
 
-export function buildScene3D(T, compiled, { width, height, mergeGeometries = null } = {}) {
+export function buildScene3D(T, compiled, {
+    width, height, mergeGeometries = null,
+    /**
+     * Models the PAGE already loaded, keyed by the id the film used:
+     * `{ scene, clips, nodes }`. Loading is asynchronous and needs the
+     * network and a `GLTFLoader`; this function is synchronous and takes
+     * THREE as an argument precisely so it imports nothing. Same bargain as
+     * `mergeGeometries`.
+     */
+    models = null, cloneModel = null, environment = null,
+} = {}) {
     const { scene: recipe, meta, emitters, cameraId, lookId } = compiled;
     const sims = [];
     const root = new T.Scene();
     root.background = new T.Color(meta.background);
+    if (environment) {
+        root.environment = environment;
+        if (meta.environment?.intensity != null) root.environmentIntensity = meta.environment.intensity;
+        // Lighting by default, sky only if the film asked: most shots want
+        // the bounce light off a panorama and their own backdrop behind it.
+        if (meta.environment?.background) {
+            root.background = environment;
+            if (meta.environment.blur) root.backgroundBlurriness = meta.environment.blur;
+        }
+    }
     const registry = new Map();
     const w = width ?? meta.width;
     const h = height ?? meta.height;
@@ -811,6 +831,34 @@ export function buildScene3D(T, compiled, { width, height, mergeGeometries = nul
             // "presenter/armL". Extra geometry -- eyes, hair, a prop in the
             // hand -- then parents to a bone through the ordinary parentId.
             for (const bone of built.bones) registry.set(`${node.id}/${bone.name}`, bone);
+        } else if (node.kind === 'model') {
+            const loaded = models?.get ? models.get(p.model) : models?.[p.model];
+            // A model the page could not fetch has already been reported by
+            // the page; drawing nothing is better than taking the frame down.
+            if (!loaded?.scene) return;
+            /**
+             * The first cast of a model uses the loaded object; a second has
+             * to be a CLONE, and a skinned one has to be cloned by
+             * `SkeletonUtils` -- `Object3D.clone` copies the meshes and
+             * leaves them bound to the ORIGINAL skeleton, so two characters
+             * from one file move as one.
+             */
+            const instance = loaded.used && cloneModel ? cloneModel(loaded.scene) : loaded.scene;
+            if (loaded.used && !cloneModel) return;
+            loaded.used = true;
+            object = instance;
+            instance.traverse((child) => {
+                // Every named node becomes addressable as `<cast>/<name>`,
+                // which is the whole of how a film animates a part of a
+                // model somebody else built.
+                if (child.name) {
+                    const id = `${node.id}/${child.name}`;
+                    if (!registry.has(id)) registry.set(id, child);
+                }
+                if (!child.isMesh) return;
+                child.castShadow = p.castShadow !== false;
+                child.receiveShadow = p.receiveShadow !== false;
+            });
         } else if (node.kind === 'cloth') {
             const sim = buildCloth(T, node, (m) => makeMaterial(T, m, null), (id) => registry.get(id));
             sims.push(sim);

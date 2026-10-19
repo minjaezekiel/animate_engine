@@ -134,9 +134,18 @@ function drawImageNode(ctx, img, p) {
         w = srcW * scale;
         h = srcH * scale;
     }
-    // `cx`/`cy` are booleans meaning "centre on this axis", not coordinates.
-    const dx = p.cx ? -w / 2 : 0;
-    const dy = p.cy ? -h / 2 : 0;
+    /**
+     * Where inside the image its origin sits.
+     *
+     * `cx`/`cy` are booleans meaning "centre on this axis", not coordinates.
+     * `ax`/`ay` are the general form -- the anchor in destination units from
+     * the image's top-left -- and a rig needs it: a limb turns about the
+     * joint at the top of its crop and a head nods about the neck at the
+     * bottom of its own, and neither is the centre or the corner. Without an
+     * anchor a traced head comes off at the chin.
+     */
+    const dx = p.cx ? -w / 2 : -(p.ax ?? 0);
+    const dy = p.cy ? -h / 2 : -(p.ay ?? 0);
 
     if (p.sx != null || p.sy != null || p.sw != null || p.sh != null) {
         ctx.drawImage(img, p.sx ?? 0, p.sy ?? 0, srcW, srcH, dx, dy, w, h);

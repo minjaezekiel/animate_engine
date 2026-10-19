@@ -20,7 +20,14 @@ import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
+import { clipToTracks } from './src/backends/three3d/clipToTracks.js';
+import { createClip } from './src/core/anim/Clip.js';
+import { createTrack, setKey } from './src/core/anim/Track.js';
 import { compileFilm3D } from './src/core/script/compile3d.js';
 import { buildScene3D } from './src/backends/three3d/SceneAdapter.js';
 import { createThreePoser } from './src/backends/three3d/Three3DBackend.js';
@@ -43,12 +50,87 @@ import { key as writeKey } from './src/core/anim/Timeline.js';
  * so the 3D compiler can be driven by a script and a test, which is what the
  * live test needs. A studio surface is a separate job.
  */
+/**
+ * A THREE AnimationClip as a core clip.
+ *
+ * Converted once, here, so an imported animation is evaluated by the same
+ * code as hand-keyed animation -- it scrubs, layers, masks and renders
+ * deterministically, and there is no `AnimationMixer` anywhere in the
+ * pipeline. `clipToTracks` has done the hard half since Phase 3 and nothing
+ * on the film path had ever called it.
+ */
+function coreClip(clip) {
+    const { tracks, skipped } = clipToTracks(clip);
+    const built = [];
+    for (const t of tracks) {
+        const track = createTrack({ target: t.target, path: t.path, type: t.type });
+        for (const k of t.keys) setKey(track, k.t, k.v, k.ease ?? 'linear');
+        built.push(track);
+    }
+    return { clip: createClip({ id: clip.name, name: clip.name, duration: clip.duration,
+                                loop: 'repeat', tracks: built }), skipped };
+}
+
+/**
+ * Fetch every model the film declares, before anything is compiled.
+ *
+ * Before compiling, because the compiler has to know which node names and
+ * which animations the file actually contains in order to say so when a film
+ * animates one that is not there. A failure is reported and the film carries
+ * on without that model: one missing prop should not take a render down.
+ */
+async function loadModels(film, report) {
+    const out = {};
+    for (const [id, spec] of Object.entries(film.models ?? {})) {
+        if (!spec?.src) continue;
+        try {
+            const fbx = /\.fbx($|\?)/i.test(spec.src);
+            const loaded = await (fbx ? new FBXLoader() : new GLTFLoader()).loadAsync(spec.src);
+            const scene = loaded.scene ?? loaded;
+            const animations = loaded.animations ?? scene.animations ?? [];
+            const nodes = [];
+            scene.traverse((o) => { if (o.name) nodes.push(o.name); });
+            const clips = [];
+            let skipped = 0;
+            for (const a of animations) {
+                const made = coreClip(a);
+                skipped += made.skipped.length;
+                clips.push(made.clip);
+            }
+            out[id] = { scene, nodes, clips, animations };
+            report(`model ${id}: ${nodes.length} named nodes, ${clips.length} clips`
+                + (skipped ? `, ${skipped} tracks skipped` : ''));
+        } catch (e) {
+            report(`[model] ${id} (${spec.src}) failed to load: ${e.message}`);
+        }
+    }
+    return out;
+}
+
+/** An HDR or image panorama, for image-based lighting. */
+async function loadEnvironment(spec, report) {
+    if (!spec) return null;
+    try {
+        const hdr = /\.hdr($|\?)/i.test(spec.src);
+        const texture = await (hdr ? new RGBELoader() : new THREE.TextureLoader())
+            .loadAsync(spec.src);
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        report(`environment: ${spec.src}${spec.background ? ' (also the sky)' : ''}`);
+        return texture;
+    } catch (e) {
+        report(`[environment] ${spec.src} failed to load: ${e.message}`);
+        return null;
+    }
+}
+
 window.render3d = async function render3d(film, opts = {}) {
     const width = opts.width ?? film.meta?.width ?? 1280;
     const height = opts.height ?? film.meta?.height ?? 720;
-    const compiled = compileFilm3D(film);
     const report = (m) => (window.report ? window.report(m) : console.log(m));
+    const models = await loadModels(film, report);
+    const compiled = compileFilm3D(film, { models });
     for (const d of compiled.diagnostics) report(`[${d.severity}] ${d.message} @ ${d.location ?? '-'}`);
+    const environment = await loadEnvironment(compiled.meta.environment, report);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(width, height, false);
@@ -59,7 +141,12 @@ window.render3d = async function render3d(film, opts = {}) {
     renderer.toneMappingExposure = 1.0;
     document.body.append(renderer.domElement);
 
-    const built = buildScene3D(THREE, compiled, { width, height, mergeGeometries });
+    const built = buildScene3D(THREE, compiled, {
+        width, height, mergeGeometries, models, environment,
+        // `Object3D.clone` copies a skinned mesh and leaves it bound to the
+        // ORIGINAL skeleton, so two characters from one file move as one.
+        cloneModel: SkeletonUtils.clone,
+    });
     built.camera.aspect = width / height;
 
     // The post chain, declared in `meta.post` and ordered by
@@ -240,6 +327,7 @@ window.render3d = async function render3d(film, opts = {}) {
         tracks: compiled.timeline.tracks.length,
         particles: [...compiled.emitters.values()].reduce((a, e) => a + e.emitter.count, 0),
         constraints: compiled.constraints.length,
+        models: Object.keys(models).length,
         sims: built.sims.length,
         post: post ? post.passes : [],
         diagnostics: compiled.diagnostics,

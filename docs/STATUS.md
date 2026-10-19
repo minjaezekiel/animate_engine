@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-19 (Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
+Last updated: 2026-10-19 (Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
 
 Legend: **done** · *partial* · — not started
 
@@ -1181,3 +1181,43 @@ under a running `evaluate`, and puppeteer gets a fresh profile every run. It
 retries once now.
 
 552 unit tests pass.
+
+---
+
+## Phase 26 — bring your own assets — **done**
+
+Two routes in, one per path, both usable by a person at a browser and by an
+agent with no browser at all. Full detail in [20-IMPORT.md](20-IMPORT.md).
+
+| Area | State | Notes |
+|---|---|---|
+| [`core/trace/image.js`](../src/core/trace/image.js) | **done** | Corner-flood matte, enclosed-hole clearing, connected components, Moore boundary walk, Douglas–Peucker. No segmentation model, no new dependency |
+| [`core/trace/rig.js`](../src/core/trace/rig.js) | **done** | Silhouette analysis: the neck as a dip in the width profile, the shoulders as the rise out of it, the crotch where the figure stops being two legs, and the arms by colour where the outline has no gap |
+| A traced character | **done** | Image crops of one upload with a pivot at each joint — the `{kind:'image'}` sprite-atlas path, so no new rendering code. Named like the generated rig, so `idle`/`walk`/`reach`/`grip`/`pose` all work on it unchanged |
+| `ax`/`ay` on an image shape | **done** | The anchor inside a crop. Without it an image turns about its corner or its centre, and a head nodding about its own middle comes off at the chin |
+| Upload in `film.html` | **done** | Trace, matte, cast and play `idle`, in one pick. The matted pixels go into the film, not the file |
+| [`core/io/gltf.js`](../src/core/io/gltf.js) | **done** | Reads a glTF container's table of contents with no renderer: node names, animations, skins, and the extensions that need a decoder the engine does not ship |
+| `models` + `cast.model` | **done** | `.glb`, `.gltf`, `.fbx`. Cloned through `SkeletonUtils` when cast twice. Every named node addressable as `<cast>/<node>` |
+| Imported animations | **done** | Converted through `clipToTracks` **before** compiling, so the compiler can name the clips a file does have when a film asks for one it does not — and so imported animation is evaluated by the same code as hand-keyed animation |
+| `meta.environment` | **done** | HDR image-based lighting. Parsed since Phase 14 and read by nothing until now |
+| Ops: `trace_character`, `model_fetch`, `model_inspect` | **done** | The agent surface. 25 ops total |
+| Tests | **done** | 31 new. Total now **583** |
+
+### Defects this found
+
+Four, three of them old.
+
+| Defect | Cause |
+|---|---|
+| **Every 2D film with no camera was framed half a frame off** | Camera coordinates are OFFSETS from the centre (`centre.x + start.x`), and the no-camera default was `centre` — so it keyed the camera to (width, height) and the whole scene drew up and to the left by half a frame. Films that DO declare a camera were unaffected, which is why it survived: the demo declares one in its first shot |
+| **`film.html` never loaded a declared image asset** | `prepare` skipped loading entirely when the caller passed any `assets` map, and the page passes one it fills with uploads — which starts as `{}` and is therefore always truthy. Every film opened there declared its images, validated clean and drew none of them. It merges now |
+| **A traced character could be rigged and still refuse to walk** | The free cycles were gated on `char.generate`, and a traced character carries `proportions` and no `generate`. `play` now also says which actions a character *does* have |
+| **The legs were read from beside the hands** | The first split row below the crotch still has the hands either side of it, so taking the outermost two runs made the hands into legs. Read from forty percent down the legs instead |
+
+Two of the trace's own rules were wrong first and found by looking at a
+rendered figure: the neck was sought as the narrowest row below the widest in
+the top third, which finds the torso on anything but a big-headed figure with
+its arms down; and the fallback jump rule fired on the second row of the
+scalp, where a head is two pixels across.
+
+583 unit tests pass.

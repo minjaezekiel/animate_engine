@@ -73,6 +73,26 @@ const film = JSON.parse(await readFile(join(ROOT, FILM), 'utf8'));
 const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async (f, times) => {
     window.jirex.setFilm(f);
     const prepared = await window.jirex.prepare({ skipVoices: true });
+    // The studio's own log, which carries the asset and compile diagnostics.
+    // A blank frame is almost always something it already said out loud.
+    const notes = [...(document.getElementById('log')?.children ?? [])]
+        .map((el) => el.textContent).filter(Boolean).slice(-10);
+    /**
+     * What the scene actually contains, for a caller that cannot see it.
+     *
+     * A blank frame has three usual causes and they are indistinguishable
+     * from the PNG: nothing was built, nothing resolved its image, or
+     * everything is off-camera. Count all three.
+     */
+    let nodes = 0, images = 0, unresolved = 0;
+    prepared.scene.walk((n) => {
+        nodes++;
+        if (n.props?.kind !== 'image' && n.kind !== 'image') return;
+        if (n.props?.image && typeof n.props.image !== 'string') images++;
+        else unresolved++;
+    });
+    notes.push(`scene: ${nodes} nodes, ${images} images resolved, ${unresolved} not`);
+
     const { Canvas2DBackend } = await import('/src/backends/canvas2d/Canvas2DBackend.js');
     const { samplePose, applyPose, createPoseBaseline, resetPose } =
         await import('/src/core/anim/Evaluator.js');
@@ -90,11 +110,14 @@ const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async
         backend.renderFrame(prepared.scene, prepared.cameraId);
         out.push({ t, png: backend.canvas().toDataURL('image/png') });
     }
-    return out;
+    notes.push(`camera: ${prepared.cameraId ?? '(none)'}, `
+        + `frame ${backend.width}x${backend.height}, meta ${w}x${h}`);
+    return { frames: out, notes };
 }, film, AT));
 
+for (const line of frames.notes ?? []) console.log(' ', line);
 await mkdir(join(ROOT, OUT), { recursive: true });
-for (const fr of frames) {
+for (const fr of frames.frames) {
     const f = join(ROOT, OUT, `t-${String(fr.t).replace('.', '_')}.png`);
     await writeFile(f, Buffer.from(fr.png.split(',')[1], 'base64'));
     console.log(' ', f.replace(ROOT, ''));

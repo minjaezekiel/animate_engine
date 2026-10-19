@@ -43,6 +43,9 @@ import { BLEND_MODE_NAMES } from '../../kernels/index.js';
 import { PhotoMotion, EFFECTS } from '../motion/PhotoMotion.js';
 import { DepthEstimator } from '../motion/depth.js';
 import { textureFromImage } from '../paint/texture.js';
+import { traceCharacter } from '../trace/index.js';
+import { inspectGLTF, isGLTF } from '../io/gltf.js';
+import { generateActions } from './generate.js';
 
 /**
  * A session: the kernels plus whatever documents have been created.
@@ -75,6 +78,16 @@ async function defaultIO() {
         writeImage: (path, width, height, rgba) => {
             mkdirSync(dirname(path), { recursive: true });
             writeFileSync(path, encodePNG(width, height, rgba));
+        },
+        readText: (path) => readFileSync(path, 'utf8'),
+        readBytes: (path) => new Uint8Array(readFileSync(path)),
+        writeBytes: (path, bytes) => {
+            mkdirSync(dirname(path), { recursive: true });
+            writeFileSync(path, bytes);
+        },
+        writeText: (path, text) => {
+            mkdirSync(dirname(path), { recursive: true });
+            writeFileSync(path, text);
         },
     };
 }
@@ -498,6 +511,168 @@ export const OPS = {
                         + 'uniform pan. Check the model and the "size" argument.'
                     : undefined,
             };
+        },
+    },
+
+    /**
+     * The 2D half of "bring your own artwork".
+     *
+     * An agent can SEE the picture it is tracing, which is why this op does
+     * not try to be a pose estimator: it reads the silhouette, proposes the
+     * cut, and reports every landmark and box it used so the caller can
+     * correct any of them and call again. The parts come out named exactly
+     * what the procedural generator names its own, so `play idle`, `reach`,
+     * `grip` and `pose` all work on a traced character with no special case.
+     */
+    trace_character: {
+        summary: 'Trace a character out of an image and return a rigged cutout: head, '
+            + 'torso, two arms and two legs, each an image crop with a pivot at its '
+            + 'joint. Parts are named like the generated rig, so the free idle/walk/'
+            + 'breathe cycles and the reach/grip/pose verbs work on it unchanged. '
+            + 'Reports the landmarks and boxes it chose; override any of them with '
+            + '`regions` and call again.',
+        params: {
+            source: S('Path to a PNG of one character, standing, facing the camera.', true),
+            asset: S('Asset id the parts will reference. Defaults to "character".'),
+            name: S('Character name in the film. Defaults to "traced".'),
+            height: N('How tall the figure stands in scene units. Default 180, which is '
+                + 'what a generated character uses, so the two can share a shot.'),
+            matte: B('Knock out the background by flooding in from the corners. '
+                + 'Default true. Pass false for an image that is already cut out.'),
+            tolerance: N('How close to a corner colour still counts as background, '
+                + '0-255. Default 28. Lower it if the matte eats the figure.'),
+            view: S('"front" (default), "threeQuarter" or "profile". Decides how `grip` '
+                + 'draws a curling hand.'),
+            regions: { type: 'object', doc: 'Override any box: '
+                + '{ head|torso|armL|armR|legL|legR: {x,y,w,h} } in image pixels.' },
+            out: S('Write the matted cut-out PNG here. The film should reference THIS '
+                + 'rather than the original, or the background comes back.'),
+            film: S('Write a ready-to-render film JSON here, with the character cast and '
+                + 'walking, so the trace can be rendered without writing one by hand.'),
+        },
+        run: (ctx, a) => {
+            const image = ctx.io.readImage(a.source);
+            const rgba = Uint8ClampedArray.from(image.data ?? image.pixels ?? image.rgba);
+            const asset = a.asset ?? 'character';
+            const result = traceCharacter(rgba, image.width, image.height, {
+                asset, name: a.name ?? 'traced', height2d: a.height ?? 180,
+                matte: a.matte !== false, tolerance: a.tolerance ?? 28,
+                view: a.view ?? 'front', regions: a.regions ?? null,
+            });
+            if (!result.ok) return { ok: false, warnings: result.warnings };
+
+            if (a.out) ctx.io.writeImage(a.out, image.width, image.height, rgba);
+            const src = a.out ?? a.source;
+
+            let film = null;
+            if (a.film) {
+                const name = a.name ?? 'traced';
+                film = {
+                    version: 'jirex.film/1',
+                    meta: { title: name, fps: 24, width: 1280, height: 720 },
+                    assets: { [asset]: { kind: 'image', src } },
+                    characters: { [name]: result.character },
+                    scenes: [{
+                        id: 's1', background: { color: '#101418' },
+                        cast: [{ character: name, as: name, at: [640, 560] }],
+                        shots: [{ id: 'a', duration: 4, actions: [
+                            { target: name, do: 'play', action: 'idle' },
+                        ] }],
+                    }],
+                };
+                ctx.io.writeText(a.film, `${JSON.stringify(film, null, 2)}\n`);
+            }
+
+            return {
+                ok: true,
+                warnings: result.warnings,
+                // Everything a caller needs to judge the cut without opening
+                // the file, and to correct it if it is wrong.
+                bounds: result.bounds,
+                landmarks: result.landmarks,
+                boxes: result.boxes,
+                parts: result.character.parts.map((p) => p.id),
+                cycles: Object.keys(generateActions(result.character.proportions)),
+                scale: +result.scale.toFixed(4),
+                opaquePixels: result.opaque,
+                outlinePoints: (result.outline.match(/L/g) ?? []).length + 1,
+                wrote: { image: a.out ?? null, film: a.film ?? null },
+            };
+        },
+    },
+
+    /**
+     * The 3D half of "bring your own assets".
+     *
+     * An agent writing a film around somebody else's model needs the names
+     * inside it -- which nodes it can address, which animations it can play --
+     * and getting them the obvious way means standing up three.js, a DOM
+     * shim and a fetch polyfill in Node to read a list of strings. A `.gltf`
+     * is JSON and a `.glb` is a twelve-byte header around that same JSON, so
+     * this reads the manifest directly.
+     */
+    model_inspect: {
+        summary: 'Read a .glb or .gltf and report what a film can address inside it: '
+            + 'node names (usable as "<cast>/<node>"), animation names (usable as '
+            + '`play`), meshes, materials, whether it is skinned, and any extension '
+            + 'that needs a decoder the engine does not ship.',
+        params: { source: S('Path to a .glb or .gltf file.', true) },
+        run: (ctx, a) => {
+            const bytes = ctx.io.readBytes(a.source);
+            if (!isGLTF(bytes)) {
+                throw new Error(`"${a.source}" is not a glTF container. `
+                    + 'FBX can be imported by the browser page but cannot be inspected here; '
+                    + 'export it as .glb from Blender and both work.');
+            }
+            const info = inspectGLTF(bytes);
+            return {
+                ...info,
+                // Say the thing that otherwise shows up as an empty render.
+                advice: info.needsDecoder.length
+                    ? `This file requires ${info.needsDecoder.join(', ')}. The engine does not `
+                      + 'register those decoders, so it will load as an empty scene. '
+                      + 'Re-export without compression.'
+                    : info.nodes.every((n) => /^(node|mesh|Object)_?\d*$/i.test(n))
+                        ? 'Every node is auto-named, so the whole model can be placed and '
+                          + 'moved but its parts cannot be animated separately. Name them '
+                          + 'in Blender before exporting if you need that.'
+                        : null,
+            };
+        },
+    },
+
+    model_fetch: {
+        summary: 'Download a 3D model or an HDR environment to a local path and report '
+            + 'what is in it. Use it to pull a model from an asset site before writing '
+            + 'a film around it.',
+        params: {
+            url: S('http(s) URL of a .glb, .gltf, .fbx or .hdr file.', true),
+            out: S('Where to write it, relative to the project.', true),
+            maxBytes: N('Refuse anything larger. Default 64000000.'),
+        },
+        run: async (ctx, a) => {
+            const cap = a.maxBytes ?? 64_000_000;
+            if (!/^https?:\/\//i.test(a.url)) throw new Error('model_fetch needs an http(s) URL');
+            const res = await fetch(a.url, { redirect: 'follow' });
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${a.url}`);
+            const declared = Number(res.headers.get('content-length') ?? 0);
+            if (declared > cap) throw new Error(`${declared} bytes exceeds maxBytes ${cap}`);
+            const bytes = new Uint8Array(await res.arrayBuffer());
+            if (bytes.byteLength > cap) {
+                throw new Error(`${bytes.byteLength} bytes exceeds maxBytes ${cap}`);
+            }
+            ctx.io.writeBytes(a.out, bytes);
+            const out = { ok: true, wrote: a.out, bytes: bytes.byteLength,
+                          contentType: res.headers.get('content-type') ?? null };
+            // Inspect whatever we can, so one call is enough to start writing
+            // the film rather than two.
+            if (isGLTF(bytes)) {
+                const info = inspectGLTF(bytes);
+                return { ...out, model: info };
+            }
+            return { ...out, model: null,
+                     note: 'Not a glTF container. FBX and HDR load in the browser page; '
+                         + 'only glTF can be inspected here.' };
         },
     },
 

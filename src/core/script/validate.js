@@ -139,9 +139,15 @@ export function validateFilm(film) {
                 }
                 if (a.do === 'play' && a.target) {
                     const charName = [...(scene.cast ?? [])].find((c) => (c.as ?? c.character) === a.target)?.character;
-                    const generated = characters[charName]?.generate ? GENERATED_ACTIONS : [];
+                    // A TRACED character has `proportions` and no `generate`:
+                    // its parts are named like the generated rig, so the
+                    // free cycles apply to it just the same. Keying off
+                    // `generate` alone rejected `play walk` on an uploaded
+                    // character that was perfectly able to walk.
+                    const char = characters[charName];
+                    const generated = (char?.generate || char?.proportions) ? GENERATED_ACTIONS : [];
                     if (charName && a.action
-                        && !characters[charName]?.actions?.[a.action]
+                        && !char?.actions?.[a.action]
                         && !generated.includes(a.action)) {
                         err(`${hp}.actions`,
                             `Action "${a.action}" is not defined on "${charName}".`

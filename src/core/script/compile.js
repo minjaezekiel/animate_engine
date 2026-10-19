@@ -642,7 +642,19 @@ function shapeProps(shape) {
 function buildCamera({ timeline, cameraId, shot, shotStart, dur, meta, prevCamera }) {
     const cam = shot.camera;
     const centre = { x: meta.width / 2, y: meta.height / 2, zoom: 1 };
-    const start = cam?.from ?? prevCamera ?? centre;
+    /**
+     * Camera coordinates are OFFSETS from the centre of the frame -- see the
+     * `centre.x + start.x` below -- so a shot with no camera rests at zero,
+     * not at the centre.
+     *
+     * Defaulting to `centre` double-counted it and keyed the camera to
+     * (width, height): every film that never mentions a camera was framed
+     * half a frame up and to the left, with its own content as the only
+     * evidence. Films that DO declare one were unaffected, which is why it
+     * survived -- the demo declares a camera in its first shot.
+     */
+    const rest = { x: 0, y: 0, zoom: 1 };
+    const start = cam?.from ?? prevCamera ?? rest;
     const end = cam?.to ?? start;
     const ease = cam?.ease ?? 'smooth';
     const h = cam?.h;
@@ -940,9 +952,22 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
         }
         case 'play': {
             // Generated characters get the standard cycles for free, so a
-            // film can say do:'walk' without authoring one.
+            // film can say do:'walk' without authoring one -- and so does a
+            // TRACED one, whose parts are named the same and which carries
+            // `proportions` but no `generate`. Keying off `generate` alone
+            // meant an uploaded character could be rigged and still refuse to
+            // walk, with no diagnostic to say why.
             const spec = char?.actions?.[action.action]
-                ?? (char?.generate ? generateActions(char.proportions)[action.action] : null);
+                ?? ((char?.generate || char?.proportions)
+                    ? generateActions(char.proportions)[action.action] : null);
+            if (!spec) {
+                diagnostics.push({
+                    severity: 'warning', path: `scenes.${sceneId}.actions`,
+                    message: `play: "${charName}" has no action "${action.action}". `
+                        + `Known: ${[...new Set([...Object.keys(char?.actions ?? {}),
+                            ...Object.keys(generateActions(char?.proportions ?? {}))])].join(', ')}.`,
+                });
+            }
             if (!spec) return;
             const clipId = `${charName}:${action.action}`;
             if (!timeline.clips.has(clipId)) {

@@ -173,6 +173,11 @@ BEN: Then sit down.
         </div>
         <input type="file" id="voiceFiles" accept="audio/*" multiple hidden>
 
+        <div class="row" style="margin-top:10px">
+            <button id="traceBtn" class="grow">Trace a character from an image</button>
+        </div>
+        <input type="file" id="traceFile" accept="image/*" hidden>
+
         <h2>3 &middot; audio assets</h2>
         <div class="row">
             <button id="musicBtn" class="grow">Add music bed</button>
@@ -282,6 +287,72 @@ $('parseBtn').onclick = async () => {
     for (const d of diagnostics) log(`  ${d.severity}: ${d.message}`, d.severity === 'info' ? '' : 'warn');
     if (!built) { log('could not build a film from that script', 'err'); return; }
     await setFilm(built, 'built from script');
+};
+
+// ------------------------------------------------------------- trace a character
+
+/**
+ * Upload a drawing and get a rigged cutout character out of it.
+ *
+ * The matted pixels are what goes into the film, not the file that was
+ * picked: the parts are crops of one image, and a crop of the ORIGINAL still
+ * carries the background in every gap between a limb and the torso.
+ *
+ * The asset is handed over as a Blob on `asset.file`, which is the
+ * `FileProvider` path -- unlike a URL it is never intercepted by the service
+ * worker's cache-first rule, so re-tracing an edited drawing actually shows
+ * the edit.
+ */
+$('traceBtn').onclick = () => $('traceFile').click();
+$('traceFile').onchange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+        const bitmap = await createImageBitmap(file);
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const c2 = canvas.getContext('2d', { willReadFrequently: true });
+        c2.drawImage(bitmap, 0, 0);
+        const pixels = c2.getImageData(0, 0, bitmap.width, bitmap.height);
+
+        const { traceCharacter } = await import('./src/core/trace/index.js');
+        const name = (file.name.replace(/\.[^.]+$/, '') || 'traced')
+            .replace(/[^\w-]+/g, '_').slice(0, 24);
+        const traced = traceCharacter(pixels.data, bitmap.width, bitmap.height,
+                                      { asset: `${name}_art`, name });
+        if (!traced.ok) { for (const w of traced.warnings) log(w, 'err'); return; }
+        for (const w of traced.warnings) log(w, 'warn');
+
+        c2.putImageData(pixels, 0, 0);
+        const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+
+        const next = film ?? { version: 'jirex.film/1',
+                               meta: { title: name, fps: 24, width: 1280, height: 720 },
+                               characters: {}, scenes: [] };
+        next.assets = { ...(next.assets ?? {}),
+                        [`${name}_art`]: { kind: 'image', file: blob } };
+        next.characters = { ...(next.characters ?? {}), [name]: traced.character };
+        if (!next.scenes?.length) {
+            next.scenes = [{ id: 's1', background: { color: '#101418' },
+                             cast: [], shots: [{ id: 'a', duration: 4, actions: [] }] }];
+        }
+        const scene = next.scenes[0];
+        scene.cast = [...(scene.cast ?? []).filter((c) => (c.as ?? c.character) !== name),
+                      { character: name, as: name,
+                        at: [next.meta.width / 2, next.meta.height * 0.86] }];
+        const shot = (scene.shots ??= [{ id: 'a', duration: 4, actions: [] }])[0];
+        shot.actions = [...(shot.actions ?? []).filter((a) => a.target !== name),
+                        { target: name, do: 'play', action: 'idle' }];
+
+        await setFilm(next, `traced ${file.name}`);
+        log(`${name}: ${traced.character.parts.length} parts, `
+            + `${traced.bounds.w}x${traced.bounds.h}px. Neck y=${traced.landmarks.neckY}, `
+            + `crotch y=${traced.landmarks.crotchY}. It can play idle, walk and breathe.`, 'ok');
+    } catch (err) {
+        log(`could not trace that image: ${err.message}`, 'err');
+    }
 };
 
 // -------------------------------------------------------------------- voices

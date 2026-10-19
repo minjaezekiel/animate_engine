@@ -7,6 +7,7 @@ import { createCue } from '../audio/cues.js';
 import { HUMANOID_BONES } from '../art/humanoid3d.js';
 import { EXPRESSIONS } from '../art/face3d.js';
 import { normalizeConstraints, humanoidCorrectives } from '../rig/constraints.js';
+import { gripAngles, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
 import { normalizePost } from './post.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
 
@@ -767,6 +768,57 @@ function buildAction3D({ scene, timeline, action, castMap, emitters, shot, camer
                             { from: 0 });
             }
             expressionHold.set(faceId, next);
+            return;
+        }
+
+        /**
+         * A named hand pose: `grip host/handR to fist`.
+         *
+         * Fifteen bones per hand, and three channels on the first joint of
+         * each digit, is forty-five numbers an author would otherwise type
+         * per hand per gesture. The table lives in `core/art/hands.js` and
+         * the 2D compiler reads the same one, so `fist` means the same shape
+         * on both paths.
+         *
+         * Routed through `writeScalar` like every other verb, so easing,
+         * anticipation and overshoot come free -- and a hand that overshoots
+         * closing is most of what makes a grab read as a grab.
+         */
+        case 'grip': {
+            const ref = String(action.target ?? '');
+            const slash = ref.indexOf('/');
+            const as = slash < 0 ? ref : ref.slice(0, slash);
+            const hand = slash < 0 ? '' : ref.slice(slash + 1);
+            const side = hand.slice(-1);
+            if (!castMap.get(as)?.character || !/^hand[LR]$/.test(hand)) {
+                return warn(`grip wants a character's hand bone, like `
+                    + `'<character>/handL'; got '${action.target}'`, location);
+            }
+            const angles = gripAngles(action.pose, action.amount ?? 1);
+            if (!angles) {
+                return warn(`unknown hand pose '${action.pose}'. `
+                    + `Known: ${HAND_POSE_NAMES.join(', ')}.`, location);
+            }
+            // Mirrored: a rotation about y or z flips sign across the body's
+            // plane of symmetry and a rotation about x does not, which is why
+            // curl is signless and splay and lift are not.
+            const m = side === 'L' ? 1 : -1;
+            const gripSpan = action.for ?? 0.3;
+            for (const digit of DIGIT_IDS) {
+                const a = angles[digit];
+                for (let j = 0; j < 3; j++) {
+                    const bone = `${as}/${digit}${side}${j + 1}`;
+                    writeScalar(timeline, bone, 'rotation.x', a.curl[j], at, gripSpan, ease,
+                                { ...opts, from: 0 });
+                    if (j > 0) continue;
+                    // A finger fans at the knuckle and nowhere else, and only
+                    // the thumb leaves the plane of the palm.
+                    writeScalar(timeline, bone, 'rotation.z', m * a.splay, at, gripSpan, ease,
+                                { from: 0 });
+                    writeScalar(timeline, bone, 'rotation.y', m * a.lift, at, gripSpan, ease,
+                                { from: 0 });
+                }
+            }
             return;
         }
 

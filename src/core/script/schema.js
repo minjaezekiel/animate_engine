@@ -35,7 +35,10 @@ export const KNOWN = {
     character: ['palette', 'voice', 'parts', 'mouth', 'poses', 'actions', 'proportions',
                 'generate', 'view', 'expression', 'role'],
     generate: ['skin', 'cloth', 'trouser', 'hair', 'hairColor', 'eye', 'white', 'shoe',
-               'face', 'build', 'facing'],
+               'face', 'build', 'facing',
+               // 'none' | 'mitten' | 'fingers' -- how much hand to draw below
+               // the wrist. See generate.js `handParts`.
+               'hands'],
     face: ['jaw', 'eyes', 'brow', 'nose', 'lips', 'ears'],
     cast: ['character', 'as', 'at', 'scale', 'z', 'alpha', 'palette', 'view', 'expression',
            'facing', 'echo', 'role'],
@@ -60,6 +63,8 @@ export const KNOWN = {
              // backwards reveal reported its own option as unrecognized.
              'from',
              'part', 'bones', 'bend',
+             // `grip` blends toward a named hand pose
+             'amount',
              // the four principles that need a number rather than a keyframe
              'anticipate', 'overshoot', 'arc', 'weight'],
     dialogue: ['speaker', 'at', 'text', 'audio', 'voice', 'lipsync', 'subtitle', 'gain', 'duration'],
@@ -77,4 +82,4 @@ export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidt
 
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];
 export const TRANSITION_KINDS = ['fade', 'crossfade', 'none'];
-export const DO_VERBS = ['play', 'pose', 'move', 'reach', 'set', 'show', 'hide', 'draw'];
+export const DO_VERBS = ['play', 'pose', 'move', 'reach', 'grip', 'set', 'show', 'hide', 'draw'];

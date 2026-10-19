@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-19 (Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain — six of the seven items the character doc's §6 listed as missing).
+Last updated: 2026-10-19 (Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
 
 Legend: **done** · *partial* · — not started
 
@@ -1136,3 +1136,48 @@ switching bloom on also changed the exposure and the gamma of the whole frame.
   caps meet at the spine, predates this phase and is still there.
 
 527 unit tests pass.
+
+---
+
+## Phase 25 — hands and fingers — **done**
+
+Both paths stopped at the wrist. The 3D rig had one `fingers` leaf bone and a
+flat slab; the 2D cutout had a single mitten path. Neither could point, grip,
+wave or count, and a hand is the second thing an audience looks at.
+
+| Area | State | Notes |
+|---|---|---|
+| [`core/art/hands.js`](../src/core/art/hands.js) | **done** | The half both paths share: which digits exist, their proportions as fractions of hand length, and eight named grips. Pure data and arithmetic |
+| 3D hand rig | **done** | Twenty bones per hand — five digits of three phalanges plus a tip — and fifteen swept segments. The skeleton is 65 bones |
+| 3D `grip` verb | **done** | Curl on `rotation.x`, splay on `.z`, the thumb's opposition on `.y`. Through `writeScalar`, so easing, anticipation and overshoot come free |
+| 2D hand cutouts | **done** | Three detail levels: `none` (the old mitten), `mitten` (palm, thumb, one four-finger mitt — the default, and how a Toon Boom rig is built), `fingers` (four separate digits) |
+| 2D `grip` verb | **done** | Same pose table. It writes onto whichever parts exist, so a film written for one detail level plays at the other |
+| 2D finger IK | **done** | Free: digit pivots are real joints, so `chainFromParts` extracts a finger chain and `reach` solves it |
+| The relaxed bind pose | **done** | The resting curl is baked into the bone directions rather than keyed, so a character who never mentions their hands still has hands — at a cost of zero keyframes |
+| [`scripts/grab2d.mjs`](../scripts/grab2d.mjs) | **done** | `npm run grab2d`. The 3D path has had `GRAB=` since the AK-47 test; the 2D path had no way to look at a frame at all |
+| Tests | **done** | 25 new, including the proportion rules — a hand of the wrong SHAPE passes every structural test ever written. Total now **552** |
+
+### What the live test found
+
+Eight, six of which only a rendered frame could catch.
+
+| Defect | Cause |
+|---|---|
+| **Every tube in the engine ended in a small open hole** | The cap was three rings at 22%, 62% and 88% of the radius, all at the *same* t — a flat disc, not the dome the comment beside it had claimed since the day it was written, and nothing closed the innermost ring. Invisible at limb scale, a black pinhole at each of thirty fingertips |
+| **Closing it did not make it go away** | Both new cap fans were wound inward, and an inward triangle is backface-culled |
+| **Fingers came apart into rows of sausages** | Butt-jointed capsules pull apart the moment a joint bends, and three joints at 76° is not a shallow elbow |
+| **A kink in every thumb** | Splay was applied to the first bone only and the two below it reverted to straight down. The thumb is the one digit splayed far enough to show it |
+| **The sleeve swallowed the wrist** | An 18 mm inflation on a 30 mm wrist is a 96 mm cuff. `until: 1` on the suit's arm layer had been dead config, read by nothing, since it was written |
+| **The palm tapered the wrong way** | 84 mm at the wrist down to 64 at the knuckles — a paddle. A hand widens toward the knuckles |
+| **The 2D knuckle line was inverted** | In the 3D table y runs up and negative is down the hand; converting to a cutout's y-down frame flips the sign, and getting it backwards set the short fingers LOWER than the long ones |
+| **A front-facing 2D fist bent the wrist sideways** | Face on, a curling finger barely rotates in the picture plane — it foreshortens. The curl is now split between `rot` and `sy` by the character's view |
+
+Two fixes landed outside the hand. The dome closed the speckled band at the
+waist, where the jacket's and the trouser's flat cap discs met at the spine
+and z-fought. And `test:av` had been failing on a clean checkout: `film.html`
+reloads itself once on a first visit so the service worker's
+cross-origin-isolation headers apply, which destroys the execution context
+under a running `evaluate`, and puppeteer gets a fresh profile every run. It
+retries once now.
+
+552 unit tests pass.

@@ -620,6 +620,28 @@
               "expression": "warm",
               "at": 1.8,
               "for": 0.5
+            },
+            {
+              "do": "grip",
+              "target": "host/handR",
+              "pose": "open",
+              "at": 0.5,
+              "for": 0.4
+            },
+            {
+              "do": "grip",
+              "target": "host/handR",
+              "pose": "grasp",
+              "at": 1.6,
+              "for": 0.5,
+              "overshoot": 0.15
+            },
+            {
+              "do": "grip",
+              "target": "host/handL",
+              "pose": "relaxed",
+              "at": 0.0,
+              "for": 0.2
             }
           ],
           "on": "host",
@@ -701,6 +723,13 @@
                 0
               ],
               "at": 2.2,
+              "for": 0.4
+            },
+            {
+              "do": "grip",
+              "target": "host/handR",
+              "pose": "point",
+              "at": 0.6,
               "for": 0.4
             }
           ],

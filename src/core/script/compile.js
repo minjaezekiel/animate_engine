@@ -11,6 +11,7 @@ import { validateFilm } from './validate.js';
 import { castVoices } from '../voice/synthesize.js';
 import { generateCharacterParts, generateMouth, generateActions } from './generate.js';
 import { solveChain, chainFromParts, chainRootOffset } from '../rig/IK2D.js';
+import { gripAngles, gripMitt, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
 import { groundAt, measureCharacter } from './staging.js';
 import {
     anticipationValue, overshootValue, arcMidpoint, overlapDelays, applyOverlap,
@@ -991,6 +992,111 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
                     severity: 'info', path: `scenes.${sceneId}.actions`,
                     message: `reach: [${action.to}] is out of range for "${action.part}" `
                         + `(off by ${solved.error.toFixed(1)}); limb extended as far as it goes.`,
+                });
+            }
+            break;
+        }
+        /**
+         * A named hand pose: `grip handR to fist`.
+         *
+         * The same table the 3D rig uses, via `core/art/hands.js`, so `fist`
+         * is the same shape on both paths. It writes onto whichever hand
+         * parts the character actually has -- a mitten rig gets the four
+         * fingers' average curl on one mitt, a fingered rig gets each digit
+         * -- so a film written for one detail level plays on the other
+         * rather than silently doing nothing.
+         */
+        case 'grip': {
+            const side = /^hand([LR])$/.exec(action.part ?? '')?.[1];
+            if (!side) {
+                diagnostics.push({
+                    severity: 'warning', path: `scenes.${sceneId}.actions`,
+                    message: `grip: \`part\` must be "handL" or "handR"; got `
+                        + `"${action.part}".`,
+                });
+                return;
+            }
+            const amount = action.amount ?? 1;
+            const angles = gripAngles(action.pose, amount);
+            if (!angles) {
+                diagnostics.push({
+                    severity: 'warning', path: `scenes.${sceneId}.actions`,
+                    message: `grip: unknown hand pose "${action.pose}". `
+                        + `Known: ${HAND_POSE_NAMES.join(', ')}.`,
+                });
+                return;
+            }
+            const parts = characterParts(char ?? {});
+            const have = new Set(parts.map((part) => part.id));
+            // Positive `rot` swings a part's tip toward -x (see IK2D's angle
+            // convention), and a hand closes toward the side the character
+            // FACES -- so a character drawn facing left closes the other way
+            // round, and the sign has to come from the drawing, not a guess.
+            const dir = -((char?.generate?.facing ?? 1) >= 0 ? 1 : -1);
+            const gripSpan = span ?? 0.3;
+            let written = 0;
+
+            /**
+             * A curled finger does two things to a drawing, and which one you
+             * see depends entirely on the view.
+             *
+             * In PROFILE the finger swings across the frame, and a rotation
+             * is the whole of it. Face ON, a curling finger barely rotates in
+             * the picture plane at all -- it FORESHORTENS, because it is
+             * turning toward the camera, and that is why an animator draws a
+             * fist rather than rotating one. Rotating a front-facing hand
+             * instead produces a wrist bending sideways, which is what the
+             * first version did and it looked broken.
+             *
+             * So the curl is split between a rotation and a scale along the
+             * digit, weighted by the view the character is drawn in. The
+             * scale factor is just the cosine of the accumulated angle --
+             * the actual projected length of the bone.
+             */
+            const view = entry?.view ?? char?.view ?? 'front';
+            const flat = view === 'profile' ? 0 : view === 'threeQuarter' ? 0.45 : 1;
+            const shorten = (angle) => {
+                const projected = Math.cos(Math.min(Math.abs(angle), Math.PI * 0.62));
+                return 1 - (1 - projected) * flat;
+            };
+            const put = (id, value, scale = null) => {
+                if (!have.has(id)) return;
+                writeChannel({ timeline, target: `${rootId}/${id}`, channel: 'rot',
+                               value: dir * value * (1 - flat * 0.62), at, span: gripSpan,
+                               ease, h, anticipate, overshoot });
+                if (scale != null) {
+                    writeChannel({ timeline, target: `${rootId}/${id}`, channel: 'sy',
+                                   value: scale, at, span: gripSpan, ease, h });
+                }
+                written++;
+            };
+            // `sy` compounds down the chain, so the second segment carries
+            // only what the first has not already foreshortened.
+            const split = (c0, total) => {
+                const near = shorten(c0);
+                return [near, Math.max(0.28, Math.min(1, shorten(total) / near))];
+            };
+
+            const mitt = gripMitt(action.pose, amount);
+            const mittScale = split(mitt.knuckle, mitt.knuckle + mitt.tip);
+            put(`mitt${side}1`, mitt.knuckle, mittScale[0]);
+            put(`mitt${side}2`, mitt.tip, mittScale[1]);
+            for (const digit of DIGIT_IDS) {
+                const a = angles[digit];
+                // The thumb's opposition is out of the picture plane and a
+                // cutout cannot rotate into depth. What reads in 2D is the
+                // thumb swinging across the palm, so splay carries it.
+                const first = digit === 'thumb' ? a.curl[0] - a.splay * 0.8 : a.curl[0];
+                const rest = a.curl[1] + a.curl[2];
+                const scale = split(first, first + rest);
+                put(`${digit}${side}1`, first, scale[0]);
+                put(`${digit}${side}2`, rest, scale[1]);
+            }
+            if (!written) {
+                diagnostics.push({
+                    severity: 'info', path: `scenes.${sceneId}.actions`,
+                    message: `grip: "${charName}" has no hand parts below the wrist; `
+                        + 'set `generate.hands` to "mitten" or "fingers".',
                 });
             }
             break;

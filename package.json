@@ -63,7 +63,9 @@
     "test:sim": "node --test test/core/sim.test.mjs",
     "test:post": "node --test test/core/post.test.mjs",
     "make:rig3d": "FILM=demo/rig3d.json OUT=demo/out/rig3d.webm WIDTH=960 HEIGHT=540 SILENT=1 node scripts/produce3d.mjs",
-    "test:budget": "node --test test/core/budget.test.mjs"
+    "test:budget": "node --test test/core/budget.test.mjs",
+    "grab2d": "node scripts/grab2d.mjs",
+    "test:hands": "node --test test/core/hands.test.mjs"
   },
   "keywords": [
     "animation",

@@ -18,10 +18,18 @@ MIT licensed — see [LICENSE](LICENSE).
 - **Author a film** as `jirex.film/1` JSON, or paste a screenplay and have it
   structured into one. Durations sequence automatically; the total is derived,
   never declared.
-- **Characters without asset work.** Ask for a figure and get a 19-part cutout
-  rig with correctly placed joints, a six-shape mouth, and `idle`, `breathe`,
+- **Characters without asset work.** Ask for a figure and get a cutout rig
+  with correctly placed joints, a six-shape mouth, and `idle`, `breathe`,
   `walk` and `blink` cycles. The part tree *is* the rig — parent/child
   transforms, no skin weights.
+- **Hands that are hands.** Both paths used to stop at the wrist. A 3D
+  character now carries five digits of three phalanges on each hand — twenty
+  bones a side — and a cutout gets a palm, a thumb and either one four-finger
+  mitt or four separate digits, at a detail level the film picks. One `grip`
+  verb and one pose table (`relaxed`, `open`, `fist`, `point`, `pinch`,
+  `grasp`, …) drive both, so `fist` is the same shape in 2D and 3D. The
+  resting curl is baked into the bind pose, so a character who never mentions
+  their hands still has hands, for zero keyframes.
 - **Voices from three sources, interchangeably:** 124 open-source Piper/VITS
   voices running in the browser, uploaded recordings from voice actors, or
   your own voice through the microphone. Each character is cast independently.
@@ -243,6 +251,10 @@ detail is in [docs/STATUS.md](docs/STATUS.md).
   with automatic weights for its own procedural character.
 - **Twist bones.** A forearm pronates about its own axis and this rig has no
   bone for it, which is also why a hand's roll under IK is undefined.
+- **Hand detail beyond the rig.** No fingernails, knuckle creases or palm
+  lines, and no soft-tissue spread where a finger presses on something. In 2D,
+  a drawing swap through `swapSets` is still the sharper tool for a hero
+  close-up than a rotated cutout.
 - **Corrective blendshapes on the body.** The drivers that exist restore the
   volume a bent elbow loses; they cannot make a crease, because only the head
   carries morph targets.

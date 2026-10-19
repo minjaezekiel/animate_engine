@@ -70,6 +70,7 @@ export function frameFor(dir, up = null) {
 export function buildTube(a, b, {
     r0 = 0.1, r1 = 0.1, profile = null, rx = 1, rz = 1,
     radial = 16, rings = 8, capStart = true, capEnd = true, up = null,
+    extend = 0, dome = 0.45,
 } = {}) {
     const dir = sub(b, a);
     const { f, r, u } = frameFor(dir, up);
@@ -81,9 +82,24 @@ export function buildTube(a, b, {
     // key light and reads as a cut pipe.
     const ringCount = rings + 1;
     const rows = [];
+    /**
+     * How far past each end the surface runs, as a fraction of the segment.
+     *
+     * Two tubes that stop exactly at their shared joint meet as two domes,
+     * and the moment the joint bends they pull apart and leave a visible
+     * notch. Over a limb's one elbow at a shallow angle that is invisible;
+     * over three finger joints at 76 degrees it is a hand that has come to
+     * pieces. Overlapping them is what a cutout rig does in 2D for exactly
+     * the same reason, and the skin weights are unaffected because they are
+     * measured against the TRUE segment, where the overhang clamps to an end.
+     */
+    const e = length > 0 ? extend / length : 0;
     const emitRing = (t, scale, inset) => {
         const row = [];
-        const radius = (r0 + (r1 - r0) * t) * sampleProfile(profile, t) * scale;
+        // The radius comes from the segment's own range; only the POSITION
+        // runs past it, or an overhang would flare.
+        const tc = t < 0 ? 0 : t > 1 ? 1 : t;
+        const radius = (r0 + (r1 - r0) * tc) * sampleProfile(profile, tc) * scale;
         const cx = a[0] + f[0] * length * t;
         const cy = a[1] + f[1] * length * t;
         const cz = a[2] + f[2] * length * t;
@@ -95,19 +111,36 @@ export function buildTube(a, b, {
             positions.push(cx + r[0] * ca + u[0] * sa,
                            cy + r[1] * ca + u[1] * sa,
                            cz + r[2] * ca + u[2] * sa);
-            tParam.push(t);
+            tParam.push(tc);
         }
         rows.push(row);
         return row;
     };
 
+    const lo = -e, hi = 1 + e;
+    /**
+     * A dome rather than a flat lid.
+     *
+     * The comment here said "dome" from the day it was written and the code
+     * put all three cap rings at the SAME t, which is a flat disc of
+     * concentric rings. A disc's normals all point along the axis, so lit
+     * from the side it goes black -- and at fingertip scale, thirty of them
+     * read as thirty holes. The rings now step out along the axis by
+     * `sqrt(1 - inset^2)`, which is where they sit on a sphere.
+     *
+     * `dome` scales that, because a full hemisphere on a 140 mm hip segment
+     * would push 140 mm of ball out through the pelvis; a shallow lens is
+     * enough to shade correctly where the cap is buried anyway, and fingers
+     * ask for the whole thing.
+     */
+    const RINGS = [0.22, 0.62, 0.88];
+    const bulge = (inset, r) => dome * r * Math.sqrt(1 - inset * inset) / (length || 1);
     if (capStart) {
-        // A dome rather than a flat lid: three rings easing in.
-        for (const [t, inset] of [[0, 0.22], [0, 0.62], [0, 0.88]]) emitRing(t, 1, inset);
+        for (const inset of RINGS) emitRing(lo - bulge(inset, r0), 1, inset);
     }
-    for (let i = 0; i < ringCount; i++) emitRing(i / rings, 1, 1);
+    for (let i = 0; i < ringCount; i++) emitRing(lo + (hi - lo) * (i / rings), 1, 1);
     if (capEnd) {
-        for (const [t, inset] of [[1, 0.88], [1, 0.62], [1, 0.22]]) emitRing(t, 1, inset);
+        for (const inset of [...RINGS].reverse()) emitRing(hi + bulge(inset, r1), 1, inset);
     }
 
     for (let s = 0; s < rows.length - 1; s++) {
@@ -122,6 +155,36 @@ export function buildTube(a, b, {
             indices.push(lo[i], hi[j], hi[i], lo[i], lo[j], hi[j]);
         }
     }
+
+    /**
+     * Close each cap on a centre point.
+     *
+     * The innermost cap ring is drawn at 22% of the radius and nothing closed
+     * it, so every tube in this engine has ended in a small open hole since
+     * the day it was written. At limb scale the hole is a centimetre across
+     * and the next segment covers it; at FINGERTIP scale it is a black pinhole
+     * at the end of each of thirty phalanges, and at a close-up it is the
+     * first thing you see.
+     */
+    const centre = (t, row, flip) => {
+        const tc = t < 0 ? 0 : t > 1 ? 1 : t;
+        const apex = positions.length / 3;
+        positions.push(a[0] + f[0] * length * t, a[1] + f[1] * length * t,
+                       a[2] + f[2] * length * t);
+        tParam.push(tc);
+        for (let i = 0; i < radial; i++) {
+            const j = (i + 1) % radial;
+            if (flip) indices.push(apex, row[j], row[i]);
+            else indices.push(apex, row[i], row[j]);
+        }
+    };
+    // The start fan is wound one way round and the end fan the other, because
+    // "counter-clockwise seen from outside" reverses when you walk round to
+    // the far end of the tube. Both were inverted on the first pass, and an
+    // inverted cap is backface-culled: a black pinhole at every fingertip.
+    if (capStart) centre(lo - (dome * r0) / (length || 1), rows[0], true);
+    if (capEnd) centre(hi + (dome * r1) / (length || 1), rows[rows.length - 1], false);
+
     return {
         positions: new Float32Array(positions),
         indices: new Uint32Array(indices),

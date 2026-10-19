@@ -163,9 +163,50 @@ mesh tearing and depth maps.
 | `pose` | key every channel in a named pose; with `for`, transition from the current value |
 | `move` | key the cast root's `x`/`y` to `to` over `for` |
 | `reach` | **IK** — put `part` on the point `to`, solving the bones above it |
+| `grip` | key a named **hand pose** on `handL` or `handR` |
 | `set` | key an arbitrary channel; `part` selects a sub-node |
 | `show` / `hide` | key the cast root's alpha |
 | `draw` | ramp a **drawing**'s reveal or a **photo**'s playback, `from` → `to` over `for` |
+
+#### `grip` — hands and fingers
+
+A cutout's hand used to be a single mitten path, which is why a character
+could never point, grip, wave or count: there was nothing below the wrist to
+rotate. `generate.hands` decides how much hand there is, and `grip` poses it.
+
+```json
+{ "target": "jonas", "do": "grip", "part": "handR",
+  "pose": "fist", "at": 0.4, "for": 0.3, "amount": 1 }
+```
+
+| `generate.hands` | what gets drawn |
+|---|---|
+| `"none"` | the original single mitten, for a film that wants it back |
+| `"mitten"` | palm, a two-segment thumb, and the four fingers as one two-segment mitt — **the default**, and how a Toon Boom or Moho cutout hand is built |
+| `"fingers"` | palm, thumb and four separate two-segment digits, for a close-up |
+
+Poses: `relaxed`, `open`, `spread`, `fist`, `point`, `pinch`, `grasp`,
+`thumbsUp`. `amount` blends toward one — a hand half way to a fist is a hand
+about to close, which is the difference between a gesture and a switch.
+
+`grip` writes onto whichever parts the character actually has, so a film
+written against `fingers` still plays on a `mitten` rig with the four
+fingers' average curl on the mitt. The same table drives the 3D rig's
+`grip`, so `fist` is the same shape on both paths.
+
+**How a curl is drawn depends on the view, and that is not a detail.** In
+profile a curling finger swings across the frame and a rotation is the whole
+of it. Face on, it barely rotates at all — it turns toward the camera and
+**foreshortens**, which is why an animator draws a fist rather than rotating
+one. `grip` splits the curl between `rot` and `sy` by the character's `view`,
+so a front-facing hand shortens and a profile one swings. Rotating a
+front-facing hand instead produces a wrist bending sideways.
+
+**Ceiling worth knowing:** the digits are also a real IK chain, so
+`{ "do": "reach", "part": "indexL2" }` solves a finger onto a point. And the
+thumb's opposition is out of the picture plane; a cutout cannot rotate into
+depth, so what carries it in 2D is the thumb swinging across the palm. A
+drawing swap through `swapSets` is still the sharper tool for a hero close-up.
 
 #### `reach` — inverse kinematics
 

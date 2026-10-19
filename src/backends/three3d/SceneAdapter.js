@@ -211,6 +211,9 @@ function limbGeometry(T, a, b, seg, inflate) {
         r0: seg.r0 + inflate, r1: seg.r1 + inflate,
         profile: seg.profile, rx: seg.rx ?? 1, rz: seg.rz ?? 1,
         radial: seg.radial ?? 18, rings: seg.rings ?? 8,
+        // As a fraction of the segment's own radius, so it is scale-free.
+        extend: (seg.extend ?? 0) * (seg.r0 + inflate),
+        dome: seg.dome ?? 0.45,
     });
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.Float32BufferAttribute(positions, 3));

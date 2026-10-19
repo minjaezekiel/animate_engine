@@ -1,4 +1,16 @@
 import { VISEME_SHAPES } from './face3d.js';
+import { handBones, handSegments } from './hands.js';
+
+/**
+ * Wrist to middle fingertip, in metres, for a 1.80 m adult.
+ *
+ * A hand is about half palm and half finger. This rig's palm -- the
+ * `hand` to `fingers` bone -- is 90 mm, so the whole hand is about 190, and
+ * before Phase 25 the rig simply stopped at the 90: an arm that ended at the
+ * knuckles, with a flat slab where a hand goes. That is also why the arms
+ * looked short.
+ */
+export const HAND_LENGTH = 0.19;
 
 /**
  * A procedurally built, skinned 3D humanoid.
@@ -45,7 +57,12 @@ for (const side of ['L', 'R']) {
         { id: `arm${side}`, parent: `shoulder${side}`, at: [s * 0.125, -0.025, 0] },
         { id: `fore${side}`, parent: `arm${side}`, at: [0, -0.29, 0] },
         { id: `hand${side}`, parent: `fore${side}`, at: [0, -0.26, 0] },
+        // The knuckle line. It stays a bone -- the palm slab spans to it, and
+        // a prop held in the hand parents to it -- and the five digits now
+        // hang off the WRIST, because a thumb that starts at the knuckles
+        // cannot oppose.
         { id: `fingers${side}`, parent: `hand${side}`, at: [0, -0.09, 0] },
+        ...handBones(side, HAND_LENGTH),
         { id: `thigh${side}`, parent: 'hips', at: [s * 0.085, -0.045, 0] },
         { id: `shin${side}`, parent: `thigh${side}`, at: [0, -0.44, 0] },
         { id: `foot${side}`, parent: `shin${side}`, at: [0, -0.43, 0] },
@@ -85,12 +102,18 @@ for (const side of ['L', 'R']) {
         // Upper arm: biceps swell in the upper third, narrowing to the elbow.
         { from: `arm${side}`, to: `fore${side}`, r0: 0.058, r1: 0.044, group: 'arm',
           rx: 1.0, rz: 0.94, profile: [[0, 0.98], [0.3, 1.06], [1, 0.92]] },
-        // Forearm: swells below the elbow, then narrows hard to the wrist.
-        { from: `fore${side}`, to: `hand${side}`, r0: 0.047, r1: 0.030, group: 'arm',
+        // Forearm: swells below the elbow, then narrows hard to the wrist. Its
+        // own group, so a sleeve can stop short of the wrist rather than
+        // engulf it -- an 18 mm inflation on a 30 mm wrist is a 96 mm cuff,
+        // and the hand came out of it like a flower out of a vase.
+        { from: `fore${side}`, to: `hand${side}`, r0: 0.047, r1: 0.030, group: 'forearm',
           rx: 1.0, rz: 0.88, profile: [[0, 0.96], [0.25, 1.08], [0.8, 0.82], [1, 0.74]] },
-        // A hand is a flat slab, not a sausage: depth is half its width.
-        { from: `hand${side}`, to: `fingers${side}`, r0: 0.042, r1: 0.032, group: 'hand',
-          rx: 1.0, rz: 0.48, profile: [[0, 0.88], [0.4, 1.0], [1, 0.9]] },
+        // The palm: a flat slab, and one that WIDENS from the wrist to the
+        // knuckles. It used to taper the other way -- 84 mm at the wrist
+        // down to 64 at the knuckles -- which is a paddle, and the fingers
+        // hanging off the narrow end of it made it worse.
+        { from: `hand${side}`, to: `fingers${side}`, r0: 0.029, r1: 0.038, group: 'hand',
+          rx: 1.0, rz: 0.42, profile: [[0, 0.90], [0.35, 1.0], [1, 0.97]] },
         { from: `thigh${side}`, to: `shin${side}`, r0: 0.098, r1: 0.062, group: 'leg',
           rx: 1.0, rz: 0.92, profile: [[0, 1.0], [0.25, 0.98], [1, 0.88]] },
         // The calf: a distinct bulge a third of the way down, then the ankle.
@@ -98,6 +121,7 @@ for (const side of ['L', 'R']) {
           rx: 1.0, rz: 0.90, profile: [[0, 0.94], [0.3, 1.08], [0.85, 0.62], [1, 0.58]] },
         { from: `foot${side}`, to: `toe${side}`, r0: 0.045, r1: 0.038, group: 'foot',
           rx: 1.0, rz: 0.72 },
+        ...handSegments(side, HAND_LENGTH),
     );
 }
 
@@ -112,12 +136,23 @@ for (const side of ['L', 'R']) {
 export const OUTFITS = {
     suit: [
         { groups: ['torso'], inflate: 0.022, material: 'jacket' },
-        { groups: ['arm'], inflate: 0.018, material: 'jacket', until: 1 },
+        { groups: ['arm'], inflate: 0.016, material: 'jacket' },
+        // The forearm sleeve is thinner, so the cuff ends somewhere a wrist
+        // could plausibly come out of.
+        { groups: ['forearm'], inflate: 0.008, material: 'jacket' },
         { groups: ['pelvis', 'leg'], inflate: 0.020, material: 'trouser' },
         { groups: ['foot'], inflate: 0.014, material: 'shoe' },
     ],
     shirt: [
         { groups: ['torso'], inflate: 0.016, material: 'shirt' },
+        { groups: ['arm'], inflate: 0.011, material: 'shirt' },
+        { groups: ['forearm'], inflate: 0.006, material: 'shirt' },
+        { groups: ['pelvis', 'leg'], inflate: 0.018, material: 'trouser' },
+        { groups: ['foot'], inflate: 0.014, material: 'shoe' },
+    ],
+    // Bare arms, for a character in a tee or a vest.
+    casual: [
+        { groups: ['torso'], inflate: 0.014, material: 'shirt' },
         { groups: ['pelvis', 'leg'], inflate: 0.018, material: 'trouser' },
         { groups: ['foot'], inflate: 0.014, material: 'shoe' },
     ],

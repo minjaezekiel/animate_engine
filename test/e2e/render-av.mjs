@@ -53,9 +53,27 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 // `load`, not `networkidle2`: the page registers a service worker, so network
 // quiet is no longer a signal that the page is ready.
-await page.goto(`${base}/film.html`, { waitUntil: 'load' });
+/**
+ * This page reloads itself exactly once on a first visit, inside
+ * `registerServiceWorker`, so the worker's cross-origin-isolation headers
+ * apply -- which is correct and documented in film.html. It also destroys the
+ * execution context out from under whatever `evaluate` is already running,
+ * with an error that blames "a navigation" and names nothing. Puppeteer gets a
+ * fresh profile every run, so this test hit it EVERY run and had been failing
+ * on a clean checkout. Retry once: the second load is already isolated.
+ */
+async function onPage(fn) {
+    for (let attempt = 0; ; attempt++) {
+        await page.goto(`${base}/film.html`, { waitUntil: 'load' });
+        try {
+            return await fn();
+        } catch (e) {
+            if (attempt > 0 || !/context was destroyed|Execution context/i.test(String(e))) throw e;
+        }
+    }
+}
 
-const result = await page.evaluate(async (origin, durationSec) => {
+const result = await onPage(() => page.evaluate(async (origin, durationSec) => {
     const out = { log: [] };
     const { FilmStudio } = await import(`${origin}/src/studio.js`);
     const studio = new FilmStudio({ onLog: (m) => out.log.push(m) });
@@ -213,7 +231,7 @@ const result = await page.evaluate(async (origin, durationSec) => {
     const buf = await res.blob.arrayBuffer();
     out.bytes = [...new Uint8Array(buf.slice(0, 0))];   // keep the payload small
     return out;
-}, base, DURATION);
+}, base, DURATION));
 
 console.log(JSON.stringify(result, (k, v) => (k === 'log' || k === 'bytes' ? undefined : v), 2));
 console.log('\nstudio log:');

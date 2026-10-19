@@ -415,3 +415,60 @@ renderer's contract is that frame *N* is a pure function of *N*.
 convergence, an IK reach, four correctives, a simulated cape, a smoke plume
 and all five post passes — renders at **41 ms/frame** at 960x540, including
 encode.
+
+---
+
+## 10. `grip` — hands and fingers
+
+Added in [Phase 25](STATUS.md). The rig had one `fingers` leaf bone below the
+wrist and a flat slab for a hand, so the arm ended at the knuckles — 190 mm
+short of a fingertip, which is also why the figure read as short-armed
+without anything saying why.
+
+Each hand is now five digits of three phalanges, plus a tip bone each: twenty
+bones and fifteen swept segments per hand, and sixty-five bones on the
+skeleton. They are always built; the geometry is deliberately low — seven
+rings and ten sides per phalanx — so thirty of them cost less than one thigh.
+
+```jsonc
+{ "do": "grip", "target": "host/handR", "pose": "fist",
+  "at": 0.4, "for": 0.3, "amount": 1, "overshoot": 0.2 }
+```
+
+`target` names the **hand bone**. Poses are `relaxed`, `open`, `spread`,
+`fist`, `point`, `pinch`, `grasp` and `thumbsUp`, from the table in
+[`core/art/hands.js`](../src/core/art/hands.js) — which the 2D compiler reads
+too, so `fist` is the same shape on both paths.
+
+Routed through `writeScalar` like every other verb, so easing, anticipation
+and overshoot come free. A hand that overshoots closing is most of what makes
+a grab read as a grab.
+
+### The bind pose is already a relaxed hand
+
+The relaxed curl is baked into the bone DIRECTIONS rather than written as
+keys, so `relaxed` is all zeros and costs nothing. A character who never
+mentions their hands still has hands that look like hands; the alternative is
+thirty keyframes per film just to stop the fingers reading as a rake.
+
+Curl is `rotation.x` on all three joints and closes toward the palm, so a
+closing grip is a positive number everywhere and a film never has to remember
+a sign. Splay is `rotation.z` and the thumb's opposition `rotation.y`, both on
+the first joint only — a finger fans at the knuckle and nowhere else. Those
+two mirror between hands and the curl does not, which is just what happens to
+rotations across a plane of symmetry.
+
+### What the test found
+
+| Defect | Cause |
+|---|---|
+| **Every tube in the engine ended in a small open hole** | The cap was three rings at 22%, 62% and 88% of the radius — all at the *same* t, which is a flat disc, not the dome the comment beside it had always claimed. Nothing closed the innermost ring. At limb scale the next segment covers it; at fingertip scale it is a black pinhole at the end of each of thirty phalanges |
+| **Closing it did not make it go away** | Both new cap fans were wound inward, and an inward triangle is backface-culled — so the hole was still a hole |
+| **Fingers came apart into rows of sausages** | Butt-jointed capsules meeting at a joint pull apart the moment it bends. Three joints at 76° is not a shallow elbow. They overlap now, which is what a 2D cutout does for the same reason |
+| **A kink in every thumb** | Splay was applied to the first bone and the two below it reverted to straight down. The thumb is the one digit splayed far enough to notice |
+| **The sleeve swallowed the wrist** | An 18 mm inflation on a 30 mm wrist is a 96 mm cuff, and the hand came out of it like a flower out of a vase. The forearm is its own group now, with a thinner sleeve |
+| **The palm tapered the wrong way** | 84 mm at the wrist down to 64 at the knuckles. A hand widens from the wrist |
+
+The dome fix also closed a defect nobody had traced: the speckled band at the
+waist, where the jacket's and the trouser's flat cap discs met at the spine
+and z-fought.

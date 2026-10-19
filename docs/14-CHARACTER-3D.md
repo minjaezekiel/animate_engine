@@ -160,6 +160,7 @@ What is genuinely left:
 | **Garment simulation** | Clothing is still an inflated body. The cloth solver drapes a cape, not a sleeve: a shirt would need the body as a collider at every segment, and a collar needs a seam the inflation does not have |
 | **Corrective blendshapes on the body** | The drivers restore volume. They cannot make a crease, because only the head carries morph targets — the body mesh has none to drive |
 | **Twist bones** | A forearm pronates about its own axis, and this rig has no bone for it. It is also why a hand's roll under IK is undefined |
+| **Hand detail** | Phase 25 gave the rig five digits of three phalanges each, posed by `grip`. There are still no fingernails, no knuckle creases, no palm lines and no soft-tissue spread where a finger presses on something |
 | **Painted weight groups** | Blendshape regions are soft boxes in head-local space, tuned for *this* generated head |
 | **Coarticulation** | Lipsync is per-viseme. Real mouths anticipate the next sound while still forming the current one |
 | **Lips** | The mouth is an aperture with a bag behind it. There is no lip ring, so the opening has no roll and no purse of its own |

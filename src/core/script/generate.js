@@ -1,4 +1,5 @@
 import { headParts, CY, LIPS, DEFAULT_FACE, VIEWS } from '../art/face.js';
+import { DIGITS } from '../art/hands.js';
 import { squashKeys } from '../anim/principles.js';
 
 /**
@@ -81,6 +82,113 @@ function limbShadePath(L, w0, w1, dx = 0, side = 1) {
         + `Q${r(a * 1.06)},${r(L * 0.5)} ${r(dx + b)},${r(L * 0.97)} `
         + `Q${r(dx + b * 0.3)},${r(L * 0.95)} ${r(a * 0.34)},${r(L * 0.45)} `
         + `Q${r(a * 0.42)},${r(L * 0.2)} ${r(a * 0.4)},0 Z`;
+}
+
+/**
+ * The hand, as cutout parts.
+ *
+ * A single mitten path is what this rig had, and it is why a character could
+ * never point, grip, wave or count: there was nothing below the wrist to
+ * rotate. Three detail levels, because a hand drawn two centimetres across
+ * cannot carry five separate fingers without reading as a smear, and a hand
+ * filling the frame cannot get away with a mitten:
+ *
+ *   'none'    the old single mitten, for a film that wants it back
+ *   'mitten'  palm, a two-segment thumb, and the four fingers as one
+ *             two-segment mitt -- which is exactly how a Toon Boom or Moho
+ *             cutout hand is built, and the default here for the same reason
+ *   'fingers' palm, thumb and four separate two-segment digits
+ *
+ * All three are driven by the same `grip` poses, because `grip` writes onto
+ * whichever parts exist. A film authored against one plays on the others.
+ */
+function handParts({ side, s, sgn, pivot, armW, z, skin, line, tone, detail }) {
+    // `thumbL1`, matching the 3D rig's bone names exactly, so one pose table
+    // and one `grip` verb address both paths.
+    const id = (n, j = '') => `${n}${side}${j}`;
+    // A hand is about a tenth of body height, and a little under half of it
+    // is palm -- so the fingers are the LONGER half. Drawn the other way
+    // round they read as teeth on the end of a paddle, which is what the
+    // first pass looked like. The forearm here ends at `armW * 0.56` wide,
+    // which is the wrist.
+    const hand = armW * 2.1;
+    const palmL = hand * 0.42;
+    const digitL = hand - palmL;
+    const wristW = armW * 0.56;
+    const knuckW = armW * 0.82;
+    const r = (v) => Math.round(v * 100) / 100;
+
+    const palm = {
+        id: id('hand'), parent: `fore${side}`, pivot, z,
+        shape: { kind: 'path', d: limbPath(palmL, wristW, knuckW, 0) },
+        fill: tone(skin), stroke: `${skin}Line`, strokeWidth: line,
+    };
+    if (detail === 'none') {
+        // The original mitten, kept whole.
+        return [{ ...palm, shape: { kind: 'path',
+            d: `M${r(-armW * 0.32)},${r(-armW * 0.3)} `
+               + `Q${r(-armW * 0.62)},${r(armW * 0.35)} ${r(-armW * 0.44)},${r(armW * 0.95)} `
+               + `Q${r(-armW * 0.1)},${r(armW * 1.35)} ${r(armW * 0.34)},${r(armW * 1.05)} `
+               + `Q${r(armW * 0.66)},${r(armW * 0.6)} ${r(armW * 0.5)},${r(-armW * 0.1)} `
+               + `Q${r(armW * 0.2)},${r(-armW * 0.42)} ${r(-armW * 0.32)},${r(-armW * 0.3)} Z` } }];
+    }
+
+    // A digit is a fifth the width of a limb, and the limb's line weight on
+    // it covers the fill entirely: five fingers at full line weight render as
+    // a dark scribble where a hand should be. Limited animation does thin its
+    // line on small forms for exactly this reason.
+    const digitLine = Math.max(0.5, line * 0.58);
+    const digit = (name, parent, at, len, w0, w1, dx, dz) => ({
+        id: name, parent, pivot: at, z: z + dz,
+        shape: { kind: 'path', d: limbPath(len, w0, w1, dx) },
+        fill: tone(skin), stroke: `${skin}Line`, strokeWidth: digitLine,
+    });
+
+    // The thumb starts near the WRIST, not at the knuckles, and leans out
+    // across the front of the hand. A thumb drawn level with the fingers can
+    // only ever read as a short finger.
+    const thumbL = digitL * 0.78;
+    const thumbDrift = sgn * thumbL * 0.34;
+    const out = [
+        palm,
+        digit(id('thumb', 1), id('hand'), [sgn * knuckW * 0.46, palmL * 0.24],
+              thumbL * 0.56, knuckW * 0.46, knuckW * 0.38, thumbDrift, 0.5),
+        digit(id('thumb', 2), id('thumb', 1), [thumbDrift, thumbL * 0.56],
+              thumbL * 0.44, knuckW * 0.38, knuckW * 0.30, sgn * thumbL * 0.12, 0.5),
+    ];
+
+    if (detail !== 'fingers') {
+        out.push(
+            digit(id('mitt', 1), id('hand'), [0, palmL],
+                  digitL * 0.56, knuckW * 0.94, knuckW * 0.84, 0, 0),
+            digit(id('mitt', 2), id('mitt', 1), [0, digitL * 0.56],
+                  digitL * 0.44, knuckW * 0.84, knuckW * 0.58, 0, 0),
+        );
+        return out;
+    }
+
+    // Four separate digits, laid out from the same proportion table the 3D
+    // rig uses -- so `fist` closes the same hand on both paths.
+    for (const [i, d] of DIGITS.filter((x) => x.id !== 'thumb').entries()) {
+        // The thumb sits on the facing side, so the index is nearest it.
+        const x = -sgn * d.at[0] * hand;
+        // The knuckle line is an ARC, not a row: the middle finger's knuckle
+        // sits furthest from the wrist and the little finger's nearest. In
+        // the 3D table y runs up and negative is down the hand, so the sign
+        // flips on the way into a cutout's y-down frame -- getting that
+        // backwards set the short fingers LOWER than the long ones, which
+        // reads as a hand with something wrong with it that is hard to name.
+        const base = -(d.at[1] + 0.45) * hand;
+        const len = (d.bones[0] + d.bones[1] + d.bones[2]) * hand;
+        const w = d.r[0] * hand * 2;
+        out.push(
+            digit(id(d.id, 1), id('hand'), [x, palmL + base],
+                  len * 0.52, w, w * 0.9, -sgn * d.splay * len * 0.004, 0.4 - i * 0.1),
+            digit(id(d.id, 2), id(d.id, 1), [-sgn * d.splay * len * 0.004, len * 0.52],
+                  len * 0.48, w * 0.9, w * 0.62, 0, 0.4 - i * 0.1),
+        );
+    }
+    return out;
 }
 
 /**
@@ -178,16 +286,9 @@ export function generateCharacterParts(generate = {}, proportions = {}) {
             { id: `fore${side}`, parent: `arm${side}`, pivot: [drift, upperArmH], z: armZ,
               shape: { kind: 'path', d: limbPath(foreArmH, armW * 0.82, armW * 0.56, s * armW * 0.1) },
               fill: tone(skin), stroke: `${skin}Line`, strokeWidth: line },
-            // A mitten, not a capsule: a hand is wider than the wrist it hangs
-            // off, and a capsule the same width as the forearm disappears.
-            { id: `hand${side}`, parent: `fore${side}`, pivot: [s * armW * 0.1, foreArmH], z: armZ,
-              shape: { kind: 'path',
-                       d: `M${-armW * 0.32},${-armW * 0.3} `
-                          + `Q${-armW * 0.62},${armW * 0.35} ${-armW * 0.44},${armW * 0.95} `
-                          + `Q${-armW * 0.1},${armW * 1.35} ${armW * 0.34},${armW * 1.05} `
-                          + `Q${armW * 0.66},${armW * 0.6} ${armW * 0.5},${-armW * 0.1} `
-                          + `Q${armW * 0.2},${-armW * 0.42} ${-armW * 0.32},${-armW * 0.3} Z` },
-              fill: tone(skin), stroke: `${skin}Line`, strokeWidth: line },
+            ...handParts({ side, s, sgn, pivot: [s * armW * 0.1, foreArmH], armW,
+                           z: armZ, skin, line, tone,
+                           detail: generate.hands ?? 'mitten' }),
 
             { id: `thigh${side}`, parent: 'hips', pivot: [s * hipHalf * 0.6, legW * 0.25], z: legZ,
               shape: { kind: 'path', d: limbPath(thighH, legW, legW * 0.84, s * legW * 0.08) },

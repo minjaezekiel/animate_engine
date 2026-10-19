@@ -17,6 +17,8 @@ import { landmarks, estimateRegions, characterFromImage, armSeams, rowRuns }
     from '../../src/core/trace/rig.js';
 import { traceCharacter } from '../../src/core/trace/index.js';
 import { compileFilm } from '../../src/core/script/compile.js';
+import { validateFilm } from '../../src/core/script/validate.js';
+import { pendingImageAssets } from '../../src/core/art/AssetRegistry.js';
 
 const BG = [238, 243, 248];
 
@@ -279,6 +281,116 @@ test('the camera rests at the centre of the frame, not at its corner', () => {
     const y = c.timeline.tracks.find((t) => t.target === '__camera' && t.path === 'transform.y');
     assert.deepEqual(x.keys.map((k) => k.v), [450, 450]);
     assert.deepEqual(y.keys.map((k) => k.v), [350, 350]);
+});
+
+test('one stray mark beside the legs cannot move the split', () => {
+    // A shadow, a prop, a tear in the matte. It appears at ONE height, so
+    // two of the three probe rows outvote it -- which is the whole reason
+    // the split is a median rather than a single row.
+    const { rgba, width, height } = figure();
+    const clean = traceCharacter(Uint8ClampedArray.from(rgba), width, height, {});
+
+    // Stuck to the OUTSIDE of the right leg, straddling the middle probe row
+    // and only that one: the legs run y=268..451, so the three samples sit at
+    // about 323, 350 and 378. Outside, so it widens one run rather than
+    // bridging the two -- a bridge would genuinely move the crotch, and no
+    // median can or should argue with that.
+    const dirty = Uint8ClampedArray.from(rgba);
+    for (let y = 345; y < 356; y++) {
+        for (let x = 184; x < 206; x++) {
+            const q = (y * width + x) * 4;
+            dirty[q] = 56; dirty[q + 1] = 66; dirty[q + 2] = 104; dirty[q + 3] = 255;
+        }
+    }
+    const marked = traceCharacter(dirty, width, height, {});
+    assert.deepEqual(marked.warnings, [], 'the other two rows still agree on two legs');
+    assert.equal(marked.boxes.legL.x, clean.boxes.legL.x, 'the left leg did not move');
+    assert.equal(marked.boxes.legR.x, clean.boxes.legR.x, 'nor the right');
+    assert.equal(marked.boxes.legL.w, clean.boxes.legL.w);
+    assert.equal(marked.boxes.legR.w, clean.boxes.legR.w);
+});
+
+test('a mark out beside the figure is never read as a leg', () => {
+    const { rgba, width, height } = figure();
+    for (let y = 300; y < 400; y++) {
+        for (let x = 20; x < 40; x++) {
+            const q = (y * width + x) * 4;
+            rgba[q] = 40; rgba[q + 1] = 40; rgba[q + 2] = 48; rgba[q + 3] = 255;
+        }
+    }
+    const r = traceCharacter(rgba, width, height, {});
+    // It survives the matte as a second component, so the trace takes the
+    // largest and says it dropped something.
+    assert.ok(r.warnings.some((w) => w.includes('separate shapes')));
+    assert.ok(r.boxes.legL.x > 100, `legL at ${r.boxes.legL.x}, the mark is at 20`);
+});
+
+// --------------------------------------------- assets that never load
+
+test('a caller that supplies SOME assets still gets the rest fetched', () => {
+    // Merge, do not choose. `film.html` passes a map it fills with uploads,
+    // which starts as {} and is always truthy -- so treating "a map was
+    // passed" as "everything is loaded" meant every film opened there
+    // declared its images, validated clean and drew none of them.
+    const film = { assets: {
+        sky: { kind: 'image', src: 'sky.png' },
+        hero: { kind: 'image', file: {} },
+        score: { kind: 'audio', src: 'score.mp3' },
+    } };
+    assert.deepEqual(pendingImageAssets(film, {}), ['sky', 'hero'],
+                     'an empty map means nothing is loaded, not everything');
+    assert.deepEqual(pendingImageAssets(film, { hero: {} }), ['sky'],
+                     'what the caller holds is kept; the rest is fetched');
+    assert.deepEqual(pendingImageAssets(film, { sky: {}, hero: {} }), []);
+    assert.deepEqual(pendingImageAssets({}, {}), []);
+    assert.deepEqual(pendingImageAssets(film, undefined), ['sky', 'hero']);
+});
+
+test('prepare fetches a declared image even when the caller passed a map', async () => {
+    // The rule above, exercised where it actually broke. `film.html` holds a
+    // map of uploads and passes it every time; the version that skipped
+    // loading whenever a map arrived meant no film opened there ever showed a
+    // declared picture.
+    const { FilmStudio } = await import('../../src/studio.js');
+    const studio = new FilmStudio({});
+    const asked = [];
+    // A provider that records what it was asked for and hands back a
+    // stand-in. The point is WHICH assets reach it, not what it returns.
+    studio.art.register({
+        id: 'stub', label: 'stub',
+        available: () => true,
+        accepts: (a) => !!a.src,
+        load: async (a) => { asked.push(a.id); return { width: 4, height: 4 }; },
+    });
+
+    const film = {
+        version: 'jirex.film/1',
+        meta: { title: 't', fps: 24, width: 320, height: 200 },
+        // An explicit provider, so the stub wins over the real URL loader
+        // rather than racing it on registration order.
+        assets: { sky: { kind: 'image', src: 'sky.png', provider: 'stub' } },
+        characters: {},
+        scenes: [{ id: 's1', background: { image: 'sky' },
+                   cast: [], shots: [{ id: 'a', duration: 1 }] }],
+    };
+    const out = await studio.prepare(film, { assets: {}, retime: false });
+    assert.deepEqual(asked, ['sky'], 'an empty map is not "already loaded"');
+    assert.ok(!out.diagnostics?.some((d) => /was not loaded/.test(d.message)),
+              'and the background resolves');
+});
+
+test('an asset with no kind is reported, because no loader will take it', () => {
+    // Both loaders filter on `kind`, so an asset without one is declared,
+    // passes every check, is never fetched and draws nothing. Same defect as
+    // a misspelled kind and quieter.
+    const d = validateFilm({
+        version: 'jirex.film/1',
+        meta: { title: 't', fps: 24, width: 640, height: 360 },
+        assets: { bg: { src: 'bg.png' } },
+        characters: {}, scenes: [{ id: 's1', shots: [{ id: 'a', duration: 1 }] }],
+    });
+    const messages = (d.diagnostics ?? d).map((x) => x.message);
+    assert.ok(messages.some((m) => m.includes('no "kind"')), messages.join(' | '));
 });
 
 test('an empty matte is reported rather than returning a rig of nothing', () => {

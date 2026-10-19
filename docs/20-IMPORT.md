@@ -53,7 +53,7 @@ arithmetic over the pixels:
 |---|---|
 | **Matte** | Floods inward from the four corners, clearing anything close to a corner's colour. Flooding rather than thresholding is what keeps a white shirt: the shirt is not *connected* to the edge |
 | **Holes** | Clears background the flood could not reach — the gap between two legs, closed at the bottom by the shoes. Only regions that match a corner colour AND are small next to the figure, so a shirt is still safe |
-| **Landmarks** | The neck is a **dip** in the width profile and the shoulders are the rise out of it; the crotch is where the figure stops being two legs; the hips are the last solid row above it |
+| **Landmarks** | The neck is a **dip** in the width profile and the shoulders are the rise out of it; the crotch is where the figure stops being two legs; the hips are the last solid row above it. The leg split is a **median of three rows** down the legs, so one shadow or torn matte cannot move it |
 | **Seams** | Arms touching the torso leave no gap in the outline, so it looks for the colour change instead — a bare arm against a shirt has a seam even where the silhouette has none |
 
 Everything it decides comes back in the result: every landmark, every box.

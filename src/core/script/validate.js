@@ -298,6 +298,18 @@ export function validateAssets(film, d) {
             d.push({ severity: 'warning', path: `assets.${id}`,
                      message: `Unknown asset kind "${asset.kind}". Known: ${ASSET_KINDS.join(', ')}.` });
         }
+        /**
+         * No `kind` at all is the same defect as the wrong one, and quieter:
+         * both loaders filter on it -- `loadAssets` takes `kind === 'image'`
+         * and `loadAudioAssets` takes `kind === 'audio'` -- so an asset
+         * without one is declared, passes every check, is never fetched and
+         * draws nothing, with no diagnostic anywhere to say why.
+         */
+        if (!asset.kind) {
+            d.push({ severity: 'warning', path: `assets.${id}`,
+                     message: `Asset "${id}" has no "kind", so nothing will load it. `
+                         + `Add one of: ${ASSET_KINDS.join(', ')}.` });
+        }
         if (!asset.src && !asset.file) {
             d.push({ severity: 'warning', path: `assets.${id}`,
                      message: `Asset "${id}" has neither "src" nor "file"; it can never load.` });

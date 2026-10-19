@@ -13,7 +13,7 @@
 import { compileFilm } from './core/script/compile.js';
 import { parseScreenplay, retimeToAudio } from './core/script/screenplay.js';
 import { VoiceRegistry } from './core/voice/VoiceRegistry.js';
-import { AssetRegistry, loadAssets, loadAudioAssets } from './core/art/AssetRegistry.js';
+import { AssetRegistry, loadAssets, loadAudioAssets, pendingImageAssets } from './core/art/AssetRegistry.js';
 import { UrlProvider } from './core/art/providers/UrlProvider.js';
 import { FileProvider } from './core/art/providers/FileProvider.js';
 import { MicProvider } from './core/voice/providers/MicProvider.js';
@@ -116,8 +116,7 @@ export class FilmStudio {
          * exactly the place that needs the rest fetched.
          */
         const supplied = assets ?? {};
-        const wanted = Object.entries(film.assets ?? {})
-            .filter(([id, a]) => a && a.kind === 'image' && !supplied[id]);
+        const wanted = pendingImageAssets(film, supplied);
         let images = supplied;
         if (wanted.length) {
             const loaded = await loadAssets(film, {

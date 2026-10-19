@@ -268,28 +268,44 @@ export function estimateRegions(mask, width, height, options = {}) {
     if (seams) torso = { ...torso, x: seams.left, w: Math.max(2, seams.right - seams.left + 1) };
 
     /**
-     * Legs: read the split from a row well DOWN the legs, not from the first
-     * split row below the crotch.
+     * Legs: read the split from SEVERAL rows down the legs and take the
+     * median of what they agree on.
      *
-     * The first split row is usually still beside the hands -- a figure with
-     * its arms down has four runs there, and taking the outermost two makes
-     * the hands into legs, which is what the first version did. Forty
-     * percent of the way down is past the hands and above the feet, and the
-     * two widest runs there are the legs.
+     * Two things go wrong with one row. The first split row below the crotch
+     * is usually still beside the HANDS -- a figure with its arms down has
+     * four runs there, and taking the outermost two makes the hands into
+     * legs, which is what the first version did. And any single row can land
+     * on a shadow, a prop, a tear in the matte or the gap between the feet.
+     *
+     * Three rows and a median is the standard answer to both: an artifact has
+     * to appear in two of the three samples to move the result, and the rows
+     * are spread far enough apart that nothing local can.
      */
     const legSpan = L.footY - L.crotchY;
-    const probeY = Math.min(L.footY - 1, L.crotchY + Math.max(1, Math.round(legSpan * 0.4)));
-    const probe = rows.find((r) => r.y === probeY) ?? null;
-    const widest2 = probe
-        ? probe.runs.slice().sort((a, b) => (b[1] - b[0]) - (a[1] - a[0])).slice(0, 2)
-            .sort((a, b) => a[0] - b[0])
-        : [];
+    const splits = [];
+    for (const share of [0.30, 0.45, 0.60]) {
+        const y = Math.min(L.footY - 1, L.crotchY + Math.max(1, Math.round(legSpan * share)));
+        const row = rows.find((r) => r.y === y);
+        if (!row) continue;
+        // Only runs that overlap the torso core. Whatever a leg is, it is
+        // under the body; a mark out beside the figure is not one.
+        const inCore = row.runs.filter(([a, b]) => Math.min(b, core[1]) >= Math.max(a, core[0]));
+        if (inCore.length < 2) continue;
+        const two = inCore.slice()
+            .sort((a, b) => (b[1] - b[0]) - (a[1] - a[0])).slice(0, 2)
+            .sort((a, b) => a[0] - b[0]);
+        splits.push([two[0][0], two[0][1], two[1][0], two[1][1]]);
+    }
+    const median = (k) => {
+        const xs = splits.map((sp) => sp[k]).sort((a, b) => a - b);
+        return xs[xs.length >> 1];
+    };
+    const probe = rows.find((r) => r.y === Math.min(L.footY - 1,
+        L.crotchY + Math.max(1, Math.round(legSpan * 0.45)))) ?? null;
     let legL, legR;
-    if (widest2.length === 2) {
-        legL = { x: widest2[0][0], y: L.crotchY, w: widest2[0][1] - widest2[0][0] + 1,
-                 h: legSpan + 1 };
-        legR = { x: widest2[1][0], y: L.crotchY, w: widest2[1][1] - widest2[1][0] + 1,
-                 h: legSpan + 1 };
+    if (splits.length) {
+        legL = { x: median(0), y: L.crotchY, w: median(1) - median(0) + 1, h: legSpan + 1 };
+        legR = { x: median(2), y: L.crotchY, w: median(3) - median(2) + 1, h: legSpan + 1 };
     } else {
         warn.push('legs are not separable; the lower half was split down the middle. '
             + 'Pass `regions` to place them exactly.');

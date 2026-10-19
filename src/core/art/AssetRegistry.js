@@ -53,6 +53,24 @@ export class AssetRegistry {
  * for a missing background, and a film that renders with one picture missing
  * beats a film that does not render.
  */
+/**
+ * Which declared image assets still have to be fetched.
+ *
+ * Pure, and separate from `loadAssets`, because the RULE is what was wrong:
+ * `prepare` treated "the caller passed a map" as "the caller loaded
+ * everything", and `film.html` passes a map it fills with uploads -- which
+ * starts as `{}` and is therefore always truthy. Every film opened there
+ * declared its images, validated clean, and drew none of them.
+ *
+ * Merge, do not choose. The one place a caller supplies SOME assets is
+ * exactly the place that needs the rest fetched.
+ */
+export function pendingImageAssets(film, supplied = {}) {
+    return Object.entries(film?.assets ?? {})
+        .filter(([id, a]) => a && a.kind === 'image' && !supplied[id])
+        .map(([id]) => id);
+}
+
 export async function loadAssets(film, { registry, baseUrl = '', onProgress = null } = {}) {
     const assets = {};
     const diagnostics = [];

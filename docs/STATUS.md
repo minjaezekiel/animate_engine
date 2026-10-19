@@ -1220,4 +1220,30 @@ the top third, which finds the torso on anything but a big-headed figure with
 its arms down; and the fallback jump rule fired on the second row of the
 scalp, where a head is two pixels across.
 
-583 unit tests pass.
+### Hardened after the fact
+
+All four fixes landed in the same commit that found them, which means none of
+them had a test that would have caught the defect. They have one each now,
+and each was checked by reverting the fix and watching the test fail:
+
+| Fix | What now guards it |
+|---|---|
+| The camera default | A film with no camera must key `(w/2, h/2)` |
+| `prepare` merging assets | `pendingImageAssets` is the rule, pure and tested, and `prepare` itself is tested against a stub provider -- the rule alone would not have caught where the bug actually lived |
+| Cycles on a traced character | A traced character compiles, casts and walks |
+| The leg split | A stray mark on one probe row cannot move it |
+
+Two of them were also widened, because the original fix closed one instance
+of a defect and not its class:
+
+- **An asset with no `kind` at all** is now a diagnostic. Both loaders filter
+  on `kind`, so an asset without one was declared, passed every check, was
+  never fetched and drew nothing -- the same silence as the `prepare` bug,
+  by a different route.
+- **The leg split is a median of three rows**, not a read of one. One row can
+  land on a shadow, a prop or a tear in the matte; an artifact now has to
+  appear in two of the three samples to move anything. Runs that do not
+  overlap the torso core are dropped first, because whatever a leg is, it is
+  under the body.
+
+588 unit tests pass.

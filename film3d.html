@@ -13,9 +13,14 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { buildComposer } from './src/render/post3d.js';
 import { compileFilm3D } from './src/core/script/compile3d.js';
 import { buildScene3D } from './src/backends/three3d/SceneAdapter.js';
 import { createThreePoser } from './src/backends/three3d/Three3DBackend.js';
@@ -57,18 +62,18 @@ window.render3d = async function render3d(film, opts = {}) {
     const built = buildScene3D(THREE, compiled, { width, height, mergeGeometries });
     built.camera.aspect = width / height;
 
-    // Bloom is what makes an emissive muzzle flash read as light rather than
-    // as a bright orange ball. It is the one post pass this film needs.
-    const bloom = compiled.meta.bloom;
-    let composer = null;
-    if (bloom) {
-        composer = new EffectComposer(renderer);
-        composer.setSize(width, height);
-        composer.addPass(new RenderPass(built.root, built.camera));
-        composer.addPass(new UnrealBloomPass(new THREE.Vector2(width, height),
-            bloom.strength ?? 0.8, bloom.radius ?? 0.5, bloom.threshold ?? 0.75));
-        composer.addPass(new OutputPass());
-    }
+    // The post chain, declared in `meta.post` and ordered by
+    // `core/script/post.js`. `meta.bloom` still means what it meant, so
+    // every film already in the repo renders unchanged.
+    const post = buildComposer({
+        THREE, renderer, scene: built.root, camera: built.camera, width, height,
+        post: compiled.meta.post, bloom: null,
+        EffectComposer, RenderPass, ShaderPass, OutputPass,
+        UnrealBloomPass, SSAOPass, BokehPass, SMAAPass,
+        warn: (m, where) => report(`[post] ${m} @ ${where ?? '-'}`),
+    });
+    if (post) report(`post: ${post.passes.join(' -> ')} -> output`);
+    const composer = post?.composer ?? null;
 
     // Three3DBackend wants a SceneManager; all it uses is render(), camera and
     // renderer, so this standalone path hands it those three and reuses the
@@ -138,12 +143,32 @@ window.render3d = async function render3d(film, opts = {}) {
     });
 
 
+    /**
+     * Pose and step the scene so that time `t` is really showing.
+     *
+     * A single `step(t)` is enough for everything that is a closed form --
+     * the camera's aim, the particles -- and wrong for anything simulated. A
+     * cloth or a fluid is a function of the frames that came BEFORE it, so
+     * jumping straight to t=4 shows a cape at its rest shape and a fluid with
+     * nothing in it. Every grab and every check sampled a sim that had been
+     * reset by its own jump, which looked like the simulation not working.
+     *
+     * So when the scene has sims, replay from zero at the film's own frame
+     * rate -- which is exactly what the offline renderer does, and therefore
+     * exactly the frame it would have produced.
+     */
+    const warmTo = (t) => {
+        poser.reset();
+        if (!built.sims.length) { poser.apply(t); built.step(t); post?.setTime(t); return; }
+        const dt = 1 / compiled.meta.fps;
+        for (let s = 0; s < t - 1e-9; s += dt) { poser.apply(s); built.step(s); }
+        poser.apply(t); built.step(t); post?.setTime(t);
+    };
+
     // Where the backend actually put things, for when the analytic checks and
     // the rendered frame disagree about what is on screen.
     if (opts.where) {
-        poser.reset();
-        poser.apply(opts.at ?? 0);
-        built.step(opts.at ?? 0);
+        warmTo(opts.at ?? 0);
         built.root.updateMatrixWorld(true);
         const v = new THREE.Vector3();
         const out = {};
@@ -164,7 +189,7 @@ window.render3d = async function render3d(film, opts = {}) {
         const { lumaStats } = await import('./src/core/script/staging3d.js');
         const out = [];
         for (const { t, shotId } of opts.check) {
-            poser.reset(); poser.apply(t); built.step(t);
+            warmTo(t);
             sceneManager.render();
             const small = document.createElement('canvas');
             small.width = 160; small.height = 90;
@@ -181,7 +206,7 @@ window.render3d = async function render3d(film, opts = {}) {
     if (opts.grab) {
         const out = [];
         for (const t of opts.grab) {
-            poser.reset(); poser.apply(t); built.step(t);
+            warmTo(t);
             sceneManager.render();
             out.push({ t, png: renderer.domElement.toDataURL('image/png') });
         }
@@ -201,7 +226,7 @@ window.render3d = async function render3d(film, opts = {}) {
         sink, poser,
         // Aiming the camera and solving the particles both happen after the
         // pose is written and before the frame is drawn.
-        beforeFrame: (t) => built.step(t),
+        beforeFrame: (t) => { built.step(t); post?.setTime(t); },
         onProgress: (p) => report(`frame ${p.frame}/${p.total} ${p.msPerFrame.toFixed(1)}ms/f`),
     });
 
@@ -214,6 +239,9 @@ window.render3d = async function render3d(film, opts = {}) {
         nodes: compiled.scene.byId.size,
         tracks: compiled.timeline.tracks.length,
         particles: [...compiled.emitters.values()].reduce((a, e) => a + e.emitter.count, 0),
+        constraints: compiled.constraints.length,
+        sims: built.sims.length,
+        post: post ? post.passes : [],
         diagnostics: compiled.diagnostics,
         cues: cues.length,
         lines: compiled.lipsyncJobs?.length ?? 0,

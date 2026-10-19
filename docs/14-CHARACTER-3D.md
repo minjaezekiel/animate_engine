@@ -104,6 +104,12 @@ caught without a rendered frame to look at.
 
 ## 6. The ceiling, honestly
 
+> **Updated 2026-10-19.** Six of the rows below were closed in
+> [Phase 24](STATUS.md). The table is kept as written, with each closed row
+> marked and what replaced it named, because the ceiling is more useful as a
+> record of what was missing and why than as a list that quietly shrinks.
+> §7 is the ceiling as it stands now.
+
 He reads as a man in a suit. He does not read as a photograph, and the
 distance between those two is mostly things this engine does not have.
 
@@ -116,19 +122,46 @@ problem: it is the absence of a modelling tool.
 
 | Missing | Consequence |
 |---|---|
-| **UVs and textures on the body** | No skin pores, no stubble, no fabric weave, no eyebrow texture. Everything is one flat colour with PBR roughness. A canvas texture exists, but only for flat panels like the slide |
-| **Subsurface scattering** | Skin renders as clay. Real skin transmits light through the ears, nose and lips, and its absence is a large part of why CG faces read as plastic |
-| **A hair system** | Hair is a sphere. No cards, no strands, no hairline variation |
-| **Cloth simulation** | Clothing is an inflated body, so it has no drape, no folds, no collar standing proud of the neck, and no motion of its own |
-| **Corrective / driven shapes** | An elbow at 120° collapses into itself. Production rigs drive corrective blendshapes from the joint's own angle — pose space deformation, the same idea [11-MOTION-SYSTEM.md](11-MOTION-SYSTEM.md) names for 2D |
-| **IK** | Gestures are forward-kinematic angles. There is no "put the hand on the screen"; the pose that looks like pointing was found by typing degrees |
-| **Teeth and a tongue** | The mouth is a dark cavity. At any real close-up this is obvious |
-| **Eye convergence** | The eyes dart on an open loop. They do not converge on what the head is turned toward, so the gaze never quite lands on anything |
-| **Ambient occlusion and contact shadows** | Features sit *on* the face rather than *in* it. One shadow-casting light with a 1024 map, no AO, no area lights |
-| **Painted weight groups** | Blendshape regions are soft boxes in head-local space, not artist-painted vertex selections. They work on *this* generated head and would need re-tuning for another |
-| **Coarticulation** | Lipsync is per-viseme. Real mouths anticipate the next sound while still forming the current one |
+| **UVs and textures on the body** | *(still open)* No skin pores, no stubble, no fabric weave, no eyebrow texture. Everything is one flat colour with PBR roughness. A canvas texture exists, but only for flat panels like the slide |
+| **Subsurface scattering** — *closed, approximately* | `physical: true` opens `MeshPhysicalMaterial`: sheen for the velvet rim, `transmission` and `thickness` for the ears and the nose. Originally: skin renders as clay. Real skin transmits light through the ears, nose and lips, and its absence is a large part of why CG faces read as plastic |
+| **A hair system** — *closed* | A shell derived from the skull's own profile, with a researched hairline — highest at the temples, down to the nape. Still no cards and no strands |
+| **Cloth simulation** — *closed, for the pieces that move* | [`core/sim/cloth.js`](../src/core/sim/cloth.js), position-based dynamics. Clothing is still an inflated body, so it has no drape, no folds, no collar standing proud of the neck, and no motion of its own |
+| **Corrective / driven shapes** — *closed, as drivers* | A joint's angle widens the limb above it, on by default. Not blendshapes: it restores the volume an elbow loses, it cannot make a crease. Originally: an elbow at 120° collapses into itself. Production rigs drive corrective blendshapes from the joint's own angle — pose space deformation, the same idea [11-MOTION-SYSTEM.md](11-MOTION-SYSTEM.md) names for 2D |
+| **IK** — *closed* | [`core/rig/IK3D.js`](../src/core/rig/IK3D.js), closed-form two-bone, driven by an `ik` constraint at a target node. Originally: gestures are forward-kinematic angles. There is no "put the hand on the screen"; the pose that looks like pointing was found by typing degrees |
+| **Teeth and a tongue** — *closed* | Two dental arches, a tongue, a mouth bag and an aperture in the skull. Originally: the mouth is a dark cavity. At any real close-up this is obvious |
+| **Eye convergence** — *closed* | A `lookAt` per eye at one target, limited to the socket. Originally: the eyes dart on an open loop. They do not converge on what the head is turned toward, so the gaze never quite lands on anything |
+| **Ambient occlusion and contact shadows** — *half closed* | `meta.post.ssao` is wired. Still one shadow-casting light with a 1024 map and no area lights |
+| **Painted weight groups** | *(still open)* Blendshape regions are soft boxes in head-local space, not artist-painted vertex selections. They work on *this* generated head and would need re-tuning for another |
+| **Coarticulation** | *(still open)* Lipsync is per-viseme. Real mouths anticipate the next sound while still forming the current one |
 
-A fair summary: the engine can now **build, rig, skin, dress, light, animate
-and lipsync a character entirely from code**, with a facial rig named after
-the industry standard — and it stops precisely where a human artist would
-normally start.
+A fair summary at the time: the engine can **build, rig, skin, dress, light,
+animate and lipsync a character entirely from code**, with a facial rig named
+after the industry standard — and it stops precisely where a human artist
+would normally start.
+
+---
+
+## 7. The ceiling now
+
+The character still does not read as a photograph, and the distance is
+shorter and differently shaped than it was.
+
+**There is still no sculpting**, and that remains the single largest gap. It
+is not a rendering problem; it is the absence of a modelling tool, and
+nothing in Phase 24 touched it.
+
+What is genuinely left:
+
+| Missing | Consequence |
+|---|---|
+| **UVs and textures on the body** | No skin pores, no stubble, no fabric weave, no eyebrow texture. Everything is one flat colour with PBR roughness |
+| **Real subsurface scattering** | What exists is a sheen lobe and thin-geometry transmission. There is no diffusion profile and no depth pass, so light does not actually scatter *within* the skin |
+| **Hair cards and strands** | The shell is a haircut, not hair. Nothing swings, nothing parts, and long hair is not expressible — at which point it becomes a cloth problem, and [`core/sim/cloth.js`](../src/core/sim/cloth.js) is what to hang it off |
+| **Garment simulation** | Clothing is still an inflated body. The cloth solver drapes a cape, not a sleeve: a shirt would need the body as a collider at every segment, and a collar needs a seam the inflation does not have |
+| **Corrective blendshapes on the body** | The drivers restore volume. They cannot make a crease, because only the head carries morph targets — the body mesh has none to drive |
+| **Twist bones** | A forearm pronates about its own axis, and this rig has no bone for it. It is also why a hand's roll under IK is undefined |
+| **Painted weight groups** | Blendshape regions are soft boxes in head-local space, tuned for *this* generated head |
+| **Coarticulation** | Lipsync is per-viseme. Real mouths anticipate the next sound while still forming the current one |
+| **Lips** | The mouth is an aperture with a bag behind it. There is no lip ring, so the opening has no roll and no purse of its own |
+| **Area lights and contact shadows** | SSAO is wired; one 1024 shadow map is not a lighting rig |
+| **Volumetric fluid** | The solver is a 2D grid on a card. No ray-marched density, no free surface, no splash |

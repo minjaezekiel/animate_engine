@@ -1,0 +1,713 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Rig, cloth, fluid and post",
+    "fps": 24,
+    "width": 960,
+    "height": 540,
+    "background": "#0a0e14",
+    "post": {
+      "ssao": {
+        "radius": 0.18,
+        "intensity": 1
+      },
+      "bloom": {
+        "strength": 0.3,
+        "radius": 0.5,
+        "threshold": 0.9
+      },
+      "dof": {
+        "focus": 3.4,
+        "aperture": 0.001,
+        "maxblur": 0.008
+      },
+      "grade": {
+        "exposure": 1.12,
+        "contrast": 1.04,
+        "saturation": 1.05,
+        "temperature": 0.25,
+        "lift": [
+          0.004,
+          0.004,
+          0.01
+        ],
+        "vignette": 0.26,
+        "vignetteSoftness": 0.5,
+        "grain": 0.018,
+        "grainSize": 1.5,
+        "chromatic": 0.12
+      },
+      "smaa": true
+    }
+  },
+  "materials": {
+    "skin": {
+      "color": "#d8a584",
+      "metalness": 0,
+      "roughness": 0.74,
+      "physical": true,
+      "sheen": 0.5,
+      "sheenRoughness": 0.62,
+      "sheenColor": "#ff9f82"
+    },
+    "skinThin": {
+      "color": "#d8a584",
+      "roughness": 0.7,
+      "physical": true,
+      "sheen": 0.6,
+      "sheenColor": "#ff8f72",
+      "transmission": 0.18,
+      "thickness": 0.008,
+      "attenuationColor": "#b3503c",
+      "attenuationDistance": 0.03
+    },
+    "eyeWhite": {
+      "color": "#f6f8fa",
+      "roughness": 0.26
+    },
+    "iris": {
+      "color": "#3d6f9e",
+      "roughness": 0.3
+    },
+    "pupil": {
+      "color": "#0d1116",
+      "roughness": 0.2
+    },
+    "hair": {
+      "color": "#3b2c1f",
+      "roughness": 0.58,
+      "physical": true,
+      "sheen": 0.8,
+      "sheenColor": "#8a6a46",
+      "clearcoat": 0.25
+    },
+    "tooth": {
+      "color": "#f1ece0",
+      "roughness": 0.2
+    },
+    "tongue": {
+      "color": "#9e4f58",
+      "roughness": 0.45
+    },
+    "jacket": {
+      "color": "#46536a",
+      "roughness": 0.74
+    },
+    "shirt": {
+      "color": "#e9eef4",
+      "roughness": 0.66
+    },
+    "trouser": {
+      "color": "#3b4557",
+      "roughness": 0.78
+    },
+    "shoe": {
+      "color": "#17191e",
+      "metalness": 0.2,
+      "roughness": 0.45
+    },
+    "cape": {
+      "color": "#7a1f28",
+      "roughness": 0.82
+    },
+    "floor": {
+      "color": "#13171e",
+      "metalness": 0.35,
+      "roughness": 0.55
+    },
+    "backdrop": {
+      "color": "#1b232e",
+      "roughness": 0.95
+    },
+    "podium": {
+      "color": "#2b3240",
+      "roughness": 0.6
+    }
+  },
+  "lights": [
+    {
+      "id": "amb",
+      "type": "ambient",
+      "color": "#8d9cb0",
+      "intensity": 2.48
+    },
+    {
+      "id": "key",
+      "type": "directional",
+      "color": "#fff4e6",
+      "intensity": 4.96,
+      "at": [
+        -2.2,
+        3,
+        4
+      ],
+      "castShadow": true
+    },
+    {
+      "id": "fill",
+      "type": "directional",
+      "color": "#a8c8ff",
+      "intensity": 2.33,
+      "at": [
+        2.6,
+        1.6,
+        3.2
+      ]
+    },
+    {
+      "id": "rim",
+      "type": "directional",
+      "color": "#8fb6ff",
+      "intensity": 3.1,
+      "at": [
+        0.6,
+        2.4,
+        -2.6
+      ]
+    }
+  ],
+  "characters": {
+    "host": {
+      "rig": "humanoid",
+      "height": 1.82,
+      "outfit": "suit",
+      "skin": "skin",
+      "jacket": "jacket",
+      "shirt": "shirt",
+      "trouser": "trouser",
+      "shoe": "shoe",
+      "hair": "hair",
+      "tooth": "tooth",
+      "tongue": "tongue",
+      "hairStyle": {
+        "thickness": 0.009,
+        "strands": 11,
+        "ripple": 0.45
+      },
+      "parts": [
+        {
+          "id": "eyeL",
+          "parent": "head",
+          "material": "eyeWhite",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.0142
+          },
+          "at": [
+            0.033,
+            0.0465,
+            0.0735
+          ]
+        },
+        {
+          "id": "eyeR",
+          "parent": "head",
+          "material": "eyeWhite",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.0142
+          },
+          "at": [
+            -0.033,
+            0.0465,
+            0.0735
+          ]
+        },
+        {
+          "id": "irisL",
+          "parent": "eyeL",
+          "material": "iris",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.0063
+          },
+          "at": [
+            0,
+            0,
+            0.0092
+          ]
+        },
+        {
+          "id": "irisR",
+          "parent": "eyeR",
+          "material": "iris",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.0063
+          },
+          "at": [
+            0,
+            0,
+            0.0092
+          ]
+        },
+        {
+          "id": "pupilL",
+          "parent": "irisL",
+          "material": "pupil",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.0029
+          },
+          "at": [
+            0,
+            0,
+            0.0046
+          ]
+        },
+        {
+          "id": "pupilR",
+          "parent": "irisR",
+          "material": "pupil",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.0029
+          },
+          "at": [
+            0,
+            0,
+            0.0046
+          ]
+        },
+        {
+          "id": "noseTip",
+          "parent": "head",
+          "material": "skinThin",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.0145
+          },
+          "at": [
+            0,
+            0.018,
+            0.088
+          ],
+          "scale": [
+            0.9,
+            0.85,
+            1.05
+          ]
+        },
+        {
+          "id": "earL",
+          "parent": "head",
+          "material": "skinThin",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.021
+          },
+          "at": [
+            0.082,
+            0.032,
+            0.004
+          ],
+          "scale": [
+            0.35,
+            1.25,
+            0.85
+          ]
+        },
+        {
+          "id": "earR",
+          "parent": "head",
+          "material": "skinThin",
+          "geometry": {
+            "kind": "sphere",
+            "radius": 0.021
+          },
+          "at": [
+            -0.082,
+            0.032,
+            0.004
+          ],
+          "scale": [
+            0.35,
+            1.25,
+            0.85
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "type": "lookAt",
+          "source": "eyeL",
+          "target": "gaze",
+          "limit": {
+            "x": [
+              -22,
+              22
+            ],
+            "y": [
+              -34,
+              34
+            ]
+          }
+        },
+        {
+          "type": "lookAt",
+          "source": "eyeR",
+          "target": "gaze",
+          "limit": {
+            "x": [
+              -22,
+              22
+            ],
+            "y": [
+              -34,
+              34
+            ]
+          }
+        },
+        {
+          "type": "lookAt",
+          "source": "head",
+          "target": "gaze",
+          "weight": 0.3,
+          "limit": {
+            "x": [
+              -14,
+              14
+            ],
+            "y": [
+              -38,
+              38
+            ]
+          }
+        },
+        {
+          "type": "ik",
+          "chain": "armR",
+          "target": "reach",
+          "pole": [
+            0,
+            0,
+            -1
+          ],
+          "limit": {
+            "x": [
+              -145,
+              2
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "targets": {
+    "gaze": {
+      "at": [
+        0.0,
+        1.62,
+        3.4
+      ]
+    },
+    "reach": {
+      "at": [
+        -0.42,
+        1.18,
+        0.34
+      ]
+    }
+  },
+  "assemblies": {
+    "set": {
+      "parts": [
+        {
+          "id": "floor",
+          "geometry": {
+            "kind": "plane",
+            "width": 14,
+            "height": 14
+          },
+          "material": "floor",
+          "at": [
+            0,
+            0,
+            0
+          ],
+          "rot": [
+            -90,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "wall",
+          "geometry": {
+            "kind": "plane",
+            "width": 14,
+            "height": 6
+          },
+          "material": "backdrop",
+          "at": [
+            0,
+            3,
+            -3.2
+          ]
+        },
+        {
+          "id": "podium",
+          "geometry": {
+            "kind": "cylinder",
+            "radiusTop": 0.26,
+            "radiusBottom": 0.3,
+            "height": 1.05
+          },
+          "material": "podium",
+          "at": [
+            -0.62,
+            0.525,
+            0.42
+          ]
+        }
+      ]
+    }
+  },
+  "cloth": {
+    "cape": {
+      "pinTo": "host/chest",
+      "cols": 14,
+      "rows": 16,
+      "width": 0.46,
+      "height": 0.82,
+      "axis": "xy",
+      "at": [
+        0,
+        0.06,
+        -0.17
+      ],
+      "material": "cape",
+      "wind": [
+        0.4,
+        0,
+        -1.6
+      ],
+      "damping": 0.02,
+      "iterations": 6,
+      "floor": 0.02,
+      "colliders": [
+        {
+          "node": "host/chest",
+          "r": 0.19
+        },
+        {
+          "node": "host/spine",
+          "r": 0.18
+        },
+        {
+          "node": "host/hips",
+          "r": 0.19
+        }
+      ]
+    }
+  },
+  "fluids": {
+    "steam": {
+      "n": 48,
+      "at": [
+        -0.62,
+        1.52,
+        0.42
+      ],
+      "size": [
+        0.9,
+        0.9
+      ],
+      "color": "#cfd8e4",
+      "gain": 0.9,
+      "gamma": 1.1,
+      "opacity": 0.85,
+      "dissipation": 0.55,
+      "buoyancy": 2.2,
+      "diff": 2e-05,
+      "visc": 2e-05,
+      "sources": [
+        {
+          "x": 0.5,
+          "y": 0.06,
+          "radius": 0.05,
+          "amount": 2.6,
+          "vy": 1.1,
+          "vx": 0.12,
+          "at": 0.2,
+          "for": 6
+        }
+      ]
+    }
+  },
+  "cast": [
+    {
+      "assembly": "set",
+      "as": "set"
+    },
+    {
+      "character": "host",
+      "as": "host",
+      "at": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        4,
+        0
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "s1",
+      "shots": [
+        {
+          "id": "wide",
+          "duration": 3.0,
+          "camera": {
+            "from": {
+              "at": [
+                0.1,
+                1.72,
+                3.6
+              ],
+              "look": [
+                -0.1,
+                1.3,
+                0
+              ],
+              "fov": 40
+            },
+            "to": {
+              "at": [
+                -0.1,
+                1.68,
+                3.1
+              ],
+              "look": [
+                -0.2,
+                1.3,
+                0
+              ],
+              "fov": 38
+            }
+          },
+          "actions": [
+            {
+              "do": "move",
+              "target": "gaze",
+              "to": [
+                -0.9,
+                1.3,
+                1.6
+              ],
+              "at": 0.6,
+              "for": 0.9
+            },
+            {
+              "do": "move",
+              "target": "reach",
+              "to": [
+                -0.6,
+                1.14,
+                0.46
+              ],
+              "at": 0.8,
+              "for": 1.0,
+              "overshoot": 0.1
+            },
+            {
+              "do": "express",
+              "target": "host",
+              "expression": "warm",
+              "at": 1.8,
+              "for": 0.5
+            }
+          ],
+          "on": "host",
+          "framing": "medium"
+        },
+        {
+          "id": "close",
+          "duration": 3.0,
+          "camera": {
+            "from": {
+              "at": [
+                -0.2,
+                1.62,
+                1.98
+              ],
+              "look": [
+                -0.05,
+                1.56,
+                0
+              ],
+              "fov": 34
+            },
+            "to": {
+              "at": [
+                -0.1,
+                1.6,
+                1.82
+              ],
+              "look": [
+                -0.02,
+                1.55,
+                0
+              ],
+              "fov": 34
+            }
+          },
+          "actions": [
+            {
+              "do": "move",
+              "target": "gaze",
+              "to": [
+                -0.1,
+                1.58,
+                1.4
+              ],
+              "at": 0.3,
+              "for": 0.8
+            },
+            {
+              "do": "nudge",
+              "target": "host/jaw",
+              "channel": "rotation",
+              "by": [
+                24,
+                0,
+                0
+              ],
+              "at": 0.9,
+              "for": 0.4
+            },
+            {
+              "do": "turn",
+              "target": "host/foreR",
+              "to": [
+                -96,
+                0,
+                0
+              ],
+              "at": 0.0,
+              "for": 0.8
+            },
+            {
+              "do": "nudge",
+              "target": "host/jaw",
+              "channel": "rotation",
+              "by": [
+                4,
+                0,
+                0
+              ],
+              "at": 2.2,
+              "for": 0.4
+            }
+          ],
+          "on": "host",
+          "framing": "close"
+        }
+      ]
+    }
+  ]
+}

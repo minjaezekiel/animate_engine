@@ -268,6 +268,150 @@ Measured against Blender, this is still a small toolset. The honest list:
 | **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |
 | **No per-object motion blur** | Particles stretch by velocity; meshes do not. A fast-moving bolt carrier is sharp when it should smear |
 | **No dependency between actions** | A crater cannot say "open when this round lands"; both are timed independently against the same clock, and nothing checks they agree |
-| **Shadow and contact quality** | One shadow-casting light, a 1024 map, no contact shadows, no ambient occlusion, no area lights |
+| **Shadow and contact quality** | *Half closed:* `meta.post.ssao` is wired. Still one shadow-casting light with a 1024 map, no contact shadows, no area lights |
 | **Exposure is sampled, not continuous** | Two frames per shot. A one-second blown highlight between samples is invisible to the check |
 | **Framing ignores rotation** | Bounds are axis-aligned and can only overstate, which is the safe direction — it will not pass a clipped shot, but it will occasionally complain about a tight one |
+
+---
+
+## 9. Constraints, targets, simulation and post
+
+Added in [Phase 24](STATUS.md). Four new top-level blocks and no new verb,
+which is the part worth explaining.
+
+### `targets` — and why IK and gaze needed no verb
+
+```jsonc
+"targets": {
+  "gaze":  [0, 1.62, 3.4],              // shorthand for { "at": [...] }
+  "reach": { "at": [-0.42, 1.18, 0.34] }
+}
+```
+
+A target is an ordinary node. `move` already animates nodes, with easing,
+anticipation and overshoot; a constraint already needs somewhere to point.
+So "put the hand on the screen" is a target at the screen plus an `ik`
+constraint, and "look at the camera" is a target plus a `lookAt` — using the
+same two mechanisms the **camera's own** look-at has used since this compiler
+was written.
+
+The alternative was a `reach` verb and a `gaze` verb, each with its own
+timing, easing and diagnostics. Two verbs that could not be eased, layered or
+overshot without reimplementing what `move` already does.
+
+### `constraints` — the rule the timeline cannot write
+
+Declared globally, or inside a character where a bare name means that
+character's own bone. Evaluated after the pose and before the draw, in
+declaration order.
+
+```jsonc
+"characters": { "host": { "constraints": [
+  { "type": "lookAt", "source": "eyeL", "target": "gaze",
+    "limit": { "x": [-22, 22], "y": [-34, 34] } },
+  { "type": "lookAt", "source": "head", "target": "gaze", "weight": 0.3 },
+  { "type": "ik", "chain": "armR", "target": "reach", "pole": [0, 0, -1],
+    "limit": { "x": [-145, 2] } },
+  { "type": "copyRotation", "source": "shoulderR", "from": "shoulderL",
+    "axes": "z", "invert": true },
+  { "type": "limitRotation", "source": "neck", "limit": { "y": [-45, 45] } },
+  { "type": "driven",
+    "input":   { "target": "foreL", "channel": "rotation.x" },
+    "from":    [0, -110],
+    "outputs": [{ "target": "armL", "channel": "scale.x", "to": [1, 1.11] }] }
+] } }
+```
+
+Every angle is in **degrees**, like every other angle in a film script.
+`weight` blends against the pose the timeline wrote, so `0.3` on the head is
+a head that follows a third of the way — which is what makes a gaze land on
+something instead of snapping to it.
+
+`driven` is pose space deformation reduced to its smallest honest form: read
+one channel, write another, with a smoothstep between them. The four default
+**correctives** on every generated humanoid are exactly this — a closing
+elbow widens the upper arm — and `"correctives": false` on the character
+turns them off.
+
+A constraint naming a node the film does not have is a **warning and a
+dropped constraint**, never a throw. Same contract as every other diagnostic
+here.
+
+### `cloth` — the pieces whose job is to move
+
+```jsonc
+"cloth": { "cape": {
+  "pinTo": "host/chest", "cols": 14, "rows": 16,
+  "width": 0.46, "height": 0.82, "at": [0, 0.06, -0.17],
+  "material": "cape", "wind": [0.4, 0, -1.6], "floor": 0.02,
+  "colliders": [{ "node": "host/chest", "r": 0.19 },
+                { "node": "host/hips",  "r": 0.19 }]
+} }
+```
+
+The character's own clothing stays an inflated body, because that is the one
+garment that provably cannot clip through it. This is the layer on top — a
+cape, a flag, a curtain, a tablecloth.
+
+The mesh lives at the scene root in **world space** and carries world
+positions, because gravity is a world-space quantity and a sheet parented to
+a moving shoulder would be simulated in an accelerating frame. Attachment is
+not a constraint type: the pinned particles are written to wherever
+`pinTo` has got to, and the solver never moves them.
+
+### `fluids` — a card, honestly
+
+```jsonc
+"fluids": { "steam": {
+  "n": 48, "at": [-0.62, 1.52, 0.42], "size": [0.9, 0.9],
+  "color": "#cfd8e4", "buoyancy": 2.2, "dissipation": 0.55,
+  "sources": [{ "x": 0.5, "y": 0.06, "radius": 0.05,
+                "amount": 2.6, "vy": 1.1, "at": 0.2, "for": 6 }]
+} }
+```
+
+`emitterState` is a **closed form** — position as a function of time, which
+is what makes particles free and deterministic, and also what makes them
+unable to swirl. Smoke that curls back on itself is the velocity field acting
+on itself, and no closed form has one. So this is a grid solver, painted into
+a canvas texture on a plane — the same texturing path the slide already used.
+
+Source `x` and `y` are fractions of the card, so changing `n` does not move
+them. `at` and `for` are the window in which a source injects, on the film's
+own clock.
+
+### `meta.post` — the chain, ordered by the engine
+
+```jsonc
+"meta": { "post": {
+  "ssao":  { "radius": 0.18 },
+  "bloom": { "strength": 0.3, "threshold": 0.9 },
+  "dof":   { "focus": 3.4, "aperture": 0.0010, "maxblur": 0.008 },
+  "grade": { "exposure": 1.12, "temperature": 0.25, "vignette": 0.26,
+             "grain": 0.018, "chromatic": 0.12,
+             "lift": [0.004, 0.004, 0.010] },
+  "smaa":  true
+} }
+```
+
+Declaration order is ignored; the chain is built in render order and always
+ends in `OutputPass`. That order is most of the correctness: AO needs raw
+depth and a bloomed frame has none, bloom's threshold only means something on
+the linear buffer, a defocused highlight blooms but a bloomed highlight does
+not come back into focus, and antialiasing anything but the final image is
+work the next pass undoes.
+
+`meta.bloom` still means what it meant and folds in as a `bloom` entry, so
+every film already in the repo renders unchanged. Naming bloom in both places
+gives **one** pass, with `post` winning — concatenating gives two and reads
+as a milky frame nobody asked for.
+
+Film grain advances with the frame time, not with a clock, because the
+renderer's contract is that frame *N* is a pure function of *N*.
+
+### What it costs
+
+[`demo/rig3d.json`](../demo/rig3d.json) — a rigged presenter with eye
+convergence, an IK reach, four correctives, a simulated cape, a smoke plume
+and all five post passes — renders at **41 ms/frame** at 960x540, including
+encode.

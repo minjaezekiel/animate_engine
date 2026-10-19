@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-10 (Phase 13: the motion system, built from the fight live test's findings; camera mocap scoped in [12-MOCAP.md](12-MOCAP.md), not built; Phase 14: the 3D film script, from the AK-47 live test).
+Last updated: 2026-10-19 (Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain — six of the seven items the character doc's §6 listed as missing).
 
 Legend: **done** · *partial* · — not started
 
@@ -1072,3 +1072,67 @@ culled. Plus a flaw in Phase 15's own camera-cut fix, which carried its nudge
 into the arrival key and so collided all over again.
 
 213 unit tests pass.
+
+---
+
+## Phase 24 — constraints, IK, simulation and the post chain — **done**
+
+Six of the seven items [§6 of the character
+doc](14-CHARACTER-3D.md#6-the-ceiling-honestly) listed as missing, plus the
+post-processing chain that was one pass wide. Auto-rigging an arbitrary
+imported mesh and skin-weight painting stay **skipped by decision**: Mixamo
+hands you a rigged character and retargeting is already wired, auto-rigging an
+unknown mesh well is a research problem, and a bad auto-rig is worse than
+none.
+
+| Area | State | Notes |
+|---|---|---|
+| [`core/rig/IK3D.js`](../src/core/rig/IK3D.js) | **done** | Closed-form two-bone solve by the law of cosines. Pure, and exact: a reachable target is hit to within floating point, with both bones at their real lengths |
+| [`core/rig/constraints.js`](../src/core/rig/constraints.js) | **done** | `lookAt`, `limitRotation`, `copyRotation`, `driven` and `ik`, validated and converted from degrees in core; applied against the scene graph in `SceneAdapter` |
+| Eye convergence | **done** | A `lookAt` per eye at one target, limited to the socket. §6's "the eyes dart on an open loop" needed no new mechanism once `lookAt` existed |
+| Correctives | **done** | Pose space deformation as `driven`: a joint's own angle widens the limb above it. On by default for every generated humanoid; `correctives: false` to opt out |
+| Teeth, tongue and a mouth | **done** | A dental arch per jaw, a tongue, a back-side mouth bag — **and an aperture in the skull**, without which all three are sealed inside an opaque shell |
+| Hair | **done** | A shell derived from `HEAD_PROFILE` with a researched hairline (highest at the temples, down to the nape at the back), not a sphere |
+| Subsurface scattering | *partial* | `physical: true` opens `MeshPhysicalMaterial`: sheen for the velvet rim skin has at a grazing angle, `transmission`/`thickness` for the ears and the nose. An approximation, and the one every real-time renderer shipped before compute shaders |
+| [`core/sim/cloth.js`](../src/core/sim/cloth.js) | **done** | Position-based dynamics — Verlet plus distance-constraint relaxation. Structural, shear and bend links, sphere colliders, a floor, and a fixed 1/120 substep so the drape does not change with the frame rate |
+| [`core/sim/fluid.js`](../src/core/sim/fluid.js) | **done** | Stam's stable fluids in 2D, with a buoyancy term. Renders as a card through the existing `CanvasTexture` path |
+| [`core/script/post.js`](../src/core/script/post.js) + [`render/post3d.js`](../src/render/post3d.js) | **done** | SSAO, bloom, defocus, grade and SMAA, ordered by the module rather than by the call site, always ending in `OutputPass` |
+| [`render/gradeShader.js`](../src/render/gradeShader.js) | **done** | Exposure, white balance, lift/gamma/gain, contrast, saturation, vignette, film grain and lateral chromatic aberration in one pass. Shared with the legacy editor through `THREE.GradeShader` |
+| `targets`, `cloth`, `fluids`, `constraints` in the film script | **done** | And **no new verb**: a target is a node, `move` animates a node, a constraint reads one |
+| Tests | **done** | 40 new unit tests across `rig3d`, `sim`, `post`, `character3d` and `film3d`. Total now **527** |
+| Live test | **done** | [`demo/rig3d.json`](../demo/rig3d.json) — IK reach, eye convergence, a simulated cape, a smoke plume and the five-pass chain, rendered at 41 ms/frame |
+
+### What the live test found
+
+Four defects, three of which only a rendered frame could catch.
+
+| Defect | Cause |
+|---|---|
+| **The forearm tracked the IK target and the upper arm stayed in its bind pose** | `aim()` was handed the same scratch `Vector3` it begins by overwriting with `getWorldPosition`, so the direction came out zero and the bone silently did not move. It now takes three numbers, which makes the whole class unexpressible |
+| **A forearm bent to 96° from frame one**, three shots before the action that bends it | `restVec` returned `null` for a channel the node does not carry, and a bone node carries only `at`. With nothing to seed from, `turn` wrote a single key at its END time — and a track reads as its first key at every earlier time. A bone's rest rotation **is** identity, so the default is now `[0, 0, 0]`. Same trap as Phase 14's fourteen bullet craters |
+| **Teeth and a tongue that could not be seen at any jaw angle** | The generated skull is a closed shell. Opening the jaw lengthened the face and revealed nothing. Needed an aperture, a mouth bag behind it, and the jaw re-weighted to carry the lower LIP rather than only the chin |
+| **Every grab and every staging check sampled a simulation it had itself reset** | A cloth and a fluid are functions of the frames before them; jumping straight to t=4 showed a cape at its rest shape and an empty fluid. Grabs now replay from zero at the film's own frame rate, which is exactly what the offline renderer does |
+
+And one that was never a defect in a render because nothing ever rendered it:
+the legacy editor imported `OutputPass` and never added it to a composer, so
+switching bloom on also changed the exposure and the gamma of the whole frame.
+
+### Known, and left
+
+- A corrective's girth scale sits above an IK chain, and three composes
+  non-uniform scale with the rotation below it, so an IK target is missed by
+  **under a centimetre** on a 1.8 m figure. `correctives: false` removes it.
+- A bone's roll under IK is whatever `setFromUnitVectors` gives, since that
+  returns the shortest rotation. The hand's aim is exact; the twist of the
+  palm on the end of it is not. A `copyRotation` on the hand is the lazy fix.
+- Cloth and fluid restart from rest on a **rewind**, so scrubbing backwards
+  shows a cold start. A forward render — which is every offline render — never
+  takes that branch, so frame N stays a pure function of the frame sequence.
+- The character's own clothing is still an inflated body. `cloth` is for the
+  pieces whose job is to move: a cape, a flag, a curtain.
+- Fluid is a **card**. Volumetric smoke and free-surface liquid are a
+  different project.
+- A speckled band at the waist, where the jacket's and the trouser's inflated
+  caps meet at the spine, predates this phase and is still there.
+
+527 unit tests pass.

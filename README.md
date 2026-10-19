@@ -57,6 +57,23 @@ MIT licensed — see [LICENSE](LICENSE).
 - **A headless agent surface.** 21 MCP tools generated from one op table,
   running in Node: an agent paints, animates a photograph, writes a PNG and
   then *looks at what it made*, with no browser in the loop.
+- **A rig that holds itself together.** Bone constraints — `lookAt`,
+  `limitRotation`, `copyRotation`, pose-space `driven` correctives and
+  closed-form two-bone **IK** — evaluated between the pose and the draw,
+  which is the one thing a keyframe cannot express. "Put the hand on the
+  screen" is a target node and an `ik` constraint; so is eye convergence,
+  with a `lookAt` per eye. There is no new verb for either: a target is a
+  node and `move` animates a node.
+- **Simulation.** Cloth as position-based dynamics — a cape, a flag, a
+  curtain — with sphere colliders and a fixed substep, so the drape does not
+  change with the frame rate. Fluid as a 2D stable-fluids grid with
+  buoyancy, painted into a texture: smoke that curls back on itself, which
+  no closed-form particle can do.
+- **A post chain that is declared, not hard-coded.** SSAO, bloom, defocus, a
+  colour grade (exposure, white balance, lift/gamma/gain, vignette, film
+  grain, lateral chromatic aberration) and SMAA, ordered by the engine rather
+  than by the call site, always ending in `OutputPass`. Grain advances with
+  the **frame**, so a re-render is still identical.
 - **Installable PWA**, offline after first load.
 
 A worked example ships in the repo: `demo/film.json` is four scenes, nineteen
@@ -214,7 +231,7 @@ detail is in [docs/STATUS.md](docs/STATUS.md).
 - **UV mapping tools, and painting a texture onto a 3D surface.** The paint
   layer is 2D only; a procedural character carries no UVs.
 - **Sculpting beyond the legacy editor's six brushes.** Named in
-  [docs/14-CHARACTER-3D.md](docs/14-CHARACTER-3D.md) §6 as the largest
+  [docs/14-CHARACTER-3D.md](docs/14-CHARACTER-3D.md) §7 as the largest
   single gap: a face is still primitives positioned by typing numbers.
 
 ### Rigging
@@ -224,18 +241,22 @@ detail is in [docs/STATUS.md](docs/STATUS.md).
   is wired up; auto-rigging an unknown mesh well is a research problem, and a
   bad auto-rig is worse than none. The engine *does* build a 25-bone skeleton
   with automatic weights for its own procedural character.
-- **Bone constraints** — lookAt, limit-rotation, copy-rotation.
-- **IK for the 3D character rig.** The 2D cutout rig has a real solver
-  (closed-form two-bone, CCD beyond that); the legacy editor has one-shot
-  CCD. The 3D character pipeline has neither.
-- **Correctives, teeth and tongue, eye convergence, hair, subsurface
-  scattering, cloth** — [docs/14-CHARACTER-3D.md](docs/14-CHARACTER-3D.md) §6.
+- **Twist bones.** A forearm pronates about its own axis and this rig has no
+  bone for it, which is also why a hand's roll under IK is undefined.
+- **Corrective blendshapes on the body.** The drivers that exist restore the
+  volume a bent elbow loses; they cannot make a crease, because only the head
+  carries morph targets.
+- **Garment simulation.** The cloth solver drapes a cape, not a sleeve.
+  Clothing is still the body's own surface inflated, which is the one garment
+  that cannot clip through the body it is derived from.
 
 ### Simulation and effects
 
-- **Fluid and cloth simulation.**
-- **Post-processing beyond bloom.** `OutputPass` is loaded; nothing else is
-  wired.
+- **Volumetric fluid.** The solver is a 2D grid rendered to a card, which is
+  how most smoke in most shots is done. No ray-marched density, no free
+  surface, no splash.
+- **Particle collision.** Inherent to the closed-form solver, and the right
+  trade; debris passes through the floor.
 
 ### Performance
 
@@ -278,7 +299,9 @@ unchanged by the 2D work above.
 **What works:** six primitives, four light types, HDRI environments, texture
 slots, multiple keyframeable cameras, bloom post-processing, Cannon.js rigid
 bodies, six sculpt brushes, subdivide, keyframe animation with per-key
-interpolation, undo/redo and project save/load, WebM/GIF/PNG-sequence export,
+interpolation, a post chain (SSAO, bloom, defocus, a full colour grade with
+vignette and film grain, and the `OutputPass` it had been importing and never
+adding), undo/redo and project save/load, WebM/GIF/PNG-sequence export,
 audio import with microphone recording, a programmatic `runCommands()` API,
 and an MCP server (`mcp/`) that lets an AI drive a live browser session — see
 [mcp/README.md](mcp/README.md).
@@ -292,8 +315,9 @@ still *constructs* no skeleton of its own — that lives in
 automatic weights for the procedural character.
 
 **Not implemented here:** auto-rigging an arbitrary mesh, skin-weight
-painting, bone constraints, boolean/bevel/loop-cut, and MP4 without an
-injected muxer. Parametric primitives and full PBR material properties
+painting, declarative bone constraints (the 3D *film* path has them;
+`CameraManager` only gained the post chain), boolean/bevel/loop-cut, and MP4
+without an injected muxer. Parametric primitives and full PBR material properties
 *were* added — colour had been the only reachable one.
 
 **Before relying on it, read [docs/DEFECTS.md](docs/DEFECTS.md).** Most

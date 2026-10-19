@@ -135,6 +135,22 @@ const CHECKS = [
         },
     },
     {
+        name: 'three/addons postprocessing',
+        why: 'the declared post chain: SSAO, bloom, defocus, grade, SMAA, output',
+        required: false,
+        probe: async () => {
+            const names = ['EffectComposer', 'RenderPass', 'ShaderPass', 'OutputPass',
+                           'UnrealBloomPass', 'SSAOPass', 'BokehPass', 'SMAAPass'];
+            const found = [];
+            for (const n of names) {
+                const m = await import(`three/addons/postprocessing/${n}.js`);
+                if (typeof m[n] !== 'function') throw new Error(`no ${n} export`);
+                found.push(n);
+            }
+            return `${found.length} passes present`;
+        },
+    },
+    {
         name: 'three/addons FBXLoader',
         why: 'Mixamo import; pulls in fflate and NURBS curve deps',
         required: false,

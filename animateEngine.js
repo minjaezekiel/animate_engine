@@ -4663,8 +4663,12 @@
                 this.active = null;
                 this.composer = null;
                 this.bloomPass = null;
+                this.gradePass = null;
+                this.ssaoPass = null;
+                this.dofPass = null;
                 this.renderPass = null;
-                this.fx = { bloom: false };
+                this.frame = 0;
+                this.fx = { bloom: false, grade: false, ssao: false, dof: false };
             }
 
             init() {
@@ -4679,12 +4683,42 @@
                 this.composer = new THREE.EffectComposer(renderer);
                 this.renderPass = new THREE.RenderPass(this.sceneManager.scene, this.active);
                 this.composer.addPass(this.renderPass);
+                const size = renderer.getSize(new THREE.Vector2());
+                // Order is the correctness: AO needs raw depth, bloom needs
+                // the linear buffer, defocus comes after bloom, the grade is
+                // the print, and OutputPass tone maps and encodes last. See
+                // src/core/script/post.js, which the film path shares.
+                if (THREE.SSAOPass) {
+                    this.ssaoPass = new THREE.SSAOPass(this.sceneManager.scene, this.active,
+                                                       size.x, size.y);
+                    this.ssaoPass.kernelRadius = 0.5;
+                    this.ssaoPass.enabled = false;
+                    this.composer.addPass(this.ssaoPass);
+                }
                 if (THREE.UnrealBloomPass) {
-                    const size = renderer.getSize(new THREE.Vector2());
                     this.bloomPass = new THREE.UnrealBloomPass(size, 0.6, 0.4, 0.85);
                     this.bloomPass.enabled = false;
                     this.composer.addPass(this.bloomPass);
                 }
+                if (THREE.BokehPass) {
+                    this.dofPass = new THREE.BokehPass(this.sceneManager.scene, this.active,
+                        { focus: 10, aperture: 0.0005, maxblur: 0.01 });
+                    this.dofPass.enabled = false;
+                    this.composer.addPass(this.dofPass);
+                }
+                if (THREE.ShaderPass && THREE.GradeShader) {
+                    this.gradePass = new THREE.ShaderPass(THREE.GradeShader);
+                    this.gradePass.uniforms.resolution.value = [size.x, size.y];
+                    this.gradePass.enabled = false;
+                    this.composer.addPass(this.gradePass);
+                }
+                // Always last and always present. A composer WITHOUT
+                // OutputPass skips the tone mapping and the sRGB encode the
+                // renderer would otherwise do itself -- so switching bloom on
+                // also changed the exposure and the gamma of the whole frame.
+                // OutputPass has been imported by index.html since the
+                // composer existed and was never added to it.
+                if (THREE.OutputPass) this.composer.addPass(new THREE.OutputPass());
             }
 
             createCamera(name, opts = {}) {
@@ -4739,18 +4773,60 @@
                     if (fx.bloomRadius != null) this.bloomPass.radius = fx.bloomRadius;
                     if (fx.bloomThreshold != null) this.bloomPass.threshold = fx.bloomThreshold;
                 }
+                if (this.ssaoPass) {
+                    this.ssaoPass.enabled = !!this.fx.ssao;
+                    if (fx.ssaoRadius != null) this.ssaoPass.kernelRadius = fx.ssaoRadius;
+                }
+                if (this.dofPass) {
+                    this.dofPass.enabled = !!this.fx.dof;
+                    const u = this.dofPass.materialBokeh && this.dofPass.materialBokeh.uniforms;
+                    if (u) {
+                        if (fx.focus != null) u.focus.value = fx.focus;
+                        if (fx.aperture != null) u.aperture.value = fx.aperture;
+                        if (fx.maxblur != null) u.maxblur.value = fx.maxblur;
+                    }
+                }
+                if (this.gradePass) {
+                    const u = this.gradePass.uniforms;
+                    for (const k of ['exposure', 'contrast', 'saturation', 'temperature', 'tint',
+                                     'vignette', 'vignetteSoftness', 'grain', 'grainSize',
+                                     'chromatic']) {
+                        if (fx[k] != null) u[k].value = fx[k];
+                    }
+                    // `gamma` is the uniform `gammaC`: the name is reserved in
+                    // some GLSL versions and shadowed by a renderer property
+                    // in others.
+                    for (const [key, name] of [['lift', 'lift'], ['gamma', 'gammaC'], ['gain', 'gain']]) {
+                        if (Array.isArray(fx[key])) u[name].value = [...fx[key]];
+                    }
+                    this.gradePass.enabled = !!this.fx.grade;
+                }
                 this.sceneManager.markChanged();
                 return this.fx;
             }
 
-            fxActive() { return !!(this.bloomPass && this.bloomPass.enabled); }
+            fxActive() {
+                return [this.bloomPass, this.ssaoPass, this.dofPass, this.gradePass]
+                    .some(p => p && p.enabled);
+            }
 
-            resize(w, h) { if (this.composer) this.composer.setSize(w, h); }
+            resize(w, h) {
+                if (this.composer) this.composer.setSize(w, h);
+                if (this.ssaoPass && this.ssaoPass.setSize) this.ssaoPass.setSize(w, h);
+                if (this.gradePass) this.gradePass.uniforms.resolution.value = [w, h];
+            }
 
             render() {
                 const sm = this.sceneManager;
-                if (this.composer && this.fxActive()) this.composer.render();
-                else sm.renderer.render(sm.scene, this.active || sm.camera);
+                if (this.composer && this.fxActive()) {
+                    // Grain advanced by a RENDER COUNT, not by the wall clock.
+                    // A recording is a sequence of render calls, so the count
+                    // is the frame index and two recordings of the same take
+                    // get the same grain; a clock would make them differ.
+                    if (this.gradePass) this.gradePass.uniforms.time.value = this.frame / 24;
+                    this.frame++;
+                    this.composer.render();
+                } else sm.renderer.render(sm.scene, this.active || sm.camera);
             }
         }
 

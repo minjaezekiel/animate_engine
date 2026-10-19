@@ -749,11 +749,18 @@
       import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
       import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
       import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+      import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+      import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
       import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+      // The grade pass's shader, shared with the 3D film path rather than
+      // written twice: src/render/gradeShader.js is plain data and imports
+      // nothing, so the legacy engine can reach it through this namespace.
+      import { GradeShader } from './src/render/gradeShader.js';
 
       window.THREE = Object.assign({ ...THREE }, {
         OrbitControls, GLTFLoader, GLTFExporter, FBXLoader, RGBELoader,
         EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, OutputPass,
+        SSAOPass, BokehPass, GradeShader,
         SkeletonUtils,
       });
 

@@ -16,6 +16,7 @@
     "film.html",
     "index.html",
     "demo/film.json",
+    "demo/rig3d.json",
     "demo/script.txt",
     "docs",
     "README.md",
@@ -58,6 +59,10 @@
     "test:motion": "node --test test/core/motion.test.mjs",
     "test:ops": "node --test test/core/ops.test.mjs",
     "test:editor": "node --test test/core/editor.test.mjs",
+    "test:rig3d": "node --test test/core/rig3d.test.mjs",
+    "test:sim": "node --test test/core/sim.test.mjs",
+    "test:post": "node --test test/core/post.test.mjs",
+    "make:rig3d": "FILM=demo/rig3d.json OUT=demo/out/rig3d.webm WIDTH=960 HEIGHT=540 SILENT=1 node scripts/produce3d.mjs",
     "test:budget": "node --test test/core/budget.test.mjs"
   },
   "keywords": [

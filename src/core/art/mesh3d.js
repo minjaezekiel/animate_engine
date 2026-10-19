@@ -158,26 +158,161 @@ export const HEAD_PROFILE = [
     [0.133, 0.016, 0.015, -0.024],
 ];
 
-export function buildHead(origin = [0, 0, 0], scale = 1, { radial = 24 } = {}) {
+/**
+ * The mouth aperture: a window of triangles the skull does not have.
+ *
+ * Without one, teeth and a tongue are geometry sealed inside an opaque shell
+ * -- which is what they were on the first pass, and the only way to find out
+ * was to open the jaw in a render and see nothing happen. `y` is the height
+ * band in head-local metres and `halfAngle` how far round the skull the
+ * opening reaches from dead ahead.
+ */
+export const MOUTH_WINDOW = { y: [-0.042, -0.006], halfAngle: 0.46 };
+
+export function buildHead(origin = [0, 0, 0], scale = 1, {
+    radial = 24, mouth = MOUTH_WINDOW,
+} = {}) {
     const positions = [], tParam = [], indices = [];
     const rows = [];
-    const lo = HEAD_PROFILE[0][0], hi = HEAD_PROFILE[HEAD_PROFILE.length - 1][0];
     for (const [y, w, d, zc] of HEAD_PROFILE) {
         const row = [];
-        const t = (y - lo) / (hi - lo);
         for (let i = 0; i < radial; i++) {
             const ang = (i / radial) * Math.PI * 2;
             row.push(positions.length / 3);
             positions.push(origin[0] + Math.sin(ang) * w * scale,
                            origin[1] + y * scale,
                            origin[2] + (zc + Math.cos(ang) * d) * scale);
-            // The whole head belongs to the head bone; only the lowest rings
-            // hand any weight to the jaw, and the mouth parts ride the jaw
-            // directly, so `t` here is deliberately flat.
-            tParam.push(t < 0.12 ? 0.35 : 0);
+            /**
+             * How much of this vertex the JAW owns.
+             *
+             * By height alone, not by angle, so the jawline stays continuous
+             * round the sides rather than hinging only at the front. The
+             * previous rule gave a flat 0.35 to the lowest two rings and
+             * nothing above them, which meant the chin followed the jaw and
+             * the lower LIP did not -- so a jaw rotation lengthened the face
+             * without opening the mouth.
+             */
+            tParam.push(y >= -0.012 ? 0 : Math.min(0.85, (-0.012 - y) / 0.045));
         }
         rows.push(row);
     }
+
+    // Dead ahead is angle 0, so a column is in the mouth when its angle is
+    // within `halfAngle` of 0 measured the short way round.
+    const inMouth = (i, yLo, yHi) => {
+        if (!mouth) return false;
+        const ang = (i / radial) * Math.PI * 2;
+        const off = Math.abs(ang > Math.PI ? ang - Math.PI * 2 : ang);
+        return off < mouth.halfAngle && yLo >= mouth.y[0] && yHi <= mouth.y[1];
+    };
+
+    for (let s = 0; s < rows.length - 1; s++) {
+        const a = rows[s], b = rows[s + 1];
+        const yLo = HEAD_PROFILE[s][0], yHi = HEAD_PROFILE[s + 1][0];
+        for (let i = 0; i < radial; i++) {
+            const j = (i + 1) % radial;
+            if (inMouth(i, yLo, yHi) && inMouth(j, yLo, yHi)) continue;
+            indices.push(a[i], b[j], b[i], a[i], a[j], b[j]);
+        }
+    }
+    return {
+        positions: new Float32Array(positions),
+        indices: new Uint32Array(indices),
+        tParam: new Float32Array(tParam),
+    };
+}
+
+/**
+ * The hairline, as a function of the angle around the skull.
+ *
+ * `[degrees from the front, y in head-local metres]`, mirrored left to right.
+ * Researched by looking at where a hairline actually is rather than by
+ * guessing a sphere: it is HIGHEST at the temples, not at the centre of the
+ * brow -- temple recession is why a male hairline reads as a widow's peak
+ * even when there is no peak -- then drops steeply over the ear and runs down
+ * to the nape at the back.
+ *
+ * This table is the whole reason the cap reads as hair. Previously hair was a
+ * sphere centred on the head BONE, which sits at the base of the skull rather
+ * than at its centre, so the figure rendered bald on top with a dark band
+ * across the brow -- defect ten in §5 of the character doc.
+ */
+export const HAIRLINE = [
+    [0, 0.080], [30, 0.087], [52, 0.094], [72, 0.064],
+    [90, 0.038], [120, 0.008], [150, -0.004], [180, -0.013],
+];
+
+/** Interpolate the head profile's half-width, half-depth and z centre at a given y. */
+function headAt(y) {
+    const P = HEAD_PROFILE;
+    if (y <= P[0][0]) return P[0].slice(1);
+    const last = P[P.length - 1];
+    if (y >= last[0]) return last.slice(1);
+    for (let i = 1; i < P.length; i++) {
+        if (y <= P[i][0]) {
+            const u = (y - P[i - 1][0]) / (P[i][0] - P[i - 1][0] || 1);
+            return [1, 2, 3].map((k) => P[i - 1][k] + (P[i][k] - P[i - 1][k]) * u);
+        }
+    }
+    return last.slice(1);
+}
+
+/**
+ * A hair cap: the skull's own profile, inflated, from the hairline up.
+ *
+ * Derived from the head rather than modelled beside it, which is the same
+ * bargain the clothing makes in `humanoid3d.js` -- a shell that cannot float
+ * off the head or sink into it, because its radius IS the skull's radius plus
+ * a thickness.
+ *
+ * `strands` ripples that thickness around the skull. Hair with a constant
+ * offset is a plastic swim cap at any colour; a few millimetres of periodic
+ * variation, plus a slower one that does not divide into it, is what gives
+ * the specular a direction to run along. Deterministic -- two cosines, not a
+ * PRNG, for the same reason the camera shake is two sines.
+ *
+ * ponytail: a shell, not cards and not strands. It fixes "hair is a sphere";
+ * it does not give long hair, a parting that opens, or anything that moves.
+ * Hair cards when a shot needs hair to swing -- at which point they are a
+ * cloth problem, and `core/sim/cloth.js` is the thing to hang them off.
+ */
+export function buildHairCap(origin = [0, 0, 0], scale = 1, {
+    radial = 32, rings = 7, thickness = 0.007, strands = 9, ripple = 0.4,
+    crown = 0.129, lift = 1,
+} = {}) {
+    const positions = [], tParam = [], indices = [];
+    const rows = [];
+    for (let r = 0; r <= rings; r++) {
+        const t = r / rings;
+        const row = [];
+        for (let i = 0; i < radial; i++) {
+            const ang = (i / radial) * Math.PI * 2;
+            // Mirror the table: 0 at the front, 180 at the back, either way round.
+            const deg = Math.abs(((ang * 180 / Math.PI) + 180) % 360 - 180);
+            const base = sampleProfile(HAIRLINE, deg) * lift;
+            const y = base + (crown - base) * t;
+            const [w, d, zc] = headAt(y);
+            // Thin out to nothing at the crown so the cap closes instead of
+            // ending in a rim, and ripple around the skull for direction.
+            const taper = 1 - t * t * 0.55;
+            const strand = 1 + ripple * (Math.cos(ang * strands) * 0.6
+                                       + Math.cos(ang * (strands + 4) + 1.1) * 0.4);
+            const off = thickness * taper * strand;
+            row.push(positions.length / 3);
+            positions.push(origin[0] + Math.sin(ang) * (w + off) * scale,
+                           origin[1] + y * scale,
+                           origin[2] + (zc + Math.cos(ang) * (d + off)) * scale);
+            tParam.push(t);
+        }
+        rows.push(row);
+    }
+    // Close the crown with a single apex vertex, so the top is a dome rather
+    // than a flat lid with a hole in it.
+    const apex = positions.length / 3;
+    const [, , zcTop] = headAt(crown);
+    positions.push(origin[0], origin[1] + (crown + 0.004) * scale, origin[2] + zcTop * scale);
+    tParam.push(1);
+
     for (let s = 0; s < rows.length - 1; s++) {
         const a = rows[s], b = rows[s + 1];
         for (let i = 0; i < radial; i++) {
@@ -185,6 +320,9 @@ export function buildHead(origin = [0, 0, 0], scale = 1, { radial = 24 } = {}) {
             indices.push(a[i], b[j], b[i], a[i], a[j], b[j]);
         }
     }
+    const top = rows[rows.length - 1];
+    for (let i = 0; i < radial; i++) indices.push(top[i], top[(i + 1) % radial], apex);
+
     return {
         positions: new Float32Array(positions),
         indices: new Uint32Array(indices),

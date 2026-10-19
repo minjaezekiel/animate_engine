@@ -6,6 +6,8 @@ import { createEmitter, emitterSpan } from '../anim/particles.js';
 import { createCue } from '../audio/cues.js';
 import { HUMANOID_BONES } from '../art/humanoid3d.js';
 import { EXPRESSIONS } from '../art/face3d.js';
+import { normalizeConstraints, humanoidCorrectives } from '../rig/constraints.js';
+import { normalizePost } from './post.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
 
 /**
@@ -50,7 +52,9 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
         environment: film.meta?.environment ?? null,
         bloom: film.meta?.bloom ?? null,
         step: film.meta?.step ?? 0,
+        post: null,         // filled below, once `warn` can be used
     };
+    meta.post = normalizePost(film.meta?.post, { bloom: meta.bloom, warn });
 
     const scene = new Scene();
     const timeline = createTimeline({ fps: meta.fps });
@@ -94,8 +98,26 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
     // which swings wide on anything but a straight dolly.
     scene.add({ id: lookId, kind: 'target', props: { at: [0, 0, 0] } });
 
+    // -------------------------------------------------------------- targets
+    /**
+     * Named, animatable points in space.
+     *
+     * This is the entire authoring surface for IK and for gaze, and it is why
+     * neither needed a verb of its own. A target is a node; `move` animates a
+     * node; a constraint reads one. "Put the hand on the screen" is a target
+     * at the screen and an `ik` constraint, and "look at the camera" is a
+     * target and a `lookAt` -- using the same two mechanisms a camera's own
+     * look-at has used since this compiler was written.
+     */
+    for (const [id, spec] of Object.entries(film.targets ?? {})) {
+        if (scene.get(id)) { warn(`target '${id}' collides with an existing node`, `targets.${id}`); continue; }
+        scene.add({ id, kind: 'target',
+                    props: { at: vec3(Array.isArray(spec) ? spec : spec?.at ?? [0, 0, 0]) } });
+    }
+
     // ----------------------------------------------------------------- cast
     const castMap = new Map();
+    const constraintSpecs = [];
     const characters = new Map();
     for (const entry of film.cast ?? []) {
         const as = entry.as ?? entry.character ?? entry.assembly;
@@ -116,6 +138,15 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
                     shirt: resolveMaterial(char.shirt ?? char.jacket ?? 'shirt', `${as}.shirt`),
                     trouser: resolveMaterial(char.trouser ?? 'trouser', `${as}.trouser`),
                     shoe: resolveMaterial(char.shoe ?? 'shoe', `${as}.shoe`),
+                    // Teeth, a tongue and a hair shell, all generated. A
+                    // character that names none of these still gets them,
+                    // because a mouth with no teeth is not a style choice.
+                    tooth: char.tooth ? resolveMaterial(char.tooth, `${as}.tooth`) : null,
+                    tongue: char.tongue ? resolveMaterial(char.tongue, `${as}.tongue`) : null,
+                    hair: char.hair === false ? false
+                        : char.hair ? resolveMaterial(char.hair, `${as}.hair`) : null,
+                    hairStyle: char.hairStyle ?? null,
+                    mouth: char.mouth !== false,
                     at: vec3(entry.at ?? [0, 0, 0]),
                     rot: vec3(entry.rot ?? [0, 0, 0]).map((d) => d * DEG),
                     scale: vec3(entry.scale ?? 1, 1),
@@ -167,6 +198,38 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
             }
             castMap.set(as, { rootId: as, parts, assembly: char, character: true });
             characters.set(as, { name: entry.character, spec: char, voice: entry.voice ?? char.voice });
+
+            /**
+             * A character's own constraints, with bare names read as its own
+             * bones -- `armL` rather than `presenter/armL` -- because a
+             * character block is already scoped to one character and
+             * repeating its name on every line is how a rig spec becomes
+             * unreadable.
+             *
+             * `correctives` defaults ON. The alternative is an elbow that
+             * collapses into itself at 120 degrees, which is a defect, not a
+             * style; a film that wants the raw skin can say `false`.
+             */
+            // Only a name the character actually HAS is scoped. A bare
+            // `gaze` is a global target and must stay one -- prefixing it
+            // blindly turned every lookAt into a constraint pointing at a
+            // node that does not exist, and said so four times.
+            const scope = (ref) => (typeof ref === 'string' && !ref.includes('/')
+                && parts.has(ref) ? `${as}/${ref}` : ref);
+            for (const raw of char.constraints ?? []) {
+                const c = { ...raw };
+                for (const field of ['source', 'target', 'from', 'chain']) {
+                    if (c[field] != null) c[field] = scope(c[field]);
+                }
+                if (c.input) c.input = { ...c.input, target: scope(c.input.target) };
+                if (c.outputs) c.outputs = c.outputs.map((o) => ({ ...o, target: scope(o.target) }));
+                constraintSpecs.push({ c, where: `${as}.constraints` });
+            }
+            if (char.correctives !== false) {
+                for (const c of humanoidCorrectives(as)) {
+                    constraintSpecs.push({ c, where: `${as}.correctives` });
+                }
+            }
             continue;
         }
 
@@ -199,6 +262,78 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
             parts.set(part.id, nodeId);
         }
         castMap.set(as, { rootId, parts, assembly });
+    }
+
+    // ---------------------------------------------------------------- cloth
+    /**
+     * Simulated sheets: a cape, a flag, a curtain, a tablecloth.
+     *
+     * The character's own clothing stays an inflated body, because that is
+     * the only garment that provably cannot clip through it. This is the
+     * layer whose whole job is to move, and it is declared beside the cast
+     * rather than inside a character because a flag is not a character.
+     */
+    for (const [id, spec] of Object.entries(film.cloth ?? {})) {
+        if (spec.pinTo && !scene.get(spec.pinTo)) {
+            warn(`cloth '${id}' pins to '${spec.pinTo}', which is not a node`, `cloth.${id}`);
+        }
+        for (const [ci, col] of (spec.colliders ?? []).entries()) {
+            if (col.node && !scene.get(col.node)) {
+                warn(`cloth '${id}' collider ${ci} names '${col.node}', which is not a node`,
+                     `cloth.${id}.colliders[${ci}]`);
+            }
+        }
+        scene.add({
+            id, kind: 'cloth',
+            props: {
+                cols: spec.cols ?? 12, rows: spec.rows ?? 14,
+                width: spec.width ?? 0.6, height: spec.height ?? 0.8,
+                axis: spec.axis ?? 'xy', pin: spec.pin ?? 'top',
+                pinTo: spec.pinTo ?? null,
+                at: vec3(spec.at ?? [0, 0, 0]),
+                material: resolveMaterial(spec.material, `cloth.${id}`),
+                gravity: spec.gravity ? vec3(spec.gravity) : [0, -9.81, 0],
+                wind: spec.wind ? vec3(spec.wind) : [0, 0, 0],
+                damping: spec.damping ?? 0.012,
+                iterations: spec.iterations ?? 5,
+                floor: spec.floor ?? null,
+                colliders: (spec.colliders ?? []).map((c) => ({
+                    node: c.node ?? null, at: c.at ? vec3(c.at) : [0, 0, 0], r: c.r ?? 0.1,
+                })),
+                castShadow: spec.castShadow !== false,
+            },
+        });
+    }
+
+    // --------------------------------------------------------------- fluids
+    for (const [id, spec] of Object.entries(film.fluids ?? {})) {
+        scene.add({
+            id, kind: 'fluid', parentId: spec.parent ?? undefined,
+            props: {
+                n: spec.n ?? 48, size: spec.size ? [spec.size[0], spec.size[1]] : [2, 2],
+                at: vec3(spec.at ?? [0, 0, 0]),
+                rot: vec3(spec.rot ?? [0, 0, 0]).map((d) => d * DEG),
+                color: spec.color ?? '#d8d8dd', gain: spec.gain ?? 1, gamma: spec.gamma ?? 1,
+                opacity: spec.opacity ?? 1, blending: spec.blending ?? null,
+                visc: spec.visc ?? 0, diff: spec.diff ?? 0,
+                dissipation: spec.dissipation ?? 0.4, buoyancy: spec.buoyancy ?? 1.6,
+                gravityX: spec.gravityX ?? 0, iterations: spec.iterations ?? 12,
+                sources: (spec.sources ?? []).map((src) => ({ ...src })),
+            },
+        }, spec.parent ?? undefined);
+        if (!(spec.sources ?? []).length) warn(`fluid '${id}' has no sources`, `fluids.${id}`);
+    }
+
+    // ---------------------------------------------------------- constraints
+    // Last, so every bone, target, cloth pin and prop a constraint can name
+    // already exists -- which is also what makes the "is not a node" warning
+    // worth printing rather than a false alarm about declaration order.
+    for (const [i, spec] of (film.constraints ?? []).entries()) {
+        constraintSpecs.push({ c: spec, where: `constraints[${i}]` });
+    }
+    const constraints = [];
+    for (const { c, where } of constraintSpecs) {
+        constraints.push(...normalizeConstraints([c], { warn, where, exists: (id) => !!scene.get(id) }));
     }
 
     // ------------------------------------------------------------- emitters
@@ -316,7 +451,7 @@ export function compileFilm3D(film = {}, { assets = {} } = {}) {
         }
     }
 
-    return { scene, timeline, emitters, meta, cameraId, lookId, shots,
+    return { scene, timeline, emitters, meta, cameraId, lookId, shots, constraints,
              duration, audioCues, lipsyncJobs, characters, diagnostics };
 }
 
@@ -421,9 +556,22 @@ function writeVec(timeline, target, group, value, at, span, ease, opts = {}) {
  * fix and calls it `seedChannel`.
  */
 const REST = { position: 'at', rotation: 'rot', scale: 'scale' };
+/**
+ * What a channel reads as when the node does not carry it.
+ *
+ * Not `null`. A bone node carries `at` and nothing else -- its rest ROTATION
+ * is identity, because a bone's rest pose IS the bind pose -- so `turn
+ * host/foreR to [-96, 0, 0]` found no value to start from, wrote a single key
+ * at its END time, and a track reads as its first key at every earlier time.
+ * The forearm was therefore bent to 96 degrees from frame one, three shots
+ * before the action that bends it. It is the same trap `fly` and `set`
+ * already guard against, and the 2D compiler calls `seedChannel`.
+ */
+const REST_DEFAULT = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
 function restVec(node, group) {
-    const v = node?.props?.[REST[group]];
-    if (v == null) return null;
+    if (!node) return null;
+    const v = node.props?.[REST[group]];
+    if (v == null) return REST_DEFAULT[group];
     return Array.isArray(v) ? v : [v, v, v];
 }
 

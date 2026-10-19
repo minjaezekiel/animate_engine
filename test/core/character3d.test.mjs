@@ -4,7 +4,7 @@ import {
     HUMANOID_BONES, HUMANOID_SEGMENTS, bindPose, boneSegments, skinWeights,
     segmentSkin, humanoidSpec, distanceToSegment,
 } from '../../src/core/art/humanoid3d.js';
-import { buildTube, buildHead, sampleProfile, frameFor } from '../../src/core/art/mesh3d.js';
+import { buildTube, buildHead, buildHairCap, sampleProfile, frameFor, HAIRLINE } from '../../src/core/art/mesh3d.js';
 import { faceMorphs, VISEME_SHAPES, EXPRESSIONS, blinkCurve, blinkTimes, saccadeTimes } from '../../src/core/art/face3d.js';
 
 const triangleNormalsPointOutward = (g, axis = [0, 0]) => {
@@ -181,4 +181,131 @@ test('every segment names bones that exist', () => {
     for (const b of HUMANOID_BONES) {
         if (b.parent) assert.ok(ids.has(b.parent), `unknown parent ${b.parent}`);
     }
+});
+
+// ------------------------------------------- hair, teeth and a tongue
+
+test('the hair cap starts at a hairline and closes over the crown', () => {
+    const g = buildHairCap([0, 0, 0], 1, { radial: 24, rings: 6 });
+    // Outward from the SKULL's centre, which is above the head bone -- the
+    // bone sits at the base of the skull, and measuring from it is exactly
+    // the mistake that put a sphere of hair across the brow.
+    assert.equal(triangleNormalsPointOutward(g, [0, 0]), 0);
+
+    let minY = 1e9, maxY = -1e9, maxR = 0;
+    for (let i = 0; i < g.positions.length; i += 3) {
+        minY = Math.min(minY, g.positions[i + 1]);
+        maxY = Math.max(maxY, g.positions[i + 1]);
+        maxR = Math.max(maxR, Math.hypot(g.positions[i], g.positions[i + 2]));
+    }
+    // It must reach the crown (the head profile tops out at 133mm) and come
+    // down to the nape at the back, which is BELOW the head bone.
+    assert.ok(maxY > 0.125, `hair should reach the crown, got ${maxY.toFixed(3)}`);
+    assert.ok(minY < 0, `hair should run down to the nape, got ${minY.toFixed(3)}`);
+    // And it must sit OUTSIDE the skull, not inside it: the widest head ring
+    // is 92mm, so a cap at 92mm or less is a scalp tattoo.
+    assert.ok(maxR > 0.093, `hair must clear the skull, got ${maxR.toFixed(3)}`);
+    assert.ok(maxR < 0.14, 'and not by a wig-shop margin');
+});
+
+test('the hairline is highest at the temples, lowest at the nape', () => {
+    const y = (deg) => sampleProfile(HAIRLINE, deg);
+    assert.ok(y(52) > y(0), 'temple recession: higher at the temples than mid-brow');
+    assert.ok(y(0) > y(90), 'and the brow is above the ear');
+    assert.ok(y(90) > y(180), 'and the ear above the nape');
+    assert.ok(y(180) < 0, 'the nape is below the head bone');
+});
+
+test('the hair scales with the character and can be turned off', () => {
+    const small = buildHairCap([0, 0, 0], 0.5, { radial: 12, rings: 4 });
+    const big = buildHairCap([0, 0, 0], 1, { radial: 12, rings: 4 });
+    const span = (g) => {
+        let lo = 1e9, hi = -1e9;
+        for (let i = 1; i < g.positions.length; i += 3) {
+            lo = Math.min(lo, g.positions[i]); hi = Math.max(hi, g.positions[i]);
+        }
+        return hi - lo;
+    };
+    assert.ok(Math.abs(span(big) / span(small) - 2) < 1e-5);
+    // `hair: false` is read by the backend; the spec simply does not carry one.
+    assert.equal(humanoidSpec({ hair: null }).hair.thickness, 0.007);
+});
+
+test('teeth hang off the skull and the jaw, and the tongue off the jaw', () => {
+    const spec = humanoidSpec({ height: 1.8 });
+    const byId = new Map(spec.mouth.map((p) => [p.id, p]));
+    assert.deepEqual([...byId.keys()],
+                     ['mouthCavity', 'teethUpper', 'teethLower', 'tongue']);
+    assert.equal(byId.get('teethUpper').bone, 'head');
+    // The cavity is on the SKULL, not the jaw: it is the back of the mouth,
+    // and the back of the mouth does not swing open.
+    assert.equal(byId.get('mouthCavity').bone, 'head');
+    // The lower arch and the tongue MUST be on the jaw, or they do not open
+    // with the lipsync that is already driving jaw/rotation.x -- which is the
+    // whole reason a jaw is a real bone on this rig.
+    assert.equal(byId.get('teethLower').bone, 'jaw');
+    assert.equal(byId.get('tongue').bone, 'jaw');
+
+    // Both arches sit in the mouth, in front of the head bone and below it.
+    const jaw = HUMANOID_BONES.find((b) => b.id === 'jaw').at;
+    const headLocal = (part) => (part.bone === 'jaw'
+        ? part.at.map((v, i) => v + jaw[i]) : [...part.at]);
+    for (const id of ['teethUpper', 'teethLower', 'tongue', 'mouthCavity']) {
+        const p = headLocal(byId.get(id));
+        assert.ok(p[1] < 0, `${id} should be below the head bone, got y=${p[1].toFixed(3)}`);
+        assert.ok(p[1] > -0.06, `${id} should not be in the neck, got y=${p[1].toFixed(3)}`);
+        // In front of the head bone and behind the lip surface, which at
+        // this height is about 95mm forward.
+        assert.ok(p[2] > 0.03 && p[2] < 0.095,
+                  `${id} should be inside the face, got z=${p[2].toFixed(3)}`);
+    }
+    // The upper arch is above the lower one, which is the entire point.
+    assert.ok(headLocal(byId.get('teethUpper'))[1] > headLocal(byId.get('teethLower'))[1]);
+});
+
+test('an arch is an explicit path, so there is nothing to orient wrongly', () => {
+    const upper = humanoidSpec().mouth.find((p) => p.id === 'teethUpper');
+    const path = upper.geometry.path;
+    assert.equal(upper.geometry.kind, 'extrude');
+    assert.ok(path.length > 6, 'enough points for a curve');
+    // Symmetric about x, flat in y, and bowing forward in z: a dental arch.
+    assert.ok(Math.abs(path[0][0] + path[path.length - 1][0]) < 1e-9);
+    assert.ok(path.every(([, y]) => y === 0));
+    const mid = path[(path.length - 1) / 2];
+    assert.ok(mid[2] > path[0][2], 'the middle of the arch is the front of the mouth');
+});
+
+test('the mouth parts scale with the character', () => {
+    const tall = humanoidSpec({ height: 1.8 });
+    const short = humanoidSpec({ height: 0.9 });
+    // The parts table is at full size and the backend scales it; the SPEC
+    // reports the scale so there is one place that knows the factor.
+    assert.equal(tall.scale, 1);
+    assert.equal(short.scale, 0.5);
+    assert.deepEqual(tall.mouth, short.mouth, 'the table itself is scale-free');
+});
+
+test('the skull has a mouth, and the jaw owns its lower rim', () => {
+    const open = buildHead([0, 0, 0], 1, { radial: 28 });
+    const sealed = buildHead([0, 0, 0], 1, { radial: 28, mouth: null });
+    assert.ok(open.indices.length < sealed.indices.length,
+              'teeth sealed inside an opaque shell are not teeth');
+    assert.equal(open.positions.length, sealed.positions.length,
+                 'only triangles are dropped -- the morph targets index the vertices');
+
+    // The jaw has to carry the lower lip, not just the chin: a jaw that owns
+    // the chin alone lengthens the face without opening the mouth, which is
+    // exactly what the first render showed.
+    const w = open.tParam;
+    const yOf = (v) => open.positions[v * 3 + 1];
+    let lowerLip = 0, upperLip = 0, crown = 0;
+    for (let v = 0; v < w.length; v++) {
+        const y = yOf(v);
+        if (Math.abs(y + 0.030) < 1e-6) lowerLip = Math.max(lowerLip, w[v]);
+        if (Math.abs(y + 0.010) < 1e-6) upperLip = Math.max(upperLip, w[v]);
+        if (y > 0.1) crown = Math.max(crown, w[v]);
+    }
+    assert.ok(lowerLip > 0.2, `the lower rim should follow the jaw, got ${lowerLip}`);
+    assert.equal(upperLip, 0, 'the upper lip belongs to the skull');
+    assert.equal(crown, 0, 'and so does the crown');
 });

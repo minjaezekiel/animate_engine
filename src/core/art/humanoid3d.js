@@ -123,6 +123,81 @@ export const OUTFITS = {
     ],
 };
 
+/**
+ * Teeth and a tongue.
+ *
+ * §6 of the character doc: "**Teeth and a tongue** -- the mouth is a dark
+ * cavity. At any real close-up this is obvious." It is also the cheapest
+ * entry on that list to close, because the rig already has the one thing a
+ * mouth interior needs and a sphere does not: a jaw BONE. The lower arch and
+ * the tongue hang off it, so they open with the lipsync that is already
+ * driving `jaw/rotation.x`, with no new channel and no new track.
+ *
+ * Coordinates are in metres at a 1.80 m height, LOCAL to the bone named --
+ * the same convention as `HUMANOID_BONES` -- and the backend scales them.
+ *
+ * The arches are extrusions along an explicit path rather than a rotated
+ * torus arc, because a torus arc has to be rotated into place by two angles
+ * that are easy to get wrong in a way only a render shows: the path IS the
+ * dental arch, written out, so there is nothing to orient.
+ */
+const ARCH = (radius, spread, y) => {
+    const pts = [];
+    const steps = 10;
+    for (let i = 0; i <= steps; i++) {
+        const a = -spread + (2 * spread * i) / steps;
+        pts.push([Math.sin(a) * radius, y, Math.cos(a) * radius]);
+    }
+    return pts;
+};
+
+// A tooth band in cross-section: 8 mm deep front to back, 11 mm tall.
+const TOOTH_SHAPE = [[-0.004, -0.0055], [0.004, -0.0055], [0.004, 0.0055], [-0.004, 0.0055]];
+
+export const MOUTH_PARTS = [
+    {
+        /**
+         * The mouth bag: a dark shell seen from the INSIDE, which is how a
+         * mouth interior is built everywhere.
+         *
+         * A hole in a head is a hole straight through it, because a shell's
+         * interior is backface-culled -- so the aperture needs something
+         * behind it. A solid ball was the first attempt and was worse than
+         * nothing: the jaw rotates the lower teeth 18 mm BACK as it opens
+         * (which is what a real jaw does), so they disappeared inside the
+         * very thing meant to show them off. Rendered back-side, the bag
+         * contains the teeth and the tongue instead of competing with them.
+         */
+        id: 'mouthCavity', bone: 'head', material: 'cavity', side: 'back',
+        at: [0, -0.026, 0.052], scale: [1.25, 0.95, 0.95],
+        geometry: { kind: 'sphere', radius: 0.036, widthSegments: 16, heightSegments: 12 },
+    },
+    {
+        // 10 mm behind the lip surface, which is where teeth are. At 37 mm
+        // -- the first guess -- they read as a second set further back in the
+        // throat, which is worse than none.
+        id: 'teethUpper', bone: 'head', material: 'tooth',
+        at: [0, -0.016, 0.059],
+        geometry: { kind: 'extrude', shape: TOOTH_SHAPE, path: ARCH(0.026, 1.05, 0),
+                    curveSegments: 4, steps: 24 },
+    },
+    {
+        // On the JAW, so it drops with the mouth. Its local y accounts for
+        // the jaw bone sitting 15 mm above and 35 mm in front of the head
+        // bone -- a lower arch placed in head-local coordinates and parented
+        // to the jaw is the classic way to get teeth in the nose.
+        id: 'teethLower', bone: 'jaw', material: 'tooth',
+        at: [0, -0.038, 0.030],
+        geometry: { kind: 'extrude', shape: TOOTH_SHAPE, path: ARCH(0.024, 1.05, 0),
+                    curveSegments: 4, steps: 24 },
+    },
+    {
+        id: 'tongue', bone: 'jaw', material: 'tongue',
+        at: [0, -0.030, 0.028], scale: [1, 0.42, 1.55],
+        geometry: { kind: 'sphere', radius: 0.014, widthSegments: 16, heightSegments: 10 },
+    },
+];
+
 /** Resolve the local bone table into bind-pose world positions. */
 export function bindPose(bones = HUMANOID_BONES) {
     const world = new Map();
@@ -241,14 +316,23 @@ export const VISEME_JAW = {
     teeth: { jaw: 0.05, width: 1.10, round: 0.00 },
 };
 
+/**
+ * Hair, as a shell derived from the skull.
+ *
+ * `false` for no hair at all, which a bald character and a helmet both want.
+ */
+export const HAIR_DEFAULTS = { thickness: 0.007, strands: 9, ripple: 0.4,
+                               crown: 0.129, lift: 1, radial: 32, rings: 7 };
+
 /** The whole rig as one spec, ready for a backend to instantiate. */
-export function humanoidSpec({ outfit = 'suit', height = 1.80 } = {}) {
+export function humanoidSpec({ outfit = 'suit', height = 1.80, hair = null } = {}) {
     const scale = height / 1.80;
     const bones = HUMANOID_BONES.map((b) => ({ ...b, at: b.at.map((v) => v * scale) }));
     const segments = HUMANOID_SEGMENTS.map((s) => ({
         ...s, r0: s.r0 * scale, r1: s.r1 * scale,
     }));
-    return { bones, segments, outfit: OUTFITS[outfit] ?? OUTFITS.suit, scale };
+    return { bones, segments, outfit: OUTFITS[outfit] ?? OUTFITS.suit, scale,
+             mouth: MOUTH_PARTS, hair: { ...HAIR_DEFAULTS, ...(hair ?? {}) } };
 }
 
 /**

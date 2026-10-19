@@ -142,3 +142,121 @@ test('a second move starts where the first left it, not at rest', () => {
     assert.equal(trackValueAt(x, 3), 5);       // held at the first move's end
     assert.equal(trackValueAt(x, 4), 9);
 });
+
+// ------------------------------- targets, constraints, cloth and fluid
+
+const eye = (id, x) => ({ id, parent: 'head', material: 'steel',
+                          geometry: { kind: 'sphere', radius: 0.014 },
+                          at: [x, 0.0465, 0.0735] });
+
+const rigged = {
+    materials: { steel: { color: '#444' }, skin: { color: '#e8c9a8', physical: true, sheen: 0.4 },
+                 cape: { color: '#7a1f28' }, jacket: { color: '#2b303a' },
+                 shirt: { color: '#e9edf2' }, trouser: { color: '#2b303a' },
+                 shoe: { color: '#15171b' } },
+    characters: {
+        host: {
+            rig: 'humanoid', height: 1.82, skin: 'skin',
+            parts: [eye('eyeL', 0.033), eye('eyeR', -0.033)],
+            constraints: [
+                { type: 'lookAt', source: 'eyeL', target: 'gaze', limit: { y: [-32, 32] } },
+                { type: 'lookAt', source: 'eyeR', target: 'gaze', limit: { y: [-32, 32] } },
+                { type: 'lookAt', source: 'head', target: 'gaze', weight: 0.3 },
+                { type: 'ik', chain: 'armL', target: 'hand', pole: [0, 0, -1] },
+            ],
+        },
+    },
+    targets: { gaze: [0, 1.6, 2], hand: { at: [0.4, 1.3, 0.3] } },
+    cloth: { cape: { pinTo: 'p/chest', cols: 8, rows: 10, material: 'cape',
+                     colliders: [{ node: 'p/hips', r: 0.2 }] } },
+    fluids: { steam: { n: 16, at: [1, 1, 0], sources: [{ x: 0.5, y: 0.1, at: 0.5, for: 2 }] } },
+    cast: [{ character: 'host', as: 'p' }],
+    scenes: [{ shots: [{ duration: 2, actions: [{ do: 'move', target: 'gaze', to: [0.4, 1.6, 2], for: 1 }] }] }],
+};
+
+test('a target is a node, so `move` animates it and a constraint reads it', () => {
+    const c = compileFilm3D(rigged);
+    assert.deepEqual(c.diagnostics, []);
+    assert.equal(c.scene.get('gaze').kind, 'target');
+    assert.deepEqual(c.scene.get('hand').props.at, [0.4, 1.3, 0.3]);
+    // This is the whole authoring surface for gaze and IK: no new verb.
+    const x = c.timeline.tracks.find((t) => t.target === 'gaze' && t.path === 'position.x');
+    assert.equal(trackValueAt(x, 0), 0);
+    assert.ok(Math.abs(trackValueAt(x, 1) - 0.4) < 1e-9);
+});
+
+test('a bare constraint name is scoped to the character only if it has one', () => {
+    const c = compileFilm3D(rigged);
+    const look = c.constraints.filter((k) => k.type === 'lookAt');
+    assert.deepEqual(look.map((k) => k.source), ['p/eyeL', 'p/eyeR', 'p/head']);
+    // `gaze` is a global target and must NOT become `p/gaze`: prefixing
+    // blindly made every lookAt point at a node that does not exist.
+    assert.ok(look.every((k) => k.target === 'gaze'));
+    assert.equal(c.constraints.find((k) => k.type === 'ik').chain, 'p/armL');
+    assert.equal(c.constraints.find((k) => k.type === 'ik').target, 'hand');
+});
+
+test('correctives are on by default and can be switched off', () => {
+    const on = compileFilm3D(rigged).constraints.filter((k) => k.type === 'driven');
+    assert.equal(on.length, 4, 'two elbows and two knees');
+    assert.ok(on.every((k) => k.input.target.startsWith('p/')));
+
+    const off = compileFilm3D({
+        ...rigged,
+        characters: { host: { ...rigged.characters.host, correctives: false } },
+    }).constraints.filter((k) => k.type === 'driven');
+    assert.equal(off.length, 0);
+});
+
+test('cloth and fluid compile to nodes, with their references checked', () => {
+    const c = compileFilm3D(rigged);
+    const cape = c.scene.get('cape');
+    assert.equal(cape.kind, 'cloth');
+    assert.equal(cape.props.pinTo, 'p/chest');
+    assert.equal(cape.props.colliders[0].node, 'p/hips');
+    assert.deepEqual(cape.props.gravity, [0, -9.81, 0]);
+    assert.equal(c.scene.get('steam').kind, 'fluid');
+    assert.equal(c.scene.get('steam').props.sources.length, 1);
+
+    const bad = compileFilm3D({
+        ...rigged,
+        cloth: { cape: { pinTo: 'nobody', colliders: [{ node: 'also-nobody', r: 1 }] } },
+        fluids: { steam: { n: 16 } },
+    }).diagnostics.map((d) => d.message);
+    assert.ok(bad.some((m) => m.includes("'nobody'")));
+    assert.ok(bad.some((m) => m.includes('also-nobody')));
+    assert.ok(bad.some((m) => m.includes('no sources')), 'a fluid with no source renders nothing');
+});
+
+test('a character gets teeth, a tongue and hair without naming them', () => {
+    const p = compileFilm3D(rigged).scene.get('p').props;
+    assert.equal(p.mouth, true);
+    assert.equal(p.hair, null, 'null means "generate one with the default material"');
+    const bald = compileFilm3D({
+        ...rigged,
+        characters: { host: { ...rigged.characters.host, hair: false, mouth: false } },
+    }).scene.get('p').props;
+    assert.equal(bald.hair, false);
+    assert.equal(bald.mouth, false);
+});
+
+test('meta.post compiles and meta.bloom keeps working', () => {
+    const graded = compileFilm3D({ ...rigged,
+        meta: { post: { grade: { vignette: 0.3 }, bloom: { strength: 1.2 } } } });
+    assert.deepEqual(graded.meta.post.map((p) => p.kind), ['bloom', 'grade']);
+    const legacy = compileFilm3D({ ...rigged, meta: { bloom: { strength: 0.6 } } });
+    assert.deepEqual(legacy.meta.post.map((p) => p.kind), ['bloom']);
+    assert.equal(legacy.meta.post[0].strength, 0.6);
+    assert.deepEqual(compileFilm3D(rigged).meta.post, [], 'no post declared, no passes');
+});
+
+test('an unresolvable constraint warns and never reaches the backend', () => {
+    const c = compileFilm3D({
+        ...rigged,
+        constraints: [{ type: 'lookAt', source: 'p/head', target: 'missing' },
+                      { type: 'copyRotation', source: 'p/shoulderR', from: 'p/shoulderL', axes: 'z' }],
+    });
+    assert.ok(c.diagnostics.some((d) => d.message.includes('missing')));
+    assert.equal(c.constraints.filter((k) => k.type === 'copyRotation').length, 1);
+    assert.ok(!c.constraints.some((k) => k.target === 'missing'));
+});

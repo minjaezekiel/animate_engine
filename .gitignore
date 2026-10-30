@@ -6,3 +6,5 @@ demo/out
 demo/assets/*.wav
 demo/out/
 .mutation-audit.lock
+out/
+*.mp4

@@ -28,7 +28,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:e2e": "node test/e2e/render-film.mjs",
     "test:av": "node test/e2e/render-av.mjs",
-    "test:all": "npm test && npm run audit:deps && npm run test:e2e && npm run test:av && npm run test:studio && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle",
+    "test:all": "npm test && npm run audit:deps && npm run test:e2e && npm run test:av && npm run test:av:mp4 && npm run test:studio && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle",
     "produce": "node scripts/produce.mjs",
     "icons": "node scripts/make-icons.mjs",
     "serve": "node scripts/serve.mjs",
@@ -69,7 +69,8 @@
     "test:hands": "node --test test/core/hands.test.mjs",
     "make:fixtures": "node scripts/make-fixtures.mjs",
     "test:trace": "node --test test/core/trace.test.mjs",
-    "test:import": "node --test test/core/import3d.test.mjs"
+    "test:import": "node --test test/core/import3d.test.mjs",
+    "test:av:mp4": "FORMAT=mp4 node test/e2e/render-av.mjs"
   },
   "keywords": [
     "animation",

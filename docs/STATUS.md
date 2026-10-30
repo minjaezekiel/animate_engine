@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-19 (Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
+Last updated: 2026-10-30 (Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
 
 Legend: **done** · *partial* · — not started
 
@@ -241,6 +241,125 @@ which is what turned "over budget" into "the backdrop is 100% of it").
 
 ---
 
+---
+
+## Phase 28 — a resolution is a resolution — **done**
+
+Found by watching a finished MP4, which is the only way it could have been
+found.
+
+**Rendering a 2D film at any size but the authored one CROPPED it.**
+`Canvas2DBackend.viewMatrix` re-centred the camera on the *output* size and
+never scaled by the ratio to the authored frame, so a 1280x720 film rendered
+at 640x360 was a 640x360 **window onto the middle of the picture**, at 1:1
+pixels. A character walking in from the left simply was not in the frame until
+they reached the middle; the aspect looked wrong because the visible rectangle
+was not the composed one.
+
+Nothing caught it, and three things actively assumed the opposite:
+
+- `docs/04-RENDER-EXPORT.md`: *"vector art is resolution-independent, so
+  raising it is a config change, not a rebuild"* — and the whole fallback
+  resolution ladder, 1280x720 → 960x540 → 1280x720@15 → 640x360.
+- `WIDTH=`/`HEIGHT=` on `scripts/produce.mjs`, and `width`/`height` on
+  `FilmStudio.render`.
+- `test/e2e/render-film.mjs`, which renders the full 2880 frames at **160x90**
+  as a proxy — *"same code path, 1/72 the pixels"*. It was not the same image.
+  It had been sampling a 160x90 window onto the centre of the demo film for
+  as long as it has existed, and its camera-liveness and digest checks were
+  reading that window.
+
+| Area | State | Notes |
+|---|---|---|
+| The camera carries its authored frame | **done** | `compile.js` puts `frameWidth`/`frameHeight` on the camera node. The backend is the only thing that knows the output size, and without this it cannot tell a large film rendered small from a small film rendered true. |
+| `frameMatrix` fits authored → output | **done** | Uniform `min` of the two ratios, so a mismatched aspect **letterboxes rather than stretching anybody**, and the content is centred. |
+| Screen-space nodes scale too | **done** | Subtitles, the background wash and the transition overlay skip the camera but are still authored in frame coordinates. A subtitle at `height - margin` otherwise sat off the bottom of every non-authored render. |
+| No declared frame → unchanged | **done** | Hand-built scenes, the legacy path and existing tests get `fit = 1` and byte-identical behaviour. |
+| `WIDTH=`/`HEIGHT=` on `grab2d` | **done** | There was no way to *look* at a non-authored render. Now there is, which is how this was confirmed fixed. |
+| Tests | **done** | 7 in `test/core/resolution.test.mjs`, asserted on the **draw-call stream**: frame centre lands at output centre at 1280x720, 640x360, 1920x1080 and 160x90; a corner stays a corner instead of being cropped away; scale is uniform; a 9:16 film in a 16:9 output letterboxes; an undeclared frame is unchanged; subtitles scale. |
+
+### Not done
+
+- **Letterbox bars are not drawn.** A mismatched aspect leaves the canvas
+  clear outside the fitted rect, which reads as the page behind it. Nobody
+  needs it yet: every output so far matches its film's aspect.
+
+---
+
+## Phase 27 — MP4 export — **done**
+
+The seam had been there since Phase 0 and nothing ever filled it.
+`WebCodecsSink` could already negotiate `avc1.*` and AAC, pace nothing, apply
+back-pressure and pre-encode audio — but `available()` returns false without a
+`muxerFactory`, and **no caller in the repository had ever passed one**: not
+`studio.js`, not `film.html`, not `scripts/produce.mjs`, not `mcp/server.js`.
+So every render in the history of this repo took the paced MediaRecorder rung,
+while `18-EDITOR-ARCHITECTURE.md` recorded MP4 as done. That line was wrong and
+is now true.
+
+| Area | State | Notes |
+|---|---|---|
+| `render/mux/boxes.js` | **done** | ISO-BMFF primitives: big-endian ints, 16.16 fixed point, `box`/`fullBox`, MPEG-4 descriptors with 7-bit continuation lengths. Hand-rolled, like `io/png.js` and `io/zip.js` — **no dependency, works offline.** |
+| `render/mux/Mp4Muxer.js` | **done** | Progressive MP4. `avc1`+`avcC` from the encoder's own `decoderConfig`, `mp4a`+`esds`, and `stts`/`stsz`/`stsc`/`stco`/`stss` derived from the chunk timestamps rather than assumed from the frame rate. |
+| **`moov` before `mdat`** (faststart) | **done** | Two layout passes: the chunk offsets depend on the size of the `moov` that holds them, and converge because every offset field is fixed width. A test asserts the file does not change size between passes. |
+| `co64` promotion | **done** | Decided before layout, not during — promoting mid-pass would change `moov`'s size and the passes would never converge. |
+| `ctts` when frames are reordered | **done** | Chrome's AVC encoder emits none today (measured), but writing nothing when it does would shuffle the film, so reordering is detected rather than assumed. |
+| Default muxer in the ladder | **done** | `studio.js` installs `mp4MuxerFactory` unless a caller injects its own. `format: 'mp4' \| 'webm' \| 'auto'`. |
+| Container-aware codec choice | **done** | `pickCodec` used to be willing to return `vp09` for an MP4 — legal in the box, undecodable on most phones. It is now filtered by container. |
+| `format: 'mp4'` fails loudly | **done** | Asking for MP4 on a browser that cannot encode H.264 throws, rather than quietly handing back WebM with an MP4's expectations attached. |
+| Surfaces | **done** | `FORMAT=` on `scripts/produce.mjs`, `format` on the MCP `render_film` tool, a format control in `film.html`. All three correct the file extension to what was *actually* encoded. |
+| `produce.mjs` chunked readback | **done** | It was returning `data: [...bytes]` — every byte as a JSON number across the CDP boundary. Replaced with the same 4 MiB base64 pull `readFilmChunk` uses, and the readback length is asserted against the blob size. |
+| `PngSequenceSink` exported | **done** | Implemented and tested since Phase 18 but missing from the export block, so no caller could reach it. |
+| Tests | **done** | 27 in `test/core/mp4.test.mjs`, all by **parsing the bytes back** — box nesting, brands, sample counts, `stts` summing to the exact duration, `stco` offsets walked against `stsz`/`stsc` to confirm every chunk lands on a real sample boundary, `stss` key frames, the edit list, and byte-identical output across two muxings. `npm run test:av:mp4` proves it end to end and is in `test:all`. |
+
+### Measured
+
+| | |
+|---|---|
+| 23.2 s film at 640×360 | **5.2 s wall** — 4.5× faster than real time, against 1× paced |
+| Reported duration | **23.208 s** against 23.208 s derived — exact |
+| Sync click, MP4 | **0.000 s** (0.007 s on the paced WebM path) |
+| 557-frame video track | 557000/24000 ticks — one `stts` entry, no drift |
+| `avcC` from Chrome | 46 bytes |
+
+### The defect this phase found, which only the sync probe could see
+
+**AAC encoders prepend priming, and WebCodecs does not report how much.**
+Measured on Chrome 156: **2112 samples, 44.0 ms at 48 kHz.** With the container
+silent about it, the sync probe found the click at **0.044 s** — audio a full
+frame late at 24 fps — and the test still passed, because its threshold was
+0.15 s. Both halves of that are now fixed:
+
+- `render/mux/aacPriming.js` **measures** the lead-in with one 40-frame
+  encode/decode round trip, cached per configuration. It is measured rather
+  than hard-coded because the number belongs to the encoder: a different
+  Chrome, codec or platform may prime differently, and a stale constant would
+  silently desynchronise every film. If it cannot be measured it returns 0 and
+  no edit list is written — late audio beats no render.
+- The muxer declares it as an `edts`/`elst` edit list on the audio track, which
+  is the only place MP4 can say "start this many samples in". Click moved to
+  **0.000 s**.
+- The probe's threshold is now **0.02 s**, half a frame, so this cannot come
+  back unnoticed.
+
+A second, smaller disagreement came out of the same measurement: AAC rounds up
+to whole 1024-sample frames and the encoder flushes a few more, so the audio
+track ran 23.2747 s against the picture's 23.2083 s and the *file* claimed the
+longer number. **The picture sets the length of the film** — a film that
+disagrees with its own derived duration breaks the one invariant this format
+has — so the audio edit is clamped to the video.
+
+### Not done
+
+- **Fragmented MP4 (DASH/HLS).** Not needed for file delivery; the sample
+  tables would become `moof`/`traf` per fragment.
+- **B-frame reordering is handled but untested against a real encoder**, because
+  Chrome does not currently produce any. The `ctts` path is unit-tested with
+  synthetic reordered input only.
+- **No MP4 *demuxing*.** This writes files; it does not read them.
+
+---
+
 ## Phase 0 — 2D film pipeline — **done**
 
 | Area | State | Notes |
@@ -256,7 +375,7 @@ which is what turned "over budget" into "the backdrop is 100% of it").
 | `core/script/screenplay` — text → film | **done** | Scene headings, speakers, parentheticals, action, continuation lines; grow-only retiming. |
 | `backends/canvas2d` | **done** | Synchronous `renderFrame`; gradients; scenery; screen-space nodes; `RecordingContext` for Node tests. |
 | `render/OfflineRenderer` + preflight | **done** | One loop; 2,880 frames in ~75 ms in Node against a null backend. |
-| `render/sinks` — MediaRecorder (paced), WebCodecs, Memory | **done** | Paced sink measured correct; WebCodecs takes an injected muxer. |
+| `render/sinks` — MediaRecorder (paced), WebCodecs, Memory, PngSequence | **done** | Paced sink measured correct; WebCodecs now has a muxer (Phase 27) and is the default. |
 | `audio/OfflineMixer` + wav | **done** | `OfflineAudioContext`, per-bus gain, fades, forced 48 kHz. |
 | `studio.js` — orchestration | **done** | compile → voice → retime → mix → lipsync → render → encode. |
 | `film.html` — studio UI | **done** | Load/author/cast/record/render/save; `window.jirex` for agents. |
@@ -314,13 +433,15 @@ The file is not committed — it is gitignored and reproducible from source.
   any other host page must supply it or TTS silently reports unavailable.
 - **Voice models are 20–60 MB each** and download on first use. They cache in
   OPFS, so a fresh browser profile pays the cost again.
-- **A paced render takes as long as the film** and needs the tab visible. The
-  WebCodecs path removes both constraints but needs a muxer wired in.
+- ~~**A paced render takes as long as the film** and needs the tab visible.~~
+  Still true of the WebM path, but MP4 via WebCodecs is now the default and has
+  neither constraint — see Phase 27.
 - **A MediaRecorder WebM carries no Cues index, so it is not seekable.**
   Playback is fine and the duration is right, but `currentTime = t` silently
   does not move — a player scrubs badly, and anything verifying the file has to
-  play it through rather than seek it. The WebCodecs path writes proper cues;
-  this is the strongest practical argument for wiring a muxer in.
+  play it through rather than seek it. This was the strongest practical argument
+  for wiring a muxer in, and Phase 27 did: an MP4's sample tables are an index by
+  construction, so the default output is seekable.
 - **A finished film cannot be returned as a data URL.** Several megabytes of
   string do not survive the trip out of the page: it arrives truncated, with no
   error, and writes a file of a few bytes. `renderFilm` keeps the blob and

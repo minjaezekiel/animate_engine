@@ -584,6 +584,9 @@
                         const out = await studio.produce(film, {
                             canvas,
                             width: a.width, height: a.height, fps: a.fps,
+                            // 'auto' prefers MP4 and falls back to WebM; the
+                            // reported `type` says which was produced.
+                            format: a.format ?? 'auto',
                             onProgress: (p) => { if (this.onFilmProgress) this.onFilmProgress(p); },
                         });
                         // The blob stays here. A finished film is megabytes,

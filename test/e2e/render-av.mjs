@@ -19,6 +19,13 @@ const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const ROOT = new URL('../..', import.meta.url).pathname;
 const DURATION = Number(process.env.AV_SECONDS ?? 8);
+/**
+ * Which encoder to prove. 'webm' is the zero-dependency paced path; 'mp4' is
+ * WebCodecs with the built-in muxer. Both are shipping paths, so both have to
+ * pass this probe -- an MP4 whose audio is a frame late is exactly the defect
+ * this test exists to catch, and no other check would see it.
+ */
+const FORMAT = process.env.FORMAT ?? 'webm';
 
 const TYPES = {
     '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -73,7 +80,7 @@ async function onPage(fn) {
     }
 }
 
-const result = await onPage(() => page.evaluate(async (origin, durationSec) => {
+const result = await onPage(() => page.evaluate(async (origin, durationSec, format) => {
     const out = { log: [] };
     const { FilmStudio } = await import(`${origin}/src/studio.js`);
     const studio = new FilmStudio({ onLog: (m) => out.log.push(m) });
@@ -179,7 +186,9 @@ const result = await onPage(() => page.evaluate(async (origin, durationSec) => {
     const t0 = performance.now();
     const res = await studio.render(prepared, {
         canvas, width: 320, height: 180, fps: 24,
-        preferWebCodecs: false,          // exercise the zero-dependency path
+        format,
+        // 'webm' here means the zero-dependency paced path, deliberately.
+        preferWebCodecs: format !== 'webm',
     });
     out.renderWallSec = +((performance.now() - t0) / 1000).toFixed(2);
     out.sink = res.sink;
@@ -231,7 +240,7 @@ const result = await onPage(() => page.evaluate(async (origin, durationSec) => {
     const buf = await res.blob.arrayBuffer();
     out.bytes = [...new Uint8Array(buf.slice(0, 0))];   // keep the payload small
     return out;
-}, base, DURATION));
+}, base, DURATION, FORMAT));
 
 console.log(JSON.stringify(result, (k, v) => (k === 'log' || k === 'bytes' ? undefined : v), 2));
 console.log('\nstudio log:');
@@ -258,13 +267,18 @@ else if (Math.abs(result.video.duration - want) > 0.25) {
 }
 if (result.decodedAudio?.error) fail.push(`audio did not survive muxing: ${result.decodedAudio.error}`);
 else if (result.decodedAudio.clickSample < 0) fail.push('sync click not found in the encoded audio');
-else if (result.decodedAudio.clickSec > 0.15) {
-    fail.push(`sync click at ${result.decodedAudio.clickSec}s, expected ~0s -- A/V drift`);
+else if (result.decodedAudio.clickSec > 0.02) {
+    // Was 0.15, which was loose enough to pass an MP4 whose audio arrived
+    // 0.044s late from AAC encoder priming. Measured: 0.007s on the paced
+    // WebM path, 0.000s on MP4 once the edit list declares the lead-in.
+    // One frame at 24 fps is 0.042s, so the budget here is half a frame.
+    fail.push(`sync click at ${result.decodedAudio.clickSec}s, expected <0.02s -- A/V drift`);
 }
 
 if (fail.length) {
     console.error('\nFAILED:\n - ' + fail.join('\n - '));
     process.exit(1);
 }
-console.log(`\nPASS: ${want}s film, audio muxed, lipsync keyed, click at `
-    + `${result.decodedAudio.clickSec}s, duration ${result.video.duration}s.`);
+console.log(`\nPASS: ${want}s film as ${result.blob.type} via ${result.sink}, audio muxed, `
+    + `lipsync keyed, click at ${result.decodedAudio.clickSec}s, `
+    + `duration ${result.video.duration}s.`);

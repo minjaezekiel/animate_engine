@@ -64,6 +64,32 @@ export class Canvas2DBackend {
     sync() { return this; }
 
     /**
+     * Fit the authored frame into the output, preserving aspect.
+     *
+     * **This is what makes a resolution a resolution.** The camera carries the
+     * size the film was authored at; without scaling by the ratio, rendering a
+     * 1280x720 film at 640x360 showed a 640x360 WINDOW onto the middle of it
+     * -- a crop, at 1:1 pixels. Characters walked in and out of a frame that
+     * was not the frame, and the only clue was that it looked wrong. The
+     * resolution ladder in `docs/04-RENDER-EXPORT.md` and the `WIDTH=`/
+     * `HEIGHT=` options on `scripts/produce.mjs` all assumed this scaling
+     * existed.
+     *
+     * `min` of the two ratios, so a mismatched aspect letterboxes rather than
+     * stretching anybody.
+     */
+    frameMatrix(scene, cameraId) {
+        const cam = cameraId ? scene.get(cameraId) : null;
+        const fw = cam?.props?.frameWidth;
+        const fh = cam?.props?.frameHeight;
+        // No declared frame (a hand-built scene, a test, the legacy path):
+        // behave exactly as before.
+        if (!fw || !fh) return { fit: 1, dx: 0, dy: 0 };
+        const fit = Math.min(this.width / fw, this.height / fh);
+        return { fit, dx: (this.width - fw * fit) / 2, dy: (this.height - fh * fit) / 2 };
+    }
+
+    /**
      * Camera as an inverse transform. A 2D camera is not a new concept: it is
      * the view matrix, built so that the camera's position sits at the centre
      * of the frame and `zoom` scales about that centre.
@@ -79,8 +105,15 @@ export class Canvas2DBackend {
             sx: 1 / zoom, sy: 1 / zoom,
         });
         const view = invert(world) ?? identity();
-        // re-centre: world point under the camera lands mid-frame
-        return multiply(fromTransform({ x: this.width / 2, y: this.height / 2 }), view);
+        const { fit, dx, dy } = this.frameMatrix(scene, cameraId);
+        const fw = cam.props.frameWidth ?? this.width;
+        const fh = cam.props.frameHeight ?? this.height;
+        // Re-centre so the world point under the camera lands mid-frame, then
+        // scale the authored frame to the output.
+        return multiply(
+            multiply(fromTransform({ x: dx, y: dy, sx: fit, sy: fit }),
+                     fromTransform({ x: fw / 2, y: fh / 2 })),
+            view);
     }
 
     renderFrame(scene, cameraId) {
@@ -91,14 +124,23 @@ export class Canvas2DBackend {
         ctx.clearRect(0, 0, this.width, this.height);
 
         const view = this.viewMatrix(scene, cameraId);
+        // Screen-space nodes skip the camera but are still authored in frame
+        // coordinates, so they take the fit on its own. A subtitle placed at
+        // `height - margin` would otherwise sit off the bottom of any render
+        // that was not the authored size.
+        const { fit, dx, dy } = this.frameMatrix(scene, cameraId);
+        const screen = fit === 1 && !dx && !dy
+            ? null
+            : fromTransform({ x: dx, y: dy, sx: fit, sy: fit });
 
         for (const { node, alpha } of scene.drawOrder()) {
             if (node.kind === 'camera') continue;
             // A screen-space node (background wash, letterbox, subtitle,
             // transition overlay) ignores the camera so a pan cannot slide it.
+            const world = scene.worldMatrix(node.id);
             const m = node.props.screenSpace
-                ? scene.worldMatrix(node.id)
-                : multiply(view, scene.worldMatrix(node.id));
+                ? (screen ? multiply(screen, world) : world)
+                : multiply(view, world);
             // A repeater draws the same node several times with an
             // accumulating transform -- the motion-graphics primitive behind
             // speed lines, radiating bursts, ladders and rows. One node and

@@ -29,7 +29,7 @@ A standard checklist for building animation software, against this engine.
 | **Hotkey system** | **done** | `editor/keymap.js` — §3 |
 | **Onion skinning** | **done** | `render/onionSkin.js` — §5 |
 | Rigging and bones | **done** | the cutout part tree *is* the rig; `14-CHARACTER-3D.md` for 3D |
-| Export: MP4 / WebM | **done** | `render/sinks/` — WebCodecs, then paced MediaRecorder (`04-RENDER-EXPORT.md`) |
+| Export: MP4 / WebM | **done** | `render/sinks/` + `render/mux/Mp4Muxer.js` — WebCodecs H.264/AAC by default, paced MediaRecorder as the fallback (`04-RENDER-EXPORT.md`). Until Phase 27 this line was aspirational: the muxer seam existed and no caller filled it. |
 | **Export: image sequence** | **done** | `render/sinks/PngSequenceSink.js` + `io/zip.js` — §6 |
 | Export: GIF | **legacy only** | `animateEngine.js` has a tested GIF encoder; not ported to the new sinks — §7 |
 | Export: glTF / FBX | **not built** | §7 |

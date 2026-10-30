@@ -61,13 +61,17 @@ film.json  or  screenplay.txt
         v
   render/OfflineRenderer      one loop, swappable sinks
         |
-        +--> MediaRecorderSink   paced, zero dependency, carries audio
-        +--> WebCodecsSink       exact timestamps, needs an injected muxer
+        +--> WebCodecsSink       the default: exact timestamps, faster than
+        |                        real time, seekable. Muxed by render/mux/
+        +--> MediaRecorderSink   paced fallback, zero dependency, carries audio
         +--> MemorySink          for tests, runs in Node
         +--> PngSequenceSink     lossless frames in a zip, no codec needed
         |
         v
-  .webm / .mp4
+  render/mux/Mp4Muxer        ISO-BMFF, no dependency, faststart
+        |
+        v
+  .mp4 (default) / .webm
 ```
 
 `src/studio.js` is the browser entry point that wires it together, and

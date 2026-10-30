@@ -53,6 +53,9 @@ export function compileFilm(film, { assets = {} } = {}) {
         // Frames per drawing for the cast: 2 is the anime standard, 1 is
         // every frame. A shot may override it.
         step: film.meta?.step ?? 0,
+        // Carried through because `buildSubtitleNode` needs it; `meta` is
+        // rebuilt key by key here, so anything not listed is dropped.
+        ...(film.meta?.subtitleStyle ? { subtitleStyle: film.meta.subtitleStyle } : {}),
         version: FILM_VERSION,
     };
 
@@ -73,7 +76,12 @@ export function compileFilm(film, { assets = {} } = {}) {
     scene.add({
         id: cameraId, kind: 'camera',
         transform: { x: meta.width / 2, y: meta.height / 2 },
-        props: { zoom: 1 },
+        // The authored frame travels WITH the camera, because the backend is
+        // the only thing that knows the output size and it cannot otherwise
+        // tell a 1080x1920 film rendered small from a 540x960 film rendered
+        // true. Without it, rendering at any size but the authored one
+        // CROPPED the film instead of scaling it.
+        props: { zoom: 1, frameWidth: meta.width, frameHeight: meta.height },
     });
 
     const palettes = film.palettes ?? {};
@@ -1571,13 +1579,20 @@ function planScenes(film) {
 
 /** One reusable screen-space text node; dialogue writes its string channel. */
 function buildSubtitleNode({ scene, meta }) {
-    const st = DEFAULTS.subtitleStyle;
+    // `meta.subtitleStyle` overrides the defaults. The schema has advertised
+    // a per-shot `subtitleStyle` for a while and nothing ever read one, so a
+    // 1080x1920 film put its subtitles at `1920 - 64` -- inside the phone UI
+    // rail, with no way to move them.
+    const st = { ...DEFAULTS.subtitleStyle, ...(meta.subtitleStyle ?? {}) };
     scene.add({
         id: '__subtitle', kind: 'text',
         transform: { x: meta.width / 2, y: meta.height - st.bottomMargin },
         props: {
             text: '', font: st.font, fill: st.fill,
             stroke: st.stroke, strokeWidth: st.strokeWidth,
+            // Wrap inside the frame by default, with a margin either side.
+            maxWidth: st.maxWidth ?? Math.round(meta.width * 0.88),
+            ...(st.lineHeight ? { lineHeight: st.lineHeight } : {}),
             align: 'center', baseline: 'alphabetic', screenSpace: true,
         },
         z: 9000,

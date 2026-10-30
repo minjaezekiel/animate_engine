@@ -31,7 +31,11 @@ export const DEFAULTS = {
 export const KNOWN = {
     root: ['version', 'meta', 'voices', 'assets', 'palettes', 'characters', 'scenes'],
     meta: ['title', 'fps', 'width', 'height', 'author', 'description', 'duration',
-           'estimatedTiming', 'step'],
+           'estimatedTiming', 'step',
+           // Film-level subtitle styling, merged over DEFAULTS.subtitleStyle.
+           // A 9:16 film needs a different bottom margin and a bigger face
+           // than a 16:9 one, and there was no way to say so.
+           'subtitleStyle'],
     character: ['palette', 'voice', 'parts', 'mouth', 'poses', 'actions', 'proportions',
                 'generate', 'view', 'expression', 'role'],
     generate: ['skin', 'cloth', 'trouser', 'hair', 'hairColor', 'eye', 'white', 'shoe',
@@ -45,6 +49,12 @@ export const KNOWN = {
     template: ['template', 'time', 'props'],
     part: ['id', 'parent', 'pivot', 'shape', 'shapes', 'swap', 'fill', 'stroke',
            'strokeWidth', 'z', 'at', 'alpha',
+           // stroke ends and corners: `shapes.js` has always read these, and
+           // defaults both to 'round'. A wide band drawn as a stroke needs
+           // 'butt' or it bulges past the ends of its own path.
+           'lineCap', 'lineJoin',
+           // text that must stay inside the frame
+           'maxWidth', 'lineHeight',
            // draw-level: compositing, glow, trimmed strokes, repeaters
            'blend', 'glow', 'trim', 'repeat', 'gradient'],
     scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
@@ -78,6 +88,7 @@ export const ASSET_KINDS = ['image', 'audio'];
 
 export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidth', 'z',
                              'alpha', 'parallax', 'gradient', 'screenSpace', 'sx', 'sy', 'rot',
+                             'lineCap', 'lineJoin', 'maxWidth', 'lineHeight',
                              'blend', 'glow', 'trim', 'repeat'];
 
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];

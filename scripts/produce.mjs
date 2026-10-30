@@ -8,7 +8,7 @@
 import puppeteer from 'puppeteer-core';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { dirname, extname, join, normalize } from 'node:path';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -19,6 +19,8 @@ const WIDTH = Number(process.env.WIDTH ?? 1280);
 const HEIGHT = Number(process.env.HEIGHT ?? 720);
 const FPS = Number(process.env.FPS ?? 24);
 const USE_TTS = process.env.NO_TTS !== '1';
+/** 'mp4' | 'webm' | 'auto'. 'auto' prefers MP4 and says which it got. */
+const FORMAT = process.env.FORMAT ?? 'auto';
 
 const TYPES = {
     '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -114,7 +116,7 @@ const result = await page.evaluate(async (origin, cfg) => {
     const t0 = performance.now();
     let last = 0;
     const res = await studio.render(prepared, {
-        canvas, width: cfg.width, height: cfg.height, fps: cfg.fps,
+        canvas, width: cfg.width, height: cfg.height, fps: cfg.fps, format: cfg.format,
         onProgress: (p) => {
             if (p.stage !== 'render') return;
             const pct = Math.floor((p.frame / p.total) * 100);
@@ -125,7 +127,12 @@ const result = await page.evaluate(async (origin, cfg) => {
         },
     });
 
-    const bytes = new Uint8Array(await res.blob.arrayBuffer());
+    // Parked on the page and pulled out in chunks below. A multi-megabyte
+    // data URL or byte array crosses the CDP boundary TRUNCATED WITH NO
+    // ERROR, which writes a short file that looks like a successful render
+    // until you open it. See docs/02-FILM-SCRIPT.md on `readFilmChunk`.
+    window.__film = new Uint8Array(await res.blob.arrayBuffer());
+    const bytes = window.__film;
     // Read the result back to confirm what was actually produced.
     const url = URL.createObjectURL(res.blob);
     const v = document.createElement('video');
@@ -159,15 +166,37 @@ const result = await page.evaluate(async (origin, cfg) => {
         size: bytes.length,
         probe,
         wallSec: +((performance.now() - t0) / 1000).toFixed(1),
-        data: [...bytes],
     };
-}, base, { film: FILM, width: WIDTH, height: HEIGHT, fps: FPS, useTts: USE_TTS });
+}, base, { film: FILM, width: WIDTH, height: HEIGHT, fps: FPS, useTts: USE_TTS,
+           format: FORMAT });
 
-await mkdir(join(ROOT, 'demo/out'), { recursive: true });
-await writeFile(join(ROOT, OUT), Buffer.from(result.data));
-const { data, ...summary } = result;
-console.log('\n' + JSON.stringify(summary, null, 2));
-console.log(`\nwrote ${OUT} (${(result.size / 1e6).toFixed(2)} MB)`);
+// The extension follows what was actually encoded, not what was asked for.
+const ext = result.type.includes('mp4') ? '.mp4' : '.webm';
+const out = OUT.replace(/\.(mp4|webm)$/i, '') + ext;
+if (out !== OUT) console.log(`note: encoded ${result.type}, writing ${out}`);
+
+await mkdir(dirname(join(ROOT, out)), { recursive: true });
+const CHUNK = 4 * 1024 * 1024;
+const parts = [];
+for (let offset = 0; offset < result.size; offset += CHUNK) {
+    const b64 = await page.evaluate((from, length) => {
+        const slice = window.__film.subarray(from, from + length);
+        let s = '';
+        // In 32k runs: String.fromCharCode(...a_million_args) overflows the stack.
+        for (let i = 0; i < slice.length; i += 0x8000) {
+            s += String.fromCharCode(...slice.subarray(i, i + 0x8000));
+        }
+        return btoa(s);
+    }, offset, CHUNK);
+    parts.push(Buffer.from(b64, 'base64'));
+}
+const file = Buffer.concat(parts);
+if (file.length !== result.size) {
+    throw new Error(`readback is short: got ${file.length} of ${result.size} bytes`);
+}
+await writeFile(join(ROOT, out), file);
+console.log('\n' + JSON.stringify(result, null, 2));
+console.log(`\nwrote ${out} (${(file.length / 1e6).toFixed(2)} MB)`);
 
 await browser.close();
 server.close();

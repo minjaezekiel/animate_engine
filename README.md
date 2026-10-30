@@ -72,9 +72,11 @@ MIT licensed — see [LICENSE](LICENSE).
   patches rather than whole-document snapshots, platform-correct hotkeys as
   a rebindable table, and onion skinning rendered by the real renderer with
   past and future tinted apart.
-- **Video out** with audio muxed, as WebM today — no dependencies at all on
-  the 2D path. Or a lossless PNG sequence in a zip, which needs no codec at
-  all and is what a compositor wants.
+- **Video out** with audio muxed, as **MP4 (H.264/AAC) by default** through an
+  ISO-BMFF muxer written into the engine — no dependency, works offline, and
+  faster than real time because WebCodecs carries real timestamps. WebM via
+  paced MediaRecorder is the fallback. Or a lossless PNG sequence in a zip,
+  which needs no codec at all and is what a compositor wants.
 - **A headless agent surface.** 21 MCP tools generated from one op table,
   running in Node: an agent paints, animates a photograph, writes a PNG and
   then *looks at what it made*, with no browser in the loop.
@@ -117,7 +119,9 @@ in between.
 To render the demo to a file from the command line:
 
 ```bash
-npm run produce      # -> demo/out/the-keeper.webm
+npm run produce                                   # -> demo/out/the-keeper.mp4
+FORMAT=webm npm run produce                       # the zero-dependency path
+FORMAT=mp4 WIDTH=1080 HEIGHT=1920 FILM=my.json OUT=out/my.mp4 npm run produce
 ```
 
 ## Driving it from code
@@ -205,10 +209,11 @@ Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
   leaning or breathing has moved the shoulder out from under the solve.
   Measured at 2.3 px on the demo film.
 - **A paced export takes as long as the film** and needs the tab visible,
-  because MediaRecorder timestamps frames by wall clock. The WebCodecs path
-  removes both limits but needs a muxer wired in.
+  because MediaRecorder timestamps frames by wall clock. This is now only the
+  *fallback* path: MP4 via WebCodecs has neither limit.
 - **Voice models are 20–60 MB** and download on first use.
-- **MP4 needs a muxer**; WebM works with no dependencies.
+- **MP4 needs H.264 encoding in the browser.** Where WebCodecs cannot provide
+  it, `format: 'mp4'` fails loudly rather than handing back WebM in disguise.
 - **The legacy 3D editor's DOM is still hardwired** to 181 element ids, so it
   only runs inside its own `index.html`.
 - **The 3D editor animates rigged characters but cannot rig one.** Import a
@@ -343,8 +348,9 @@ automatic weights for the procedural character.
 
 **Not implemented here:** auto-rigging an arbitrary mesh, skin-weight
 painting, declarative bone constraints (the 3D *film* path has them;
-`CameraManager` only gained the post chain), boolean/bevel/loop-cut, and MP4
-without an injected muxer. Parametric primitives and full PBR material properties
+`CameraManager` only gained the post chain) and boolean/bevel/loop-cut. MP4
+*is* implemented, on the 2D film path — see `docs/04-RENDER-EXPORT.md`.
+Parametric primitives and full PBR material properties
 *were* added — colour had been the only reachable one.
 
 **Before relying on it, read [docs/DEFECTS.md](docs/DEFECTS.md).** Most

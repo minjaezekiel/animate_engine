@@ -97,6 +97,41 @@ function clearCompositing(ctx) {
  * exact path length nowhere -- a dash of `len` on, `len` off, offset by the
  * start, reproduces it for any `len` large enough to cover the shape.
  */
+/** The pixel size out of a CSS font shorthand, for a default line height. */
+function fontSizeOf(font) {
+    const m = /(\d+(?:\.\d+)?)px/.exec(String(font));
+    return m ? Number(m[1]) : 16;
+}
+
+/**
+ * Greedy word wrap at `maxWidth`, honouring explicit newlines.
+ *
+ * Canvas has no wrapping of its own: `fillText` draws one line and runs off
+ * the edge of the frame, which is how a subtitle longer than the picture
+ * ended up cut off at BOTH ends with nothing reporting it. Without
+ * `maxWidth` the text is drawn exactly as before.
+ */
+function wrapText(ctx, text, maxWidth) {
+    const paragraphs = text.split('\n');
+    if (!maxWidth || maxWidth <= 0) return paragraphs;
+    const out = [];
+    for (const paragraph of paragraphs) {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        if (!words.length) { out.push(''); continue; }
+        let line = words[0];
+        for (const word of words.slice(1)) {
+            const next = `${line} ${word}`;
+            // A single word wider than the box still gets its own line: there
+            // is nowhere better to put it, and breaking mid-word reads worse
+            // than overflowing by a little.
+            if (ctx.measureText(next).width <= maxWidth) line = next;
+            else { out.push(line); line = word; }
+        }
+        out.push(line);
+    }
+    return out;
+}
+
 function applyTrim(ctx, p, trim) {
     const start = trim.start ?? 0;
     const end = trim.end ?? 1;
@@ -225,12 +260,21 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
             ctx.font = p.font ?? '16px sans-serif';
             ctx.textAlign = p.align ?? 'center';
             ctx.textBaseline = p.baseline ?? 'alphabetic';
-            if (p.stroke) {
-                ctx.strokeStyle = p.stroke;
-                ctx.lineWidth = p.strokeWidth ?? 3;
-                ctx.strokeText(p.text, 0, 0);
+            const lines = wrapText(ctx, String(p.text), p.maxWidth);
+            // The block grows UPWARD from the anchor, so the last line always
+            // sits on the authored baseline. A subtitle that gained a second
+            // line would otherwise push itself off the bottom of the frame --
+            // which is precisely where a subtitle lives.
+            const lh = p.lineHeight ?? Math.round(fontSizeOf(ctx.font) * 1.25);
+            for (let i = 0; i < lines.length; i++) {
+                const y = (i - (lines.length - 1)) * lh;
+                if (p.stroke) {
+                    ctx.strokeStyle = p.stroke;
+                    ctx.lineWidth = p.strokeWidth ?? 3;
+                    ctx.strokeText(lines[i], 0, y);
+                }
+                if (p.fill) { ctx.fillStyle = p.fill; ctx.fillText(lines[i], 0, y); }
             }
-            if (p.fill) { ctx.fillStyle = p.fill; ctx.fillText(p.text, 0, 0); }
             break;
         }
         case 'paint':

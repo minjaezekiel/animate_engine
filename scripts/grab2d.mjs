@@ -23,6 +23,11 @@ const ROOT = process.env.ROOT ?? new URL('..', import.meta.url).pathname;
 const FILM = process.env.FILM ?? 'demo/film.json';
 const OUT = process.env.OUT ?? 'demo/out/2d';
 const AT = (process.env.AT ?? '0').split(',').map(Number);
+// Default to the authored size. Overriding it is how you check that a render
+// at another resolution SCALES the film rather than cropping it -- the defect
+// that shipped a 1280x720 film as a 640x360 window onto its own middle.
+const WIDTH = process.env.WIDTH ? Number(process.env.WIDTH) : null;
+const HEIGHT = process.env.HEIGHT ? Number(process.env.HEIGHT) : null;
 const T = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
             '.json': 'application/json', '.png': 'image/png', '.css': 'text/css' };
 
@@ -70,7 +75,7 @@ async function onPage(page, url, fn) {
 }
 
 const film = JSON.parse(await readFile(join(ROOT, FILM), 'utf8'));
-const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async (f, times) => {
+const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async (f, times, size) => {
     window.jirex.setFilm(f);
     const prepared = await window.jirex.prepare({ skipVoices: true });
     // The studio's own log, which carries the asset and compile diagnostics.
@@ -98,7 +103,8 @@ const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async
         await import('/src/core/anim/Evaluator.js');
     const { applySwapSets } = await import('/src/core/scene/swapSets.js');
     const canvas = document.getElementById('stage');
-    const w = prepared.meta.width, h = prepared.meta.height;
+    const w = size.width ?? prepared.meta.width;
+    const h = size.height ?? prepared.meta.height;
     const backend = new Canvas2DBackend({ width: w, height: h });
     backend.mount(canvas, { width: w, height: h });
     const baseline = createPoseBaseline(prepared.scene, prepared.timeline);
@@ -111,9 +117,10 @@ const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async
         out.push({ t, png: backend.canvas().toDataURL('image/png') });
     }
     notes.push(`camera: ${prepared.cameraId ?? '(none)'}, `
-        + `frame ${backend.width}x${backend.height}, meta ${w}x${h}`);
+        + `rendered ${backend.width}x${backend.height}, `
+        + `authored ${prepared.meta.width}x${prepared.meta.height}`);
     return { frames: out, notes };
-}, film, AT));
+}, film, AT, { width: WIDTH, height: HEIGHT }));
 
 for (const line of frames.notes ?? []) console.log(' ', line);
 await mkdir(join(ROOT, OUT), { recursive: true });

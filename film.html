@@ -120,6 +120,8 @@
                 <select id="resSel">
                     <option value="1280x720" selected>1280 x 720</option>
                     <option value="1920x1080">1920 x 1080</option>
+                    <option value="1080x1920">1080 x 1920 (9:16)</option>
+                    <option value="720x1280">720 x 1280 (9:16)</option>
                     <option value="960x540">960 x 540</option>
                     <option value="640x360">640 x 360</option>
                 </select>
@@ -130,6 +132,13 @@
                     <option value="24" selected>24</option>
                     <option value="30">30</option>
                     <option value="15">15</option>
+                </select>
+            </label>
+            <label class="field" style="margin:0">
+                format
+                <select id="formatSel">
+                    <option value="auto" selected>mp4 (H.264)</option>
+                    <option value="webm">webm (VP9)</option>
                 </select>
             </label>
         </div>
@@ -557,6 +566,7 @@ $('renderBtn').onclick = async () => {
         const t0 = performance.now();
         const out = await studio.render(prepared, {
             canvas, width, height, fps, signal: abort.signal,
+            format: $('formatSel').value,
             onProgress: (p) => {
                 if (p.stage !== 'render') return;
                 const pct = (p.frame / p.total) * 100;

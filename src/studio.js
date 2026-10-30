@@ -32,6 +32,8 @@ import { renderOffline, preflight } from './render/OfflineRenderer.js';
 import { MediaRecorderSink } from './render/sinks/MediaRecorderSink.js';
 import { WebCodecsSink } from './render/sinks/WebCodecsSink.js';
 import { MemorySink } from './render/sinks/MemorySink.js';
+import { PngSequenceSink } from './render/sinks/PngSequenceSink.js';
+import { Mp4Muxer, mp4MuxerFactory } from './render/mux/Mp4Muxer.js';
 import { applySwapSets } from './core/scene/swapSets.js';
 import { trackValueAt } from './core/anim/Track.js';
 import { CALIBRATION, calibrate, estimateFrameCost, worstSpan } from './core/script/budget.js';
@@ -297,7 +299,7 @@ export class FilmStudio {
      */
     async render(prepared, {
         canvas, width, height, fps, sink = null, onProgress = null, signal = null,
-        preferWebCodecs = true,
+        preferWebCodecs = true, format = 'auto',
     } = {}) {
         const meta = prepared.meta;
         const w = width ?? meta.width;
@@ -342,14 +344,27 @@ export class FilmStudio {
 
         let chosen = sink;
         if (!chosen) {
-            const canWebCodecs = preferWebCodecs
-                && await WebCodecsSink.available({ muxerFactory: this.muxerFactory });
+            const muxerFactory = this.muxerFactory
+                ?? (format === 'webm' ? null : mp4MuxerFactory);
+            const wantWebCodecs = preferWebCodecs && format !== 'webm';
+            // MP4 means H.264 specifically. `pickCodec` would otherwise
+            // happily return vp09, which is legal in the container and
+            // undecodable on most phones.
+            const container = format === 'webm' ? 'webm' : 'mp4';
+            const canWebCodecs = wantWebCodecs
+                && await WebCodecsSink.available({ muxerFactory, container, width: w, height: h });
             if (canWebCodecs) {
-                chosen = new WebCodecsSink({ muxerFactory: this.muxerFactory });
-                this.log('encoder: WebCodecs (exact timestamps, faster than real time)');
+                chosen = new WebCodecsSink({ muxerFactory, container });
+                this.log('encoder: WebCodecs H.264/mp4 (exact timestamps, faster than real time)');
+            } else if (format === 'mp4') {
+                // Asked for MP4 by name. Falling back to WebM silently would
+                // hand back a file with the wrong extension's worth of
+                // expectations attached.
+                throw new Error('MP4 was requested but this browser cannot encode H.264 '
+                    + 'through WebCodecs. Use format: "webm", or render a PNG sequence.');
             } else if (await MediaRecorderSink.available()) {
                 chosen = new MediaRecorderSink();
-                this.log(`encoder: paced MediaRecorder -- this takes about `
+                this.log(`encoder: paced MediaRecorder webm -- this takes about `
                     + `${Math.round(meta.duration)}s of real time. Keep this tab visible.`);
             } else {
                 throw new Error('No video encoder available in this browser');
@@ -438,7 +453,8 @@ const describeProgress = (p) => {
 
 export {
     compileFilm, parseScreenplay, retimeToAudio,
-    MemorySink, MediaRecorderSink, WebCodecsSink,
+    MemorySink, MediaRecorderSink, WebCodecsSink, PngSequenceSink,
+    Mp4Muxer, mp4MuxerFactory,
     Canvas2DBackend, renderOffline, preflight, audioBufferToWav, trackValueAt,
 };
 

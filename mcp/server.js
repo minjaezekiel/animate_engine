@@ -131,10 +131,11 @@ server.tool(
 
 server.tool(
   'render_film',
-  'Render the loaded film (or one passed inline) to a WebM with audio, lipsync and subtitles. If `path` is given the file is pulled from the browser in chunks and written on this machine; otherwise only a summary is returned, because a two-minute film is tens of megabytes.',
+  'Render the loaded film (or one passed inline) to a video with audio, lipsync and subtitles. `format` picks the container: "mp4" is H.264/AAC via WebCodecs — faster than real time, seekable, and what social platforms want; "webm" is the paced zero-dependency path; "auto" (the default) prefers MP4 and falls back. If `path` is given the file is pulled from the browser in chunks and written on this machine, with the extension corrected to match what was actually encoded; otherwise only a summary is returned, because a two-minute film is tens of megabytes.',
   {
     film: z.record(z.any()).optional(),
     path: z.string().optional(),
+    format: z.enum(['auto', 'mp4', 'webm']).optional(),
     width: z.number().optional(),
     height: z.number().optional(),
     fps: z.number().optional(),
@@ -158,8 +159,12 @@ server.tool(
       if (chunk.value.done) break;
     }
     const file = Buffer.concat(parts);
-    writeFileSync(path, file);
-    return asText({ savedTo: path, bytesWritten: file.length, ...summary });
+    // The extension follows the encode, not the request: a .mp4 holding WebM
+    // is a file that fails to open for reasons nobody will guess.
+    const ext = String(summary.type || '').includes('mp4') ? '.mp4' : '.webm';
+    const out = path.replace(/\.(mp4|webm)$/i, '') + ext;
+    writeFileSync(out, file);
+    return asText({ savedTo: out, bytesWritten: file.length, ...summary });
   }
 );
 

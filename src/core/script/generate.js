@@ -356,10 +356,190 @@ export function generateMouth(proportions = {}, generate = {}) {
     };
 }
 
+/**
+ * A two-step walk cycle on the standard key poses.
+ *
+ * **Contact -> down -> passing -> up -> contact**, twice. The old cycle had
+ * the body's only vertical extreme at the passing position and nothing at all
+ * at `down`, so the character floated: there was no weight being absorbed on
+ * the foot that had just landed. Phases here are fractions of the cycle, which
+ * is what lets `cadence` retime the whole thing by scaling one number.
+ *
+ * It also writes `footL`/`footR`, which the old cycle never touched at all --
+ * the rig has had feet since the first generated character and the walk left
+ * them rigid, so there was no heel strike, no roll and no toe-off.
+ */
+function walkCycle({ cycle, legLength, sway, anime }) {
+    const t = (f) => +(f * cycle).toFixed(4);
+    // Anime walks sit flatter and swing wider: less bounce, more shape.
+    const B = anime ? 0.6 : 1;
+    const A = anime ? 1.25 : 1;
+    const C = CONTACT_ANGLE;
+
+    /** Linear value of a looping channel at fraction `f`. */
+    const sampleLoop = (keys, f) => {
+        for (let i = 0; i < keys.length - 1; i++) {
+            const [f0, v0] = keys[i];
+            const [f1, v1] = keys[i + 1];
+            if (f >= f0 && f <= f1) {
+                return f1 === f0 ? v0 : v0 + ((f - f0) / (f1 - f0)) * (v1 - v0);
+            }
+        }
+        return keys[keys.length - 1][1];
+    };
+
+    /**
+     * The same channel for the other leg, half a cycle later.
+     *
+     * The endpoints are sampled rather than shifted: the key at f=1 is the
+     * same key as f=0, so shifting the list naively produces two keys at 0.5
+     * and none at 0, which leaves one leg holding its first pose until a
+     * quarter of the way into the cycle.
+     */
+    const mirror = (keys) => {
+        const edge = sampleLoop(keys, 0.5);
+        const shifted = keys
+            .filter(([f]) => f < 1)
+            .map(([f, v]) => [+(((f + 0.5) % 1).toFixed(6)), v])
+            .filter(([f]) => f > 0 && f < 1)
+            .sort((a, b) => a[0] - b[0]);
+        return [[0, edge], ...shifted, [1, edge]];
+    };
+    const at = (keys) => keys.map(([f, v]) => [t(f), v]);
+
+    /**
+     * **Sign convention, measured rather than assumed.** Canvas y grows
+     * downward, so a positive rotation turns a limb clockwise on screen. A
+     * character facing +x therefore swings a limb BACKWARD on a positive
+     * angle, and a foot's toe points DOWN on one. Getting this backwards is
+     * invisible in the numbers and obvious in a frame.
+     *
+     * Phase: the left leg is at the back of its stride at t=0 and contacts
+     * the ground at t=0.5 -- which is the phase the original cycle used, and
+     * is kept so a film that staged a character against it does not shift.
+     */
+
+    /**
+     * **The rise is geometry, not taste.** With the legs splayed by the
+     * contact angle the hips sit `legLength * (1 - cos C)` lower than they do
+     * at the passing position, where one leg is straight underneath. Pick any
+     * other number and the planted foot cannot reach the floor: the old cycle
+     * used a flat 1.6% of height, which left a walking character hovering
+     * above the ground with no test able to see it.
+     *
+     * Zero is the passing height, which is also the character's rest height,
+     * so a cast member staged on the ground stays on it.
+     */
+    const drop = legLength * (1 - Math.cos(C));
+    // The absorb is the only part that is a choice, so it is the only part
+    // the anime variant flattens.
+    const absorb = drop * 0.22 * B;
+    const hipsY = [
+        [0, drop], [0.125, drop + absorb], [0.25, 0], [0.375, -absorb * 0.5],
+        [0.5, drop], [0.625, drop + absorb], [0.75, 0], [0.875, -absorb * 0.5],
+        [1, drop],
+    ];
+    // The pelvis shifts over whichever foot is carrying the weight.
+    const hipsX = [[0, 0], [0.25, sway], [0.5, 0], [0.75, -sway], [1, 0]];
+    // ...and tilts down toward the leg that is swinging through.
+    const hipsRot = [[0, 0.03], [0.25, 0], [0.5, -0.03], [0.75, 0], [1, 0.03]];
+
+    // Thigh: fully back at 0, vertical at passing, fully forward at contact.
+    const thighL = [[0, C], [0.25, 0.08], [0.5, -C], [0.75, -0.05], [1, C]];
+    /**
+     * Knee. At t=0 the leg is at the back of its stride, which is the
+     * EXTENDED push-off position -- a knee bent there lifts the trailing foot
+     * off the ground and the character limps. It flexes immediately after, to
+     * clear the ground through swing, and is straight again at contact.
+     */
+    const shinL = [[0, 0.12], [0.125, 0.62], [0.25, 0.45], [0.375, 0.15],
+                   [0.5, 0.05], [0.625, 0.20], [0.75, 0.06], [0.875, 0.08],
+                   [1, 0.12]];
+    // Foot: toe down at toe-off, levelling through swing, toe UP at heel
+    // strike, flat through stance, hardest plantarflexion at push-off.
+    // Negative is toe-up. The old cycle wrote nothing here at all.
+    const footL = [[0, 0.34], [0.125, 0.10], [0.25, -0.02], [0.375, -0.16],
+                   [0.5, -0.26], [0.625, 0.0], [0.75, 0.05], [0.875, 0.42],
+                   [1, 0.34]];
+
+    // Arms swing opposite the legs: the left arm is FORWARD while the left
+    // leg is back. Forward is negative. A walking arm swings about 15 degrees
+    // at the shoulder -- wider than that and it reads as a march.
+    const armL = [[0, -0.26 * A], [0.5, 0.26 * A], [1, -0.26 * A]];
+    // The elbow bends on the way FORWARD and comes back nearly straight,
+    // which is how an arm swings. It also lags the shoulder, so the bend
+    // peaks a little after the swing does.
+    const foreL = [[0, -0.13], [0.08, -0.16], [0.56, -0.02], [1, -0.13]];
+    const handL = [[0, -0.06], [0.62, 0.03], [1, -0.06]];
+
+    return {
+        duration: cycle, loop: 'repeat',
+        keys: {
+            'hips.y': at(hipsY),
+            'hips.x': at(hipsX),
+            'hips.rot': at(hipsRot),
+            'thighL.rot': at(thighL), 'thighR.rot': at(mirror(thighL)),
+            'shinL.rot': at(shinL), 'shinR.rot': at(mirror(shinL)),
+            'footL.rot': at(footL), 'footR.rot': at(mirror(footL)),
+            // Arms swing opposite the legs, widest at contact.
+            'armL.rot': at(armL), 'armR.rot': at(mirror(armL)),
+            // Forearms and hands trail the limb above them: follow-through
+            // and overlapping action, which is what stops a walk reading
+            // as a single rigid hinge.
+            'foreL.rot': at(foreL), 'foreR.rot': at(mirror(foreL)),
+            'handL.rot': at(handL), 'handR.rot': at(mirror(handL)),
+            // Shoulders counter-rotate against the hips.
+            'torso.rot': at([[0, -0.03], [0.5, 0.03], [1, -0.03]]),
+            // The head lags the body and stays level on purpose.
+            'head.rot': at([[0, 0.018], [0.55, -0.015], [1, 0.018]]),
+        },
+    };
+}
+
+/**
+ * Seconds per two-step cycle. The standard animation table, in seconds rather
+ * than frames so it does not assume 24 fps: brisk is 9 frames per step at 24,
+ * natural 12, casual 15, weary 19.
+ */
+export const CADENCES = {
+    brisk: 0.75,
+    natural: 1.0,
+    casual: 1.25,
+    weary: 1.6,
+    // What every film in this repo was authored against, so it stays the
+    // default and no existing timing moves.
+    default: 0.9,
+};
+
+/**
+ * How far the character travels in one two-step cycle, in character units.
+ *
+ * `walk` and `move` are independent -- one plays a cycle, the other keys the
+ * root's position -- and nothing ties them together, so every film in this
+ * repo slides its feet. This is the number that closes that: travel this far
+ * per cycle and the planted foot stays put.
+ *
+ * Derived, not guessed: the foot is `legLength * sin(contactAngle)` ahead of
+ * the hip at contact, so a step spans twice that, and a cycle is two steps.
+ * The knee is never quite straight at contact, which the 0.92 accounts for.
+ */
+export function walkStride(proportions = {}, generate = {}) {
+    const p = resolveProportions(proportions, generate.build);
+    const legLength = p.height * 0.46;
+    return 4 * legLength * Math.sin(CONTACT_ANGLE) * 0.92;
+}
+
+/** Thigh angle from vertical at contact. Sets both the pose and the stride. */
+const CONTACT_ANGLE = 0.45;
+
 /** Walk, breathe, blink and idle cycles sized to the proportions. */
 export function generateActions(proportions = {}, generate = {}) {
     const p = resolveProportions(proportions, generate.build);
     const bob = p.height * 0.016;
+    const walkOpts = generate.walk ?? {};
+    const cycle = Number(walkOpts.cadence) > 0 ? Number(walkOpts.cadence)
+        : (CADENCES[walkOpts.cadence] ?? CADENCES.default);
+    const anime = walkOpts.style === 'anime';
     return {
         breathe: {
             duration: 3.4, loop: 'repeat', blend: 'add',
@@ -370,27 +550,8 @@ export function generateActions(proportions = {}, generate = {}) {
                 'torso.sx': [[0, 1], [1.7, 0.994], [3.4, 1]],
             },
         },
-        walk: {
-            duration: 0.9, loop: 'repeat',
-            keys: {
-                'hips.y': [[0, 0], [0.225, -bob], [0.45, 0], [0.675, -bob], [0.9, 0]],
-                'thighL.rot': [[0, 0.5], [0.45, -0.42], [0.9, 0.5]],
-                'shinL.rot': [[0, 0.1], [0.3, 0.62], [0.62, 0.05], [0.9, 0.1]],
-                'thighR.rot': [[0, -0.42], [0.45, 0.5], [0.9, -0.42]],
-                'shinR.rot': [[0, 0.62], [0.32, 0.05], [0.72, 0.62], [0.9, 0.62]],
-                'armL.rot': [[0, -0.42], [0.45, 0.42], [0.9, -0.42]],
-                'armR.rot': [[0, 0.42], [0.45, -0.42], [0.9, 0.42]],
-                // Forearms and hands trail the limb above them: follow-through
-                // and overlapping action, which is what stops a walk reading
-                // as a single rigid hinge.
-                'foreL.rot': [[0, 0.3], [0.52, 0.46], [0.9, 0.3]],
-                'foreR.rot': [[0, 0.46], [0.52, 0.3], [0.9, 0.46]],
-                'handL.rot': [[0, 0.1], [0.58, 0.22], [0.9, 0.1]],
-                'handR.rot': [[0, 0.22], [0.58, 0.1], [0.9, 0.22]],
-                'torso.rot': [[0, 0.02], [0.45, -0.02], [0.9, 0.02]],
-                'head.rot': [[0, -0.015], [0.5, 0.012], [0.9, -0.015]],
-            },
-        },
+        walk: walkCycle({ cycle, legLength: p.height * 0.46,
+                          sway: p.height * 0.006, anime }),
         blink: {
             duration: 4.2, loop: 'repeat',
             // A discrete swap, not a scale. Squashing an eye node whose

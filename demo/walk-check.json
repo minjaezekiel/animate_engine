@@ -1,0 +1,97 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "walk check",
+    "fps": 24,
+    "width": 1080,
+    "height": 1080
+  },
+  "palettes": {
+    "p": {
+      "skin": "#8d5a3b",
+      "cloth": "#c9702f",
+      "trouser": "#4a4f58",
+      "hair": "#241a14",
+      "eye": "#2b1d14",
+      "white": "#f6f2e8",
+      "shoe": "#2a2320",
+      "teeth": "#fff",
+      "mouth": "#4a2420",
+      "ground": "#334a3a"
+    }
+  },
+  "characters": {
+    "w": {
+      "palette": "p",
+      "proportions": {
+        "height": 700
+      },
+      "generate": {
+        "build": "athletic",
+        "hands": "mitten",
+        "facing": 1
+      },
+      "view": "profile"
+    }
+  },
+  "scenes": [
+    {
+      "id": "s",
+      "palette": "p",
+      "background": {
+        "color": "#101a26"
+      },
+      "scenery": [
+        {
+          "id": "floor",
+          "shape": {
+            "kind": "rect",
+            "w": 2200,
+            "h": 160,
+            "cx": true
+          },
+          "at": [
+            540,
+            1010
+          ],
+          "fill": "ground",
+          "z": -10
+        },
+        {
+          "id": "line",
+          "shape": {
+            "kind": "path",
+            "d": "M0,930 L1080,930"
+          },
+          "stroke": "#89a894",
+          "strokeWidth": 3,
+          "z": -9
+        }
+      ],
+      "cast": [
+        {
+          "character": "w",
+          "as": "w",
+          "at": [
+            540,
+            560.974
+          ],
+          "scale": 1
+        }
+      ],
+      "shots": [
+        {
+          "id": "a",
+          "duration": 0.9,
+          "actions": [
+            {
+              "target": "w",
+              "do": "play",
+              "action": "walk"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

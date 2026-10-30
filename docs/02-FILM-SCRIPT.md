@@ -47,7 +47,12 @@ Either author the parts, or ask for a figure:
 
 `generate` builds a 19-part cutout humanoid with correctly placed joints, a
 six-shape mouth, and the cycles `idle`, `breathe`, `walk` and `blink` for
-free. This is deliberate: an author — especially an LLM — should be able to
+free. `generate.walk` takes `{ cadence, style }` -- a name from `CADENCES`
+(`brisk`/`natural`/`casual`/`weary`) or seconds per two-step cycle, and
+`'anime'` for a flatter, wider-swinging variant. To walk somewhere without
+sliding the feet, ask `walkStride()` how far one cycle carries the character
+and give `move` that distance over a whole number of cycles; `walk` and `move`
+are otherwise independent. This is deliberate: an author — especially an LLM — should be able to
 *ask* for a character rather than hand-write forty SVG paths.
 
 To author parts explicitly instead:

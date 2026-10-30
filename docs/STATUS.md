@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-30 (Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
+Last updated: 2026-10-31 (Phase 29: the **walk cycle** rebuilt on the real key poses -- it had no `down`, no foot roll, and a hip rise that left every walking character hovering above the ground. Phase 28: a render at a non-authored size **cropped** the film instead of scaling it. Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
 
 Legend: **done** · *partial* · — not started
 
@@ -240,6 +240,60 @@ which is what turned "over budget" into "the backdrop is 100% of it").
   pixels out of a ~50px circumference.
 
 ---
+
+---
+
+## Phase 29 — the walk cycle — **done**
+
+Every generated *and* traced character inherits `walk` for free, and it had
+four faults, all of which were invisible in the numbers and obvious in a
+frame.
+
+**The character floated.** The hips rose by a flat 1.6% of height. With the
+legs splayed at contact the feet have to reach `legLength * (1 - cos C)`
+further down than they do at the passing position, so the planted foot never
+touched the ground. The rise is now derived from the leg geometry, with zero
+at the passing height -- which is also the rest height, so a cast member
+staged on the ground stays on it.
+
+**There was no `down` pose at all.** The only vertical extreme sat at
+*passing*, so no weight was ever absorbed on the foot that had just landed.
+The cycle now keys the real phases, twice per cycle: contact → down → passing
+→ up.
+
+**The feet were rigid.** The rig has had `footL`/`footR` since the first
+generated character and the walk wrote neither, so there was no heel strike,
+no roll and no toe-off. Both are keyed now, and the sign was established by
+**rendering a frame**: canvas y grows downward, so a positive rotation points
+the toe *down* and swings a limb *backward*. The first version had it
+inverted, and the tests passed anyway.
+
+**The arms swung the wrong way round.** The forearm offset was always positive
+regardless of which way the shoulder was going, so the arm travelled ~50° back
+and ~7° forward. People swing back nearly straight and bend coming forward.
+The knee had the same fault: bent at the back of the stride, which is the
+extended push-off position, so the trailing foot lifted early and the walk
+limped.
+
+| Area | State | Notes |
+|---|---|---|
+| Phases: contact / down / passing / up | **done** | Keyed as fractions of the cycle, which is what lets `cadence` retime the whole thing by scaling one number. |
+| Foot roll | **done** | Heel strike toe-up, flat through the absorb, hardest plantarflexion at toe-off. |
+| Lateral sway and pelvic tilt | **done** | `hips.x` over the stance foot, `hips.rot` toward the swinging leg. Small, and only visible in a front or three-quarter view. |
+| Shoulder counter-rotation | **done** | Against the hips, as it always should have been. |
+| `generate.walk.cadence` | **done** | `brisk` 0.75s/cycle (9 frames per step at 24), `natural` 1.0 (12), `casual` 1.25 (15), `weary` 1.6 (19), or a number. **Default stays 0.9**, so no existing film retimes itself. |
+| `generate.walk.style: 'anime'` | **done** | Flattens the absorb and widens the arm swing. The geometric part of the rise is untouched, because flattening that would lift the feet off the ground again. |
+| `walkStride(proportions, generate)` | **done** | How far one cycle actually carries the character: `4 * legLength * sin(C) * 0.92`, about 0.74x height. `walk` and `move` are independent in the compiler and nothing tied them together, so **every film in this repo slides its feet**; this is the number that closes it, and `walkTo()` in `scripts/lib/diagram.mjs` is the authoring side. |
+| Tests | **done** | 16 in `test/core/walk.test.mjs`: phase order, two absorbs per cycle, foot roll and its sign, legs antiphase with no duplicated or missing keys, arms opposite the legs and bending on the forward swing, counter-rotation, cadence scaling, the unchanged default, the anime variant, and the ground-contact identity that stops the character hovering. |
+| `demo/walk-check.json` | **done** | A profile figure on a ground line, one cycle. Grab it at 0, 0.1125, 0.225, 0.3375 to see the four key poses. Measurements cannot tell you a walk looks right. |
+
+### Not done
+
+- **Stance is symmetric with swing.** A real walk spends about 60% of the
+  cycle in stance; this spends 50%. Visible only on a slow, heavy walk.
+- **No run or jump cycle.** Only `walk`.
+- **The stride assumes a flat ground line.** A character walking up the
+  `hillside` template's slope still travels its flat-ground distance.
 
 ---
 

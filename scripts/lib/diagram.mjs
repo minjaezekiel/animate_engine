@@ -308,6 +308,37 @@ export function build(target, ids, at, { gap = 0.22, span = 0.3, how = reveal } 
 }
 
 /**
+ * Walk a character from `from` to `to` without the feet sliding.
+ *
+ * `play walk` and `move` are independent in the engine -- one tiles a cycle,
+ * the other keys the root's position -- and nothing ties them together, so
+ * every film in this repo slides its feet. `walkStride` says how far one
+ * two-step cycle actually carries the character, so the travel time is the
+ * distance divided by that, rounded to a WHOLE number of cycles: a partial
+ * cycle ends the walk mid-stride with one foot in the air.
+ *
+ * Returns the duration it chose and where the character actually lands,
+ * because the shot has to be at least that long and the arrival moves rather
+ * than the stride stretching to meet it.
+ */
+export function walkTo(target, { from, to, stride, cadence = 0.9, at = 0 }) {
+    const delta = to[0] - from[0];
+    const cycles = Math.max(1, Math.round(Math.abs(delta) / stride));
+    const span = cycles * cadence;
+    const travelled = cycles * stride * (delta < 0 ? -1 : 1);
+    const landing = [from[0] + travelled, to[1]];
+    return {
+        duration: span,
+        landing,
+        actions: [
+            { target, do: 'play', action: 'walk', at: t(at), for: t(span) },
+            { target, do: 'move', to: landing, at: t(at), for: t(span), ease: 'linear' },
+        ],
+    };
+}
+
+
+/**
  * Ramp a drawing's own reveal. `draw` targets the drawing id directly.
  *
  * This is how a line draws itself here. A part's `trim` looked like the

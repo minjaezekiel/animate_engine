@@ -42,7 +42,10 @@ export const KNOWN = {
                'face', 'build', 'facing',
                // 'none' | 'mitten' | 'fingers' -- how much hand to draw below
                // the wrist. See generate.js `handParts`.
-               'hands'],
+               'hands',
+               // { cadence, style } -- how this character walks. `cadence` is
+               // a name from CADENCES or seconds per two-step cycle.
+               'walk'],
     face: ['jaw', 'eyes', 'brow', 'nose', 'lips', 'ears'],
     cast: ['character', 'as', 'at', 'scale', 'z', 'alpha', 'palette', 'view', 'expression',
            'facing', 'echo', 'role'],

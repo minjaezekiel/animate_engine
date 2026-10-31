@@ -132,17 +132,31 @@ function wrapText(ctx, text, maxWidth) {
     return out;
 }
 
-function applyTrim(ctx, p, trim) {
+function applyTrim(ctx, p, trim, flow = null) {
+    // `flow` is DECLARED, not merely non-zero. A flowing part passes through
+    // flow === 0 once per cycle, and keying the defaults off the value would
+    // make that one frame draw solid while its neighbours dash.
+    const flowing = flow != null;
     const start = trim.start ?? 0;
-    const end = trim.end ?? 1;
+    const end = trim.end ?? (flowing ? 0.25 : 1);
     const offset = trim.offset ?? 0;
     const span = Math.max(0, Math.min(1, end) - Math.max(0, start));
-    if (span >= 1 && !offset) return false;
+    if (span >= 1 && !offset && !flowing) return false;
     if (span <= 0) return null;                       // nothing to draw
-    // A length longer than any path this engine draws, so one dash covers it.
-    const L = trim.length ?? 8000;
+    // Without flow: a length longer than any path this engine draws, so one
+    // dash covers it and `end` reads as "how much of the line exists".
+    // With flow: a SHORT period, so the dash array repeats down the path and
+    // advancing the offset makes the pattern travel. Same two lines of
+    // canvas, two different features -- see docs/25-FLOW.md.
+    const L = trim.length ?? (flowing ? 160 : 8000);
     ctx.setLineDash([span * L, L]);
-    ctx.lineDashOffset = -(start + offset) * L;
+    // `flow` counts whole dash PERIODS, not multiples of `length`. The period
+    // is the on-dash plus the off-dash -- L * (span + 1) -- so scaling flow by
+    // `length` alone would make flow:1 advance by less than one period and a
+    // "seamless" loop would visibly jump once per cycle. Counting periods
+    // makes flow and flow+1 draw identical pixels for ANY span, which is what
+    // lets a loop be authored as one linear key pair. See docs/25-FLOW.md.
+    ctx.lineDashOffset = -((start + offset) * L + (flow ?? 0) * (span + 1) * L);
     return true;
 }
 
@@ -218,7 +232,8 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
             const fill = resolveFill(ctx, node, rx * 2, ry * 2);
             if (fill) { ctx.fillStyle = fill; ctx.fill(); }
             if (p.stroke) {
-                const trimmed = p.trim ? applyTrim(ctx, p, p.trim) : false;
+                const trimmed = (p.trim || p.flow != null)
+                    ? applyTrim(ctx, p, p.trim ?? {}, p.flow ?? null) : false;
                 if (trimmed !== null) {
                     ctx.strokeStyle = p.stroke;
                     ctx.lineWidth = p.strokeWidth ?? 1;
@@ -234,7 +249,8 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
             const fill = resolveFill(ctx, node, p.w ?? 100, p.h ?? 100);
             if (fill) { ctx.fillStyle = fill; ctx.fill(path); }
             if (p.stroke) {
-                const trimmed = p.trim ? applyTrim(ctx, p, p.trim) : false;
+                const trimmed = (p.trim || p.flow != null)
+                    ? applyTrim(ctx, p, p.trim ?? {}, p.flow ?? null) : false;
                 if (trimmed !== null) {
                     ctx.strokeStyle = p.stroke;
                     ctx.lineWidth = p.strokeWidth ?? 1;

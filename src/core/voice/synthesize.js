@@ -3,6 +3,7 @@ import { lipsyncLine } from '../audio/lipsync.js';
 import { createCue } from '../audio/cues.js';
 import { normalizeGain, speechRms, toDb } from '../audio/loudness.js';
 import { resolveVoices } from './catalog.js';
+import { clampDelivery, deliverBuffer, isPlainDelivery } from '../audio/delivery.js';
 
 /**
  * Turns a compiled film's dialogue into audio cues plus viseme tracks.
@@ -26,7 +27,8 @@ export async function synthesizeDialogue({
     let done = 0;
 
     for (const job of lipsyncJobs) {
-        const { nodeId, speaker, text, at, voiceSpec, audioAssetId, lipsync = true, durationSec } = job;
+        const { nodeId, speaker, text, at, voiceSpec, audioAssetId, lipsync = true,
+                durationSec, delivery = null } = job;
         let buffer = null;
         let phonemes = null;
 
@@ -37,7 +39,14 @@ export async function synthesizeDialogue({
             } else if (text && registry) {
                 const result = await registry.synthesize(voiceSpec, { text });
                 if (result?.audioBuffer) {
-                    buffer = result.audioBuffer;
+                    // Delivery BEFORE levelling. Resampling and the WSOLA
+                    // crossfades both move the measured RMS, so normalising
+                    // first and reshaping after would undo the levelling and
+                    // reintroduce the 6.6 dB gap -- this time between two
+                    // characters sharing one model.
+                    buffer = delivery && !isPlainDelivery(delivery)
+                        ? deliverBuffer(result.audioBuffer, delivery)
+                        : result.audioBuffer;
                     phonemes = result.phonemes ?? null;
                 } else {
                     diagnostics.push({
@@ -57,7 +66,10 @@ export async function synthesizeDialogue({
         }
 
         if (buffer) {
-            const assetId = audioAssetId ?? `vo_${hashString(`${voiceSpec}|${text}`)}`;
+            // The delivery is part of the identity: two characters sharing one
+            // model and saying the same words are two different takes.
+            const assetId = audioAssetId ?? `vo_${hashString(
+                `${voiceSpec}|${text}|${delivery?.rate ?? 1}|${delivery?.pitch ?? 1}`)}`;
             buffers[assetId] = buffer;
             // Normalise, then the voice's own trim, then the line's. The line
             // is last so an author's deliberate whisper survives the levelling.
@@ -114,6 +126,7 @@ export function castVoices(film) {
     const voices = resolved.voices;
     const out = {};
     const gains = {};
+    const deliveries = {};
     const diagnostics = [...resolved.diagnostics];
     for (const [name, char] of Object.entries(film.characters ?? {})) {
         const ref = char.voice;
@@ -124,6 +137,15 @@ export function castVoices(film) {
             // A per-VOICE trim, so casting a character quieter is one edit
             // rather than a `gain` on every line they speak.
             if (entry.gain != null) gains[name] = entry.gain;
+            // Rate and pitch, likewise per voice. This is what lets five
+            // characters share the one Swahili model and still be a cast;
+            // see docs/26-DELIVERY.md.
+            if (entry.rate != null || entry.pitch != null) {
+                const d = clampDelivery({ rate: entry.rate, pitch: entry.pitch },
+                                        `voices.${ref}`);
+                diagnostics.push(...d.diagnostics);
+                if (!isPlainDelivery(d)) deliveries[name] = { rate: d.rate, pitch: d.pitch };
+            }
         } else if (String(ref).includes(':')) out[name] = ref;   // inline spec
         else {
             diagnostics.push({
@@ -133,5 +155,5 @@ export function castVoices(film) {
             });
         }
     }
-    return { castBySpeaker: out, voiceGains: gains, diagnostics };
+    return { castBySpeaker: out, voiceGains: gains, voiceDeliveries: deliveries, diagnostics };
 }

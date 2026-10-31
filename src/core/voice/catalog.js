@@ -52,10 +52,45 @@ export const VOICE_PRESETS = {
                        role: 'warm American female; conversational', mb: 61 },
 
     // --- Swahili ----------------------------------------------------------
+    // There is exactly ONE Swahili model in the catalogue -- confirmed against
+    // its own path map, 1 of 119 -- so every preset below shares `spec` and is
+    // separated by DELIVERY instead of by timbre. That is now a real
+    // separation rather than an aspiration: `core/audio/delivery.js` shifts
+    // pitch by resampling and puts the duration back with WSOLA, so these six
+    // read as six people. See docs/26-DELIVERY.md.
     'narrator-sw':   { spec: 'tts:sw_CD-lanfrica-medium', lang: 'sw-CD', voice: 'n',
-                       role: 'Swahili narration. The only Swahili voice in the Piper '
-                           + 'catalogue, so a Swahili cast shares it and is separated by '
-                           + 'pacing and pitch rather than by timbre', mb: 60 },
+                       role: 'Swahili narration, the model as shipped. Unchanged on '
+                           + 'purpose: it is what existing films cast', mb: 60 },
+    'host-sw':       { spec: 'tts:sw_CD-lanfrica-medium', lang: 'sw-CD', voice: 'f',
+                       rate: 1.06, pitch: 1.10,
+                       role: 'bright Swahili presenter; lighter and a little quicker '
+                           + 'than the model default, for a guide who carries a short',
+                       mb: 60 },
+    'young-m-sw':    { spec: 'tts:sw_CD-lanfrica-medium', lang: 'sw-CD', voice: 'm',
+                       rate: 1.10, pitch: 1.16,
+                       role: 'eager young Swahili male; the one who asks the question '
+                           + 'the viewer is already thinking', mb: 60 },
+    'elder-m-sw':    { spec: 'tts:sw_CD-lanfrica-medium', lang: 'sw-CD', voice: 'm',
+                       rate: 0.86, pitch: 0.84,
+                       role: 'older Swahili male; heavier and slower, for experience '
+                           + 'speaking rather than instruction', mb: 60 },
+    'authority-sw':  { spec: 'tts:sw_CD-lanfrica-medium', lang: 'sw-CD', voice: 'n',
+                       rate: 0.94, pitch: 0.92,
+                       role: 'deliberate Swahili expert; the voice that states a number '
+                           + 'and lets it sit', mb: 60 },
+    'child-sw':      { spec: 'tts:sw_CD-lanfrica-medium', lang: 'sw-CD', voice: 'n',
+                       rate: 1.14, pitch: 1.30,
+                       role: 'Swahili child; at the top of the usable band, so it is '
+                           + 'the preset to check first if a voice sounds artificial',
+                       mb: 60 },
+};
+
+/** The delivery (rate, pitch) a preset carries, if any. */
+export const deliveryOf = (preset) => {
+    const p = VOICE_PRESETS[preset];
+    if (!p) return null;
+    if (p.rate == null && p.pitch == null) return null;
+    return { rate: p.rate ?? 1, pitch: p.pitch ?? 1 };
 };
 
 /** Preset ids for a language tag or prefix, e.g. 'en', 'en-GB', 'sw'. */
@@ -83,7 +118,13 @@ export function resolveVoices(voices = {}) {
         if (typeof spec === 'string' && !spec.includes(':')) {
             const preset = VOICE_PRESETS[spec];
             if (preset) {
-                out[name] = { ...raw, spec: preset.spec, lang: raw.lang ?? preset.lang };
+                // A preset's delivery is a DEFAULT: the film may override
+                // either number without having to restate the other.
+                out[name] = {
+                    ...(preset.rate != null && { rate: preset.rate }),
+                    ...(preset.pitch != null && { pitch: preset.pitch }),
+                    ...raw, spec: preset.spec, lang: raw.lang ?? preset.lang,
+                };
                 continue;
             }
             diagnostics.push({
@@ -109,7 +150,22 @@ export function resolveVoices(voices = {}) {
  */
 export function castEnsemble(n, { lang = 'en' } = {}) {
     const pool = voicesFor(lang);
-    if (!pool.length) return { cast: [], shortfall: n, pool: [] };
+    if (!pool.length) return { cast: [], shortfall: n, pool: [], models: 0, byDelivery: 0 };
     const cast = Array.from({ length: n }, (_, i) => pool[i % pool.length]);
-    return { cast, shortfall: Math.max(0, n - pool.length), pool };
+    // Two different scarcities, and conflating them is how a Swahili cast
+    // looked fine on paper. `shortfall` is how many characters had to REUSE a
+    // preset. `byDelivery` counts the same way one level down: how many of
+    // the cast repeat a MODEL already in use, and so rely on rate and pitch
+    // to be told apart. For Swahili that is all but one of them, since the
+    // catalogue has a single Swahili model. That is a real distinction now
+    // rather than none, but the caller should still be able to see it.
+    const specs = new Set(cast.map((id) => VOICE_PRESETS[id]?.spec));
+    const models = specs.size;
+    return {
+        cast,
+        shortfall: Math.max(0, n - pool.length),
+        pool,
+        models,
+        byDelivery: Math.max(0, Math.min(n, pool.length) - models),
+    };
 }

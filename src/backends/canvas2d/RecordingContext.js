@@ -44,7 +44,15 @@ export class RecordingContext {
     ellipse(x, y, rx, ry, rot, s, e) { this._rec('ellipse', x, y, rx, ry, rot, s, e); }
     rect(x, y, w, h) { this._rec('rect', x, y, w, h); }
     fill(p) { this._rec('fill', typeof p === 'string' ? p : (p?.d ?? ''), this.fillStyle, this.globalAlpha); }
-    stroke(p) { this._rec('stroke', typeof p === 'string' ? p : (p?.d ?? ''), this.strokeStyle, this.lineWidth); }
+    stroke(p) {
+        // The dash OFFSET is the whole of `props.flow`: a flowing river and a
+        // still one set an identical dash pattern and differ only here, so a
+        // call list that could not see the offset would pass either way --
+        // the same trap the `setLineDash` note below was written about.
+        // Recorded only when non-zero, so no existing golden log moves.
+        if (this.lineDashOffset) this._rec('lineDashOffset', this.lineDashOffset);
+        this._rec('stroke', typeof p === 'string' ? p : (p?.d ?? ''), this.strokeStyle, this.lineWidth);
+    }
     clip() { this._rec('clip'); }
     fillText(t, x, y) { this._rec('fillText', t, x, y, this.fillStyle); }
     strokeText(t, x, y) { this._rec('strokeText', t, x, y); }

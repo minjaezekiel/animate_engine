@@ -69,7 +69,7 @@ export function compileFilm(film, { assets = {} } = {}) {
     const audioCues = [];
     const lipsyncJobs = [];
 
-    const { castBySpeaker, voiceGains, diagnostics: voiceDiag } = castVoices(film);
+    const { castBySpeaker, voiceGains, voiceDeliveries, diagnostics: voiceDiag } = castVoices(film);
     diagnostics.push(...voiceDiag);
 
     // --- camera: starts at frame centre so authored coordinates read as
@@ -225,6 +225,7 @@ export function compileFilm(film, { assets = {} } = {}) {
             for (const line of shot.dialogue ?? []) {
                 buildDialogue({
                     line, shotStart, shotEnd, sceneId, castMap, castBySpeaker, voiceGains,
+                    voiceDeliveries,
                     film, lipsyncJobs, audioCues, diagnostics,
                 });
             }
@@ -275,6 +276,15 @@ export function compileFilm(film, { assets = {} } = {}) {
         meta: { ...meta, duration: filmTime, frames: Math.round(filmTime * meta.fps) },
         cameraId,
         expanded,
+        // Scene boundaries, so a pacing report can localise a slack stretch.
+        // A film that is 54% speech is rarely uniformly slack; it is three
+        // slack scenes. See docs/27-RETENTION.md.
+        //
+        // Projected, not passed through: the internal spans carry each
+        // scene's whole authored `spec`, and handing that back out would put
+        // the entire film inside its own compile result.
+        sceneSpans: sceneSpans.map(({ sceneId, sceneStart, sceneEnd }) =>
+            ({ id: sceneId, start: sceneStart, end: sceneEnd })),
     };
 }
 
@@ -640,6 +650,11 @@ function drawProps(part, colorOf) {
     const out = {};
     if (part.blend) out.blend = part.blend;
     if (part.trim) out.trim = part.trim;
+    // One scalar added to `trim.offset` at draw time. `trim` is an object and
+    // the interpolator keys scalars, so `set props.trim.offset` wrote a
+    // property literally named "trim.offset" that nothing read -- silently.
+    // `props.flow` keys like `props.alpha`. See docs/25-FLOW.md.
+    if (part.flow != null) out.flow = part.flow;
     if (part.repeat) out.repeat = part.repeat;
     // `shapes.js` has always read these and defaults both to 'round', but
     // nothing ever copied them out of the part -- so a wide band drawn as a
@@ -1770,7 +1785,8 @@ const defaultChannel = (channel) => (channel === 'sx' || channel === 'sy' ? 1 : 
 // ------------------------------------------------------------------ dialogue
 
 function buildDialogue({ line, shotStart, shotEnd, sceneId, castMap, castBySpeaker,
-                        voiceGains = {}, film, lipsyncJobs, audioCues, diagnostics }) {
+                        voiceGains = {}, voiceDeliveries = {},
+                        film, lipsyncJobs, audioCues, diagnostics }) {
     if (!line.text && !line.audio) return;
     const at = shotStart + (line.at ?? 0);
     const cast = castMap.get(line.speaker);
@@ -1798,6 +1814,9 @@ function buildDialogue({ line, shotStart, shotEnd, sceneId, castMap, castBySpeak
         lipsync: line.lipsync !== false,
         gain: line.gain ?? 1,
         voiceGain: (charName ? voiceGains[charName] : null) ?? 1,
+        // Rate and pitch for this character. `rate` changes the line's
+        // LENGTH, so it moves the film's derived durations with it.
+        delivery: (charName ? voiceDeliveries[charName] : null) ?? null,
         durationSec: line.duration ?? null,
         subtitle: line.subtitle !== false,
         shotEnd,

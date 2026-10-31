@@ -86,7 +86,11 @@ test('every preset names a provider and a voice id', () => {
 
 test('voices can be found by language', () => {
     assert.ok(voicesFor('en').length >= 6);
-    assert.deepEqual(voicesFor('sw'), ['narrator-sw']);
+    // Six Swahili presets over ONE model: the catalogue has exactly one
+    // Swahili voice (1 of 119, checked against its own path map), and the
+    // presets differ by delivery. See docs/26-DELIVERY.md.
+    assert.equal(voicesFor('sw').length, 6);
+    assert.ok(voicesFor('sw').includes('narrator-sw'));
     assert.deepEqual(voicesFor('xx'), []);
 });
 
@@ -97,10 +101,25 @@ test('a five-hander gets five DISTINCT English voices', () => {
     assert.equal(shortfall, 0);
 });
 
-test('a language with one voice says so rather than failing silently', () => {
-    const { cast, shortfall } = castEnsemble(5, { lang: 'sw' });
+test('a five-hander in Swahili gets five distinct DELIVERIES of one model', () => {
+    // This test used to assert a shortfall of 4, which was the honest answer
+    // when nothing could change rate or pitch: five characters, one voice,
+    // one delivery. They are now five different deliveries, so there is no
+    // shortfall -- but they still share a model, and the caller is told.
+    const { cast, shortfall, models, byDelivery } = castEnsemble(5, { lang: 'sw' });
     assert.equal(cast.length, 5);
-    assert.equal(shortfall, 4, 'the caller is told it cannot distinguish them by timbre');
+    assert.equal(new Set(cast).size, 5, 'five characters, five presets');
+    assert.equal(shortfall, 0, 'no character has to reuse another one preset');
+    assert.equal(models, 1, 'and all five are the same model, which is worth knowing');
+    // Counted the same way as `shortfall`: how many of the cast are a REPEAT
+    // of a model already in use, and so rely on delivery to be told apart.
+    assert.equal(byDelivery, 4, 'four of the five repeat the one Swahili model');
+});
+
+test('an English five-hander is separated by timbre, not by delivery', () => {
+    const { models, byDelivery } = castEnsemble(5, { lang: 'en' });
+    assert.equal(models, 5, 'English has five distinct models to draw on');
+    assert.equal(byDelivery, 0);
 });
 
 test('a preset name resolves to a spec, and a raw spec passes through', () => {

@@ -15,6 +15,7 @@ import { readFile } from 'node:fs/promises';
 import { compileFilm } from '../src/core/script/compile.js';
 import { validateFilm } from '../src/core/script/validate.js';
 import { analyseStaging } from '../src/core/script/staging.js';
+import { analysePacing } from '../src/core/script/pacing.js';
 import { trackValueAt } from '../src/core/anim/Track.js';
 
 const FILM = process.env.FILM ?? 'demo/film.json';
@@ -24,6 +25,14 @@ const problems = [...validateFilm(film)];
 const compiled = compileFilm(film, { assets: null });
 problems.push(...compiled.diagnostics);
 problems.push(...analyseStaging(compiled, film, { trackValueAt }));
+
+// Narration pacing, estimated before anything is rendered. The geology series
+// shipped ten parts leaving roughly a fifth of their runtime silent and
+// nothing said so until a tool was run over the finished audio. What this
+// reports is LINE COVERAGE, which is not the audio tool's speech ratio --
+// see the header of pacing.js and docs/27-RETENTION.md.
+const pacing = analysePacing(compiled);
+if (pacing) problems.push(...pacing.diagnostics);
 
 const by = { fatal: [], error: [], warning: [], info: [] };
 for (const d of problems) (by[d.severity] ?? by.info).push(d);
@@ -35,13 +44,29 @@ console.log(`  ${meta.width}x${meta.height} @ ${meta.fps}  `
     + `(${Math.floor(meta.duration / 60)}:${String(Math.round(meta.duration % 60)).padStart(2, '0')})`);
 console.log(`  ${compiled.scene.byId.size} nodes, ${compiled.timeline.tracks.length} tracks, `
     + `${compiled.audioCues.length} audio cues, ${compiled.lipsyncJobs.length} lines`);
+if (pacing) {
+    console.log(`  pacing: ${Math.round(pacing.coverage * 100)}% line coverage, `
+        + `${pacing.lines} lines in ${pacing.runs} runs, `
+        + `${Math.round(pacing.density)} words/min of runtime | hook `
+        + `${Math.round(pacing.hook.coverage * 100)}% from `
+        + `${pacing.hook.firstWord.toFixed(1)}s | longest gap `
+        + `${pacing.gap.seconds.toFixed(1)}s @${pacing.gap.at.toFixed(1)}s, `
+        + `tail ${pacing.tail.toFixed(1)}s`);
+}
 
 for (const sev of ['fatal', 'error', 'warning', 'info']) {
     const list = by[sev];
     if (!list.length) continue;
     // Info is usually an IK reach falling short by a pixel; count it, don't
     // print forty of them.
-    if (sev === 'info') { console.log(`\n  info: ${list.length} notes`); continue; }
+    if (sev === 'info') {
+        // Counted, not printed -- except the pacing notes, which are the
+        // whole point of running this before a render.
+        const pacingNotes = list.filter((d) => String(d.path ?? '').startsWith('pacing'));
+        console.log(`\n  info: ${list.length} notes`);
+        for (const d of pacingNotes) console.log(`  ${d.path}: ${d.message}`);
+        continue;
+    }
     console.log(`\n${sev} (${list.length}):`);
     for (const d of list) console.log(`  ${d.path ?? ''}: ${d.message}`);
 }

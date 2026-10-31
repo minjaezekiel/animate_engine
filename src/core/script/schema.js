@@ -68,7 +68,10 @@ export const KNOWN = {
            // text that must stay inside the frame
            'maxWidth', 'lineHeight',
            // draw-level: compositing, glow, trimmed strokes, repeaters
-           'blend', 'glow', 'trim', 'repeat', 'gradient'],
+           'blend', 'glow', 'trim', 'repeat', 'gradient',
+           // travelling dashes: flowing water, moving fluid, current.
+           // See docs/25-FLOW.md.
+           'flow'],
     scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
             'scenery', 'palette', 'ground', 'template', 'drawings', 'photos'],
     // A still photograph animated by `core/motion/PhotoMotion.js`. `source`
@@ -111,7 +114,7 @@ export const ASSET_KINDS = ['image', 'audio'];
 export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidth', 'z',
                              'alpha', 'parallax', 'gradient', 'screenSpace', 'sx', 'sy', 'rot',
                              'lineCap', 'lineJoin', 'maxWidth', 'lineHeight',
-                             'blend', 'glow', 'trim', 'repeat'];
+                             'blend', 'glow', 'trim', 'repeat', 'flow'];
 
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];
 export const TRANSITION_KINDS = ['fade', 'crossfade', 'none'];

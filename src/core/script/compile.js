@@ -601,6 +601,15 @@ function drawProps(part, colorOf) {
     if (part.blend) out.blend = part.blend;
     if (part.trim) out.trim = part.trim;
     if (part.repeat) out.repeat = part.repeat;
+    // `shapes.js` has always read these and defaults both to 'round', but
+    // nothing ever copied them out of the part -- so a wide band drawn as a
+    // stroke bulged half its own width past each end of its path, and the
+    // only clue was in the picture.
+    if (part.lineCap) out.lineCap = part.lineCap;
+    if (part.lineJoin) out.lineJoin = part.lineJoin;
+    // Text that has to stay inside the frame.
+    if (part.maxWidth) out.maxWidth = part.maxWidth;
+    if (part.lineHeight) out.lineHeight = part.lineHeight;
     if (part.gradient) out.gradient = resolveGradient(part.gradient, colorOf);
     if (part.glow) {
         out.glow = typeof part.glow === 'object'

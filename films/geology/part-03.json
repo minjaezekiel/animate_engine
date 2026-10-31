@@ -1,0 +1,3625 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "Finding Gold — The exploration funnel",
+    "fps": 24,
+    "width": 1080,
+    "height": 1920,
+    "author": "Ezekiel Minja",
+    "description": "Finding Gold: a field guide to mineral exploration. Educational — not a design standard.",
+    "subtitleStyle": {
+      "font": "600 37px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "fill": "#f2efe6",
+      "stroke": "#06090f",
+      "strokeWidth": 7,
+      "lineHeight": 47,
+      "maxWidth": 940,
+      "bottomMargin": 360
+    }
+  },
+  "voices": {
+    "zawadi_v": {
+      "spec": "tts:en_GB-alba-medium"
+    },
+    "juma_v": {
+      "spec": "tts:en_GB-alan-medium"
+    }
+  },
+  "palettes": {
+    "geo": {
+      "bg": "#0d1420",
+      "panel": "#141d2d",
+      "ink": "#f2efe6",
+      "dim": "#8ea0b8",
+      "gold": "#ffc64d",
+      "fluid": "#e2663c",
+      "water": "#4aa3d8",
+      "sulphide": "#b8a86a",
+      "structure": "#e24a6a",
+      "granite": "#cfc3b8",
+      "greenstone": "#3f5d4a",
+      "soil": "#6b5a44",
+      "quartz": "#e8e4da",
+      "basalt": "#2f4150",
+      "skin": "#8d5a3b",
+      "skinAlt": "#6f4529",
+      "cloth": "#c9702f",
+      "clothAlt": "#3f6f8a",
+      "trouser": "#4a4f58",
+      "hair": "#241a14",
+      "eye": "#2b1d14",
+      "white": "#f6f2e8",
+      "shoe": "#2a2320",
+      "teeth": "#f6f2e8",
+      "mouth": "#4a2420",
+      "accent": "#ffc64d",
+      "light": "#fff3cf"
+    }
+  },
+  "characters": {
+    "zawadi": {
+      "palette": "geo",
+      "voice": "zawadi_v",
+      "proportions": {
+        "height": 520
+      },
+      "generate": {
+        "build": "athletic",
+        "hands": "mitten",
+        "cloth": "cloth",
+        "trouser": "trouser",
+        "hair": "braids",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "tapered",
+          "eyes": "round",
+          "brow": "arched",
+          "nose": "broad",
+          "lips": "full",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.12
+          },
+          "armR": {
+            "rot": -0.12
+          },
+          "foreL": {
+            "rot": 0.18
+          },
+          "foreR": {
+            "rot": -0.18
+          }
+        },
+        "present": {
+          "armR": {
+            "rot": -0.62
+          },
+          "foreR": {
+            "rot": -0.52
+          },
+          "head": {
+            "rot": -0.05
+          }
+        },
+        "count": {
+          "armR": {
+            "rot": -0.85
+          },
+          "foreR": {
+            "rot": -0.9
+          }
+        }
+      }
+    },
+    "juma": {
+      "palette": "geo",
+      "voice": "juma_v",
+      "proportions": {
+        "height": 509.59999999999997
+      },
+      "generate": {
+        "build": "slim",
+        "hands": "mitten",
+        "skin": "skinAlt",
+        "cloth": "clothAlt",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "round",
+          "eyes": "wide",
+          "brow": "flat",
+          "nose": "button",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.14
+          },
+          "armR": {
+            "rot": -0.14
+          },
+          "foreL": {
+            "rot": 0.2
+          },
+          "foreR": {
+            "rot": -0.2
+          }
+        },
+        "ask": {
+          "armR": {
+            "rot": -0.7
+          },
+          "foreR": {
+            "rot": -0.75
+          },
+          "head": {
+            "rot": 0.08
+          }
+        }
+      }
+    },
+    "funnel": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "kicker",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            318
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "FINDING GOLD  ·  PART 3",
+            "font": "700 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "title",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            392
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "The funnel",
+            "font": "800 74px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            566
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 58,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f1_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            566
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "1  ·  RECONNAISSANCE",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 876
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f1_o",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            624
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "maps, satellite, stream sediments  →  a licence",
+            "font": "600 25px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "f2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            684
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 782,
+            "h": 58,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f2_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            684
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "2  ·  TARGET GENERATION",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 758
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f2_o",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            742
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "mapping, soils, geophysics  →  ranked anomalies",
+            "font": "600 25px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "f3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            802
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 664,
+            "h": 58,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f3_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            802
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "3  ·  TARGET TESTING",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 640
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f3_o",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            860
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "first drilling  →  an intercept, or a reason to stop",
+            "font": "600 25px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "f4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            920
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 546,
+            "h": 58,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f4_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            920
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "4  ·  RESOURCE DEFINITION",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 522
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f4_o",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            978
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "drill on a grid  →  a mineral resource",
+            "font": "600 25px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "f5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1038
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 428,
+            "h": 58,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f5_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1038
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "5  ·  STUDIES",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 404
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f5_o",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1096
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "scoping, PFS, feasibility  →  a reserve, and a decision",
+            "font": "600 25px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "f6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1156
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 310,
+            "h": 58,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "gold",
+          "stroke": "gold",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f6_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1156
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "6  ·  BUILD AND MINE",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 286
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "#0d1420"
+        },
+        {
+          "id": "f6_o",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1214
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "the one in a thousand",
+            "font": "600 25px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        }
+      ]
+    },
+    "attrition": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "at_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "what the numbers do",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "a1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            430,
+            630
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "1,000",
+            "font": "800 86px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "a1_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            480,
+            630
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "serious prospects",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 520
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "a1_ar",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M400,674 L400,718 M400,734 L393.3,718 L406.7,718 Z"
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "dim",
+          "stroke": "dim",
+          "strokeWidth": 3
+        },
+        {
+          "id": "a2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            430,
+            780
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "100",
+            "font": "800 86px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "a2_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            480,
+            780
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "get drilled",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 520
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "a2_ar",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M400,824 L400,868 M400,884 L393.3,868 L406.7,868 Z"
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "dim",
+          "stroke": "dim",
+          "strokeWidth": 3
+        },
+        {
+          "id": "a3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            430,
+            930
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "10",
+            "font": "800 86px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "a3_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            480,
+            930
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "return something",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 520
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "a3_ar",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M400,974 L400,1018 M400,1034 L393.3,1018 L406.7,1018 Z"
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "dim",
+          "stroke": "dim",
+          "strokeWidth": 3
+        },
+        {
+          "id": "a4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            430,
+            1080
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "1",
+            "font": "800 86px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "a4_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            480,
+            1080
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "becomes a mine",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 520
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "at_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1252
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "7 to 15 years, from the first look to the first gold",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "gold"
+        }
+      ]
+    },
+    "cost": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "co_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            496
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "cost of looking, per hectare",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "co_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            548
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "relative to a desktop study  ·  log scale",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "co_axis",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M330,1128 L990,1128"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 3
+        },
+        {
+          "id": "co_x0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            330,
+            1170
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "×1",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "co_x1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            594,
+            1170
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "×100",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "co_x2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            858,
+            1170
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "×10k",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "co_x3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            990,
+            1170
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "×100k",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "c1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            332.5,
+            640
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 5,
+            "h": 40,
+            "cx": true,
+            "cy": true
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "c1_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            312,
+            640
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "desktop study",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 260
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "c2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            389.6039391414683,
+            716
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 119.20787828293658,
+            "h": 40,
+            "cx": true,
+            "cy": true
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "c2_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            312,
+            716
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "satellite and GIS",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 260
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "c3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            447.3579825253205,
+            792
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 234.715965050641,
+            "h": 40,
+            "cx": true,
+            "cy": true
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "c3_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            312,
+            792
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "stream sediments",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 260
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "c4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            513.3579825253205,
+            868
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 366.715965050641,
+            "h": 40,
+            "cx": true,
+            "cy": true
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "c4_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            312,
+            868
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "soil grid",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 260
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "c5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            559.4900028114978,
+            944
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 458.9800056229956,
+            "h": 40,
+            "cx": true,
+            "cy": true
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "c5_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            312,
+            944
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "ground geophysics",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 260
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "c6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            660,
+            1020
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 660,
+            "h": 40,
+            "cx": true,
+            "cy": true
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "structure"
+        },
+        {
+          "id": "c6_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            312,
+            1020
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "drilling",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 260
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "co_cap",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "cheapest first, always",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "card": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "next",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Next: stage one done properly — a geologist and a hillside.",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "made",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1000
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Animated with",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "name",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1098
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "JIREX",
+            "font": "800 118px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "what",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1172
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "an open-source browser animation engine",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "repo",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1278
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "github.com/minjaezekiel/jireX",
+            "font": "700 36px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "lic",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1330
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MIT licensed  ·  free to use, fork and build on",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "call",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1402
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Add a feature. Send a pull request.",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "funnel",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionIn": {
+        "kind": "fade",
+        "from": "#000000",
+        "duration": 0.9
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "funnel",
+          "as": "funnel",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "f0",
+          "duration": 6.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Exploration is not searching. It is elimination, run cheapest first.",
+              "at": 0.7,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "f1",
+          "duration": 13.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "One. Reconnaissance. Regional, cheap, across huge areas. Maps, satellite data, old reports, stream sediments. What comes out is a licence application and a shortlist of ground.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.66,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f1_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f1_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.78,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f1_o",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f1_o",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "f2",
+          "duration": 11,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Two. Target generation. Walk the ground. Map it, sample the soil and the rock, fly geophysics. What comes out is a ranked list of anomalies.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.66,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f2_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f2_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.78,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f2_o",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f2_o",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "f3",
+          "duration": 13,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Three. Target testing. Drill. This is the first genuinely expensive step, and most targets die here. What comes out is an intercept, or a reason to walk away.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.66,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f3_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f3_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.78,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f3_o",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f3_o",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "f4",
+          "duration": 10.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Four. Resource definition. Drill the thing that worked, on a grid, until the grade and the shape are known well enough to model.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.66,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f4_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f4_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.78,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f4_o",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f4_o",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "f5",
+          "duration": 14,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Five. Studies. Scoping, pre-feasibility, feasibility. Can it be mined, processed, permitted, financed and closed? What comes out is a reserve, and a decision.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.66,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f5_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f5_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.78,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f5_o",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f5_o",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "f6",
+          "duration": 5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Six. Construction, and mining.",
+              "at": 0.3,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 0.404,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 0.404,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 0.5,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 0.404,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 0.404,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 0.5,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.38,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 0.504,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 0.504,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 0.504,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 0.504,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.48,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 0.604,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 0.604,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 0.604,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 0.604,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "funnel",
+              "do": "set",
+              "part": "f6_o",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.58,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "attrition",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "attrition",
+          "as": "attrition",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "a0",
+          "duration": 5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Here is the part nobody tells students.",
+              "at": 0.5,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "at_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "at_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "a1",
+          "duration": 18,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Of a thousand serious prospects, about a hundred get drilled. Around ten return something interesting. And roughly one becomes a mine. From the first look to the first gold is commonly seven to fifteen years.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.95,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a1_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.75,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a1_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a1_ar",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a1_ar",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.9,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.55,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a2_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.35,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a2_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.7,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a2_ar",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a2_ar",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.35,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a3_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.15,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a3_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.5,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a3_ar",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a3_ar",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.7,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 9,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 9.272,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 9.272,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 9.4,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 9,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 9.272,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 9.272,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 9.4,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.18,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 9.15,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 9.422,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 9.422,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 9.55,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 9.15,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 9.422,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 9.422,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 9.55,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.15,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "a4_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.33,
+              "ease": "step"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "at_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 13,
+              "ease": "smooth"
+            },
+            {
+              "target": "attrition",
+              "do": "set",
+              "part": "at_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 13.5,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "talk",
+      "palette": "geo",
+      "background": {
+        "color": "#101a26"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            330,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter"
+        },
+        {
+          "character": "juma",
+          "as": "juma",
+          "at": [
+            770,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter",
+          "facing": -1
+        }
+      ],
+      "shots": [
+        {
+          "id": "t0",
+          "duration": 4.8,
+          "framing": "wide",
+          "on": "juma",
+          "dialogue": [
+            {
+              "speaker": "juma",
+              "text": "That sounds like mostly failure.",
+              "at": 0.5,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "ask",
+              "at": 0.3,
+              "for": 0.5
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 1.467
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 2.075
+            }
+          ]
+        },
+        {
+          "id": "t1",
+          "duration": 6,
+          "framing": "wide",
+          "on": "zawadi",
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "It is mostly failure. The craft is in failing cheaply.",
+              "at": 0.4,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "present",
+              "at": 0.5,
+              "for": 0.6
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 1.768
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 4.451
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 1.746
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cost",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "cost",
+          "as": "cost",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "n0",
+          "duration": 13,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Every stage exists to spend a little money ruling out a lot of ground, so the expensive tools only ever get pointed at the few places that have earned them.",
+              "at": 0.5,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_s",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_s",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_axis",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_axis",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_x0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.28,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_x0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.58,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_x1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.36,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_x1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.66,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_x2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.44,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_x2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.74,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_x3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.52,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_x3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.82,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.7,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c1_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c1_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.8,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.9,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c2_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c2_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.1,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c3_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c3_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.3,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c4_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c4_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.4,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.5,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c5_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c5_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.6,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "n1",
+          "duration": 14.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Spend drilling money on a target that satellite data and a soil grid could have killed for a thousandth of the cost, and you have not been unlucky. You have been disorganised.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.706,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.706,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 1.85,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.706,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.706,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 1.85,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.58,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.806,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.806,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 1.95,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.806,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.806,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 1.95,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "c6_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.68,
+              "ease": "step"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_cap",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "cost",
+              "do": "set",
+              "part": "co_cap",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 10,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "palette": "geo",
+      "background": {
+        "color": "#06090f"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "card",
+          "as": "card",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "c1",
+          "duration": 9,
+          "actions": [
+            {
+              "target": "card",
+              "do": "set",
+              "part": "next",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "next",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.85,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "made",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "made",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.32,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "name",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.16,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "name",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.48,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "what",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.32,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "what",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.64,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "repo",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.48,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "repo",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.8,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "lic",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "lic",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.96,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "call",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "call",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.12,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

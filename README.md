@@ -124,6 +124,26 @@ FORMAT=webm npm run produce                       # the zero-dependency path
 FORMAT=mp4 WIDTH=1080 HEIGHT=1920 FILM=my.json OUT=out/my.mp4 npm run produce
 ```
 
+Before spending a render on a film, compile it and read what it says:
+
+```bash
+FILM=films/geology/part-01.json node scripts/check-film.mjs      # errors, staging, budget
+ROOT=. FILM=films/geology/part-01.json AT=4,22 OUT=out/g npm run grab2d   # look at it
+```
+
+### A worked example: a ten-part series
+
+`films/geology/` holds **"Finding Gold"**, a ten-part field guide to mineral
+exploration at 1080x1920 for phone feeds -- 28 minutes of narrated, subtitled
+2D built out of `scripts/make-geology.mjs` and `scripts/geology/part-NN.mjs`.
+It is the longest thing built on this engine, and `docs/STATUS.md` phase 30
+lists the three defects it exposed. Regenerate the film documents with:
+
+```bash
+node scripts/make-geology.mjs            # all ten
+PART=4 node scripts/make-geology.mjs     # one
+```
+
 ## Driving it from code
 
 ```js

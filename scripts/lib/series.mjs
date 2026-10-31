@@ -138,19 +138,19 @@ export const META = (title) => ({
 export function endCard(nextLine) {
     const parts = [
         textPart('next', nextLine, {
-            at: [540, 700], font: TYPE.caption, fill: 'gold' }),
+            at: [540, 700], font: TYPE.caption, fill: 'gold', maxWidth: 900 }),
         textPart('made', 'Animated with', {
             at: [540, 1000], font: TYPE.label, fill: 'dim' }),
         textPart('name', 'JIREX', {
             at: [540, 1098], font: `800 118px ${FONT}`, fill: 'ink' }),
         textPart('what', 'an open-source browser animation engine', {
-            at: [540, 1172], font: TYPE.small, fill: 'dim' }),
+            at: [540, 1172], font: TYPE.small, fill: 'dim', maxWidth: 940 }),
         textPart('repo', REPO, {
             at: [540, 1278], font: TYPE.credit, fill: 'gold' }),
         textPart('lic', 'MIT licensed  \u00b7  free to use, fork and build on', {
-            at: [540, 1330], font: TYPE.small, fill: 'dim' }),
+            at: [540, 1330], font: TYPE.small, fill: 'dim', maxWidth: 940 }),
         textPart('call', 'Add a feature. Send a pull request.', {
-            at: [540, 1402], font: TYPE.label, fill: 'ink' }),
+            at: [540, 1402], font: TYPE.label, fill: 'ink', maxWidth: 940 }),
     ];
     const ids = parts.map((x) => x.id);
     return {

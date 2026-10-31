@@ -1,0 +1,4461 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "Finding Gold — Designing a mine",
+    "fps": 24,
+    "width": 1080,
+    "height": 1920,
+    "author": "Ezekiel Minja",
+    "description": "Finding Gold: a field guide to mineral exploration. Educational — not a design standard.",
+    "subtitleStyle": {
+      "font": "600 37px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "fill": "#f2efe6",
+      "stroke": "#06090f",
+      "strokeWidth": 7,
+      "lineHeight": 47,
+      "maxWidth": 940,
+      "bottomMargin": 360
+    }
+  },
+  "voices": {
+    "zawadi_v": {
+      "spec": "tts:en_GB-alba-medium"
+    },
+    "juma_v": {
+      "spec": "tts:en_GB-alan-medium"
+    }
+  },
+  "palettes": {
+    "geo": {
+      "bg": "#0d1420",
+      "panel": "#141d2d",
+      "ink": "#f2efe6",
+      "dim": "#8ea0b8",
+      "gold": "#ffc64d",
+      "fluid": "#e2663c",
+      "water": "#4aa3d8",
+      "sulphide": "#b8a86a",
+      "structure": "#e24a6a",
+      "granite": "#cfc3b8",
+      "greenstone": "#3f5d4a",
+      "soil": "#6b5a44",
+      "quartz": "#e8e4da",
+      "basalt": "#2f4150",
+      "skin": "#8d5a3b",
+      "skinAlt": "#6f4529",
+      "cloth": "#c9702f",
+      "clothAlt": "#3f6f8a",
+      "trouser": "#4a4f58",
+      "hair": "#241a14",
+      "eye": "#2b1d14",
+      "white": "#f6f2e8",
+      "shoe": "#2a2320",
+      "teeth": "#f6f2e8",
+      "mouth": "#4a2420",
+      "accent": "#ffc64d",
+      "light": "#fff3cf"
+    }
+  },
+  "characters": {
+    "zawadi": {
+      "palette": "geo",
+      "voice": "zawadi_v",
+      "proportions": {
+        "height": 520
+      },
+      "generate": {
+        "build": "athletic",
+        "hands": "mitten",
+        "cloth": "cloth",
+        "trouser": "trouser",
+        "hair": "braids",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "tapered",
+          "eyes": "round",
+          "brow": "arched",
+          "nose": "broad",
+          "lips": "full",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.12
+          },
+          "armR": {
+            "rot": -0.12
+          },
+          "foreL": {
+            "rot": 0.18
+          },
+          "foreR": {
+            "rot": -0.18
+          }
+        },
+        "present": {
+          "armR": {
+            "rot": -0.62
+          },
+          "foreR": {
+            "rot": -0.52
+          },
+          "head": {
+            "rot": -0.05
+          }
+        },
+        "count": {
+          "armR": {
+            "rot": -0.85
+          },
+          "foreR": {
+            "rot": -0.9
+          }
+        }
+      }
+    },
+    "juma": {
+      "palette": "geo",
+      "voice": "juma_v",
+      "proportions": {
+        "height": 509.59999999999997
+      },
+      "generate": {
+        "build": "slim",
+        "hands": "mitten",
+        "skin": "skinAlt",
+        "cloth": "clothAlt",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "round",
+          "eyes": "wide",
+          "brow": "flat",
+          "nose": "button",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.14
+          },
+          "armR": {
+            "rot": -0.14
+          },
+          "foreL": {
+            "rot": 0.2
+          },
+          "foreR": {
+            "rot": -0.2
+          }
+        },
+        "ask": {
+          "armR": {
+            "rot": -0.7
+          },
+          "foreR": {
+            "rot": -0.75
+          },
+          "head": {
+            "rot": 0.08
+          }
+        }
+      }
+    },
+    "choice": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "ch_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "pit, or underground?",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ch_rock",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            950
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 620,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 1,
+          "fill": "greenstone"
+        },
+        {
+          "id": "ch_surf",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M90,640 L990,640"
+          },
+          "z": 20,
+          "alpha": 1,
+          "stroke": "ink",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ch_ore",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M520,660 L580,1250"
+          },
+          "z": 9,
+          "alpha": 1,
+          "stroke": "gold",
+          "strokeWidth": 44,
+          "lineCap": "butt"
+        },
+        {
+          "id": "ch_p0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M200,640 L880,640 L610,840 L470,840Z"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 4,
+          "fill": null
+        },
+        {
+          "id": "ch_p0r",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            890,
+            768
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "2 : 1",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 220
+          },
+          "z": 16,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "ch_p1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-9,640 L1089,640 L610,1060 L470,1060Z"
+          },
+          "z": 13,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 4,
+          "fill": null
+        },
+        {
+          "id": "ch_p1r",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1099,
+            878
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "8 : 1",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 220
+          },
+          "z": 16,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "ch_p2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-218,640 L1298,640 L610,1280 L470,1280Z"
+          },
+          "z": 14,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 4,
+          "fill": null
+        },
+        {
+          "id": "ch_p2r",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1308,
+            988
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "20 : 1",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 220
+          },
+          "z": 16,
+          "alpha": 0,
+          "fill": "structure"
+        },
+        {
+          "id": "ch_sr",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            92,
+            600
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "strip ratio — waste per tonne of ore",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 928
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ch_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "past the crossover, you go underground",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "pit": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "pt_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "every angle is derived",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pt_rock",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            950
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 620,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 1,
+          "fill": "greenstone"
+        },
+        {
+          "id": "pt_surf",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M90,640 L990,640"
+          },
+          "z": 20,
+          "alpha": 1,
+          "stroke": "ink",
+          "strokeWidth": 3
+        },
+        {
+          "id": "pt_wall",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M180,640 L222,736 L268,736 L268,736 L310,832 L356,832 L356,832 L398,928 L444,928 L444,928 L486,1024 L532,1024 L532,1024 L574,1120 L620,1120"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 6
+        },
+        {
+          "id": "pt_overall",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M180,640 L620,1120"
+          },
+          "z": 13,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 4
+        },
+        {
+          "id": "pt_ol",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            92,
+            1300
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "overall slope angle — derived, not chosen",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 928
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pt_ol_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M92,1300 L430,1060"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "pt_bl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "bench + berm",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pt_bl_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,700 L268,740"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "pt_ramp",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M880,660 L560,1180"
+          },
+          "z": 14,
+          "alpha": 0,
+          "stroke": "water",
+          "strokeWidth": 22,
+          "lineCap": "butt"
+        },
+        {
+          "id": "pt_rl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            1130
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "ramp at about 1 in 10",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pt_rl_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,1130 L740,920"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        }
+      ]
+    },
+    "angles": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "an_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "what the rock will hold",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "an_a",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M188,700 L412,1020 L188,1020Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "granite",
+          "stroke": "#2f3a2c",
+          "strokeWidth": 3
+        },
+        {
+          "id": "an_ad",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            300,
+            1090
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "55°",
+            "font": "800 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "an_al",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            300,
+            1150
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "competent granite",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 32
+        },
+        {
+          "id": "an_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M502.9,700 L1057.1,1020 L502.9,1020Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "soil",
+          "stroke": "#2f3a2c",
+          "strokeWidth": 3
+        },
+        {
+          "id": "an_bd",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            780,
+            1090
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "30°",
+            "font": "800 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "an_bl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            780,
+            1150
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "weathered shear zone",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 32
+        },
+        {
+          "id": "an_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1260
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "the same orebody, two different mines",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "methods": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "me_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            496
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "the structure chooses the method",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "m1_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            650
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 150,
+            "cx": true,
+            "cy": true
+          },
+          "z": 9,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "m1_sb",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            172,
+            650
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 150,
+            "h": 150,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#121a26"
+        },
+        {
+          "id": "m1_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M158,700 L186,600"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 12,
+          "lineCap": "butt"
+        },
+        {
+          "id": "m1_g",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            606
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "steep, narrow vein",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "m1_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            660
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "LONGHOLE STOPING",
+            "font": "700 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "m1_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            708
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "keep the opening the width of the vein",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "m2_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            818
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 150,
+            "cx": true,
+            "cy": true
+          },
+          "z": 9,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "m2_sb",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            172,
+            818
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 150,
+            "h": 150,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#121a26"
+        },
+        {
+          "id": "m2_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M148,862 L196,774"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 40,
+          "lineCap": "butt"
+        },
+        {
+          "id": "m2_g",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            774
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "thick, steep, strong rock",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "m2_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            828
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "SUBLEVEL OPEN STOPING",
+            "font": "700 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "m2_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            876
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "big voids, pillars or backfill",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "m3_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            986
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 150,
+            "cx": true,
+            "cy": true
+          },
+          "z": 9,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "m3_sb",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            172,
+            986
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 150,
+            "h": 150,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#121a26"
+        },
+        {
+          "id": "m3_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            172,
+            986
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 118,
+            "h": 30,
+            "cx": true,
+            "cy": true
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "m3_g",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            942
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "flat, tabular body",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "m3_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            996
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "ROOM AND PILLAR",
+            "font": "700 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "m3_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            1044
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "gravity will not help you here",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "m4_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1154
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 150,
+            "cx": true,
+            "cy": true
+          },
+          "z": 9,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "m4_sb",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            172,
+            1154
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 150,
+            "h": 150,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#121a26"
+        },
+        {
+          "id": "m4_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M146,1196 Q178,1154 198,1112"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 44,
+          "lineCap": "butt"
+        },
+        {
+          "id": "m4_g",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            1110
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "weak rock, wide shear",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "m4_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            1164
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "CUT AND FILL",
+            "font": "700 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "m4_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            268,
+            1212
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "slice, backfill, stand on it, repeat",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "trouble": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "tr_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            496
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "what the structure does to the plan",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "x1_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            290,
+            700
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 440,
+            "h": 270,
+            "cx": true,
+            "cy": true
+          },
+          "z": 9,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "x1_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            290,
+            758
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "a fault offsets the ore",
+            "font": "700 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "ink",
+          "lineHeight": 34
+        },
+        {
+          "id": "x1_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            290,
+            812
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "find the continuation first",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "lineHeight": 32
+        },
+        {
+          "id": "x1_a",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M200,690 L270,590"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 16,
+          "lineCap": "butt"
+        },
+        {
+          "id": "x1_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M320,710 L390,610"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 16,
+          "lineCap": "butt"
+        },
+        {
+          "id": "x1_f",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M240,730 L350,570"
+          },
+          "z": 13,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 4
+        },
+        {
+          "id": "x2_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            770,
+            700
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 440,
+            "h": 270,
+            "cx": true,
+            "cy": true
+          },
+          "z": 9,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "x2_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            770,
+            758
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "a fold closes two limbs",
+            "font": "700 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "ink",
+          "lineHeight": 34
+        },
+        {
+          "id": "x2_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            770,
+            812
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "thicker, richer, awkward to drill",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "lineHeight": 32
+        },
+        {
+          "id": "x2_a",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M660,680 Q770,530 880,680"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 20,
+          "lineCap": "butt"
+        },
+        {
+          "id": "x3_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            290,
+            1010
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 440,
+            "h": 270,
+            "cx": true,
+            "cy": true
+          },
+          "z": 9,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "x3_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            290,
+            1068
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "a dyke cuts through",
+            "font": "700 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "ink",
+          "lineHeight": 34
+        },
+        {
+          "id": "x3_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            290,
+            1122
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "one stope becomes two",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "lineHeight": 32
+        },
+        {
+          "id": "x3_a",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M180,950 L400,950"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 22,
+          "lineCap": "butt"
+        },
+        {
+          "id": "x3_f",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M300,870 L270,1030"
+          },
+          "z": 13,
+          "alpha": 0,
+          "stroke": "basalt",
+          "strokeWidth": 20,
+          "lineCap": "butt"
+        },
+        {
+          "id": "x4_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            770,
+            1010
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 440,
+            "h": 270,
+            "cx": true,
+            "cy": true
+          },
+          "z": 9,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "x4_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            770,
+            1068
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "a weak hangingwall",
+            "font": "700 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "ink",
+          "lineHeight": 34
+        },
+        {
+          "id": "x4_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            770,
+            1122
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "flatter slopes — maybe no pit at all",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 400
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "lineHeight": 32
+        },
+        {
+          "id": "x4_a",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M750,1030 L830,880"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 18,
+          "lineCap": "butt"
+        },
+        {
+          "id": "x4_f",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M650,880 L780,1030"
+          },
+          "z": 11,
+          "alpha": 0,
+          "stroke": "soil",
+          "strokeWidth": 34,
+          "lineCap": "butt"
+        }
+      ]
+    },
+    "card": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "fn_1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            560
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Get the geology right,",
+            "font": "800 52px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "fn_2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            626
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "and the mine designs itself.",
+            "font": "800 52px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "fn_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            724
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Finding Gold  ·  ten parts  ·  educational, not a design standard",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "made",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            900
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Animated with",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "name",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1000
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "JIREX",
+            "font": "800 124px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "what",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1082
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "an open-source browser animation engine — every frame of this series was rendered by it",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "repo",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1190
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "github.com/minjaezekiel/jireX",
+            "font": "700 40px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "lic",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1244
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MIT licensed  ·  free to use, fork and build on",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "call",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1320
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Add a feature. Send a pull request.",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "title_b": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "kicker",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            318
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "FINDING GOLD  ·  PART 10",
+            "font": "700 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "title",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            392
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Designing the mine",
+            "font": "800 74px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "choice",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionIn": {
+        "kind": "fade",
+        "from": "#000000",
+        "duration": 0.9
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "title_b",
+          "as": "title_b",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 60,
+          "role": "effect"
+        },
+        {
+          "character": "choice",
+          "as": "choice",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "d0",
+          "duration": 7.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "A mine is not designed from the grade. It is designed from the shape of the orebody and the strength of the rock around it.",
+              "at": 0.7,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d1",
+          "duration": 4,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "First question: open pit, or underground?",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "choice",
+              "do": "show",
+              "at": 0.8,
+              "for": 0.4
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d2",
+          "duration": 14,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "By the strip ratio: tonnes of waste per tonne of ore. Near surface a pit wins. Deeper, the pit must widen to reach the ore, so waste grows with the square of depth.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_sr",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_sr",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.4,
+              "ease": "step"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p0r",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.15,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p0r",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.55,
+              "ease": "step"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7,
+              "ease": "step"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p1r",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.75,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p1r",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.15,
+              "ease": "step"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 10,
+              "ease": "step"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p2r",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.75,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_p2r",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 10.15,
+              "ease": "step"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 11.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "choice",
+              "do": "set",
+              "part": "ch_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 12.1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d3",
+          "duration": 10.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Flat, wide and shallow: a pit. Steep, narrow and deep: underground. Many mines are both — a pit first, then a decline beneath it.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        }
+      ]
+    },
+    {
+      "id": "pit",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "pit",
+          "as": "pit",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        },
+        {
+          "character": "angles",
+          "as": "angles",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "d4",
+          "duration": 4.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Design the pit, and geotechnics sets every angle.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d5",
+          "duration": 14,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Bench height matches the equipment. Berms catch rockfall. And benches and berms together average out to the overall slope angle — which is not chosen. It is derived.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_wall",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_wall",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_bl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_bl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.1,
+              "ease": "step"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_bl_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_bl_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.2,
+              "ease": "step"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_overall",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7,
+              "ease": "smooth"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_overall",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.7,
+              "ease": "step"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_ol",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8,
+              "ease": "smooth"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_ol",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.3,
+              "ease": "step"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_ol_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "pit",
+              "do": "set",
+              "part": "pt_ol_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.4,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d6",
+          "duration": 10,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Competent granite might hold fifty-five degrees. A weathered shear zone might demand thirty.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "pit",
+              "do": "hide",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "angles",
+              "do": "show",
+              "at": 0.7,
+              "for": 0.4
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_a",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_a",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2,
+              "ease": "step"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_ad",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.75,
+              "ease": "smooth"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_ad",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.15,
+              "ease": "step"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_al",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_al",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.3,
+              "ease": "step"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5,
+              "ease": "step"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_bd",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.75,
+              "ease": "smooth"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_bd",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.15,
+              "ease": "step"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_bl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_bl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.3,
+              "ease": "step"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6,
+              "ease": "smooth"
+            },
+            {
+              "target": "angles",
+              "do": "set",
+              "part": "an_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.5,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "methods",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "methods",
+          "as": "methods",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "d7",
+          "duration": 4.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Underground, the structure chooses the method.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "me_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "me_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d8",
+          "duration": 15,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "A steep, narrow vein. Too thin to drive machines into. Longhole stoping, from levels above and below, keeping the opening the width of the vein — because every centimetre of wall is waste you pay to hoist and mill.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_sb",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_sb",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_s",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_s",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_g",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_g",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d9",
+          "duration": 10.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "A thick, steep body in strong rock. Sublevel open stoping: large voids, high productivity, low cost, with pillars or backfill holding the walls.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_sb",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_sb",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_s",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_s",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_g",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_g",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d10",
+          "duration": 10.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "A flat, tabular body. Stoping needs gravity, and gravity does not help here. So room and pillar — and the gold in the pillars stays there.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_sb",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_sb",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_s",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_s",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_g",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_g",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m3_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d11",
+          "duration": 12,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Weak rock, or a wide shear that will not stand. Cut and fill: take a slice, backfill it, stand on that, take the next. Slow, expensive, and sometimes the only thing that works.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_sb",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_sb",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_s",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_s",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_g",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_g",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "methods",
+              "do": "set",
+              "part": "m4_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trouble",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "trouble",
+          "as": "trouble",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "d12",
+          "duration": 14,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Then the structures that complicate it. A fault offsets the ore — find the continuation before you design around a hole. A fold closes two limbs together: thicker, richer, awkward to drill.",
+              "at": 0.5,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "tr_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "tr_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.8,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_a",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_a",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.9,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_f",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_f",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.1,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.2,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.3,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.8,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_a",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_a",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.9,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_f",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_f",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.1,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.2,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.3,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d13",
+          "duration": 11.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "A dyke splits one stope into two. And a weak hangingwall flattens your slopes and raises your strip ratio — enough, on its own, to send the whole mine underground.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_a",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_a",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_f",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_f",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x3_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.6,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_a",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_a",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.8,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_f",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_f",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.9,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6,
+              "ease": "step"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "trouble",
+              "do": "set",
+              "part": "x4_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.1,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "talk",
+      "palette": "geo",
+      "background": {
+        "color": "#101a26"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.8
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            330,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter"
+        },
+        {
+          "character": "juma",
+          "as": "juma",
+          "at": [
+            770,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter",
+          "facing": -1
+        }
+      ],
+      "shots": [
+        {
+          "id": "d14",
+          "duration": 4.2,
+          "framing": "wide",
+          "on": "juma",
+          "dialogue": [
+            {
+              "speaker": "juma",
+              "text": "So where does the design actually start?",
+              "at": 0.5,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "ask",
+              "at": 0.3,
+              "for": 0.5
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 0.982
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 1.566
+            }
+          ]
+        },
+        {
+          "id": "d15",
+          "duration": 4.5,
+          "framing": "wide",
+          "on": "zawadi",
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "With the geology. It always did.",
+              "at": 0.4,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "present",
+              "at": 0.4,
+              "for": 0.6
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 1.609
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 1.463
+            }
+          ]
+        },
+        {
+          "id": "d16",
+          "duration": 13,
+          "framing": "wide",
+          "on": "zawadi",
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Every decision in this series traces back to one thing: hot fluid moved along a structure and dropped its metal. Get the geology right, and the mine designs itself.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0.6,
+              "for": 0.6
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 1.107
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 4.016
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 8.119
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 12.466
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 0.848
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 4.044
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 7.589
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 10.82
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "palette": "geo",
+      "background": {
+        "color": "#06090f"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.8
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "card",
+          "as": "card",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "c1",
+          "duration": 10.5,
+          "actions": [
+            {
+              "target": "card",
+              "do": "set",
+              "part": "fn_1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "fn_1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.95,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "fn_2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "fn_2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.25,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "fn_s",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "fn_s",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.55,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "made",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "made",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.85,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "name",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "name",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.15,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "what",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "what",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.45,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "repo",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "repo",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.75,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "lic",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "lic",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.05,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "call",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "call",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.35,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

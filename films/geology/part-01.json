@@ -5744,7 +5744,8 @@
             "text": "Next: the deposits gold lives in, and what a grade means.",
             "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
             "align": "center",
-            "baseline": "middle"
+            "baseline": "middle",
+            "maxWidth": 900
           },
           "z": 0,
           "alpha": 0,
@@ -5810,7 +5811,8 @@
             "text": "an open-source browser animation engine",
             "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
             "align": "center",
-            "baseline": "middle"
+            "baseline": "middle",
+            "maxWidth": 940
           },
           "z": 0,
           "alpha": 0,
@@ -5854,7 +5856,8 @@
             "text": "MIT licensed  ·  free to use, fork and build on",
             "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
             "align": "center",
-            "baseline": "middle"
+            "baseline": "middle",
+            "maxWidth": 940
           },
           "z": 0,
           "alpha": 0,
@@ -5876,7 +5879,8 @@
             "text": "Add a feature. Send a pull request.",
             "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
             "align": "center",
-            "baseline": "middle"
+            "baseline": "middle",
+            "maxWidth": 940
           },
           "z": 0,
           "alpha": 0,
@@ -5979,7 +5983,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -5988,7 +5992,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -5997,7 +6001,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.85,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6006,7 +6010,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.35,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6015,7 +6019,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6024,7 +6028,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.5,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         },
@@ -6056,159 +6060,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.3,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 0.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 0.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.x",
-              "value": 50.4,
-              "at": 1.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 0.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.y",
-              "value": -62,
-              "at": 1.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.x",
-              "value": 50.4,
-              "at": 1.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.x",
-              "value": 86.39999999999999,
-              "at": 2.6,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.y",
-              "value": -62,
-              "at": 1.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.y",
-              "value": 44,
-              "at": 2.6,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.x",
-              "value": 86.39999999999999,
-              "at": 2.6,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.x",
-              "value": 108,
-              "at": 3.3,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.y",
-              "value": 44,
-              "at": 2.6,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.y",
-              "value": -15,
-              "at": 3.3,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.x",
-              "value": 108,
-              "at": 3.3,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.x",
-              "value": 120,
-              "at": 3.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.y",
-              "value": -15,
-              "at": 3.3,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsA",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
               "ease": "smooth"
             },
             {
@@ -6217,8 +6068,161 @@
               "part": "nsA",
               "channel": "props.alpha",
               "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.x",
+              "value": 420,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.x",
+              "value": 470.4,
+              "at": 1.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.y",
+              "value": 838,
+              "at": 1.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.x",
+              "value": 470.4,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.x",
+              "value": 506.4,
+              "at": 2.6,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.y",
+              "value": 838,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.y",
+              "value": 944,
+              "at": 2.6,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.x",
+              "value": 506.4,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.x",
+              "value": 528,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.y",
+              "value": 944,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.y",
+              "value": 885,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.x",
+              "value": 528,
+              "at": 3.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.x",
+              "value": 540,
               "at": 3.7,
               "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.y",
+              "value": 885,
+              "at": 3.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsA",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.7,
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6227,7 +6231,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6236,159 +6240,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.3,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 0.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 0.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.x",
-              "value": -50.4,
-              "at": 1.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 0.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.y",
-              "value": 62,
-              "at": 1.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.x",
-              "value": -50.4,
-              "at": 1.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.x",
-              "value": -86.39999999999999,
-              "at": 2.6,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.y",
-              "value": 62,
-              "at": 1.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.y",
-              "value": -44,
-              "at": 2.6,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.x",
-              "value": -86.39999999999999,
-              "at": 2.6,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.x",
-              "value": -108,
-              "at": 3.3,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.y",
-              "value": -44,
-              "at": 2.6,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.y",
-              "value": 15,
-              "at": 3.3,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.x",
-              "value": -108,
-              "at": 3.3,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.x",
-              "value": -120,
-              "at": 3.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.y",
-              "value": 15,
-              "at": 3.3,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "nsB",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
               "ease": "smooth"
             },
             {
@@ -6397,6 +6248,150 @@
               "part": "nsB",
               "channel": "props.alpha",
               "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.x",
+              "value": 660,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.x",
+              "value": 609.6,
+              "at": 1.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.y",
+              "value": 962,
+              "at": 1.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.x",
+              "value": 609.6,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.x",
+              "value": 573.6,
+              "at": 2.6,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.y",
+              "value": 962,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.y",
+              "value": 856,
+              "at": 2.6,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.x",
+              "value": 573.6,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.x",
+              "value": 552,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.y",
+              "value": 856,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.y",
+              "value": 915,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.x",
+              "value": 552,
+              "at": 3.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.y",
+              "value": 915,
+              "at": 3.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "transform.y",
+              "value": 900,
               "at": 3.7,
               "ease": "step"
             },
@@ -6405,9 +6400,18 @@
               "do": "set",
               "part": "nsB",
               "channel": "props.alpha",
+              "value": 1,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "nsB",
+              "channel": "props.alpha",
               "value": 0,
               "at": 3.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6416,7 +6420,7 @@
               "channel": "transform.sx",
               "value": 0.04,
               "at": 3.62,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6425,7 +6429,7 @@
               "channel": "transform.sx",
               "value": 1.3,
               "at": 3.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6434,7 +6438,7 @@
               "channel": "transform.sy",
               "value": 0.04,
               "at": 3.62,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6443,7 +6447,7 @@
               "channel": "transform.sy",
               "value": 1.3,
               "at": 3.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6452,7 +6456,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.62,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6461,7 +6465,7 @@
               "channel": "props.alpha",
               "value": 0.95,
               "at": 3.72,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6470,7 +6474,7 @@
               "channel": "props.alpha",
               "value": 0.95,
               "at": 3.76,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6479,69 +6483,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.56,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp0",
-              "channel": "props.alpha",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp0",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp0",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp0",
-              "channel": "transform.x",
-              "value": 343.02330224443455,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp0",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp0",
-              "channel": "transform.y",
-              "value": 57.01809793818257,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp0",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 5.2,
               "ease": "step"
             },
             {
@@ -6550,8 +6491,71 @@
               "part": "sp0",
               "channel": "props.alpha",
               "value": 0,
-              "at": 6.1,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp0",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp0",
+              "channel": "transform.x",
+              "value": 883.0233022444345,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp0",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp0",
+              "channel": "transform.y",
+              "value": 957.0180979381826,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.1,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6560,51 +6564,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp1",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp1",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp1",
-              "channel": "transform.x",
-              "value": 369.09901570645025,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp1",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp1",
-              "channel": "transform.y",
-              "value": 203.83378602401936,
-              "at": 5.7,
               "ease": "smooth"
             },
             {
@@ -6613,8 +6572,53 @@
               "part": "sp1",
               "channel": "props.alpha",
               "value": 1,
-              "at": 5.2,
+              "at": 3.8,
               "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp1",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp1",
+              "channel": "transform.x",
+              "value": 909.0990157064502,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp1",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp1",
+              "channel": "transform.y",
+              "value": 1103.8337860240194,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6623,69 +6627,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp2",
-              "channel": "props.alpha",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp2",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp2",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp2",
-              "channel": "transform.x",
-              "value": 298.36689778090124,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp2",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp2",
-              "channel": "transform.y",
-              "value": 369.0703258907487,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp2",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 5.2,
               "ease": "step"
             },
             {
@@ -6694,8 +6635,71 @@
               "part": "sp2",
               "channel": "props.alpha",
               "value": 0,
-              "at": 6.1,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp2",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp2",
+              "channel": "transform.x",
+              "value": 838.3668977809012,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp2",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp2",
+              "channel": "transform.y",
+              "value": 1269.0703258907488,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.1,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6704,51 +6708,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp3",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp3",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp3",
-              "channel": "transform.x",
-              "value": 121.60803306952981,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp3",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp3",
-              "channel": "transform.y",
-              "value": 511.062318492947,
-              "at": 5.7,
               "ease": "smooth"
             },
             {
@@ -6757,8 +6716,53 @@
               "part": "sp3",
               "channel": "props.alpha",
               "value": 1,
-              "at": 5.2,
+              "at": 3.8,
               "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp3",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp3",
+              "channel": "transform.x",
+              "value": 661.6080330695298,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp3",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp3",
+              "channel": "transform.y",
+              "value": 1411.062318492947,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6767,69 +6771,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp4",
-              "channel": "props.alpha",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp4",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp4",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp4",
-              "channel": "transform.x",
-              "value": -145.0286114803946,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp4",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp4",
-              "channel": "transform.y",
-              "value": 586.6678534957672,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp4",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 5.2,
               "ease": "step"
             },
             {
@@ -6838,8 +6779,71 @@
               "part": "sp4",
               "channel": "props.alpha",
               "value": 0,
-              "at": 6.1,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp4",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp4",
+              "channel": "transform.x",
+              "value": 394.9713885196054,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp4",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp4",
+              "channel": "transform.y",
+              "value": 1486.6678534957673,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.1,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6848,51 +6852,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp5",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp5",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp5",
-              "channel": "transform.x",
-              "value": -195.5106196448528,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp5",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp5",
-              "channel": "transform.y",
-              "value": 238.04812923090157,
-              "at": 5.7,
               "ease": "smooth"
             },
             {
@@ -6901,8 +6860,53 @@
               "part": "sp5",
               "channel": "props.alpha",
               "value": 1,
-              "at": 5.2,
+              "at": 3.8,
               "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp5",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp5",
+              "channel": "transform.x",
+              "value": 344.4893803551472,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp5",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp5",
+              "channel": "transform.y",
+              "value": 1138.0481292309016,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -6911,69 +6915,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp6",
-              "channel": "props.alpha",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp6",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp6",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp6",
-              "channel": "transform.x",
-              "value": -370.90400863004334,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp6",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp6",
-              "channel": "transform.y",
-              "value": 201.61866851898301,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp6",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 5.2,
               "ease": "step"
             },
             {
@@ -6982,8 +6923,71 @@
               "part": "sp6",
               "channel": "props.alpha",
               "value": 0,
-              "at": 6.1,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp6",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp6",
+              "channel": "transform.x",
+              "value": 169.09599136995666,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp6",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp6",
+              "channel": "transform.y",
+              "value": 1101.618668518983,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.1,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -6992,51 +6996,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp7",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp7",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp7",
-              "channel": "transform.x",
-              "value": -530.0050931173255,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp7",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp7",
-              "channel": "transform.y",
-              "value": 84.80005833572874,
-              "at": 5.7,
               "ease": "smooth"
             },
             {
@@ -7045,8 +7004,53 @@
               "part": "sp7",
               "channel": "props.alpha",
               "value": 1,
-              "at": 5.2,
+              "at": 3.8,
               "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp7",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp7",
+              "channel": "transform.x",
+              "value": 9.994906882674513,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp7",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp7",
+              "channel": "transform.y",
+              "value": 984.8000583357287,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp7",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7055,69 +7059,6 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp8",
-              "channel": "props.alpha",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp8",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp8",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp8",
-              "channel": "transform.x",
-              "value": -622.3422769291884,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp8",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
-              "ease": "step"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp8",
-              "channel": "transform.y",
-              "value": -103.44712054498841,
-              "at": 5.7,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp8",
-              "channel": "props.alpha",
-              "value": 1,
-              "at": 5.2,
               "ease": "step"
             },
             {
@@ -7126,8 +7067,71 @@
               "part": "sp8",
               "channel": "props.alpha",
               "value": 0,
-              "at": 6.1,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp8",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp8",
+              "channel": "transform.x",
+              "value": 540,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp8",
+              "channel": "transform.x",
+              "value": -82.34227692918842,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp8",
+              "channel": "transform.y",
+              "value": 900,
+              "at": 3.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp8",
+              "channel": "transform.y",
+              "value": 796.5528794550116,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp8",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp8",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.1,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7136,7 +7140,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7145,15 +7149,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp9",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
               "ease": "step"
             },
             {
@@ -7161,17 +7156,17 @@
               "do": "set",
               "part": "sp9",
               "channel": "transform.x",
-              "value": -605.4882729566486,
-              "at": 5.7,
+              "value": 540,
+              "at": 3.7,
               "ease": "smooth"
             },
             {
               "target": "cos",
               "do": "set",
               "part": "sp9",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
+              "channel": "transform.x",
+              "value": -65.48827295664864,
+              "at": 5.7,
               "ease": "step"
             },
             {
@@ -7179,9 +7174,18 @@
               "do": "set",
               "part": "sp9",
               "channel": "transform.y",
-              "value": -334.37901976973967,
-              "at": 5.7,
+              "value": 900,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp9",
+              "channel": "transform.y",
+              "value": 565.6209802302603,
+              "at": 5.7,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7190,7 +7194,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7199,7 +7203,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7208,7 +7212,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7217,15 +7221,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp10",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
               "ease": "step"
             },
             {
@@ -7233,17 +7228,17 @@
               "do": "set",
               "part": "sp10",
               "channel": "transform.x",
-              "value": -193.38595226539894,
-              "at": 5.7,
+              "value": 540,
+              "at": 3.7,
               "ease": "smooth"
             },
             {
               "target": "cos",
               "do": "set",
               "part": "sp10",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
+              "channel": "transform.x",
+              "value": 346.61404773460106,
+              "at": 5.7,
               "ease": "step"
             },
             {
@@ -7251,9 +7246,18 @@
               "do": "set",
               "part": "sp10",
               "channel": "transform.y",
-              "value": -239.21224826252234,
-              "at": 5.7,
+              "value": 900,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp10",
+              "channel": "transform.y",
+              "value": 660.7877517374777,
+              "at": 5.7,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7262,7 +7266,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7271,7 +7275,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7280,7 +7284,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7289,15 +7293,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp11",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
               "ease": "step"
             },
             {
@@ -7305,17 +7300,17 @@
               "do": "set",
               "part": "sp11",
               "channel": "transform.x",
-              "value": -85.22137750541867,
-              "at": 5.7,
+              "value": 540,
+              "at": 3.7,
               "ease": "smooth"
             },
             {
               "target": "cos",
               "do": "set",
               "part": "sp11",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
+              "channel": "transform.x",
+              "value": 454.7786224945813,
+              "at": 5.7,
               "ease": "step"
             },
             {
@@ -7323,9 +7318,18 @@
               "do": "set",
               "part": "sp11",
               "channel": "transform.y",
-              "value": -358.14603421946674,
-              "at": 5.7,
+              "value": 900,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp11",
+              "channel": "transform.y",
+              "value": 541.8539657805333,
+              "at": 5.7,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7334,7 +7338,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7343,7 +7347,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7352,7 +7356,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7361,15 +7365,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp12",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
               "ease": "step"
             },
             {
@@ -7377,17 +7372,17 @@
               "do": "set",
               "part": "sp12",
               "channel": "transform.x",
-              "value": 107.28143862933305,
-              "at": 5.7,
+              "value": 540,
+              "at": 3.7,
               "ease": "smooth"
             },
             {
               "target": "cos",
               "do": "set",
               "part": "sp12",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
+              "channel": "transform.x",
+              "value": 647.281438629333,
+              "at": 5.7,
               "ease": "step"
             },
             {
@@ -7395,9 +7390,18 @@
               "do": "set",
               "part": "sp12",
               "channel": "transform.y",
-              "value": -433.97348066810173,
-              "at": 5.7,
+              "value": 900,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp12",
+              "channel": "transform.y",
+              "value": 466.02651933189827,
+              "at": 5.7,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7406,7 +7410,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7415,7 +7419,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7424,7 +7428,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7433,15 +7437,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp13",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
               "ease": "step"
             },
             {
@@ -7449,17 +7444,17 @@
               "do": "set",
               "part": "sp13",
               "channel": "transform.x",
-              "value": 354.7121242128046,
-              "at": 5.7,
+              "value": 540,
+              "at": 3.7,
               "ease": "smooth"
             },
             {
               "target": "cos",
               "do": "set",
               "part": "sp13",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
+              "channel": "transform.x",
+              "value": 894.7121242128046,
+              "at": 5.7,
               "ease": "step"
             },
             {
@@ -7467,9 +7462,18 @@
               "do": "set",
               "part": "sp13",
               "channel": "transform.y",
-              "value": -431.8873201760641,
-              "at": 5.7,
+              "value": 900,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp13",
+              "channel": "transform.y",
+              "value": 468.1126798239359,
+              "at": 5.7,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7478,7 +7482,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7487,7 +7491,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7496,7 +7500,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7505,15 +7509,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp14",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
               "ease": "step"
             },
             {
@@ -7521,17 +7516,17 @@
               "do": "set",
               "part": "sp14",
               "channel": "transform.x",
-              "value": 608.449272584116,
-              "at": 5.7,
+              "value": 540,
+              "at": 3.7,
               "ease": "smooth"
             },
             {
               "target": "cos",
               "do": "set",
               "part": "sp14",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
+              "channel": "transform.x",
+              "value": 1148.449272584116,
+              "at": 5.7,
               "ease": "step"
             },
             {
@@ -7539,9 +7534,18 @@
               "do": "set",
               "part": "sp14",
               "channel": "transform.y",
-              "value": -330.7452315030509,
-              "at": 5.7,
+              "value": 900,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp14",
+              "channel": "transform.y",
+              "value": 569.254768496949,
+              "at": 5.7,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7550,7 +7554,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7559,7 +7563,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7568,7 +7572,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7577,15 +7581,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "cos",
-              "do": "set",
-              "part": "sp15",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.7,
               "ease": "step"
             },
             {
@@ -7593,17 +7588,17 @@
               "do": "set",
               "part": "sp15",
               "channel": "transform.x",
-              "value": 343.5218196130813,
-              "at": 5.7,
+              "value": 540,
+              "at": 3.7,
               "ease": "smooth"
             },
             {
               "target": "cos",
               "do": "set",
               "part": "sp15",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.7,
+              "channel": "transform.x",
+              "value": 883.5218196130813,
+              "at": 5.7,
               "ease": "step"
             },
             {
@@ -7611,9 +7606,18 @@
               "do": "set",
               "part": "sp15",
               "channel": "transform.y",
-              "value": -54.96300077315768,
-              "at": 5.7,
+              "value": 900,
+              "at": 3.7,
               "ease": "smooth"
+            },
+            {
+              "target": "cos",
+              "do": "set",
+              "part": "sp15",
+              "channel": "transform.y",
+              "value": 845.0369992268423,
+              "at": 5.7,
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7622,7 +7626,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7631,7 +7635,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7640,7 +7644,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.9,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7649,7 +7653,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.3,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "cos",
@@ -7658,7 +7662,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "cos",
@@ -7667,7 +7671,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 6.9,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         }
@@ -7759,6 +7763,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "mantle",
+              "channel": "transform.sx",
+              "value": 1.06,
+              "at": 0.54,
               "ease": "step"
             },
             {
@@ -7777,7 +7790,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 0.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7786,6 +7799,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "mantle",
+              "channel": "transform.sy",
+              "value": 1.06,
+              "at": 0.54,
               "ease": "step"
             },
             {
@@ -7804,7 +7826,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 0.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7813,7 +7835,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -7822,7 +7844,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 0.38,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7831,7 +7853,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -7840,7 +7862,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 0.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7849,7 +7871,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.8,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -7858,7 +7880,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7867,7 +7889,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.1,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -7876,7 +7898,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.4,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7885,7 +7907,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -7894,7 +7916,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7903,7 +7925,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -7912,7 +7934,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.9,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7921,7 +7943,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -7930,7 +7952,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.5,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7939,7 +7961,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -7948,15 +7970,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au0",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 2.8,
               "ease": "step"
             },
             {
@@ -7964,17 +7977,17 @@
               "do": "set",
               "part": "au0",
               "channel": "transform.x",
-              "value": 172.07542132135933,
-              "at": 5.2,
+              "value": 324.90572334830085,
+              "at": 2.8,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au0",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 2.8,
+              "channel": "transform.x",
+              "value": 496.9811446696602,
+              "at": 5.2,
               "ease": "step"
             },
             {
@@ -7982,9 +7995,18 @@
               "do": "set",
               "part": "au0",
               "channel": "transform.y",
-              "value": -86.85940541091013,
-              "at": 5.2,
+              "value": 988.5742567636377,
+              "at": 2.8,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au0",
+              "channel": "transform.y",
+              "value": 901.7148513527276,
+              "at": 5.2,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -7993,7 +8015,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.82,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8002,15 +8024,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.02,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au1",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.02,
               "ease": "step"
             },
             {
@@ -8018,17 +8031,17 @@
               "do": "set",
               "part": "au1",
               "channel": "transform.x",
-              "value": 73.49988506466482,
-              "at": 5.42,
+              "value": 448.125143669169,
+              "at": 3.02,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au1",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.02,
+              "channel": "transform.x",
+              "value": 521.6250287338338,
+              "at": 5.42,
               "ease": "step"
             },
             {
@@ -8036,9 +8049,18 @@
               "do": "set",
               "part": "au1",
               "channel": "transform.y",
-              "value": 208.27813841171053,
-              "at": 5.42,
+              "value": 619.6523269853619,
+              "at": 3.02,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au1",
+              "channel": "transform.y",
+              "value": 827.9304653970725,
+              "at": 5.42,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8047,7 +8069,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.04,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8056,15 +8078,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.24,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au2",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.24,
               "ease": "step"
             },
             {
@@ -8072,17 +8085,17 @@
               "do": "set",
               "part": "au2",
               "channel": "transform.x",
-              "value": -181.07330287741212,
-              "at": 5.64,
+              "value": 766.3416285967651,
+              "at": 3.24,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au2",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.24,
+              "channel": "transform.x",
+              "value": 585.268325719353,
+              "at": 5.64,
               "ease": "step"
             },
             {
@@ -8090,9 +8103,18 @@
               "do": "set",
               "part": "au2",
               "channel": "transform.y",
-              "value": -161.18619399643066,
-              "at": 5.64,
+              "value": 1081.4827424955383,
+              "at": 3.24,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au2",
+              "channel": "transform.y",
+              "value": 920.2965484991076,
+              "at": 5.64,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8101,7 +8123,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.26,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8110,15 +8132,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.46,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au3",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.46,
               "ease": "step"
             },
             {
@@ -8126,17 +8139,17 @@
               "do": "set",
               "part": "au3",
               "channel": "transform.x",
-              "value": -177.985461546532,
-              "at": 5.86,
+              "value": 762.4818269331649,
+              "at": 3.46,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au3",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.46,
+              "channel": "transform.x",
+              "value": 584.496365386633,
+              "at": 5.86,
               "ease": "step"
             },
             {
@@ -8144,9 +8157,18 @@
               "do": "set",
               "part": "au3",
               "channel": "transform.y",
-              "value": 160.63350755696663,
-              "at": 5.86,
+              "value": 679.2081155537917,
+              "at": 3.46,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au3",
+              "channel": "transform.y",
+              "value": 839.8416231107583,
+              "at": 5.86,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8155,7 +8177,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.48,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8164,15 +8186,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.68,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au4",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.68,
               "ease": "step"
             },
             {
@@ -8180,17 +8193,17 @@
               "do": "set",
               "part": "au4",
               "channel": "transform.x",
-              "value": -189.1997703930833,
-              "at": 6.08,
+              "value": 776.499712991354,
+              "at": 3.68,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au4",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.68,
+              "channel": "transform.x",
+              "value": 587.2999425982707,
+              "at": 6.08,
               "ease": "step"
             },
             {
@@ -8198,9 +8211,18 @@
               "do": "set",
               "part": "au4",
               "channel": "transform.y",
-              "value": -69.41644796185498,
-              "at": 6.08,
+              "value": 966.7705599523188,
+              "at": 3.68,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au4",
+              "channel": "transform.y",
+              "value": 897.3541119904638,
+              "at": 6.08,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8209,7 +8231,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8218,15 +8240,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.9,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au5",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.9,
               "ease": "step"
             },
             {
@@ -8234,17 +8247,17 @@
               "do": "set",
               "part": "au5",
               "channel": "transform.x",
-              "value": -191.13601162672808,
-              "at": 6.3,
+              "value": 778.92001453341,
+              "at": 3.9,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au5",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.9,
+              "channel": "transform.x",
+              "value": 587.784002906682,
+              "at": 6.3,
               "ease": "step"
             },
             {
@@ -8252,9 +8265,18 @@
               "do": "set",
               "part": "au5",
               "channel": "transform.y",
-              "value": 122.60105898380723,
-              "at": 6.3,
+              "value": 726.7486762702409,
+              "at": 3.9,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au5",
+              "channel": "transform.y",
+              "value": 849.3497352540481,
+              "at": 6.3,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8263,7 +8285,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.92,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8272,15 +8294,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.12,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au6",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 4.12,
               "ease": "step"
             },
             {
@@ -8288,17 +8301,17 @@
               "do": "set",
               "part": "au6",
               "channel": "transform.x",
-              "value": 233.68115023977077,
-              "at": 6.52,
+              "value": 247.89856220028656,
+              "at": 4.12,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au6",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 4.12,
+              "channel": "transform.x",
+              "value": 481.57971244005734,
+              "at": 6.52,
               "ease": "step"
             },
             {
@@ -8306,9 +8319,18 @@
               "do": "set",
               "part": "au6",
               "channel": "transform.y",
-              "value": -6.001142633819115,
-              "at": 6.52,
+              "value": 887.5014282922739,
+              "at": 4.12,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au6",
+              "channel": "transform.y",
+              "value": 881.5002856584548,
+              "at": 6.52,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8317,7 +8339,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8326,15 +8348,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.8,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au7",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 2.8,
               "ease": "step"
             },
             {
@@ -8342,17 +8355,17 @@
               "do": "set",
               "part": "au7",
               "channel": "transform.x",
-              "value": 170.77062583311363,
-              "at": 5.2,
+              "value": 326.53671770860797,
+              "at": 2.8,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au7",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 2.8,
+              "channel": "transform.x",
+              "value": 497.3073435417216,
+              "at": 5.2,
               "ease": "step"
             },
             {
@@ -8360,9 +8373,18 @@
               "do": "set",
               "part": "au7",
               "channel": "transform.y",
-              "value": -90.95371805364135,
-              "at": 5.2,
+              "value": 993.6921475670517,
+              "at": 2.8,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au7",
+              "channel": "transform.y",
+              "value": 902.7384295134104,
+              "at": 5.2,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8371,7 +8393,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.82,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8380,15 +8402,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.02,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au8",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.02,
               "ease": "step"
             },
             {
@@ -8396,17 +8409,17 @@
               "do": "set",
               "part": "au8",
               "channel": "transform.x",
-              "value": -133.10177732812562,
-              "at": 5.42,
+              "value": 706.377221660157,
+              "at": 3.02,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au8",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.02,
+              "channel": "transform.x",
+              "value": 573.2754443320314,
+              "at": 5.42,
               "ease": "step"
             },
             {
@@ -8414,9 +8427,18 @@
               "do": "set",
               "part": "au8",
               "channel": "transform.y",
-              "value": -142.26483181849184,
-              "at": 5.42,
+              "value": 1057.8310397731148,
+              "at": 3.02,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au8",
+              "channel": "transform.y",
+              "value": 915.5662079546229,
+              "at": 5.42,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8425,7 +8447,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.04,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8434,15 +8456,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.24,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au9",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.24,
               "ease": "step"
             },
             {
@@ -8450,17 +8463,17 @@
               "do": "set",
               "part": "au9",
               "channel": "transform.x",
-              "value": 192.3533848806045,
-              "at": 5.64,
+              "value": 299.5582688992444,
+              "at": 3.24,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au9",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.24,
+              "channel": "transform.x",
+              "value": 491.9116537798489,
+              "at": 5.64,
               "ease": "step"
             },
             {
@@ -8468,9 +8481,18 @@
               "do": "set",
               "part": "au9",
               "channel": "transform.y",
-              "value": -111.18881190749488,
-              "at": 5.64,
+              "value": 1018.9860148843686,
+              "at": 3.24,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au9",
+              "channel": "transform.y",
+              "value": 907.7972029768737,
+              "at": 5.64,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8479,7 +8501,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.26,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8488,15 +8510,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.46,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au10",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.46,
               "ease": "step"
             },
             {
@@ -8504,17 +8517,17 @@
               "do": "set",
               "part": "au10",
               "channel": "transform.x",
-              "value": -191.62536881467918,
-              "at": 5.86,
+              "value": 779.5317110183489,
+              "at": 3.46,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au10",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.46,
+              "channel": "transform.x",
+              "value": 587.9063422036697,
+              "at": 5.86,
               "ease": "step"
             },
             {
@@ -8522,9 +8535,18 @@
               "do": "set",
               "part": "au10",
               "channel": "transform.y",
-              "value": 28.44243771806273,
-              "at": 5.86,
+              "value": 844.4469528524216,
+              "at": 3.46,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au10",
+              "channel": "transform.y",
+              "value": 872.8893905704844,
+              "at": 5.86,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8533,7 +8555,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.48,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8542,15 +8564,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.68,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au11",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.68,
               "ease": "step"
             },
             {
@@ -8558,17 +8571,17 @@
               "do": "set",
               "part": "au11",
               "channel": "transform.x",
-              "value": 49.00323462381692,
-              "at": 6.08,
+              "value": 478.74595672022883,
+              "at": 3.68,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au11",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.68,
+              "channel": "transform.x",
+              "value": 527.7491913440458,
+              "at": 6.08,
               "ease": "step"
             },
             {
@@ -8576,9 +8589,18 @@
               "do": "set",
               "part": "au11",
               "channel": "transform.y",
-              "value": -199.9700077362054,
-              "at": 6.08,
+              "value": 1129.9625096702566,
+              "at": 3.68,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au11",
+              "channel": "transform.y",
+              "value": 929.9925019340512,
+              "at": 6.08,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8587,7 +8609,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8596,15 +8618,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.9,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au12",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 3.9,
               "ease": "step"
             },
             {
@@ -8612,17 +8625,17 @@
               "do": "set",
               "part": "au12",
               "channel": "transform.x",
-              "value": -133.3471089163449,
-              "at": 6.3,
+              "value": 706.6838861454311,
+              "at": 3.9,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au12",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 3.9,
+              "channel": "transform.x",
+              "value": 573.3367772290862,
+              "at": 6.3,
               "ease": "step"
             },
             {
@@ -8630,9 +8643,18 @@
               "do": "set",
               "part": "au12",
               "channel": "transform.y",
-              "value": -153.39028986980813,
-              "at": 6.3,
+              "value": 1071.7378623372601,
+              "at": 3.9,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au12",
+              "channel": "transform.y",
+              "value": 918.347572467452,
+              "at": 6.3,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8641,7 +8663,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.92,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8650,15 +8672,6 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.12,
-              "ease": "smooth"
-            },
-            {
-              "target": "erth",
-              "do": "set",
-              "part": "au13",
-              "channel": "transform.x",
-              "value": 0,
-              "at": 4.12,
               "ease": "step"
             },
             {
@@ -8666,17 +8679,17 @@
               "do": "set",
               "part": "au13",
               "channel": "transform.x",
-              "value": -38.05776745140383,
-              "at": 6.52,
+              "value": 587.5722093142548,
+              "at": 4.12,
               "ease": "smooth"
             },
             {
               "target": "erth",
               "do": "set",
               "part": "au13",
-              "channel": "transform.y",
-              "value": 0,
-              "at": 4.12,
+              "channel": "transform.x",
+              "value": 549.514441862851,
+              "at": 6.52,
               "ease": "step"
             },
             {
@@ -8684,9 +8697,18 @@
               "do": "set",
               "part": "au13",
               "channel": "transform.y",
-              "value": -186.76507070952022,
-              "at": 6.52,
+              "value": 1113.4563383869004,
+              "at": 4.12,
               "ease": "smooth"
+            },
+            {
+              "target": "erth",
+              "do": "set",
+              "part": "au13",
+              "channel": "transform.y",
+              "value": 926.6912676773802,
+              "at": 6.52,
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8695,7 +8717,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8704,7 +8726,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 6.3,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "erth",
@@ -8713,7 +8735,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.1,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "erth",
@@ -8722,7 +8744,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 6.4,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         },
@@ -8758,7 +8780,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.9,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8767,7 +8789,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.3,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8776,7 +8798,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8785,7 +8807,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8794,7 +8816,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8803,7 +8825,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8812,7 +8834,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.52,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8821,7 +8843,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.82,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8830,7 +8852,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8839,7 +8861,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.3,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8848,7 +8870,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 5.12,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8857,7 +8879,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.42,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8866,7 +8888,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8875,7 +8897,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8884,7 +8906,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.85,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8893,7 +8915,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 7.25,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8902,7 +8924,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 8.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8911,7 +8933,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 8.9,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8920,7 +8942,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 8.72,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8929,7 +8951,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 9.02,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "abun",
@@ -8938,7 +8960,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 10.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "abun",
@@ -8947,7 +8969,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 10.7,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         }
@@ -9022,6 +9044,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "xsec",
+              "do": "set",
+              "part": "fluid",
+              "channel": "transform.sx",
+              "value": 1.1,
+              "at": 0.908,
               "ease": "step"
             },
             {
@@ -9040,7 +9071,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 1.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9049,6 +9080,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "xsec",
+              "do": "set",
+              "part": "fluid",
+              "channel": "transform.sy",
+              "value": 1.1,
+              "at": 0.908,
               "ease": "step"
             },
             {
@@ -9067,7 +9107,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 1.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9076,7 +9116,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9085,7 +9125,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 0.68,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9094,7 +9134,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.9,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9103,7 +9143,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.4,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         },
@@ -9127,7 +9167,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9136,7 +9176,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 0.9,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9145,7 +9185,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9154,7 +9194,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9163,7 +9203,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9172,7 +9212,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.5,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9181,7 +9221,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9190,7 +9230,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.6,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         },
@@ -9214,7 +9254,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9223,7 +9263,7 @@
               "channel": "props.alpha",
               "value": 0.34,
               "at": 1.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9232,7 +9272,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9241,7 +9281,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9250,7 +9290,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9259,7 +9299,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9268,7 +9308,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9277,7 +9317,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9286,7 +9326,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9295,7 +9335,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.3,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9304,7 +9344,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9313,7 +9353,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.6,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9322,7 +9362,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9331,7 +9371,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 5,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         },
@@ -9355,7 +9395,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9364,7 +9404,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 0.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9373,7 +9413,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.82,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9382,7 +9422,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.12,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9391,7 +9431,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.24,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9400,7 +9440,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.54,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9409,7 +9449,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.66,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9418,7 +9458,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.96,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9427,7 +9467,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.08,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9436,7 +9476,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.38,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9445,7 +9485,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9454,7 +9494,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9463,7 +9503,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.92,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9472,7 +9512,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.22,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9481,7 +9521,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9490,7 +9530,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.9,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         },
@@ -9514,7 +9554,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9523,7 +9563,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9532,6 +9572,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "xsec",
+              "do": "set",
+              "part": "py0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.204,
               "ease": "step"
             },
             {
@@ -9550,7 +9599,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 4.3,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9559,6 +9608,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "xsec",
+              "do": "set",
+              "part": "py0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.204,
               "ease": "step"
             },
             {
@@ -9577,7 +9635,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 4.3,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9586,7 +9644,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9595,7 +9653,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.18,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9604,6 +9662,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 4.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "xsec",
+              "do": "set",
+              "part": "py1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.504,
               "ease": "step"
             },
             {
@@ -9622,7 +9689,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 4.6,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9631,6 +9698,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 4.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "xsec",
+              "do": "set",
+              "part": "py1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.504,
               "ease": "step"
             },
             {
@@ -9649,7 +9725,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 4.6,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9658,7 +9734,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9667,7 +9743,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.48,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9676,6 +9752,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 4.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "xsec",
+              "do": "set",
+              "part": "py2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.804,
               "ease": "step"
             },
             {
@@ -9694,7 +9779,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 4.9,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9703,6 +9788,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 4.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "xsec",
+              "do": "set",
+              "part": "py2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.804,
               "ease": "step"
             },
             {
@@ -9721,7 +9815,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 4.9,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9730,7 +9824,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9739,7 +9833,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.78,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9748,7 +9842,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9757,7 +9851,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.25,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9766,7 +9860,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 5.3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9775,7 +9869,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.55,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9784,7 +9878,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 5.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9793,7 +9887,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.85,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9802,7 +9896,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9811,7 +9905,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 6.5,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9820,7 +9914,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 6.3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9829,7 +9923,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 6.6,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         },
@@ -9861,7 +9955,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 0.3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9870,7 +9964,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9879,7 +9973,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9888,7 +9982,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9897,7 +9991,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9906,7 +10000,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9915,7 +10009,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9924,7 +10018,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.3,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9933,7 +10027,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.1,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9942,7 +10036,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.4,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "xsec",
@@ -9951,7 +10045,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "xsec",
@@ -9960,7 +10054,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.1,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         }
@@ -10035,7 +10129,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.3,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10044,7 +10138,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 0.9,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10053,7 +10147,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10062,7 +10156,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.4,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10071,7 +10165,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10080,7 +10174,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 1.6,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10089,7 +10183,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.8,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10098,7 +10192,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.1,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10107,7 +10201,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 1.9,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10116,7 +10210,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.2,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10125,7 +10219,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10134,7 +10228,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10143,7 +10237,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10152,7 +10246,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.65,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10161,7 +10255,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.5,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10170,7 +10264,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.95,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10179,7 +10273,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4.8,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10188,7 +10282,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.25,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10197,7 +10291,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 5.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10206,7 +10300,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 5.9,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10215,7 +10309,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 5.7,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10224,7 +10318,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 6,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10233,6 +10327,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 7.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 7.604,
               "ease": "step"
             },
             {
@@ -10251,7 +10354,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 7.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10260,6 +10363,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 7.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 7.604,
               "ease": "step"
             },
             {
@@ -10278,7 +10390,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 7.7,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10287,7 +10399,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 7.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10296,7 +10408,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 7.58,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10305,6 +10417,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 7.62,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 7.824,
               "ease": "step"
             },
             {
@@ -10323,7 +10444,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 7.92,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10332,6 +10453,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 7.62,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 7.824,
               "ease": "step"
             },
             {
@@ -10350,7 +10480,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 7.92,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10359,7 +10489,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 7.62,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10368,7 +10498,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 7.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10377,6 +10507,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 7.84,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 8.044,
               "ease": "step"
             },
             {
@@ -10395,7 +10534,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 8.14,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10404,6 +10543,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 7.84,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 8.044,
               "ease": "step"
             },
             {
@@ -10422,7 +10570,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 8.14,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10431,7 +10579,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 7.84,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10440,7 +10588,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 8.02,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10449,6 +10597,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 8.06,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 8.264,
               "ease": "step"
             },
             {
@@ -10467,7 +10624,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 8.36,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10476,6 +10633,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 8.06,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 8.264,
               "ease": "step"
             },
             {
@@ -10494,7 +10660,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 8.36,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10503,7 +10669,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 8.06,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10512,7 +10678,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 8.24,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10521,6 +10687,15 @@
               "channel": "transform.sx",
               "value": 0,
               "at": 8.28,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep4",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 8.484,
               "ease": "step"
             },
             {
@@ -10539,7 +10714,7 @@
               "channel": "transform.sx",
               "value": 1,
               "at": 8.58,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10548,6 +10723,15 @@
               "channel": "transform.sy",
               "value": 0,
               "at": 8.28,
+              "ease": "smooth"
+            },
+            {
+              "target": "belt",
+              "do": "set",
+              "part": "dep4",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 8.484,
               "ease": "step"
             },
             {
@@ -10566,7 +10750,7 @@
               "channel": "transform.sy",
               "value": 1,
               "at": 8.58,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10575,7 +10759,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 8.28,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10584,7 +10768,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 8.46,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10593,7 +10777,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 9.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10602,7 +10786,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 9.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10611,7 +10795,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 9.9,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10620,7 +10804,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 10.2,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "belt",
@@ -10629,7 +10813,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 10,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "belt",
@@ -10638,7 +10822,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 10.3,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         }
@@ -10816,7 +11000,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 3.6,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "veins",
@@ -10825,7 +11009,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "veins",
@@ -10834,7 +11018,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "veins",
@@ -10843,7 +11027,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 4.4,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "zawadi",
@@ -10990,7 +11174,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 0.4,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "card",
@@ -10999,7 +11183,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 0.85,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "card",
@@ -11008,7 +11192,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "card",
@@ -11017,7 +11201,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.32,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "card",
@@ -11026,7 +11210,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.16,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "card",
@@ -11035,7 +11219,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.48,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "card",
@@ -11044,7 +11228,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.32,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "card",
@@ -11053,7 +11237,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.64,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "card",
@@ -11062,7 +11246,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.48,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "card",
@@ -11071,7 +11255,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.8,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "card",
@@ -11080,7 +11264,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.64,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "card",
@@ -11089,7 +11273,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 2.96,
-              "ease": "smooth"
+              "ease": "step"
             },
             {
               "target": "card",
@@ -11098,7 +11282,7 @@
               "channel": "props.alpha",
               "value": 0,
               "at": 2.8,
-              "ease": "step"
+              "ease": "smooth"
             },
             {
               "target": "card",
@@ -11107,7 +11291,7 @@
               "channel": "props.alpha",
               "value": 1,
               "at": 3.12,
-              "ease": "smooth"
+              "ease": "step"
             }
           ]
         }

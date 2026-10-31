@@ -254,12 +254,24 @@ const t = (v) => +Number(v).toFixed(3);
 /**
  * Ramp a channel on a part. Two keys, because a lone `set` interpolates from
  * the seed at t=0 (see the header note).
+ *
+ * **Easing belongs to the segment that STARTS at a key**, not the one that
+ * arrives at it. Putting `step` on the leading key -- which looks like
+ * "hold until the ramp begins" -- actually holds the start value across the
+ * whole transition and then jumps. Every reveal, slide and pop in this series
+ * was a hard cut until that was measured.
+ *
+ * What holds the value BEFORE `at` is the compiler's own seed: `seedChannel`
+ * keys the authored value at t=0 with `step`, so the segment up to our first
+ * key already holds. The trailing key takes `step` so the value stays put
+ * afterwards instead of drifting toward whatever is keyed next.
  */
 export function ramp(target, part, channel, at, span, from, to,
                      { ease = 'smooth', h } = {}) {
     return [
-        { target, do: 'set', part, channel, value: from, at: t(at), ease: 'step' },
-        { target, do: 'set', part, channel, value: to, at: t(at + span), ease, ...(h ? { h } : {}) },
+        { target, do: 'set', part, channel, value: from, at: t(at), ease,
+          ...(h ? { h } : {}) },
+        { target, do: 'set', part, channel, value: to, at: t(at + span), ease: 'step' },
     ];
 }
 
@@ -279,27 +291,42 @@ export const conceal = (target, part, at, { span = 0.25, from = 1 } = {}) =>
 export function pop(target, part, at, { span = 0.32, overshoot = 0.12, to = 1 } = {}) {
     const out = [];
     for (const axis of ['transform.sx', 'transform.sy']) {
-        out.push({ target, do: 'set', part, channel: axis, value: 0, at: t(at), ease: 'step' });
         if (overshoot) {
-            out.push({ target, do: 'set', part, channel: axis, value: to * (1 + overshoot),
-                       at: t(at + span * 0.68), ease: 'smooth' });
-            out.push({ target, do: 'set', part, channel: axis, value: to,
-                       at: t(at + span), ease: 'smooth' });
+            out.push(...ramp(target, part, axis, at, span * 0.68, 0, to * (1 + overshoot)),
+                     ...ramp(target, part, axis, at + span * 0.68, span * 0.32,
+                             to * (1 + overshoot), to));
         } else {
-            out.push({ target, do: 'set', part, channel: axis, value: to,
-                       at: t(at + span), ease: 'smooth' });
+            out.push(...ramp(target, part, axis, at, span, 0, to));
         }
     }
     out.push(...reveal(target, part, at, { span: Math.min(0.18, span) }));
     return out;
 }
 
-/** Slide a part in from an offset while it fades up. */
-export function slideIn(target, part, at, { dx = 0, dy = 40, span = 0.4 } = {}) {
-    const out = [...reveal(target, part, at, { span: span * 0.7 })];
-    if (dx) out.push(...ramp(target, part, 'transform.x', at, span, dx, 0));
-    if (dy) out.push(...ramp(target, part, 'transform.y', at, span, dy, 0));
+/**
+ * Move a part by an OFFSET from where it was authored.
+ *
+ * **`transform.x` is absolute, not a delta.** The compiler writes
+ * `at[0] + pivot[0]` into it, so ramping it "from 0" does not mean "from
+ * where it is" -- it teleports the part to the left edge of the character's
+ * space and slides back from there. `origin` is the part's authored `at`, and
+ * this does the arithmetic.
+ */
+export function glide(target, part, origin, at, span, [dx = 0, dy = 0] = [],
+                      { ease = 'smooth' } = {}) {
+    const [x, y] = origin;
+    const out = [];
+    if (dx) out.push(...ramp(target, part, 'transform.x', at, span, x, x + dx, { ease }));
+    if (dy) out.push(...ramp(target, part, 'transform.y', at, span, y, y + dy, { ease }));
     return out;
+}
+
+/** Slide a part in from an offset while it fades up. */
+export function slideIn(target, part, origin, at, { dx = 0, dy = 40, span = 0.4 } = {}) {
+    return [
+        ...reveal(target, part, at, { span: span * 0.7 }),
+        ...glide(target, part, [origin[0] - dx, origin[1] - dy], at, span, [dx, dy]),
+    ];
 }
 
 /** Stagger a build: one reveal per id, `gap` seconds apart. */

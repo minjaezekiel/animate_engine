@@ -1,0 +1,7043 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "Finding Gold — Reconnaissance",
+    "fps": 24,
+    "width": 1080,
+    "height": 1920,
+    "author": "Ezekiel Minja",
+    "description": "Finding Gold: a field guide to mineral exploration. Educational — not a design standard.",
+    "subtitleStyle": {
+      "font": "600 37px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "fill": "#f2efe6",
+      "stroke": "#06090f",
+      "strokeWidth": 7,
+      "lineHeight": 47,
+      "maxWidth": 940,
+      "bottomMargin": 360
+    }
+  },
+  "voices": {
+    "zawadi_v": {
+      "spec": "tts:en_GB-alba-medium"
+    },
+    "juma_v": {
+      "spec": "tts:en_GB-alan-medium"
+    }
+  },
+  "palettes": {
+    "geo": {
+      "bg": "#0d1420",
+      "panel": "#141d2d",
+      "ink": "#f2efe6",
+      "dim": "#8ea0b8",
+      "gold": "#ffc64d",
+      "fluid": "#e2663c",
+      "water": "#4aa3d8",
+      "sulphide": "#b8a86a",
+      "structure": "#e24a6a",
+      "granite": "#cfc3b8",
+      "greenstone": "#3f5d4a",
+      "soil": "#6b5a44",
+      "quartz": "#e8e4da",
+      "basalt": "#2f4150",
+      "skin": "#8d5a3b",
+      "skinAlt": "#6f4529",
+      "cloth": "#c9702f",
+      "clothAlt": "#3f6f8a",
+      "trouser": "#4a4f58",
+      "hair": "#241a14",
+      "eye": "#2b1d14",
+      "white": "#f6f2e8",
+      "shoe": "#2a2320",
+      "teeth": "#f6f2e8",
+      "mouth": "#4a2420",
+      "accent": "#ffc64d",
+      "light": "#fff3cf"
+    }
+  },
+  "characters": {
+    "zawadi": {
+      "palette": "geo",
+      "voice": "zawadi_v",
+      "proportions": {
+        "height": 520
+      },
+      "generate": {
+        "build": "athletic",
+        "hands": "mitten",
+        "cloth": "cloth",
+        "trouser": "trouser",
+        "hair": "braids",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "tapered",
+          "eyes": "round",
+          "brow": "arched",
+          "nose": "broad",
+          "lips": "full",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.12
+          },
+          "armR": {
+            "rot": -0.12
+          },
+          "foreL": {
+            "rot": 0.18
+          },
+          "foreR": {
+            "rot": -0.18
+          }
+        },
+        "present": {
+          "armR": {
+            "rot": -0.62
+          },
+          "foreR": {
+            "rot": -0.52
+          },
+          "head": {
+            "rot": -0.05
+          }
+        },
+        "count": {
+          "armR": {
+            "rot": -0.85
+          },
+          "foreR": {
+            "rot": -0.9
+          }
+        },
+        "lean": {
+          "torso": {
+            "rot": 0.16
+          },
+          "head": {
+            "rot": -0.1
+          },
+          "armR": {
+            "rot": -0.95
+          },
+          "foreR": {
+            "rot": -0.6
+          }
+        },
+        "strike": {
+          "torso": {
+            "rot": 0.22
+          },
+          "head": {
+            "rot": -0.06
+          },
+          "armR": {
+            "rot": -0.2
+          },
+          "foreR": {
+            "rot": -0.12
+          }
+        },
+        "look": {
+          "head": {
+            "rot": -0.14
+          },
+          "torso": {
+            "rot": -0.04
+          },
+          "armR": {
+            "rot": -0.3
+          },
+          "foreR": {
+            "rot": -0.2
+          }
+        }
+      }
+    },
+    "juma": {
+      "palette": "geo",
+      "voice": "juma_v",
+      "proportions": {
+        "height": 509.59999999999997
+      },
+      "generate": {
+        "build": "slim",
+        "hands": "mitten",
+        "skin": "skinAlt",
+        "cloth": "clothAlt",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "round",
+          "eyes": "wide",
+          "brow": "flat",
+          "nose": "button",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.14
+          },
+          "armR": {
+            "rot": -0.14
+          },
+          "foreL": {
+            "rot": 0.2
+          },
+          "foreR": {
+            "rot": -0.2
+          }
+        },
+        "ask": {
+          "armR": {
+            "rot": -0.7
+          },
+          "foreR": {
+            "rot": -0.75
+          },
+          "head": {
+            "rot": 0.08
+          }
+        }
+      }
+    },
+    "desk": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "dk_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            520
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "before anyone walks anywhere",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "sh0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            420,
+            760
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 520,
+            "h": 380,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#3d4f45",
+          "stroke": "#22303a",
+          "strokeWidth": 3
+        },
+        {
+          "id": "sh1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            454,
+            790
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 520,
+            "h": 380,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#4a5a50",
+          "stroke": "#22303a",
+          "strokeWidth": 3
+        },
+        {
+          "id": "sh2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            488,
+            820
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 520,
+            "h": 380,
+            "cx": true,
+            "cy": true
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "#56634f",
+          "stroke": "#22303a",
+          "strokeWidth": 3
+        },
+        {
+          "id": "sh3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            522,
+            850
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 520,
+            "h": 380,
+            "cx": true,
+            "cy": true
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "#64705a",
+          "stroke": "#22303a",
+          "strokeWidth": 3
+        },
+        {
+          "id": "lg_v0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M300,620 L300,1160"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 2
+        },
+        {
+          "id": "lg_h0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M286,660 L886,660"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 2
+        },
+        {
+          "id": "lg_v1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M450,620 L450,1160"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 2
+        },
+        {
+          "id": "lg_h1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M286,800 L886,800"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 2
+        },
+        {
+          "id": "lg_v2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M600,620 L600,1160"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 2
+        },
+        {
+          "id": "lg_h2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M286,940 L886,940"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 2
+        },
+        {
+          "id": "lg_v3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M750,620 L750,1160"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 2
+        },
+        {
+          "id": "lg_h3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M286,1080 L886,1080"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 2
+        },
+        {
+          "id": "lg_held",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            525,
+            870
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 150,
+            "h": 140,
+            "cx": true,
+            "cy": true
+          },
+          "z": 19,
+          "alpha": 0,
+          "fill": "structure"
+        },
+        {
+          "id": "dk_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            1220
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "already held — not yours to explore",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "dk_l_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,1220 L600,940"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "dk_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "maps, archives, theses, and the licence register",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "strike": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "sk_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            520
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "strike and dip",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "sk_side",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M410,850 L930,790 L930,1020 L410,1080Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#55634a",
+          "stroke": "#2f3a2c",
+          "strokeWidth": 3
+        },
+        {
+          "id": "sk_front",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M300,720 L410,850 L410,1080 L300,950Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#46523d",
+          "stroke": "#2f3a2c",
+          "strokeWidth": 3
+        },
+        {
+          "id": "sk_top",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M300,720 L820,660 L930,790 L410,850Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#6b7a5c",
+          "stroke": "#2f3a2c",
+          "strokeWidth": 3
+        },
+        {
+          "id": "sk_bed",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M352,786 L872,726 L930,796 L410,856Z"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "quartz"
+        },
+        {
+          "id": "sk_strike",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M352,786 L872,726"
+          },
+          "z": 14,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 7,
+          "lineCap": "butt"
+        },
+        {
+          "id": "sk_sl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            640
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "STRIKE  058°  —  a horizontal line on the bed",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "sk_sl_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,640 L700,752"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "sk_dip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M700,800 L753,941.3 M760,960 L745.1,944.2 L760.8,938.3 Z"
+          },
+          "z": 14,
+          "alpha": 0,
+          "fill": "water",
+          "stroke": "water",
+          "strokeWidth": 5
+        },
+        {
+          "id": "sk_dl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            1030
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "DIP  72° SE  —  how steeply it leans",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "sk_dl_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,1030 L756,950"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "sk_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1180
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "058 / 72 SE",
+            "font": "800 62px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "sk_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "three numbers that say where the rock goes",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "catch": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "ct_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "one sample, ten square kilometres",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ct_basin",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M140,1180 Q180,700 460,500 Q700,420 900,620 Q1000,830 940,1180 Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#28372c",
+          "stroke": "#4a6b50",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ct_s0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M240,560 Q300,760 420,900 Q500,1000 540,1140"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "water",
+          "strokeWidth": 9
+        },
+        {
+          "id": "ct_s1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M820,580 Q760,780 640,900 Q570,970 540,1140"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "water",
+          "strokeWidth": 7
+        },
+        {
+          "id": "ct_s2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M420,540 Q460,720 520,860"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "water",
+          "strokeWidth": 5
+        },
+        {
+          "id": "ct_p1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1140
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 16,
+            "ry": 16
+          },
+          "z": 14,
+          "alpha": 0,
+          "fill": "gold",
+          "glow": {
+            "blur": 22,
+            "color": "#ffc64d"
+          }
+        },
+        {
+          "id": "ct_l1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            820,
+            1210
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "sample here",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 760
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ct_l1_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M820,1210 L556,1146"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "ct_p2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            420,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 12,
+            "ry": 12
+          },
+          "z": 14,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "ct_p3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            640,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 12,
+            "ry": 12
+          },
+          "z": 14,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "ct_l2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            92,
+            620
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "then split the catchment, and sample again",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 928
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ct_l2_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M92,620 L410,890"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "ct_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "cheapest first: it tells you which valley to care about",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "grid": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "gd_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            496
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "lines across the strike, never along it",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "gd_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            880
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 600,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 1,
+          "fill": "#243024"
+        },
+        {
+          "id": "gd_trend",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M150,1120 L930,650"
+          },
+          "z": 9,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 46,
+          "lineCap": "butt"
+        },
+        {
+          "id": "gd_t0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M118,606 L288,1154"
+          },
+          "z": 11,
+          "alpha": 0,
+          "stroke": "#8ea0b8",
+          "strokeWidth": 2
+        },
+        {
+          "id": "gd_t1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M226,606 L396,1154"
+          },
+          "z": 11,
+          "alpha": 0,
+          "stroke": "#8ea0b8",
+          "strokeWidth": 2
+        },
+        {
+          "id": "gd_t2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M334,606 L504,1154"
+          },
+          "z": 11,
+          "alpha": 0,
+          "stroke": "#8ea0b8",
+          "strokeWidth": 2
+        },
+        {
+          "id": "gd_t3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M442,606 L612,1154"
+          },
+          "z": 11,
+          "alpha": 0,
+          "stroke": "#8ea0b8",
+          "strokeWidth": 2
+        },
+        {
+          "id": "gd_t4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M550,606 L720,1154"
+          },
+          "z": 11,
+          "alpha": 0,
+          "stroke": "#8ea0b8",
+          "strokeWidth": 2
+        },
+        {
+          "id": "gd_t5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M658,606 L828,1154"
+          },
+          "z": 11,
+          "alpha": 0,
+          "stroke": "#8ea0b8",
+          "strokeWidth": 2
+        },
+        {
+          "id": "gd_t6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M766,606 L936,1154"
+          },
+          "z": 11,
+          "alpha": 0,
+          "stroke": "#8ea0b8",
+          "strokeWidth": 2
+        },
+        {
+          "id": "gd_p0_0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            135,
+            660.8
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p0_1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            169,
+            770.4000000000001
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p0_2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            203,
+            880
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p0_3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            237,
+            989.6
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "gd_p0_4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            271,
+            1099.2
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "gd_p1_0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            243,
+            660.8
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p1_1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            277,
+            770.4000000000001
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p1_2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            311,
+            880
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p1_3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            345,
+            989.6
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "gd_p1_4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            379,
+            1099.2
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p2_0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            351,
+            660.8
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p2_1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            385,
+            770.4000000000001
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p2_2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            419,
+            880
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "gd_p2_3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            453,
+            989.6
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "gd_p2_4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            487,
+            1099.2
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p3_0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            459,
+            660.8
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p3_1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            493,
+            770.4000000000001
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p3_2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            527,
+            880
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "gd_p3_3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            561,
+            989.6
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p3_4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            595,
+            1099.2
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p4_0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            567,
+            660.8
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p4_1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            601,
+            770.4000000000001
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "gd_p4_2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            635,
+            880
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "gd_p4_3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            669,
+            989.6
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p4_4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            703,
+            1099.2
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p5_0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            675,
+            660.8
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p5_1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            709,
+            770.4000000000001
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "gd_p5_2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            743,
+            880
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p5_3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            777,
+            989.6
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p5_4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            811,
+            1099.2
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p6_0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            783,
+            660.8
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "gd_p6_1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            817,
+            770.4000000000001
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "gd_p6_2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            851,
+            880
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p6_3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            885,
+            989.6
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_p6_4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            919,
+            1099.2
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 9,
+            "ry": 9
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "gd_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            582
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "the trend — hidden under soil",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "gd_l_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,582 L660,800"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "gd_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "25 to 50 m along the line, 100 m between lines",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "chan": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "ch_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "how you take the sample",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ch_rock",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            870
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 860,
+            "h": 560,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 1,
+          "fill": "greenstone"
+        },
+        {
+          "id": "ch_vein",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M360,1120 L470,620"
+          },
+          "z": 9,
+          "alpha": 1,
+          "stroke": "quartz",
+          "strokeWidth": 54,
+          "lineCap": "butt"
+        },
+        {
+          "id": "ch_cut",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M336,894 L534,852"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 16,
+          "lineCap": "butt"
+        },
+        {
+          "id": "ch_l1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            92,
+            556
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "channel sample — a continuous cut, wall to wall",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 928
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ch_l1_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M92,556 L360,880"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "ch_grab",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            800,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 30,
+            "ry": 24
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "quartz"
+        },
+        {
+          "id": "ch_grabau",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            806,
+            896
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 6,
+            "ry": 6
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "ch_no",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M758,858 L846,942 M846,858 L758,942"
+          },
+          "z": 14,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 7
+        },
+        {
+          "id": "ch_l2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            1222
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "picking the best rock is how you lie to yourself",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ch_l2_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,1222 L806,940"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        }
+      ]
+    },
+    "path": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "pf_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            520
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "the company gold keeps",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pf_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            578
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "pathfinder elements — easier to measure than gold itself",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "pf0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            250,
+            760
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 230,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "gold",
+          "strokeWidth": 4
+        },
+        {
+          "id": "pf0_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            250,
+            738
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "As",
+            "font": "800 72px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "pf0_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            250,
+            814
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "arsenic",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 210
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "pf1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            760
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 230,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "pf1_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            738
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Sb",
+            "font": "800 72px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pf1_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            814
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "antimony",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 210
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "pf2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            830,
+            760
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 230,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "pf2_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            830,
+            738
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Bi",
+            "font": "800 72px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pf2_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            830,
+            814
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "bismuth",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 210
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "pf3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            250,
+            1010
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 230,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "pf3_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            250,
+            988
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Te",
+            "font": "800 72px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pf3_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            250,
+            1064
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "tellurium",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 210
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "pf4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1010
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 230,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "pf4_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            988
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "W",
+            "font": "800 72px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pf4_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1064
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "tungsten",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 210
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "pf5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            830,
+            1010
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 230,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "panel",
+          "stroke": "#2a3b52",
+          "strokeWidth": 2
+        },
+        {
+          "id": "pf5_s",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            830,
+            988
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Ag",
+            "font": "800 72px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pf5_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            830,
+            1064
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "silver",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 210
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "pf_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "gold itself goes to a laboratory. Always.",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "card": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "next",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Next: the same search, run from orbit.",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "made",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1000
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Animated with",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "name",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1098
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "JIREX",
+            "font": "800 118px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "what",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1172
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "an open-source browser animation engine",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "repo",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1278
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "github.com/minjaezekiel/jireX",
+            "font": "700 36px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "lic",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1330
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MIT licensed  ·  free to use, fork and build on",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "call",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1402
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Add a feature. Send a pull request.",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "title_b": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "kicker",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            318
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "FINDING GOLD  ·  PART 4",
+            "font": "700 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "title",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            392
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "On the ground",
+            "font": "800 74px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "field",
+      "palette": "geo",
+      "background": {
+        "color": "#1b2a3d"
+      },
+      "scenery": [
+        {
+          "id": "sky",
+          "shape": {
+            "kind": "rect",
+            "w": 1080,
+            "h": 1920,
+            "cx": true,
+            "cy": true
+          },
+          "at": [
+            540,
+            960
+          ],
+          "fill": "#1b2a3d",
+          "z": -100,
+          "gradient": {
+            "from": [
+              0,
+              300,
+              0,
+              1300
+            ],
+            "stops": [
+              [
+                0,
+                "#24405e"
+              ],
+              [
+                1,
+                "#6b5f44"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "sun",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 54,
+            "ry": 54
+          },
+          "at": [
+            250,
+            520
+          ],
+          "fill": "#f3e2b0",
+          "alpha": 0.9,
+          "z": -99
+        },
+        {
+          "id": "far",
+          "shape": {
+            "kind": "path",
+            "d": "M0,900 Q260,700 520,860 Q760,980 1080,820 L1080,1920 L0,1920 Z"
+          },
+          "fill": "#3a4a5c",
+          "z": -90
+        },
+        {
+          "id": "mid",
+          "shape": {
+            "kind": "path",
+            "d": "M0,1040 Q300,930 620,1010 Q860,1070 1080,1000 L1080,1920 L0,1920 Z"
+          },
+          "fill": "#44523f",
+          "z": -80
+        },
+        {
+          "id": "near",
+          "shape": {
+            "kind": "path",
+            "d": "M0,1140 Q300,1110 620,1160 Q880,1190 1080,1150 L1080,1920 L0,1920 Z"
+          },
+          "fill": "#4e5c3c",
+          "z": -70
+        },
+        {
+          "id": "bush0",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 10.931385304778814,
+            "ry": 6.558831182867288
+          },
+          "at": [
+            952.8047212213278,
+            1394.2184686195105
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush1",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 18.762255184352398,
+            "ry": 11.257353110611438
+          },
+          "at": [
+            1037.5466053187847,
+            1371.7333887238055
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush2",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 19.96513833478093,
+            "ry": 11.979083000868558
+          },
+          "at": [
+            365.7750206999481,
+            1352.6838385500014
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush3",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 16.057562924921513,
+            "ry": 9.634537754952907
+          },
+          "at": [
+            156.25596581026912,
+            1260.5290380772203
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush4",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 11.648630440235138,
+            "ry": 6.989178264141082
+          },
+          "at": [
+            174.04198825359344,
+            1323.005641065538
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush5",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 12.082867424935102,
+            "ry": 7.249720454961061
+          },
+          "at": [
+            262.66128508374095,
+            1307.0816176012158
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush6",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 11.75212525203824,
+            "ry": 7.051275151222944
+          },
+          "at": [
+            158.02628230303526,
+            1227.7447721455246
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush7",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 18.15371122956276,
+            "ry": 10.892226737737655
+          },
+          "at": [
+            666.43066521734,
+            1291.366668092087
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush8",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 21.797408893704414,
+            "ry": 13.078445336222648
+          },
+          "at": [
+            909.3963786587119,
+            1292.25142900832
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush9",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 23.533088579773903,
+            "ry": 14.119853147864342
+          },
+          "at": [
+            247.235073056072,
+            1383.754259813577
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush10",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 17.09072881191969,
+            "ry": 10.254437287151813
+          },
+          "at": [
+            971.3559655100107,
+            1389.9251298513263
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush11",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 24.689194165170193,
+            "ry": 14.813516499102114
+          },
+          "at": [
+            293.5569061525166,
+            1210.7653155457228
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush12",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 23.515116944909096,
+            "ry": 14.109070166945457
+          },
+          "at": [
+            915.1162861287594,
+            1320.556790055707
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush13",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 21.314533840864897,
+            "ry": 12.788720304518938
+          },
+          "at": [
+            451.7068222910166,
+            1395.6031311769038
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush14",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 25.31306866928935,
+            "ry": 15.18784120157361
+          },
+          "at": [
+            925.7333567366004,
+            1319.129161303863
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush15",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 23.435964535921812,
+            "ry": 14.061578721553087
+          },
+          "at": [
+            903.300310857594,
+            1275.6053998600692
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "rock1",
+          "shape": {
+            "kind": "path",
+            "d": "M750,1186 L776,1094 L840,1068 L908,1110 L938,1186Z"
+          },
+          "fill": "#8f8878",
+          "stroke": "#3a382e",
+          "strokeWidth": 4,
+          "z": -50
+        },
+        {
+          "id": "rock2",
+          "shape": {
+            "kind": "path",
+            "d": "M776,1094 L840,1068 L854,1140 L794,1162Z"
+          },
+          "fill": "#a39a86",
+          "z": -49
+        },
+        {
+          "id": "bed0",
+          "shape": {
+            "kind": "path",
+            "d": "M768,1168 L886,1132"
+          },
+          "stroke": "#4a443a",
+          "strokeWidth": 5,
+          "z": -48
+        },
+        {
+          "id": "bed1",
+          "shape": {
+            "kind": "path",
+            "d": "M778,1142 L890,1106"
+          },
+          "stroke": "#4a443a",
+          "strokeWidth": 5,
+          "z": -48
+        },
+        {
+          "id": "bed2",
+          "shape": {
+            "kind": "path",
+            "d": "M788,1116 L894,1080"
+          },
+          "stroke": "#4a443a",
+          "strokeWidth": 5,
+          "z": -48
+        }
+      ],
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "transitionIn": {
+        "kind": "fade",
+        "from": "#000000",
+        "duration": 0.9
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            -620,
+            947
+          ],
+          "scale": 0.85,
+          "view": "profile"
+        },
+        {
+          "character": "title_b",
+          "as": "title_b",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 60,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "w0",
+          "duration": 10,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Stage one costs almost nothing, and decides almost everything.",
+              "at": 4.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "walk",
+              "at": 0.2,
+              "for": 3.75
+            },
+            {
+              "target": "zawadi",
+              "do": "move",
+              "to": [
+                356.34660404626857,
+                947
+              ],
+              "at": 0.2,
+              "for": 3.75,
+              "ease": "linear"
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "look",
+              "at": 4.25,
+              "for": 0.6
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe",
+              "at": 4.05
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.3,
+              "ease": "step"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.5,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desk",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "desk",
+          "as": "desk",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "w1",
+          "duration": 16.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "It starts at a desk. Existing geological maps, government survey archives, old company reports, university theses, and the licence register — because ground somebody already holds is not ground you can explore.",
+              "at": 0.5,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "dk_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "dk_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "sh0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "sh0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "sh1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "sh1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.9,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "sh2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "sh2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.2,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "sh3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "sh3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.5,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "dk_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "dk_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_v0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_v0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.3,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_v1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.07,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_v1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.37,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_v2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_v2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.44,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_v3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.21,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_v3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.51,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_h0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.28,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_h0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.58,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_h1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.35,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_h1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.65,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_h2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_h2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.72,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_h3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.49,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_h3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.79,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_held",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 11,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "lg_held",
+              "channel": "props.alpha",
+              "value": 0.45,
+              "at": 11.4,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "dk_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 11.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "dk_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 11.9,
+              "ease": "step"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "dk_l_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 11.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "desk",
+              "do": "set",
+              "part": "dk_l_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 12,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "field2",
+      "palette": "geo",
+      "background": {
+        "color": "#1b2a3d"
+      },
+      "scenery": [
+        {
+          "id": "sky",
+          "shape": {
+            "kind": "rect",
+            "w": 1080,
+            "h": 1920,
+            "cx": true,
+            "cy": true
+          },
+          "at": [
+            540,
+            960
+          ],
+          "fill": "#1b2a3d",
+          "z": -100,
+          "gradient": {
+            "from": [
+              0,
+              300,
+              0,
+              1300
+            ],
+            "stops": [
+              [
+                0,
+                "#24405e"
+              ],
+              [
+                1,
+                "#6b5f44"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "sun",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 54,
+            "ry": 54
+          },
+          "at": [
+            250,
+            520
+          ],
+          "fill": "#f3e2b0",
+          "alpha": 0.9,
+          "z": -99
+        },
+        {
+          "id": "far",
+          "shape": {
+            "kind": "path",
+            "d": "M0,900 Q260,700 520,860 Q760,980 1080,820 L1080,1920 L0,1920 Z"
+          },
+          "fill": "#3a4a5c",
+          "z": -90
+        },
+        {
+          "id": "mid",
+          "shape": {
+            "kind": "path",
+            "d": "M0,1040 Q300,930 620,1010 Q860,1070 1080,1000 L1080,1920 L0,1920 Z"
+          },
+          "fill": "#44523f",
+          "z": -80
+        },
+        {
+          "id": "near",
+          "shape": {
+            "kind": "path",
+            "d": "M0,1140 Q300,1110 620,1160 Q880,1190 1080,1150 L1080,1920 L0,1920 Z"
+          },
+          "fill": "#4e5c3c",
+          "z": -70
+        },
+        {
+          "id": "bush0",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 10.931385304778814,
+            "ry": 6.558831182867288
+          },
+          "at": [
+            952.8047212213278,
+            1394.2184686195105
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush1",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 18.762255184352398,
+            "ry": 11.257353110611438
+          },
+          "at": [
+            1037.5466053187847,
+            1371.7333887238055
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush2",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 19.96513833478093,
+            "ry": 11.979083000868558
+          },
+          "at": [
+            365.7750206999481,
+            1352.6838385500014
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush3",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 16.057562924921513,
+            "ry": 9.634537754952907
+          },
+          "at": [
+            156.25596581026912,
+            1260.5290380772203
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush4",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 11.648630440235138,
+            "ry": 6.989178264141082
+          },
+          "at": [
+            174.04198825359344,
+            1323.005641065538
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush5",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 12.082867424935102,
+            "ry": 7.249720454961061
+          },
+          "at": [
+            262.66128508374095,
+            1307.0816176012158
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush6",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 11.75212525203824,
+            "ry": 7.051275151222944
+          },
+          "at": [
+            158.02628230303526,
+            1227.7447721455246
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush7",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 18.15371122956276,
+            "ry": 10.892226737737655
+          },
+          "at": [
+            666.43066521734,
+            1291.366668092087
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush8",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 21.797408893704414,
+            "ry": 13.078445336222648
+          },
+          "at": [
+            909.3963786587119,
+            1292.25142900832
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush9",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 23.533088579773903,
+            "ry": 14.119853147864342
+          },
+          "at": [
+            247.235073056072,
+            1383.754259813577
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush10",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 17.09072881191969,
+            "ry": 10.254437287151813
+          },
+          "at": [
+            971.3559655100107,
+            1389.9251298513263
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush11",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 24.689194165170193,
+            "ry": 14.813516499102114
+          },
+          "at": [
+            293.5569061525166,
+            1210.7653155457228
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush12",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 23.515116944909096,
+            "ry": 14.109070166945457
+          },
+          "at": [
+            915.1162861287594,
+            1320.556790055707
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush13",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 21.314533840864897,
+            "ry": 12.788720304518938
+          },
+          "at": [
+            451.7068222910166,
+            1395.6031311769038
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush14",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 25.31306866928935,
+            "ry": 15.18784120157361
+          },
+          "at": [
+            925.7333567366004,
+            1319.129161303863
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "bush15",
+          "shape": {
+            "kind": "ellipse",
+            "rx": 23.435964535921812,
+            "ry": 14.061578721553087
+          },
+          "at": [
+            903.300310857594,
+            1275.6053998600692
+          ],
+          "fill": "#3f5236",
+          "z": -60
+        },
+        {
+          "id": "rock1",
+          "shape": {
+            "kind": "path",
+            "d": "M750,1186 L776,1094 L840,1068 L908,1110 L938,1186Z"
+          },
+          "fill": "#8f8878",
+          "stroke": "#3a382e",
+          "strokeWidth": 4,
+          "z": -50
+        },
+        {
+          "id": "rock2",
+          "shape": {
+            "kind": "path",
+            "d": "M776,1094 L840,1068 L854,1140 L794,1162Z"
+          },
+          "fill": "#a39a86",
+          "z": -49
+        },
+        {
+          "id": "bed0",
+          "shape": {
+            "kind": "path",
+            "d": "M768,1168 L886,1132"
+          },
+          "stroke": "#4a443a",
+          "strokeWidth": 5,
+          "z": -48
+        },
+        {
+          "id": "bed1",
+          "shape": {
+            "kind": "path",
+            "d": "M778,1142 L890,1106"
+          },
+          "stroke": "#4a443a",
+          "strokeWidth": 5,
+          "z": -48
+        },
+        {
+          "id": "bed2",
+          "shape": {
+            "kind": "path",
+            "d": "M788,1116 L894,1080"
+          },
+          "stroke": "#4a443a",
+          "strokeWidth": 5,
+          "z": -48
+        }
+      ],
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            356,
+            947
+          ],
+          "scale": 0.85,
+          "view": "profile"
+        }
+      ],
+      "shots": [
+        {
+          "id": "w2",
+          "duration": 7,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Then you go and look.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "walk",
+              "at": 0.4,
+              "for": 1.25
+            },
+            {
+              "target": "zawadi",
+              "do": "move",
+              "to": [
+                681.4488680154229,
+                947
+              ],
+              "at": 0.4,
+              "for": 1.25,
+              "ease": "linear"
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "lean",
+              "at": 1.75,
+              "for": 0.5
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "strike",
+              "at": 2.35,
+              "for": 0.14
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "lean",
+              "at": 2.75,
+              "for": 0.3
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "strike",
+              "at": 3.25,
+              "for": 0.14
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "lean",
+              "at": 3.65,
+              "for": 0.4
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 1.689
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 4.607
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "strike",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "strike",
+          "as": "strike",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "w3",
+          "duration": 12.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "An outcrop is rock in place, and it is the only honest data there is. Everything else is inference. You record what it is, and you record how it is oriented.",
+              "at": 0.5,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_side",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_side",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_front",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.18,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_front",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.58,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_top",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.36,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_top",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.76,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_bed",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_bed",
+              "channel": "props.alpha",
+              "value": 0.95,
+              "at": 6.6,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "w4",
+          "duration": 10,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Strike is the compass direction of a horizontal line on the surface. Dip is how steeply it leans, and which way.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_strike",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_strike",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_sl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_sl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_sl_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_sl_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_dip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_dip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.4,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_dl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_dl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.1,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_dl_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_dl_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "w5",
+          "duration": 13,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Three numbers. And they are the most valuable numbers a geologist writes all day, because they tell you where the rock goes when it disappears under the soil.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.14,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.14,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.98,
+              "ease": "step"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3,
+              "ease": "smooth"
+            },
+            {
+              "target": "strike",
+              "do": "set",
+              "part": "sk_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.5,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sample",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "catch",
+          "as": "catch",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 0,
+          "role": "effect"
+        },
+        {
+          "character": "grid",
+          "as": "grid",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 0,
+          "role": "effect"
+        },
+        {
+          "character": "chan",
+          "as": "chan",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "w6",
+          "duration": 4.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Then sampling. And the order matters.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "catch",
+              "do": "show",
+              "at": 0.1,
+              "for": 0.4
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "w7",
+          "duration": 13,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Stream sediments first. One sample at the outlet of a catchment represents every rock upstream of it. A handful of silt screens ten square kilometres.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_basin",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_basin",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_s0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_s0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_s1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_s1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_s2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_s2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.8,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.672,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.672,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.672,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.672,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.58,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_l1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_l1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.3,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_l1_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_l1_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.4,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.9,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_p3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.1,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_l2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_l2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.7,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_l2_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_l2_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.8,
+              "ease": "step"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 10.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "catch",
+              "do": "set",
+              "part": "ct_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 10.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "w8",
+          "duration": 16.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Inside the catchment that came back hot, a soil grid. Lines laid across the strike of the rocks, sampled every twenty-five or fifty metres — because an anomaly running along your grid can hide between two lines.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "catch",
+              "do": "hide",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "grid",
+              "do": "show",
+              "at": 0.7,
+              "for": 0.4
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.3,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.12,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.42,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.24,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.54,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.36,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.66,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.48,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.78,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.9,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.72,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_t6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.02,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.42,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.235,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.455,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.27,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.49,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.305,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.525,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.34,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p0_4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.56,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.375,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.595,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.41,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.63,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.445,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.665,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.48,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.7,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.515,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p1_4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.735,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.55,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.77,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.585,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.805,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.62,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.84,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.655,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.875,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.69,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p2_4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.91,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.725,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.945,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.76,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.98,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.795,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.015,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.83,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.05,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.865,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p3_4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.085,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.12,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.935,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.155,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.97,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.19,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.005,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.225,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.04,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p4_4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.26,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.075,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.295,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.11,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.33,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.145,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.365,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.18,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.4,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.215,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p5_4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.435,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.25,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.47,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.285,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.505,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.32,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.54,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.355,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.575,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.39,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_p6_4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.61,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_trend",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 10.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_trend",
+              "channel": "props.alpha",
+              "value": 0.3,
+              "at": 10.9,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 11.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 11.5,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_l_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 11.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_l_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 11.6,
+              "ease": "step"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 13.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "grid",
+              "do": "set",
+              "part": "gd_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 13.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "w9",
+          "duration": 14.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "And on outcrop, and in trenches, rock chips and channel samples. A continuous cut across the vein, not a hand-picked lump, because picking the best rock is how you lie to yourself.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "grid",
+              "do": "hide",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "chan",
+              "do": "show",
+              "at": 0.7,
+              "for": 0.4
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_cut",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_cut",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.6,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_l1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_l1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.1,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_l1_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_l1_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.2,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_grab",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_grab",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.3,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_grabau",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.15,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_grabau",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.45,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 9.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "transform.sx",
+              "value": 1.15,
+              "at": 9.604,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "transform.sx",
+              "value": 1.15,
+              "at": 9.604,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 9.7,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 9.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "transform.sy",
+              "value": 1.15,
+              "at": 9.604,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "transform.sy",
+              "value": 1.15,
+              "at": 9.604,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 9.7,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_no",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.58,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_l2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 10,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_l2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 10.3,
+              "ease": "step"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_l2_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 10.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "chan",
+              "do": "set",
+              "part": "ch_l2_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 10.4,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "talk",
+      "palette": "geo",
+      "background": {
+        "color": "#101a26"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            330,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter"
+        },
+        {
+          "character": "juma",
+          "as": "juma",
+          "at": [
+            770,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter",
+          "facing": -1
+        },
+        {
+          "character": "path",
+          "as": "path",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 40,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "w10",
+          "duration": 15,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "A handheld XRF reads some elements on the spot. Excellent for arsenic as a gold pathfinder, and nearly useless for gold itself. Gold goes to a laboratory. Always.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "zawadi",
+              "do": "hide",
+              "at": 0,
+              "for": 0.01
+            },
+            {
+              "target": "juma",
+              "do": "hide",
+              "at": 0,
+              "for": 0.01
+            },
+            {
+              "target": "path",
+              "do": "show",
+              "at": 0.2,
+              "for": 0.4
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf_s",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf_s",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.238,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.238,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 2.35,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.238,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.238,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 2.35,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.18,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.338,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.338,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 2.45,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.338,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.338,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 2.45,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_s",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.28,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.438,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.438,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 2.55,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.438,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.438,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 2.55,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf0_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.38,
+              "ease": "step"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 10.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "path",
+              "do": "set",
+              "part": "pf_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 10.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "w11",
+          "duration": 3.8,
+          "framing": "wide",
+          "on": "juma",
+          "dialogue": [
+            {
+              "speaker": "juma",
+              "text": "Why arsenic?",
+              "at": 0.5,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "path",
+              "do": "hide",
+              "at": 0,
+              "for": 0.3
+            },
+            {
+              "target": "zawadi",
+              "do": "show",
+              "at": 0.2,
+              "for": 0.3
+            },
+            {
+              "target": "juma",
+              "do": "show",
+              "at": 0.2,
+              "for": 0.3
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "ask",
+              "at": 0.4,
+              "for": 0.4
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 1.631
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 1.492
+            }
+          ]
+        },
+        {
+          "id": "w12",
+          "duration": 7.5,
+          "framing": "wide",
+          "on": "zawadi",
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Because arsenopyrite travelled with the gold. You hunt the company it keeps.",
+              "at": 0.4,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "present",
+              "at": 0.4,
+              "for": 0.6
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 0.89
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 5.025
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 1.101
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 5.673
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "palette": "geo",
+      "background": {
+        "color": "#06090f"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "card",
+          "as": "card",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "c1",
+          "duration": 9,
+          "actions": [
+            {
+              "target": "card",
+              "do": "set",
+              "part": "next",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "next",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.85,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "made",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "made",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.32,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "name",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.16,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "name",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.48,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "what",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.32,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "what",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.64,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "repo",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.48,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "repo",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.8,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "lic",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "lic",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.96,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "call",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "call",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.12,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

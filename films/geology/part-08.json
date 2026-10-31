@@ -1,0 +1,5384 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "Finding Gold — Electrical and IP surveys",
+    "fps": 24,
+    "width": 1080,
+    "height": 1920,
+    "author": "Ezekiel Minja",
+    "description": "Finding Gold: a field guide to mineral exploration. Educational — not a design standard.",
+    "subtitleStyle": {
+      "font": "600 37px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "fill": "#f2efe6",
+      "stroke": "#06090f",
+      "strokeWidth": 7,
+      "lineHeight": 47,
+      "maxWidth": 940,
+      "bottomMargin": 360
+    }
+  },
+  "voices": {
+    "zawadi_v": {
+      "spec": "tts:en_GB-alba-medium"
+    },
+    "juma_v": {
+      "spec": "tts:en_GB-alan-medium"
+    }
+  },
+  "palettes": {
+    "geo": {
+      "bg": "#0d1420",
+      "panel": "#141d2d",
+      "ink": "#f2efe6",
+      "dim": "#8ea0b8",
+      "gold": "#ffc64d",
+      "fluid": "#e2663c",
+      "water": "#4aa3d8",
+      "sulphide": "#b8a86a",
+      "structure": "#e24a6a",
+      "granite": "#cfc3b8",
+      "greenstone": "#3f5d4a",
+      "soil": "#6b5a44",
+      "quartz": "#e8e4da",
+      "basalt": "#2f4150",
+      "skin": "#8d5a3b",
+      "skinAlt": "#6f4529",
+      "cloth": "#c9702f",
+      "clothAlt": "#3f6f8a",
+      "trouser": "#4a4f58",
+      "hair": "#241a14",
+      "eye": "#2b1d14",
+      "white": "#f6f2e8",
+      "shoe": "#2a2320",
+      "teeth": "#f6f2e8",
+      "mouth": "#4a2420",
+      "accent": "#ffc64d",
+      "light": "#fff3cf"
+    }
+  },
+  "characters": {
+    "zawadi": {
+      "palette": "geo",
+      "voice": "zawadi_v",
+      "proportions": {
+        "height": 520
+      },
+      "generate": {
+        "build": "athletic",
+        "hands": "mitten",
+        "cloth": "cloth",
+        "trouser": "trouser",
+        "hair": "braids",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "tapered",
+          "eyes": "round",
+          "brow": "arched",
+          "nose": "broad",
+          "lips": "full",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.12
+          },
+          "armR": {
+            "rot": -0.12
+          },
+          "foreL": {
+            "rot": 0.18
+          },
+          "foreR": {
+            "rot": -0.18
+          }
+        },
+        "present": {
+          "armR": {
+            "rot": -0.62
+          },
+          "foreR": {
+            "rot": -0.52
+          },
+          "head": {
+            "rot": -0.05
+          }
+        },
+        "count": {
+          "armR": {
+            "rot": -0.85
+          },
+          "foreR": {
+            "rot": -0.9
+          }
+        }
+      }
+    },
+    "juma": {
+      "palette": "geo",
+      "voice": "juma_v",
+      "proportions": {
+        "height": 509.59999999999997
+      },
+      "generate": {
+        "build": "slim",
+        "hands": "mitten",
+        "skin": "skinAlt",
+        "cloth": "clothAlt",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "round",
+          "eyes": "wide",
+          "brow": "flat",
+          "nose": "button",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.14
+          },
+          "armR": {
+            "rot": -0.14
+          },
+          "foreL": {
+            "rot": 0.2
+          },
+          "foreR": {
+            "rot": -0.2
+          }
+        },
+        "ask": {
+          "armR": {
+            "rot": -0.7
+          },
+          "foreR": {
+            "rot": -0.75
+          },
+          "head": {
+            "rot": 0.08
+          }
+        }
+      }
+    },
+    "array": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "ar_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "current in, voltage out",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ar_gnd",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            940
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 520,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 1,
+          "fill": "#3b4332"
+        },
+        {
+          "id": "ar_sky",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M90,680 L990,680"
+          },
+          "z": 14,
+          "alpha": 1,
+          "stroke": "ink",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ar_e0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M210,640 L210,730"
+          },
+          "z": 15,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 9,
+          "lineCap": "butt"
+        },
+        {
+          "id": "ar_e0l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            210,
+            606
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "C1",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 15,
+          "alpha": 0,
+          "fill": "structure"
+        },
+        {
+          "id": "ar_e1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M420,640 L420,730"
+          },
+          "z": 15,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 9,
+          "lineCap": "butt"
+        },
+        {
+          "id": "ar_e1l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            420,
+            606
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "P1",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 15,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "ar_e2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M660,640 L660,730"
+          },
+          "z": 15,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 9,
+          "lineCap": "butt"
+        },
+        {
+          "id": "ar_e2l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            660,
+            606
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "P2",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 15,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "ar_e3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M870,640 L870,730"
+          },
+          "z": 15,
+          "alpha": 0,
+          "stroke": "structure",
+          "strokeWidth": 9,
+          "lineCap": "butt"
+        },
+        {
+          "id": "ar_e3l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            870,
+            606
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "C2",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 15,
+          "alpha": 0,
+          "fill": "structure"
+        },
+        {
+          "id": "ar_c0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M210,690 Q540,882 870,690"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "#7fb4d8",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ar_c1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M210,690 Q540,1006.8 870,690"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "#7fb4d8",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ar_c2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M210,690 Q540,1131.6 870,690"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "#7fb4d8",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ar_c3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M210,690 Q540,1256.4 870,690"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "#7fb4d8",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ar_c4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M210,690 Q540,1381.2 870,690"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "#7fb4d8",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ar_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1300
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "the deeper the current goes, the longer the array",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 480
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ar_cap",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1250
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "resistivity: how hard the ground is to push through",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "res": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "rs_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "conductive and resistive",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "rs_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            920
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 580,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 1,
+          "fill": "greenstone"
+        },
+        {
+          "id": "rs_fault",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M250,1200 Q300,920 240,640"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "#3f6f8a",
+          "strokeWidth": 60,
+          "lineCap": "butt"
+        },
+        {
+          "id": "rs_fl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            92,
+            600
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "clay and water — conductive",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 928
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "rs_fl_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M92,600 L250,700"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "rs_vein",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,1200 Q700,920 780,640"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "quartz",
+          "strokeWidth": 44,
+          "lineCap": "butt"
+        },
+        {
+          "id": "rs_vl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            600
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "quartz flooding — resistive",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "rs_vl_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,600 L780,700"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "rs_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "in gold systems, the high is often the vein",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "ip": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "ip_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "cut the current, and watch",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ip_ax",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M180,1120 L960,1120"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ip_ay",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M180,1120 L180,620"
+          },
+          "z": 10,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ip_on",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M180,1120 L180,720 L480,720 L480,1120"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "water",
+          "strokeWidth": 6
+        },
+        {
+          "id": "ip_onl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            330,
+            676
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "current on",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 300
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "ip_dec",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M480,760 C493.3,775 530,820 560,850 C590,880 623.3,913.3 660,940 C696.7,966.7 740,990 780,1010 C820,1030 870.8,1048.3 900,1060 C929.2,1071.7 945.8,1076.7 955,1080"
+          },
+          "z": 13,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 7
+        },
+        {
+          "id": "ip_dl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            870
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "the ground gives the charge back",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ip_dl_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,870 L700,964"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "ip_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            570,
+            1180
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "time",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "ip_v",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            120,
+            870
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "voltage",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "ip_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "that decay is chargeability",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "charge": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "cg_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            496
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "you find gold by its companions",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cg_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            930
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 900,
+            "h": 560,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 1,
+          "fill": "#223027",
+          "stroke": "#2a3b52",
+          "strokeWidth": 3
+        },
+        {
+          "id": "cg_blob",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            560,
+            1000
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 210,
+            "ry": 130
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#8a7a4a",
+          "glow": {
+            "blur": 50,
+            "color": "#b8a86a"
+          }
+        },
+        {
+          "id": "cg_bl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1004,
+            1260
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "disseminated sulphides — chargeable",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 944
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cg_bl_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1004,1260 L700,1060"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "cg_s0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            632.2719494253397,
+            1063.3296076208353
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            665.8344515413046,
+            973.2750013098121
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            423.8178891688585,
+            967.2842875123024
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            483.4607023745775,
+            976.6804691776633
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            523.1820897012949,
+            1053.4187846630812
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            536.6479612886906,
+            1056.2425767630339
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            637.4543544650078,
+            994.2330604419112
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s7",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            577.4767025560141,
+            996.3557694107294
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s8",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            609.4778411090374,
+            1022.8081880137324
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s9",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            497.3299850523472,
+            980.23960262537
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s10",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            430.8631656318903,
+            1048.6155036091805
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s11",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            468.3844316750765,
+            1018.163208141923
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s12",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            667.8038516640663,
+            1025.6369876116514
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_s13",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            409.87156361341476,
+            929.3981474637985
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 7,
+            "ry": 7
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide"
+        },
+        {
+          "id": "cg_a0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            469.0647497214377,
+            999.185337156523
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 5,
+            "ry": 5
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "glow": {
+            "blur": 14,
+            "color": "#ffc64d"
+          }
+        },
+        {
+          "id": "cg_a1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            507.66010446473956,
+            991.6315871174447
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 5,
+            "ry": 5
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "glow": {
+            "blur": 14,
+            "color": "#ffc64d"
+          }
+        },
+        {
+          "id": "cg_a2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            647.2193881310523,
+            959.9339079018682
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 5,
+            "ry": 5
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "glow": {
+            "blur": 14,
+            "color": "#ffc64d"
+          }
+        },
+        {
+          "id": "cg_a3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            564.2888248804957,
+            1004.8599003721029
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 5,
+            "ry": 5
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "glow": {
+            "blur": 14,
+            "color": "#ffc64d"
+          }
+        },
+        {
+          "id": "cg_a4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            585.5962798837572,
+            1050.7145691639744
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 5,
+            "ry": 5
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "glow": {
+            "blur": 14,
+            "color": "#ffc64d"
+          }
+        },
+        {
+          "id": "cg_al",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            92,
+            660
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "the gold, invisible to every instrument",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 928
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cg_al_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M92,660 L520,980"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 2
+        },
+        {
+          "id": "cg_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1310
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "too little of it to measure — ever",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "depth": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "dp_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            500
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "how deep you can see",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "dp_a",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M417,760 L663,760"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 10,
+          "lineCap": "butt"
+        },
+        {
+          "id": "dp_al",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            716
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "300 m array",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "dp_av",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M417,760 Q540,912.5 663,760 Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#2f4a5c"
+        },
+        {
+          "id": "dp_ad",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            833.8
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "60–100 m deep",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "dp_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M171,1020 L909,1020"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 10,
+          "lineCap": "butt"
+        },
+        {
+          "id": "dp_bl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            976
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "1 km array",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "dp_bv",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M171,1020 Q540,1477.6 909,1020 Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#2f4a5c"
+        },
+        {
+          "id": "dp_bd",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1241.4
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "200–330 m deep",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 700
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "dp_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1300
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "a fifth to a third of the array length",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "invert": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "iv_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            496
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "a pseudo-section is not geology",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "iv_pa",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            700
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 880,
+            "h": 250,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 1,
+          "fill": "#1b2630",
+          "stroke": "#2a3b52",
+          "strokeWidth": 3
+        },
+        {
+          "id": "iv_pal",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            850
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "pseudo-section  —  plotted at a made-up depth",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "iv_mb",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1060
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 880,
+            "h": 250,
+            "cx": true,
+            "cy": true
+          },
+          "z": 8,
+          "alpha": 0,
+          "fill": "#1b2630",
+          "stroke": "gold",
+          "strokeWidth": 3
+        },
+        {
+          "id": "iv_mbl",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1210
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "inverted model  —  something you can drill",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "iv_p0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            180,
+            646
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            222.35294117647058,
+            656.5882352941177
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            264.70588235294116,
+            667.1764705882354
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            307.05882352941177,
+            677.7647058823529
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            349.4117647058823,
+            688.3529411764706
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            391.7647058823529,
+            698.9411764705883
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            434.11764705882354,
+            709.5294117647059
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "sulphide"
+        },
+        {
+          "id": "iv_p7",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            476.4705882352941,
+            720.1176470588235
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "sulphide"
+        },
+        {
+          "id": "iv_p8",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            518.8235294117646,
+            730.7058823529412
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "sulphide"
+        },
+        {
+          "id": "iv_p9",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            561.1764705882354,
+            730.7058823529412
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "sulphide"
+        },
+        {
+          "id": "iv_p10",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            603.5294117647059,
+            720.1176470588235
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "sulphide"
+        },
+        {
+          "id": "iv_p11",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            645.8823529411766,
+            709.5294117647059
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "sulphide"
+        },
+        {
+          "id": "iv_p12",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            688.2352941176471,
+            698.9411764705882
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p13",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            730.5882352941176,
+            688.3529411764706
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p14",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            772.9411764705882,
+            677.7647058823529
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p15",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            815.2941176470588,
+            667.1764705882354
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p16",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            857.6470588235294,
+            656.5882352941177
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_p17",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            900,
+            646
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 26,
+            "ry": 16
+          },
+          "z": 10,
+          "alpha": 1,
+          "fill": "#32414e"
+        },
+        {
+          "id": "iv_body",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1050
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 120,
+            "ry": 54
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "sulphide",
+          "glow": {
+            "blur": 30,
+            "color": "#b8a86a"
+          }
+        },
+        {
+          "id": "iv_ar",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M540,880 L540,898 M540,918 L531.6,898 L548.4,898 Z"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "gold",
+          "stroke": "gold",
+          "strokeWidth": 4
+        },
+        {
+          "id": "iv_warn",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1300
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "never trust the very bottom of an inversion",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 480
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "agree": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "ag_h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            496
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "four layers, one place",
+            "font": "700 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ag0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M250,630 L830,582 L880,658 L300,706Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "structure",
+          "stroke": "#0d1420",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ag0_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            232,
+            662
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "magnetic low",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 200
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ag1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M250,748 L830,700 L880,776 L300,824Z"
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "quartz",
+          "stroke": "#0d1420",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ag1_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            232,
+            780
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "resistivity high",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 200
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ag2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M250,866 L830,818 L880,894 L300,942Z"
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "sulphide",
+          "stroke": "#0d1420",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ag2_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            232,
+            898
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "chargeability high",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 200
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ag3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M250,984 L830,936 L880,1012 L300,1060Z"
+          },
+          "z": 13,
+          "alpha": 0,
+          "fill": "gold",
+          "stroke": "#0d1420",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ag3_n",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            232,
+            1016
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "arsenic in soil",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 200
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "ag_hole",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M575,580 L575,1240"
+          },
+          "z": 30,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 7,
+          "lineCap": "butt"
+        },
+        {
+          "id": "ag_tip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            575,
+            1240
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 14,
+            "ry": 14
+          },
+          "z": 31,
+          "alpha": 0,
+          "fill": "gold",
+          "glow": {
+            "blur": 26,
+            "color": "#ffc64d"
+          }
+        },
+        {
+          "id": "ag_c",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1322
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "one of those is a maybe. Four is a target.",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "card": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "next",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Next: drilling it, and turning holes into a number.",
+            "font": "600 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "made",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1000
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Animated with",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "name",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1098
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "JIREX",
+            "font": "800 118px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "what",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1172
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "an open-source browser animation engine",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "repo",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1278
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "github.com/minjaezekiel/jireX",
+            "font": "700 36px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "lic",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1330
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MIT licensed  ·  free to use, fork and build on",
+            "font": "600 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "call",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1402
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Add a feature. Send a pull request.",
+            "font": "600 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "title_b": {
+      "role": "effect",
+      "palette": "geo",
+      "parts": [
+        {
+          "id": "kicker",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            318
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "FINDING GOLD  ·  PART 8",
+            "font": "700 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "title",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            392
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Electrical methods",
+            "font": "800 74px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "res",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionIn": {
+        "kind": "fade",
+        "from": "#000000",
+        "duration": 0.9
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "title_b",
+          "as": "title_b",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 60,
+          "role": "effect"
+        },
+        {
+          "character": "array",
+          "as": "array",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 0,
+          "role": "effect"
+        },
+        {
+          "character": "res",
+          "as": "res",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "e0",
+          "duration": 7,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Magnetics maps the architecture. Electrical methods go after the ore minerals themselves.",
+              "at": 0.7,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e1",
+          "duration": 15,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Push a current into the ground between two electrodes, measure the voltage between two others, and you get resistivity — how hard the ground is to push current through.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "title_b",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "show",
+              "at": 0.8,
+              "for": 0.4
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.35,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e0l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.15,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e0l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.5,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.65,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e3l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.45,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e3l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.8,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.75,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e1l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.55,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e1l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.9,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.05,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e2l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.85,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_e2l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.2,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.4,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.6,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_c4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.8,
+              "ease": "step"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_cap",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 10.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "array",
+              "do": "set",
+              "part": "ar_cap",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 11.3,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e2",
+          "duration": 13.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "A fault zone full of clay and water is conductive. A silicified, quartz-flooded vein is resistive. In gold systems the resistive high is often the vein itself.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "array",
+              "do": "hide",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "res",
+              "do": "show",
+              "at": 0.7,
+              "for": 0.4
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_fault",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_fault",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.4,
+              "ease": "step"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_fl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_fl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.9,
+              "ease": "step"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_fl_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_fl_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3,
+              "ease": "step"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_vein",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6,
+              "ease": "smooth"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_vein",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 6.6,
+              "ease": "step"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_vl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_vl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.1,
+              "ease": "step"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_vl_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 6.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_vl_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.2,
+              "ease": "step"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 10.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "res",
+              "do": "set",
+              "part": "rs_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 10.9,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ip",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "ip",
+          "as": "ip",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        },
+        {
+          "character": "charge",
+          "as": "charge",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "e3",
+          "duration": 5.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Then the better trick. Cut the current, and watch the voltage.",
+              "at": 0.5,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_ax",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_ax",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_ay",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_ay",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_v",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_v",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_on",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_on",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.2,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_onl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_onl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.4,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e4",
+          "duration": 17,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "It does not drop to zero. It decays — because the ground stored charge. That is induced polarisation. And what stores charge best is disseminated metallic sulphides: pyrite, arsenopyrite, chalcopyrite.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_dec",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_dec",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.1,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_dl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_dl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.9,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_dl_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_dl_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3,
+              "ease": "step"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8,
+              "ease": "smooth"
+            },
+            {
+              "target": "ip",
+              "do": "set",
+              "part": "ip_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.5,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e5",
+          "duration": 16,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Gold itself is invisible to every geophysical method ever built. There is far too little of it. But the sulphides it precipitated with are not invisible, and chargeability maps those directly.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "ip",
+              "do": "hide",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "charge",
+              "do": "show",
+              "at": 0.7,
+              "for": 0.4
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_blob",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_blob",
+              "channel": "props.alpha",
+              "value": 0.85,
+              "at": 2.4,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.85,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.69,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.94,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.78,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.03,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.87,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.12,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.96,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.21,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.05,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.39,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s7",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.23,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s7",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.48,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s8",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.32,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s8",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.57,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s9",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.41,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s9",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.66,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s10",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s10",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.75,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s11",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.59,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s11",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.84,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s12",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.68,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s12",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.93,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s13",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.77,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_s13",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.02,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_bl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_bl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.7,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_bl_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_bl_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.8,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.3,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.44,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.28,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.58,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.72,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.56,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_a4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 8.86,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_al",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_al",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.5,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_al_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_al_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.6,
+              "ease": "step"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 12.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "charge",
+              "do": "set",
+              "part": "cg_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 12.9,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "geom",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "depth",
+          "as": "depth",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "e6",
+          "duration": 16,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Geometry decides what you can see. Electrodes are laid out in an array, and the rule is blunt: depth of investigation is roughly a fifth to a third of the array length.",
+              "at": 0.5,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_al",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_al",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.4,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_a",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_a",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.6,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_av",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_av",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.8,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_ad",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_ad",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_av",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_av",
+              "channel": "props.alpha",
+              "value": 0.8,
+              "at": 5.7,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e7",
+          "duration": 7.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Want to see two hundred metres down? Lay out a kilometre.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_bl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_bl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_bv",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_bv",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_bd",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_bd",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_bv",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_bv",
+              "channel": "props.alpha",
+              "value": 0.8,
+              "at": 2.2,
+              "ease": "step"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "depth",
+              "do": "set",
+              "part": "dp_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.7,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "invert",
+      "palette": "geo",
+      "background": {
+        "color": "#0d1420"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "invert",
+          "as": "invert",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "e8",
+          "duration": 14.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "The raw result is a pseudo-section — measurements plotted at a made-up depth. It is not a picture of the ground, and reading it as one is the classic beginner mistake.",
+              "at": 0.5,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_pal",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_pal",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e9",
+          "duration": 15,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Inversion fixes that. A computer builds a model of the subsurface, predicts what the survey would have read, compares it with what was actually read, and adjusts until the two agree.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_ar",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_ar",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.4,
+              "ease": "step"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_mb",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_mb",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.1,
+              "ease": "step"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_body",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_body",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.6,
+              "ease": "step"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_mbl",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_mbl",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e10",
+          "duration": 11.5,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "Out comes a model you can draw a drillhole on. But many different models fit the same data, so you constrain it with geology — and never trust a feature at the very bottom edge.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_warn",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 7,
+              "ease": "smooth"
+            },
+            {
+              "target": "invert",
+              "do": "set",
+              "part": "iv_warn",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 7.5,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "talk",
+      "palette": "geo",
+      "background": {
+        "color": "#101a26"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            330,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter"
+        },
+        {
+          "character": "juma",
+          "as": "juma",
+          "at": [
+            770,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter",
+          "facing": -1
+        },
+        {
+          "character": "agree",
+          "as": "agree",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": 40,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "e11",
+          "duration": 4,
+          "framing": "wide",
+          "on": "juma",
+          "dialogue": [
+            {
+              "speaker": "juma",
+              "text": "So which survey do you believe?",
+              "at": 0.5,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "ask",
+              "at": 0.3,
+              "for": 0.5
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 1.585
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 0.771
+            }
+          ]
+        },
+        {
+          "id": "e12",
+          "duration": 4.5,
+          "framing": "wide",
+          "on": "zawadi",
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "The one that agrees with the others.",
+              "at": 0.4,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "juma",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0.2,
+              "for": 0.5
+            },
+            {
+              "target": "zawadi",
+              "do": "pose",
+              "pose": "present",
+              "at": 0.4,
+              "for": 0.6
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "breathe"
+            },
+            {
+              "target": "zawadi",
+              "do": "play",
+              "action": "blink",
+              "at": 1.541
+            },
+            {
+              "target": "juma",
+              "do": "play",
+              "action": "blink",
+              "at": 1.259
+            }
+          ]
+        },
+        {
+          "id": "e13",
+          "duration": 20,
+          "dialogue": [
+            {
+              "speaker": "zawadi",
+              "text": "A magnetic low on an altered shear. A resistivity high where it is silicified. A chargeability high where the sulphides sit. Arsenic in the soil above it. One of those is a maybe. All four is a drill target.",
+              "at": 0.4,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "zawadi",
+              "do": "hide",
+              "at": 0.3,
+              "for": 0.4
+            },
+            {
+              "target": "juma",
+              "do": "hide",
+              "at": 0.3,
+              "for": 0.4
+            },
+            {
+              "target": "agree",
+              "do": "show",
+              "at": 0.8,
+              "for": 0.5
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag0",
+              "channel": "props.alpha",
+              "value": 0.88,
+              "at": 2.5,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag0_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag0_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.5,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag1",
+              "channel": "props.alpha",
+              "value": 0.88,
+              "at": 5.9,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag1_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag1_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.9,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 8.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag2",
+              "channel": "props.alpha",
+              "value": 0.88,
+              "at": 9.3,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag2_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 9,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag2_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 9.3,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 12.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag3",
+              "channel": "props.alpha",
+              "value": 0.88,
+              "at": 12.7,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag3_n",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 12.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag3_n",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 12.7,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_hole",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 16,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_hole",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 16.8,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 16.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "transform.sx",
+              "value": 1.2,
+              "at": 17.072,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "transform.sx",
+              "value": 1.2,
+              "at": 17.072,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 17.2,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 16.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "transform.sy",
+              "value": 1.2,
+              "at": 17.072,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "transform.sy",
+              "value": 1.2,
+              "at": 17.072,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 17.2,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 16.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_tip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 16.98,
+              "ease": "step"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_c",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 17.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "agree",
+              "do": "set",
+              "part": "ag_c",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 17.9,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "palette": "geo",
+      "background": {
+        "color": "#06090f"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "zawadi",
+          "as": "zawadi",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "card",
+          "as": "card",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "c1",
+          "duration": 9,
+          "actions": [
+            {
+              "target": "card",
+              "do": "set",
+              "part": "next",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "next",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.85,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "made",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "made",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.32,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "name",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.16,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "name",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.48,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "what",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.32,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "what",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.64,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "repo",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.48,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "repo",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.8,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "lic",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "lic",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.96,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "call",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "call",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.12,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

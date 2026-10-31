@@ -63,6 +63,7 @@ export function compileFilm(film, { assets = {} } = {}) {
     const timeline = createTimeline({ fps: meta.fps });
     // Spans where the cast is held on twos or threes; the camera stays on ones.
     timeline.steps = [];
+    timeline.sheets = [];
     timeline.step = meta.step ?? 0;
     const audioCues = [];
     const lipsyncJobs = [];
@@ -149,6 +150,11 @@ export function compileFilm(film, { assets = {} } = {}) {
         // --- cast: instantiate each character's part tree
         const castMap = new Map();
         const echoes = [];
+        // `do: 'smear'` is an echo gated to a time span rather than to whole
+        // shots. Collected here and applied after the shot loop for the same
+        // reason `cast.echo` is: the trail clones tracks, so every track it
+        // will clone has to exist first.
+        const smears = [];
         const shotSpans = [];
         for (const entry of sceneSpec.cast ?? []) {
             const charName = entry.character;
@@ -194,6 +200,18 @@ export function compileFilm(film, { assets = {} } = {}) {
             });
 
             for (const action of shot.actions ?? []) {
+                if (action.do === 'smear') {
+                    const cast = castMap.get(action.target);
+                    if (!cast) {
+                        diagnostics.push({ severity: 'warning', path: `scenes.${sceneId}.actions`,
+                            message: `smear: no cast member "${action.target}" in this scene.` });
+                        continue;
+                    }
+                    const start = shotStart + (action.at ?? 0);
+                    smears.push([cast.rootId, action,
+                                 { start, end: action.for != null ? start + action.for : shotEnd }]);
+                    continue;
+                }
                 buildAction({
                     scene, timeline, action, castMap, shotStart, shotEnd,
                     sceneId, characters, diagnostics, ground: spec.ground ?? null,
@@ -221,6 +239,17 @@ export function compileFilm(film, { assets = {} } = {}) {
         }
 
         // After every shot, so the trail clones tracks that already exist.
+        // A smear is an echo that lasts a beat, not a shot: a limb smears for
+        // three frames of a swing, and `cast.echo`'s shot granularity cannot
+        // say that. Same clone pass, same determinism, a span instead.
+        for (const [rootId, action, span] of smears) {
+            buildEcho({ scene, timeline, meta }, rootId, {
+                frames: action.samples ?? 3,
+                spacing: action.spread != null ? action.spread * (meta.fps ?? 24) : 2,
+                falloff: action.fade ?? 0.45,
+            }, [span]);
+        }
+
         for (const [rootId, spec] of echoes) {
             const want = spec.shots ? new Set([].concat(spec.shots)) : null;
             const spans = want
@@ -854,6 +883,126 @@ function seedChannel(scene, timeline, nodeId, path) {
 
 const COLOR_CHANNELS = new Set(['props.fill', 'props.stroke']);
 
+/**
+ * Boil: the contour that will not sit still.
+ *
+ *   { "target": "ink", "do": "boil", "rate": 8, "amplitude": 0.35 }
+ *
+ * In a pencil test a held drawing is redrawn rather than held, so the line
+ * shifts a little between exposures. `props.boil` is the exposure index; the
+ * painter adds it to every stroke's jitter seed, so the same strokes resample
+ * to a slightly different contour. Stepped, never interpolated -- a boil that
+ * eased between seeds would be a morph, not a redraw.
+ *
+ * Deterministic: the index is a function of the frame, so frame N boils the
+ * same way on every render.
+ */
+function buildBoil({ scene, timeline, action, shotStart, shotEnd, sceneId, diagnostics, fps }) {
+    const path = `scenes.${sceneId}.actions`;
+    const nodeId = `${sceneId}/${action.target}`;
+    const node = scene.get(nodeId);
+    if (!node) {
+        diagnostics.push({ severity: 'warning', path,
+            message: `boil: no drawing "${action.target}" in this scene.` });
+        return;
+    }
+    // Boiling a rig is wrong: boil belongs to the DRAWING. A cutout character
+    // has no strokes to redraw, so the request would silently do nothing.
+    if (node.kind !== 'paint' && node.kind !== 'photo') {
+        diagnostics.push({ severity: 'warning', path,
+            message: `boil: "${action.target}" is a ${node.kind}, not a drawing. Boil redraws `
+                + `strokes, so it applies to a scene's "drawings", not to a generated character.` });
+        return;
+    }
+
+    const rate = Number(action.rate ?? 8);
+    if (!Number.isFinite(rate) || rate <= 0) {
+        diagnostics.push({ severity: 'warning', path,
+            message: `boil: "rate" is exposures per second and must be positive. Got ${action.rate}.` });
+        return;
+    }
+    const start = shotStart + (action.at ?? 0);
+    const end = action.for != null ? start + action.for : shotEnd;
+    if (action.amplitude != null) {
+        key(timeline, nodeId, 'props.boilAmount', start, action.amplitude,
+            { type: 'number', ease: 'step' });
+    }
+    // One key per exposure, frame-aligned so the redraw lands on a frame
+    // rather than between two.
+    let i = 0;
+    for (let t = start; t < end; t += 1 / rate, i++) {
+        key(timeline, nodeId, 'props.boil', Math.round(t * fps) / fps, i,
+            { type: 'number', ease: 'step' });
+    }
+    if (i === 0) {
+        diagnostics.push({ severity: 'warning', path,
+            message: `boil: the span is shorter than one exposure at ${rate}/s; nothing to boil.` });
+    }
+}
+
+/**
+ * An exposure sheet: how long each successive drawing is held, in frames.
+ *
+ *   { "target": "dog", "do": "expose", "sheet": "4 4 2 1 1 2 4" }
+ *
+ * Read left to right from `at`. This is the notation on a real X-sheet, and
+ * it is here because `shot.step` -- one integer for the whole shot -- cannot
+ * say "hold the acting beat four frames and then snap on ones", which is what
+ * every measured pencil test actually does.
+ *
+ * The sheet repeats to fill its span, so `"2"` is exactly `step: 2`. With
+ * `loop: false` the last hold runs to the end instead.
+ */
+function buildExposure({ scene, timeline, action, castMap, shotStart, shotEnd,
+                         sceneId, diagnostics, fps }) {
+    const path = `scenes.${sceneId}.actions`;
+    const raw = action.sheet ?? action.value;
+    const holds = (typeof raw === 'string' ? raw.trim().split(/[\s,]+/) : raw ?? [])
+        .map(Number)
+        .filter((n) => Number.isFinite(n));
+    if (!holds.length || holds.some((n) => n < 1)) {
+        diagnostics.push({ severity: 'warning', path,
+            message: `expose: "sheet" must be one or more hold lengths of at least 1 frame, `
+                + `e.g. "4 4 2 1 1 2". Got ${JSON.stringify(raw)}.` });
+        return;
+    }
+
+    // No target is legal and means the whole shot -- a non-uniform `step`.
+    let target = null;
+    if (action.target && action.target !== '*') {
+        const cast = castMap.get(action.target);
+        if (cast) target = cast.rootId;
+        else if (scene.get(`${sceneId}/${action.target}`)) target = `${sceneId}/${action.target}`;
+        else {
+            diagnostics.push({ severity: 'warning', path,
+                message: `expose: no cast member or drawing "${action.target}" in this scene.` });
+            return;
+        }
+    }
+
+    const start = shotStart + (action.at ?? 0);
+    const end = action.for != null ? start + action.for : shotEnd;
+    if (end <= start) {
+        diagnostics.push({ severity: 'warning', path,
+            message: `expose: the sheet spans no time (${start.toFixed(3)}s to ${end.toFixed(3)}s).` });
+        return;
+    }
+
+    // Boundaries are frame-aligned absolute seconds: the times at which a new
+    // drawing is exposed. Sampling snaps back to the last one, which is what
+    // holding a drawing means.
+    const loop = action.loop !== false;
+    const startFrame = Math.round(start * fps);
+    const endFrame = Math.round(end * fps);
+    const boundaries = [];
+    for (let f = startFrame, i = 0; f < endFrame; i++) {
+        boundaries.push(f / fps);
+        if (!loop && i >= holds.length - 1) break;
+        f += Math.round(holds[i % holds.length]);
+    }
+    timeline.sheets.push({ start, end, target, boundaries });
+}
+
 function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
                        sceneId, characters, diagnostics, ground = null, colorOf = null }) {
     const at0 = shotStart + (action.at ?? 0);
@@ -895,6 +1044,24 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
         // instant reveal, matching how `show` behaves.
         key(timeline, nodeId, 'props.progress', at0 + (span0 ?? 0), to,
             { type: 'number', ease: ease0, h: action.h });
+        return;
+    }
+
+    // `boil` targets a drawing and writes a stepped channel the painter reads
+    // as "redraw with a new seed". Resolved before the cast lookup, like
+    // `draw`, because a drawing is not a cast member.
+    if (action.do === 'boil') {
+        buildBoil({ scene, timeline, action, shotStart, shotEnd, sceneId, diagnostics,
+                    fps: timeline.fps || 24 });
+        return;
+    }
+
+    // `expose` writes an exposure sheet, not a channel. Like `draw` it can
+    // name a drawing rather than a cast member -- and unlike every other verb
+    // it can name nothing at all, meaning "the whole shot".
+    if (action.do === 'expose') {
+        buildExposure({ scene, timeline, action, castMap, shotStart, shotEnd,
+                        sceneId, diagnostics, fps: timeline.fps || 24 });
         return;
     }
 

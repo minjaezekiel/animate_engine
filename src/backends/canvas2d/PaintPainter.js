@@ -64,6 +64,46 @@ export class PaintPainter {
         this._ctx = this._canvas?.getContext('2d') ?? null;
         this._imageData = this._ctx?.createImageData(spec.width, spec.height) ?? null;
         this._renderedKey = null;
+        this._boil = 0;
+        this._boilAmp = null;
+    }
+
+    /**
+     * Boil: redraw the same strokes with a different jitter seed.
+     *
+     * In a pencil test a held drawing is REDRAWN rather than held, so the
+     * contour shifts a little between exposures. That shimmer is the
+     * strongest signal that a thing is hand-drawn; freeze it and the shot
+     * reads as a cutout puppet. See 21-DRAWN-ANIMATION.md.
+     *
+     * The seed is written back onto the same stroke objects rather than onto
+     * clones. `Surface._prepare` caches by stroke IDENTITY and frees the old
+     * kernel buffer when the brush key changes, so cloning would leak one
+     * buffer per stroke per exposure and defeat the cache besides.
+     *
+     * Deterministic: the offset comes from the boil channel, which the
+     * compiler derives from the frame index. Frame N boils the same way on
+     * every render.
+     */
+    _setBoil(boil, amplitude) {
+        if (boil === this._boil && amplitude === this._boilAmp) return;
+        this._boil = boil;
+        this._boilAmp = amplitude;
+        for (const layer of this.spec.layers ?? []) {
+            for (const stroke of layer.strokes ?? []) {
+                if (stroke.__seed0 === undefined) stroke.__seed0 = stroke.seed ?? 0;
+                // An odd multiplier so successive exposures do not land on
+                // neighbouring seeds, which hash to visibly similar jitter.
+                stroke.seed = stroke.__seed0 + boil * 9973;
+                // `amplitude` is how far the contour wanders, as a fraction of
+                // the nib. Omitted, the brush's own jitter is left alone --
+                // `pencil` already has one, and overriding it by default would
+                // silently restyle every existing drawing.
+                if (amplitude != null) {
+                    stroke.brushOverrides = { ...stroke.brushOverrides, jitterPos: amplitude };
+                }
+            }
+        }
     }
 
     /**
@@ -100,7 +140,8 @@ export class PaintPainter {
      *
      * Pure with respect to the canvas, so this is what the Node tests use.
      */
-    renderAt(progress) {
+    renderAt(progress, boil = 0, amplitude = null) {
+        this._setBoil(Math.round(boil) || 0, amplitude);
         const p = Math.min(1, Math.max(0, progress));
         for (const [li, layer] of (this.spec.layers ?? []).entries()) {
             const target = this.document.layers[li];
@@ -124,7 +165,7 @@ export class PaintPainter {
      * treats as "nothing to draw" rather than an error -- the same policy
      * as an unresolved image.
      */
-    canvasAt(progress) {
+    canvasAt(progress, boil = 0, amplitude = null) {
         if (!this._ctx) return null;
         // Quantise to whole dabs: neighbouring frames of a slow reveal
         // often resolve to the same count, and re-rendering an identical
@@ -133,12 +174,15 @@ export class PaintPainter {
         const key = total > 0
             ? Math.floor(Math.min(1, Math.max(0, progress)) * total)
             : (progress >= 1 ? 1 : 0);
-        if (key === this._renderedKey) return this._canvas;
+        // Boil joins the memo key: the same progress at a new exposure is a
+        // different picture, and that is the entire point of boiling.
+        const want = `${key}|${Math.round(boil) || 0}|${amplitude ?? ''}`;
+        if (want === this._renderedKey) return this._canvas;
 
-        this.renderAt(progress);
+        this.renderAt(progress, boil, amplitude);
         this.document.toRgba8(this._imageData.data);
         this._ctx.putImageData(this._imageData, 0, 0);
-        this._renderedKey = key;
+        this._renderedKey = want;
         return this._canvas;
     }
 

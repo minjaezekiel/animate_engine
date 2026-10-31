@@ -57,13 +57,69 @@ function quantise(tSec, step, fps) {
     return (Math.floor(frame / step) * step) / fps;
 }
 
+/**
+ * Exposure sheets -- holds that are not all the same length.
+ *
+ * `step` says "hold every drawing for N frames", which is the only exposure a
+ * uniform integer can describe. Real exposure is a per-beat decision: a
+ * measured pencil test holds an acting beat five frames and draws the chase
+ * nearly on ones, inside one film. An X-sheet writes that as a list of hold
+ * lengths, and this is that list compiled to absolute boundaries.
+ *
+ * `step` is the uniform case of a sheet and is left untouched, so every film
+ * that predates this evaluates identically.
+ */
+
+/** Does a span's target cover this pose target? No target means all of them. */
+function covers(spanTarget, target) {
+    if (!spanTarget) return true;
+    const t = String(target);
+    return t === spanTarget || t.startsWith(`${spanTarget}/`);
+}
+
+/**
+ * The most specific span covering `target` at `tSec`. A span naming a target
+ * beats a blanket one, so a film can shoot on twos and still expose one
+ * character differently without restating the rest.
+ */
+function spanFor(list, target, tSec) {
+    let best = null;
+    for (const span of list ?? []) {
+        if (tSec < span.start || tSec >= span.end) continue;
+        if (!covers(span.target, target)) continue;
+        if (!best || (span.target && !best.target)) best = span;
+    }
+    return best;
+}
+
+/** When the drawing visible at `tSec` was exposed. Boundaries ascend. */
+function holdStart(boundaries, tSec) {
+    let lo = 0, hi = boundaries.length - 1, found = boundaries[0];
+    while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (boundaries[mid] <= tSec + 1e-9) { found = boundaries[mid]; lo = mid + 1; }
+        else hi = mid - 1;
+    }
+    return found;
+}
+
 export function samplePose(timeline, tSec) {
     const pose = new Map();
     const layered = [];
-    const step = stepAt(timeline, tSec);
     const fps = timeline.fps || 24;
-    const held = quantise(tSec, step, fps);
-    const timeFor = (target) => (SMOOTH_TARGETS.has(String(target).split('/')[0]) ? tSec : held);
+    // Fast path: with no sheets and no per-target steps the hold is the same
+    // for every target, so it is computed once exactly as it always was.
+    const perTarget = (timeline.sheets?.length ?? 0) > 0
+        || (timeline.steps ?? []).some((span) => span.target);
+    const held = perTarget ? null : quantise(tSec, stepAt(timeline, tSec), fps);
+    const timeFor = (target) => {
+        if (SMOOTH_TARGETS.has(String(target).split('/')[0])) return tSec;
+        if (!perTarget) return held;
+        const sheet = spanFor(timeline.sheets, target, tSec);
+        if (sheet) return holdStart(sheet.boundaries, tSec);
+        const span = spanFor(timeline.steps, target, tSec);
+        return quantise(tSec, span ? (span.step ?? 0) : (timeline.step ?? 0), fps);
+    };
 
     const write = (target, path, value) => {
         if (value === undefined) return;

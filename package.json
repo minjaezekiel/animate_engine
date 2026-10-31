@@ -70,7 +70,12 @@
     "make:fixtures": "node scripts/make-fixtures.mjs",
     "test:trace": "node --test test/core/trace.test.mjs",
     "test:import": "node --test test/core/import3d.test.mjs",
-    "test:av:mp4": "FORMAT=mp4 node test/e2e/render-av.mjs"
+    "test:av:mp4": "FORMAT=mp4 node test/e2e/render-av.mjs",
+    "watch:video": "node scripts/watch-video.mjs",
+    "probe:video": "node scripts/probe-video.mjs",
+    "test:exposure": "node --test test/core/exposure.test.mjs",
+    "test:boil": "node --test test/core/boil.test.mjs",
+    "test:smear": "node --test test/core/smear.test.mjs"
   },
   "keywords": [
     "animation",

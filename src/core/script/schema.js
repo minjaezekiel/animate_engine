@@ -79,7 +79,14 @@ export const KNOWN = {
              // `grip` blends toward a named hand pose
              'amount',
              // the four principles that need a number rather than a keyframe
-             'anticipate', 'overshoot', 'arc', 'weight'],
+             'anticipate', 'overshoot', 'arc', 'weight',
+             // `expose` -- an X-sheet of hold lengths in frames, "4 4 2 1 1 2".
+             // See 21-DRAWN-ANIMATION.md.
+             'sheet',
+             // `smear` -- multiple-image and stretched smears for fast motion
+             'samples', 'spread', 'fade',
+             // `boil` -- the redrawn-contour shimmer of a pencil test
+             'amplitude', 'rate'],
     dialogue: ['speaker', 'at', 'text', 'audio', 'voice', 'lipsync', 'subtitle', 'gain', 'duration'],
     camera: ['from', 'to', 'ease', 'h', 'at', 'for', 'shake'],
     audioCue: ['asset', 'at', 'gain', 'fadeIn', 'fadeOut', 'offset', 'duration', 'bus'],
@@ -96,4 +103,5 @@ export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidt
 
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];
 export const TRANSITION_KINDS = ['fade', 'crossfade', 'none'];
-export const DO_VERBS = ['play', 'pose', 'move', 'reach', 'grip', 'set', 'show', 'hide', 'draw'];
+export const DO_VERBS = ['play', 'pose', 'move', 'reach', 'grip', 'set', 'show', 'hide', 'draw',
+                         'expose', 'smear', 'boil'];

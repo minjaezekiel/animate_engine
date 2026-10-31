@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-31 (Phase 30: **"Finding Gold"**, a ten-part 1080x1920 series, and the three defects building it exposed -- `lineCap` never reaching the renderer, every transition in six finished films being a hard cut, and `transform.x` being absolute rather than a delta. Phase 29: the **walk cycle** rebuilt on the real key poses -- it had no `down`, no foot roll, and a hip rise that left every walking character hovering above the ground. Phase 28: a render at a non-authored size **cropped** the film instead of scaling it. Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
+Last updated: 2026-10-31 (Phase 31: **drawn animation** -- exposure sheets, time-gated smears and boil, from measuring a hand-drawn reference the engine could not have produced. Phase 30: **"Finding Gold"**, a ten-part 1080x1920 series, and the three defects building it exposed -- `lineCap` never reaching the renderer, every transition in six finished films being a hard cut, and `transform.x` being absolute rather than a delta. Phase 29: the **walk cycle** rebuilt on the real key poses -- it had no `down`, no foot roll, and a hip rise that left every walking character hovering above the ground. Phase 28: a render at a non-authored size **cropped** the film instead of scaling it. Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
 
 Legend: **done** · *partial* · — not started
 
@@ -240,6 +240,56 @@ which is what turned "over budget" into "the backdrop is 100% of it").
   pixels out of a ~50px circumference.
 
 ---
+
+---
+
+## Phase 31 — drawn animation: exposure, smear, boil — *partial*
+
+Design: [21-DRAWN-ANIMATION.md](21-DRAWN-ANIMATION.md). Prompted by measuring
+a reference the engine demonstrably could not have produced — `anime22.mp4`,
+24 s of rough pencil animation — rather than by a feature request.
+
+| Item | State |
+|---|---|
+| `scripts/watch-video.mjs` | **done** — decode and measure a video in headless Chrome, since there is no `ffmpeg` here. Cuts, exposure histogram, palette drift, contact sheets |
+| `do: 'expose'` — X-sheet hold lengths | **done** — `"4 4 2 1 1 2"`, per target, repeating to fill its span. `timeline.sheets` beside `timeline.steps` |
+| Per-target exposure | **done** — a span naming a target beats a blanket one, so one character can be held while the rest are not |
+| `do: 'smear'` — time-gated multiples | **done** — reuses `buildEcho`; a span instead of whole shots |
+| `cast.echo` test coverage | **done** — it shipped "done" in Phase 13 with **no test of any kind** |
+| `do: 'boil'` — redrawn contour | **done** — a stepped exposure index added to every stroke's jitter seed |
+| Boil refuses a rig | **done** — boil redraws strokes; a cutout character has none, so it could only ever do nothing |
+| Paper and tonal-wash scenery | — not started |
+| Quadruped `generate` | — not started |
+
+### What the measurement changed
+
+The whole-film average exposure is 2.5 frames per drawing, which reads as
+"on twos" and is **wrong about every individual shot**:
+
+| shot | mean hold | drawings/s |
+|---|---|---|
+| man at the bin | 1.65 f | 14.5 |
+| the dog's acting beat | 5.32 f | 4.5 |
+| the chase | 1.36 f | 17.6 |
+
+`shot.step` is one integer per shot and cannot say any of this. That is the
+whole case for `expose`, and it came from a histogram, not from taste.
+
+### Three things that only measuring caught
+
+- **`cast.echo` already did multiples.** The first draft of the design doc
+  said no smear existed and proposed building one. The status table said
+  otherwise. Reading source before proposing is cheaper than both.
+- **Boil must not clone strokes.** `Surface._prepare` caches by stroke
+  *identity* and frees the old kernel buffer when the brush key changes, so
+  a clone per exposure leaks one buffer per stroke per exposure and defeats
+  the cache. The seed is written back onto the same objects.
+- **`seeked` does not mean a video frame is drawable.** The first version of
+  the measuring tool produced four identical stills from four different
+  timestamps and they looked entirely plausible. Only
+  `requestVideoFrameCallback` means "this is the frame you would see" — and
+  it does not fire while paused in headless, so the tool plays the file once
+  in real time instead of seeking.
 
 ---
 

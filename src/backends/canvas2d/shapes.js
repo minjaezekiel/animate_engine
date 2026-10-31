@@ -292,7 +292,7 @@ export function drawShape(ctx, node, { Path2DImpl, alpha }) {
             if (!painter) break;
             // `canvasAt` is memoised on progress, so a held frame costs a
             // property read and only a changing reveal re-renders.
-            const canvas = painter.canvasAt(p.progress ?? 1);
+            const canvas = painter.canvasAt(p.progress ?? 1, p.boil ?? 0, p.boilAmount ?? null);
             if (canvas) drawImageNode(ctx, canvas, p);
             break;
         }

@@ -121,12 +121,25 @@ export function validateFilm(film) {
                 if (!DO_VERBS.includes(a.do)) {
                     warn(`${hp}.actions`, `Unknown verb "${a.do}"; ignored. Known: ${DO_VERBS.join(', ')}.`);
                 }
-                // `draw` names a drawing rather than a cast member, so the
-                // cast check does not apply to it.
-                if (a.do === 'draw') {
+                // `draw` and `boil` name a drawing rather than a cast member,
+                // so the cast check does not apply to them. `expose` may name
+                // either, or nothing at all -- no target means the whole shot.
+                if (a.do === 'draw' || a.do === 'boil') {
                     if (a.target && !drawingNames.has(a.target)) {
-                        err(`${hp}.actions`, `draw: no drawing or photo "${a.target}" in this scene.`
-                            + (drawingNames.size ? ` Have: ${[...drawingNames].join(', ')}.` : ''));
+                        // Naming a cast member is the mistake worth explaining:
+                        // boil redraws strokes, and a generated character has
+                        // none, so the request could only ever do nothing.
+                        err(`${hp}.actions`, castNames.has(a.target)
+                            ? `${a.do}: "${a.target}" is a cast member, not a drawing. `
+                                + `${a.do === 'boil' ? 'Boil redraws strokes' : 'draw reveals strokes'}, `
+                                + `so it applies to a scene's "drawings", not to a character.`
+                            : `${a.do}: no drawing or photo "${a.target}" in this scene.`
+                                + (drawingNames.size ? ` Have: ${[...drawingNames].join(', ')}.` : ''));
+                    }
+                } else if (a.do === 'expose') {
+                    if (a.target && a.target !== '*'
+                        && !castNames.has(a.target) && !drawingNames.has(a.target)) {
+                        err(`${hp}.actions`, `expose: no cast member or drawing "${a.target}" in this scene.`);
                     }
                 } else if (a.target && !castNames.has(a.target)) {
                     err(`${hp}.actions`, `Target "${a.target}" is not cast in this scene.`);

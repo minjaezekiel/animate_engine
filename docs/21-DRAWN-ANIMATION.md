@@ -258,6 +258,82 @@ cycles drive a drawn character unchanged, which is the whole point of keeping
 the part names identical. A drawn animal is authored art; a generated one is
 a default. They are different jobs.
 
+### 3.6b Drawing by hand: the studio's paint surface
+
+`draw.html` is the surface the engine never had. Tools left, stage centre,
+layers and export right, frames across the bottom — the Adobe Animate
+arrangement, on `editor/dock.js`'s four regions.
+
+It is a real drawing surface, not a mock: `StrokeRecorder` supplies pressure
+and tilt, and what appears under the nib is rendered by `core/paint/` — the
+same code that renders the film, so the stroke you like is the stroke you get.
+
+| | |
+|---|---|
+| **Reference underlay** | load an image and trace over it at any opacity and scale |
+| **Onion skin** | the previous drawing, tinted, behind the current one |
+| **Frames with holds** | each drawing carries its own exposure, in frames |
+| **Export** | `part.strokes` (relative to a joint you pick), a scene `drawing`, or the X-sheet |
+
+The origin matters more than it sounds. A part drawn on a canvas and exported
+without one rotates about wherever the artist happened to start, which is the
+most confusing thing a cutout rig can do. The `+` tool sets the joint, and
+`toPartStrokes` subtracts it.
+
+Model in `src/editor/DrawTool.js`, DOM-free for the reason `dock.js` is: the
+interesting bugs are which frame a stroke lands on, what undo removes and
+where the origin is, and none of those need a browser.
+
+### 3.6c A hand chart, and why a rigged hand could not be one
+
+**A flat rig cannot curl a finger that points at the camera.** Rotating a
+finger part turns it in the picture plane, so a hand seen from the back curls
+by sweeping its fingers sideways across the knuckles — which reads as a
+spider, not a fist. Curl is foreshortening; foreshortening is depth; a cutout
+has none.
+
+Hand-drawn animation has always answered this by drawing the hand again, and
+the reference does exactly that: every grip is its own drawing. So a hand is a
+**swap set of drawings** on one node, driven by a discrete `hand` channel —
+the same mechanism as a mouth chart or a head turn.
+
+That required one engine change: **a swap-set member may now carry `strokes`**
+instead of a shape. Three things had to follow it:
+
+- `attachPainters` attaches a painter to every *member*, not just to whatever
+  is in `props` at the time. The painter rides on the member and the swap pass
+  copies it across with the rest of the member's keys.
+- `_attachPainters` decides whether to load the paint kernels at all. It
+  looked only at `node.kind`, and a chart node is a `group` until the swap
+  runs — so the kernels never loaded and **every drawn hand, mouth and head
+  turn rendered blank, with no diagnostic**. The film simply had a hole in it.
+- `measureCharacter` measures drawn members too, or a character whose only
+  artwork is in a chart measures as a point.
+
+Rigged fingers (`scripts/drawn/hand.mjs`) stay correct for a hand seen from
+the **side**, where the curl does happen in the picture plane. Both are right;
+they are right about different shots.
+
+#### What three rebuilds of a hand taught
+
+> **Draw the silhouette first, as one continuous closed contour. Put the
+> interior lines inside it afterwards.**
+
+Three versions were drawn as a line around each feature — a curve for the
+palm, a loop per finger — and every one rendered as a bundle of wire hoops. A
+hand is one shape with creases in it, not nine shapes in a heap. The same
+mistake made the dog's first barrel read as a table and the man's beard read
+as a bib.
+
+Two more that cost a render each:
+
+- **A pose names its channel bare.** `compile.js` writes `transform.${channel}`
+  itself, so a pose written as `{'transform.rot': 1.2}` produces
+  `transform.transform.rot` — a track the evaluator carries happily and
+  nothing ever reads. The hand simply never closed, with no diagnostic.
+- **Fingers span the knuckles.** The first layout packed four digits into a
+  third of the palm's width, and they rendered as parallel bars.
+
 ### 3.7 Line weight that varies along the stroke
 
 `08-ART-VOCABULARY.md` records "No variable-width line" as a limit of the

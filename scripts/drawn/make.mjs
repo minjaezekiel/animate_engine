@@ -29,3 +29,17 @@ writeFileSync('films/drawn/dog-drawn.json', JSON.stringify({
         shots: [{ id: 'a', duration: 2, actions: [] }] }],
 }, null, 2) + '\n');
 console.log('wrote films/drawn/dog-walk.json and dog-drawn.json');
+
+// --- the bottle collector -------------------------------------------------
+const { drawnManParts } = await import('./man.mjs');
+const man = drawnManParts({ k: 1 });
+writeFileSync('films/drawn/man.json', JSON.stringify({
+    version: 'jirex.film/1',
+    meta: { title: 'the bottle collector', fps: 24, width: 1024, height: 576 },
+    palettes: { paper: { ink: '#7a4a2c', bg: '#f6e0cb' } },
+    characters: { man: { palette: 'paper', proportions: { height: 440 }, parts: man } },
+    scenes: [{ id: 's1', palette: 'paper', background: { color: 'bg' }, ground: { y: 560 },
+        cast: [{ character: 'man', as: 'man', at: [620], scale: 1 }],
+        shots: [{ id: 'a', duration: 2, actions: [] }] }],
+}, null, 2) + '\n');
+console.log('wrote films/drawn/man.json');

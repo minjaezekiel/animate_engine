@@ -1,0 +1,870 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "the bottle collector",
+    "fps": 24,
+    "width": 1024,
+    "height": 576
+  },
+  "palettes": {
+    "paper": {
+      "ink": "#7a4a2c",
+      "bg": "#f6e0cb"
+    }
+  },
+  "characters": {
+    "man": {
+      "palette": "paper",
+      "proportions": {
+        "height": 440
+      },
+      "parts": [
+        {
+          "id": "hips",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "z": 10,
+          "strokes": [
+            {
+              "path": "M -82 -16 C -88 14 -84 38 -74 56",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M 84 -18 C 92 14 88 40 78 58",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M -80 44 C -40 62 36 62 80 46",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            }
+          ]
+        },
+        {
+          "id": "torso",
+          "parent": "hips",
+          "pivot": [
+            0,
+            0
+          ],
+          "z": 12,
+          "strokes": [
+            {
+              "path": "M -70 -168 C -92 -120 -106 -62 -96 -8 C -90 24 -84 42 -76 58",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7.5
+            },
+            {
+              "path": "M 76 -170 C 100 -122 112 -58 104 0 C 100 30 94 46 84 60",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7.5
+            },
+            {
+              "path": "M -70 -168 C -42 -190 30 -192 76 -170",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M -48 -164 C -44 -128 -34 -104 -16 -92",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 16 -168 C 12 -132 4 -106 -12 -92",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M -100 -24 C -58 8 24 6 68 -28",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.5
+            },
+            {
+              "path": "M -62 -112 C -46 -82 -40 -48 -44 -14",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.2
+            },
+            {
+              "path": "M 58 -108 C 70 -74 74 -42 68 -8",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.2
+            },
+            {
+              "path": "M -26 -88 C -22 -60 -24 -34 -30 -12",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 2.8
+            },
+            {
+              "path": "M -52 -160 C -44 -176 -26 -184 -8 -184",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M 26 -176 C 36 -172 44 -166 48 -158",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M -14 -92 C -12 -64 -14 -40 -20 -18",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.4
+            }
+          ]
+        },
+        {
+          "id": "neck",
+          "parent": "torso",
+          "pivot": [
+            -6,
+            -168
+          ],
+          "z": 14,
+          "strokes": [
+            {
+              "path": "M -30 6 C -28 -10 -26 -20 -24 -30",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 30 4 C 30 -12 28 -22 26 -32",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            }
+          ]
+        },
+        {
+          "id": "head",
+          "parent": "neck",
+          "pivot": [
+            0,
+            -32
+          ],
+          "z": 20
+        },
+        {
+          "id": "fringe",
+          "parent": "head",
+          "pivot": [
+            0,
+            0
+          ],
+          "z": 18,
+          "strokes": [
+            {
+              "path": "M 52 -56 C 72 -50 78 -26 68 -8",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 56 -38 C 74 -32 80 -16 72 -2",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.8
+            },
+            {
+              "path": "M 48 -68 C 66 -68 76 -56 76 -44",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.8
+            },
+            {
+              "path": "M 60 -20 C 74 -14 78 -2 72 8",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.4
+            }
+          ]
+        },
+        {
+          "id": "skull",
+          "parent": "head",
+          "pivot": [
+            0,
+            0
+          ],
+          "z": 20,
+          "strokes": [
+            {
+              "path": "M -58 -40 C -68 -92 -36 -124 4 -124 C 46 -124 64 -94 60 -50",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 8
+            },
+            {
+              "path": "M 60 -50 C 62 -18 56 2 44 10",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            }
+          ]
+        },
+        {
+          "id": "tuft",
+          "parent": "skull",
+          "pivot": [
+            10,
+            -124
+          ],
+          "z": 21,
+          "strokes": [
+            {
+              "path": "M 0 0 C 4 -16 12 -24 20 -30",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 2 -2 C 10 -12 14 -22 14 -34",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            }
+          ]
+        },
+        {
+          "id": "ear",
+          "parent": "skull",
+          "pivot": [
+            42,
+            -48
+          ],
+          "z": 21,
+          "strokes": [
+            {
+              "path": "M 0 0 C 18 -8 28 8 20 24 C 15 32 4 30 2 22",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 8 6 C 16 4 19 14 13 19",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.2
+            }
+          ]
+        },
+        {
+          "id": "brow",
+          "parent": "skull",
+          "pivot": [
+            -26,
+            -64
+          ],
+          "z": 22,
+          "strokes": [
+            {
+              "path": "M -28 4 C -12 -16 14 -18 32 -6",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 9
+            },
+            {
+              "path": "M -22 14 C -8 0 12 -2 28 6",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M -24 -12 C -10 -26 14 -28 30 -18",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.4
+            },
+            {
+              "path": "M -18 -24 C -6 -36 14 -38 28 -30",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3
+            },
+            {
+              "path": "M 2 -4 C 6 -16 6 -26 2 -34",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 2.8
+            }
+          ]
+        },
+        {
+          "id": "eye",
+          "parent": "skull",
+          "pivot": [
+            -20,
+            -46
+          ],
+          "z": 23,
+          "strokes": [
+            {
+              "path": "M -13 -2 C -5 -11 8 -8 11 0 C 6 6 -5 5 -13 -2",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.5
+            }
+          ]
+        },
+        {
+          "id": "pupil",
+          "parent": "eye",
+          "pivot": [
+            -1,
+            -1
+          ],
+          "z": 24,
+          "strokes": [
+            {
+              "path": "M -4 -3 C 0 -6 4 -3 4 1 C 2 4 -2 3 -4 -3",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            }
+          ]
+        },
+        {
+          "id": "nose",
+          "parent": "skull",
+          "pivot": [
+            -50,
+            -52
+          ],
+          "z": 25,
+          "strokes": [
+            {
+              "path": "M 14 -18 C -16 -16 -44 2 -48 24",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 9
+            },
+            {
+              "path": "M -48 24 C -52 48 -30 62 -8 54 C 6 48 12 34 12 20",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 9
+            },
+            {
+              "path": "M -34 38 C -22 46 -6 44 2 34",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.5
+            }
+          ]
+        },
+        {
+          "id": "moustache",
+          "parent": "skull",
+          "pivot": [
+            -30,
+            2
+          ],
+          "z": 24,
+          "strokes": [
+            {
+              "path": "M 10 -14 C -14 -12 -30 0 -26 18",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6.5
+            },
+            {
+              "path": "M 8 -4 C -10 -2 -20 6 -16 18",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.2
+            }
+          ]
+        },
+        {
+          "id": "beard",
+          "parent": "head",
+          "pivot": [
+            0,
+            10
+          ],
+          "z": 19,
+          "strokes": [
+            {
+              "path": "M -40 -14 C -68 16 -82 62 -64 100",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 9
+            },
+            {
+              "path": "M 50 -6 C 64 36 60 78 38 108",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 9
+            },
+            {
+              "path": "M -64 100 C -56 116 -46 104 -38 118 C -30 130 -20 114 -10 126 C 0 136 10 118 22 126 C 32 132 36 118 38 108",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 8
+            },
+            {
+              "path": "M -48 16 C -40 50 -24 80 -2 96",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.6
+            },
+            {
+              "path": "M -22 2 C -20 40 -10 74 8 98",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.2
+            },
+            {
+              "path": "M 6 -2 C 12 36 12 72 2 104",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.2
+            },
+            {
+              "path": "M 28 4 C 36 38 34 74 20 108",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.2
+            },
+            {
+              "path": "M -58 50 C -52 74 -40 94 -22 108",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 2.8
+            }
+          ]
+        },
+        {
+          "id": "armL",
+          "parent": "torso",
+          "pivot": [
+            -66,
+            -158
+          ],
+          "z": 16,
+          "strokes": [
+            {
+              "path": "M -22 -14 C -52 16 -72 50 -76 84",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 8
+            },
+            {
+              "path": "M 34 4 C 14 34 -2 64 -8 94",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 8
+            },
+            {
+              "path": "M -74 78 C -56 90 -28 94 -10 88",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            }
+          ]
+        },
+        {
+          "id": "foreL",
+          "parent": "armL",
+          "pivot": [
+            -42,
+            88
+          ],
+          "z": 16,
+          "strokes": [
+            {
+              "path": "M -30 8 C -56 -32 -72 -84 -72 -130",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7.5
+            },
+            {
+              "path": "M 28 14 C 4 -24 -12 -76 -16 -126",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7.5
+            }
+          ]
+        },
+        {
+          "id": "handL",
+          "parent": "foreL",
+          "pivot": [
+            -44,
+            -128
+          ],
+          "z": 17,
+          "strokes": [
+            {
+              "path": "M -16 10 C -24 -8 -16 -26 2 -28 C 20 -28 30 -14 24 4 C 18 18 -4 22 -16 10",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            },
+            {
+              "path": "M -12 -12 C -2 -22 10 -22 20 -12",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            },
+            {
+              "path": "M -12 -2 C -2 -12 10 -12 20 -2",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            },
+            {
+              "path": "M -10 8 C -2 0 8 0 16 8",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.4
+            }
+          ]
+        },
+        {
+          "id": "bottle",
+          "parent": "handL",
+          "pivot": [
+            2,
+            -14
+          ],
+          "z": 18,
+          "strokes": [
+            {
+              "path": "M -18 16 C -20 -16 -18 -44 -13 -60 C -10 -70 -8 -78 -6 -86",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 18 16 C 20 -16 18 -44 13 -60 C 10 -70 8 -78 6 -86",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M -6 -86 C 0 -90 2 -90 6 -86",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.5
+            },
+            {
+              "path": "M -16 -16 C -6 -10 8 -10 16 -16",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.4
+            },
+            {
+              "path": "M -17 8 C -6 14 8 14 17 8",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.4
+            }
+          ]
+        },
+        {
+          "id": "armR",
+          "parent": "torso",
+          "pivot": [
+            66,
+            -162
+          ],
+          "z": 8,
+          "strokes": [
+            {
+              "path": "M -10 -6 C 6 30 12 68 8 100",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6.5
+            },
+            {
+              "path": "M 32 2 C 42 34 42 70 34 100",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6.5
+            }
+          ]
+        },
+        {
+          "id": "foreR",
+          "parent": "armR",
+          "pivot": [
+            20,
+            100
+          ],
+          "z": 9,
+          "strokes": [
+            {
+              "path": "M -14 4 C -36 20 -58 32 -76 34",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            },
+            {
+              "path": "M -8 22 C -30 38 -52 50 -70 50",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            }
+          ]
+        },
+        {
+          "id": "handR",
+          "parent": "foreR",
+          "pivot": [
+            -74,
+            42
+          ],
+          "z": 9,
+          "strokes": [
+            {
+              "path": "M 8 -8 C -8 -14 -22 -4 -19 10 C -16 22 -2 24 8 16",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            }
+          ]
+        },
+        {
+          "id": "sack",
+          "parent": "torso",
+          "pivot": [
+            84,
+            -150
+          ],
+          "z": 7,
+          "strokes": [
+            {
+              "path": "M -10 -20 C 34 -28 74 -4 80 38 C 86 80 58 116 18 118 C -12 120 -28 102 -30 78",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 8
+            },
+            {
+              "path": "M -10 -20 C 2 -38 30 -42 50 -34",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 8 -30 C 6 -48 8 -56 14 -62 C 16 -70 16 -78 15 -84",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M 28 -34 C 28 -52 30 -60 36 -66 C 38 -74 38 -82 37 -88",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M 30 -34 C 32 -54 36 -62 44 -68 C 48 -74 50 -80 50 -86",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M 50 -28 C 54 -46 60 -54 68 -58 C 72 -64 74 -70 74 -76",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M 15 -84 C 20 -86 24 -84 25 -80",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            },
+            {
+              "path": "M 37 -88 C 42 -90 46 -88 47 -84",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            },
+            {
+              "path": "M 74 -76 C 79 -78 82 -75 82 -70",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            }
+          ]
+        },
+        {
+          "id": "thighL",
+          "parent": "hips",
+          "pivot": [
+            -26,
+            40
+          ],
+          "z": 11,
+          "strokes": [
+            {
+              "path": "M -26 6 C -28 24 -26 42 -22 60",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M 24 4 C 24 24 22 42 20 60",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            }
+          ]
+        },
+        {
+          "id": "shinL",
+          "parent": "thighL",
+          "pivot": [
+            -1,
+            60
+          ],
+          "z": 11,
+          "strokes": [
+            {
+              "path": "M -19 0 C -19 20 -17 38 -15 54",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            },
+            {
+              "path": "M 19 0 C 19 20 17 38 15 54",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            }
+          ]
+        },
+        {
+          "id": "footL",
+          "parent": "shinL",
+          "pivot": [
+            0,
+            54
+          ],
+          "z": 11,
+          "strokes": [
+            {
+              "path": "M 16 -2 C 19 10 6 20 -22 20 C -34 20 -40 12 -34 2",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            }
+          ]
+        },
+        {
+          "id": "thighR",
+          "parent": "hips",
+          "pivot": [
+            34,
+            40
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -26 6 C -28 24 -26 42 -22 60",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.25
+            },
+            {
+              "path": "M 24 4 C 24 24 22 42 20 60",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.25
+            }
+          ]
+        },
+        {
+          "id": "shinR",
+          "parent": "thighR",
+          "pivot": [
+            -1,
+            60
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -19 0 C -19 20 -17 38 -15 54",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.5
+            },
+            {
+              "path": "M 19 0 C 19 20 17 38 15 54",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.5
+            }
+          ]
+        },
+        {
+          "id": "footR",
+          "parent": "shinR",
+          "pivot": [
+            0,
+            54
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M 16 -2 C 19 10 6 20 -22 20 C -34 20 -40 12 -34 2",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.5
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "s1",
+      "palette": "paper",
+      "background": {
+        "color": "bg"
+      },
+      "ground": {
+        "y": 560
+      },
+      "cast": [
+        {
+          "character": "man",
+          "as": "man",
+          "at": [
+            620
+          ],
+          "scale": 1
+        }
+      ],
+      "shots": [
+        {
+          "id": "a",
+          "duration": 2,
+          "actions": []
+        }
+      ]
+    }
+  ]
+}

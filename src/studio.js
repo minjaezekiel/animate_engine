@@ -238,6 +238,16 @@ export class FilmStudio {
         let wanted = false;
         scene.walk((node) => {
             if (node.kind === 'paint' || node.kind === 'photo') wanted = true;
+            // A node carrying a chart of DRAWINGS is still a `group` until the
+            // swap pass runs, so its artwork is invisible to a check that only
+            // looks at `kind`. Missing it meant the kernels were never loaded
+            // and every drawn hand, mouth and head-turn rendered blank, with
+            // no diagnostic -- the film simply had a hole in it.
+            for (const set of Object.values(node.props?.swapSets ?? {})) {
+                for (const member of Object.values(set)) {
+                    if (member?.kind === 'paint' || member?.kind === 'photo') wanted = true;
+                }
+            }
         });
         if (!wanted) return [];
 

@@ -264,6 +264,12 @@ a reference the engine demonstrably could not have produced — `anime22.mp4`,
 | `measureCharacter` sees strokes | **done** — without it a drawn character measured as a point and `standOnGround` buried it |
 | Boil reaches a drawn character | **done** — naming the cast member boils every part, each on its own seed |
 | Generated quadruped art | *weak* — rigged and measured, but assembled from shapes, so it reads as clip-art. The drawn path is the one to use |
+| **`draw.html` — a drawing surface** | **done** — pressure brushes, reference underlay for tracing, onion skin, frames with holds, exports `part.strokes` / a `drawing` / an X-sheet. Model in `editor/DrawTool.js`, DOM-free and tested |
+| **Swap-set members may be DRAWINGS** | **done** — `part.swap` members carrying `strokes`. This is how a hand chart, a drawn mouth chart and a drawn head turn work |
+| Painters attach per swap MEMBER | **done** — a chart holds several drawings on one node and only one is in `props` at a time |
+| Hand chart (`open`/`grip`/`point`/`fist`) | **done** — `scripts/drawn/handchart.mjs` |
+| Rigged drawn fingers | **done** — `scripts/drawn/hand.mjs`, correct for a hand seen from the SIDE |
+| The man from the reference | *weak* — proportions are right, the drawing is not. See below |
 
 ### What the measurement changed
 
@@ -301,6 +307,34 @@ the correct grounds that a cutout character has no strokes to redraw.
 | contour | even, one width | pressure-varied, overlapping |
 | joints | a seam at every pivot | contours overshoot, so the line reads through |
 | boil | nothing to redraw | every part, each on its own seed |
+
+### The defect the hand chart found
+
+`_attachPainters` decided whether to load the paint kernels by walking the
+scene for a node of `kind: 'paint'`. A node carrying a chart of drawings is a
+`group` until the swap pass runs, so it was invisible to that check — the
+kernels never loaded, `attachPainters` returned nothing, and **every drawn
+hand, mouth and head turn rendered blank with no diagnostic anywhere**. The
+same class as Phase 27's unfilled `muxerFactory`: a feature that exists, is
+reachable, and is never reached.
+
+### Drawing the man: what did not work, stated plainly
+
+Four iterations of hand-authored bezier contours against the reference, each
+one rendered and compared side by side. Proportions converged well — from an
+eight-head tube to a 4.5-head caricature with the right mass. **The drawing
+did not.** It is still clearly worse than the reference, and the user said so.
+
+The method is the problem, not the effort. Authoring curve coordinates blind
+and seeing the result once per render is not how anyone draws; a human makes
+hundreds of micro-corrections per contour with continuous feedback. The
+engine's own art doc says it outright: *"An AI is bad at inventing coordinate
+geometry and has no way to check its own visual work without paying for an
+image."*
+
+What did come out of it is worth keeping: the silhouette-first rule, the
+knuckle-span layout, the bare-channel pose bug, and `draw.html`, which exists
+precisely so a person's hand can do the part a person's hand is better at.
 
 ### Three things that only measuring caught
 

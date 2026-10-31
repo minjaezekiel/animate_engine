@@ -104,7 +104,8 @@ export function measureCharacter(parts) {
         // was wrong by a head.
         for (const set of Object.values(part.swap ?? {})) {
             for (const shape of Object.values(set.shapes ?? set)) {
-                take(ox, oy, shapeExtent(shape, sw));
+                if (shape?.strokes?.length) take(ox, oy, strokesExtent(shape.strokes, shape.box));
+                else take(ox, oy, shapeExtent(shape, sw));
             }
         }
         for (const layer of part.shapes ?? []) {

@@ -543,7 +543,8 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
                 strokeWidth: part.strokeWidth,
                 alpha: part.alpha ?? 1,
                 ...drawProps(part, colorOf),
-                ...swapProps(part, colorOf),
+                ...swapProps(part, colorOf, diagnostics,
+                             `characters.${charName}.parts.${part.id}`),
                 ...(painted ?? {}),
             }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
             z: part.z ?? 0,
@@ -658,7 +659,7 @@ function drawProps(part, colorOf) {
     return out;
 }
 
-function swapProps(part, colorOf) {
+function swapProps(part, colorOf, diagnostics = [], path = '') {
     const spec = part.swap;
     if (!spec) return {};
     const swapSets = {};
@@ -668,11 +669,21 @@ function swapProps(part, colorOf) {
         // A member may declare its own fill or stroke -- a closed eyelid is
         // dark where an open eye is white -- so those resolve through the
         // palette like any other colour.
-        swapSets[channel] = Object.fromEntries(Object.entries(shapes).map(([k, v]) => [k,
-            (v && (v.fill != null || v.stroke != null))
+        swapSets[channel] = Object.fromEntries(Object.entries(shapes).map(([k, v]) => {
+            // A member may be DRAWN rather than shaped -- a hand chart is
+            // four drawings of a hand, not four polygons. This is the
+            // mechanism limited animation actually runs on, and until now a
+            // set member could only be a shape.
+            if (v?.strokes?.length) {
+                const painted = paintPartProps({ ...v, id: `${part.id}:${channel}:${k}` },
+                                               colorOf, diagnostics, path);
+                return [k, painted ? { kind: 'paint', ...painted } : v];
+            }
+            return [k, (v && (v.fill != null || v.stroke != null))
                 ? { ...v, ...(v.fill != null && { fill: colorOf(v.fill) }),
                           ...(v.stroke != null && { stroke: colorOf(v.stroke) }) }
-                : v]));
+                : v];
+        }));
         // The default goes BESIDE the set, never onto `props[channel]`.
         // Stamping it on the node made the node its own nearest declaration of
         // the channel, so a `view` written once on the cast root could never

@@ -206,6 +206,19 @@ export class PaintPainter {
 export function attachPainters(scene, kernels, options = {}) {
     const made = [];
     scene.walk((node) => {
+        // Swap-set members first. A drawn hand chart is several drawings on
+        // one node, and only one of them is in `props` at any moment -- so
+        // attaching only to the current props leaves every other member
+        // painterless, and the node renders nothing the instant it swaps.
+        // The painter rides on the member, and the swap pass copies it over
+        // with the rest of the member's keys.
+        for (const set of Object.values(node.props?.swapSets ?? {})) {
+            for (const member of Object.values(set)) {
+                if (member?.kind !== 'paint' || !member.paint || member.painter) continue;
+                member.painter = new PaintPainter(member.paint, kernels, options);
+                made.push(member.painter);
+            }
+        }
         if (node.kind !== 'paint' || !node.props?.paint || node.props.painter) return;
         const painter = new PaintPainter(node.props.paint, kernels, options);
         node.props.painter = painter;

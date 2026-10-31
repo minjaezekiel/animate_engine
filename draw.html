@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jireX Draw — freehand and trace</title>
+<meta name="description" content="Draw rig parts and drawings by hand with pressure brushes, trace over a reference, and export straight into a film script.">
+<meta name="theme-color" content="#1b2a4a">
+<link rel="icon" href="src/pwa/icons/icon-192.png">
+<style>
+    :root {
+        --bg: #0b1120; --panel: #131a2a; --panel-2: #1b2437; --line: #28334a;
+        --ink: #e8eef9; --ink-dim: #93a1bd; --accent: #ffd98a; --accent-ink: #2a1f06;
+        --ok: #6ee7a8; --warn: #ffc566; --err: #ff8686;
+        --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); overflow: hidden;
+           font: 14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+
+    /* Adobe-Animate arrangement: tools left, stage centre, panels right,
+       timeline across the bottom. The regions are dock.js's. */
+    #workspace { display: grid; height: 100vh;
+                 grid-template-columns: 62px minmax(0,1fr) 320px;
+                 grid-template-rows: 42px minmax(0,1fr) 126px;
+                 grid-template-areas: "menu menu menu" "left center right" "bottom bottom bottom"; }
+    #menu { grid-area: menu; display: flex; align-items: center; gap: 6px; padding: 0 12px;
+            background: var(--panel); border-bottom: 1px solid var(--line); }
+    #menu b { font-size: 14px; letter-spacing: .2px; margin-right: 8px; }
+    [data-dock-region=left]   { grid-area: left;   background: var(--panel); border-right: 1px solid var(--line);
+                                display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; }
+    [data-dock-region=center] { grid-area: center; position: relative; overflow: auto; background: #0d1422; }
+    [data-dock-region=right]  { grid-area: right;  background: var(--panel); border-left: 1px solid var(--line);
+                                overflow-y: auto; }
+    [data-dock-region=bottom] { grid-area: bottom; background: var(--panel); border-top: 1px solid var(--line);
+                                overflow: auto; }
+
+    .tool { width: 44px; height: 40px; border-radius: 8px; border: 1px solid transparent;
+            background: transparent; color: var(--ink-dim); cursor: pointer; font-size: 17px; }
+    .tool:hover { background: var(--panel-2); color: var(--ink); }
+    .tool[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+    section.panel { border-bottom: 1px solid var(--line); padding: 10px 12px; }
+    section.panel > h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .9px;
+                         color: var(--ink-dim); margin: 0 0 8px; }
+    label.row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 12px; color: var(--ink-dim); }
+    label.row input[type=range] { flex: 1; accent-color: var(--accent); }
+    label.row .v { font: 11px var(--mono); color: var(--ink); min-width: 34px; text-align: right; }
+    button, select, input[type=text] {
+        background: var(--panel-2); color: var(--ink); border: 1px solid var(--line);
+        border-radius: 7px; padding: 6px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+    /* Paper, not a void: a pencil brush on a dark ground is unreadable, and
+       what you draw has to look like what it will look like. */
+    #paper { position: relative; margin: 18px auto; box-shadow: 0 8px 40px #0008;
+             background: var(--paper, #f7e7d4); }
+    #paper canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #refCanvas { pointer-events: none; }
+    #onion { pointer-events: none; }
+    #ink { touch-action: none; cursor: crosshair; }
+
+    .frames { display: flex; gap: 6px; padding: 10px 12px; align-items: flex-start; }
+    .fr { border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2);
+          padding: 6px 8px; min-width: 64px; cursor: pointer; text-align: center; }
+    .fr[aria-current=true] { border-color: var(--accent); background: #2a2718; }
+    .fr .n { font: 11px var(--mono); color: var(--ink-dim); }
+    .fr input { width: 42px; margin-top: 4px; background: var(--bg); color: var(--ink);
+                border: 1px solid var(--line); border-radius: 5px; text-align: center;
+                font: 11px var(--mono); padding: 2px; }
+    .layer { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 6px;
+             font-size: 12px; cursor: pointer; }
+    .layer[aria-current=true] { background: var(--panel-2); }
+    .layer .nm { flex: 1; }
+    #out { width: 100%; height: 120px; background: var(--bg); color: var(--ok); border: 1px solid var(--line);
+           border-radius: 7px; font: 11px/1.4 var(--mono); padding: 8px; resize: vertical; }
+    #status { font: 11px var(--mono); color: var(--ink-dim); margin-left: auto; }
+</style>
+</head>
+<body>
+<div id="workspace">
+    <div id="menu">
+        <b>jireX Draw</b>
+        <button id="newFrame">+ Frame</button>
+        <button id="dupFrame">Duplicate</button>
+        <button id="undo">Undo</button>
+        <button id="redo">Redo</button>
+        <button id="clearFrame">Clear</button>
+        <span id="status">ready</span>
+    </div>
+
+    <div data-dock-region="left">
+        <button class="tool" id="tDraw" aria-pressed="true" title="Draw (B)">&#9998;</button>
+        <button class="tool" id="tErase" aria-pressed="false" title="Erase (E)">&#9003;</button>
+        <button class="tool" id="tOrigin" aria-pressed="false" title="Set the joint/origin (O)">&#10010;</button>
+    </div>
+
+    <div data-dock-region="center">
+        <div id="paper">
+            <canvas id="refCanvas"></canvas>
+            <canvas id="onion"></canvas>
+            <canvas id="ink"></canvas>
+        </div>
+    </div>
+
+    <div data-dock-region="right">
+        <section class="panel">
+            <h2>Brush</h2>
+            <label class="row">Brush <select id="brush"></select></label>
+            <label class="row">Size <input id="size" type="range" min="1" max="60" value="8"><span class="v" id="sizeV">8</span></label>
+            <label class="row">Opacity <input id="opacity" type="range" min="5" max="100" value="100"><span class="v" id="opacityV">100</span></label>
+            <label class="row">Colour <input id="color" type="color" value="#7a4a2c"></label>
+            <label class="row">Smoothing <input id="smooth" type="range" min="0" max="100" value="50"><span class="v" id="smoothV">50</span></label>
+            <label class="row">Paper <input id="paperColor" type="color" value="#f7e7d4"></label>
+        </section>
+
+        <section class="panel">
+            <h2>Reference &mdash; trace over this</h2>
+            <input id="refFile" type="file" accept="image/*" style="font-size:11px">
+            <label class="row">Opacity <input id="refOpacity" type="range" min="0" max="100" value="45"><span class="v" id="refOpacityV">45</span></label>
+            <label class="row">Scale <input id="refScale" type="range" min="10" max="300" value="100"><span class="v" id="refScaleV">100</span></label>
+        </section>
+
+        <section class="panel">
+            <h2>Onion skin</h2>
+            <label class="row"><input id="onionOn" type="checkbox" checked> show previous drawing</label>
+            <label class="row">Strength <input id="onionA" type="range" min="5" max="80" value="28"><span class="v" id="onionAV">28</span></label>
+        </section>
+
+        <section class="panel">
+            <h2>Layers</h2>
+            <div id="layers"></div>
+            <div class="grid2" style="margin-top:8px">
+                <button id="addLayer">+ Layer</button>
+                <button id="delLayer">Remove</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Export</h2>
+            <div class="grid2">
+                <button id="expPart" class="primary">part.strokes</button>
+                <button id="expDrawing">drawing</button>
+                <button id="expSheet">exposure</button>
+                <button id="expSave">save .json</button>
+            </div>
+            <textarea id="out" readonly placeholder="export output appears here, ready to paste into a film"></textarea>
+            <button id="copy" style="width:100%;margin-top:6px">Copy to clipboard</button>
+        </section>
+    </div>
+
+    <div data-dock-region="bottom">
+        <div class="frames" id="frames"></div>
+    </div>
+</div>
+
+<script type="module">
+import { DrawTool } from './src/editor/DrawTool.js';
+import { StrokeRecorder } from './src/input/StrokeRecorder.js';
+import { PaintDocument } from './src/core/paint/Document.js';
+import { BRUSHES } from './src/core/paint/brushes.js';
+import { loadKernels } from './src/kernels/index.js';
+
+const W = 1280, H = 720;
+const $ = (id) => document.getElementById(id);
+const status = (m) => { $('status').textContent = m; };
+
+const kernels = await loadKernels({ prefer: 'auto' });
+const tool = new DrawTool({ width: W, height: H });
+let origin = [W / 2, H / 2];
+let mode = 'draw';
+
+// --- canvases -------------------------------------------------------------
+const paper = $('paper');
+const refC = $('refCanvas'), onionC = $('onion'), inkC = $('ink');
+for (const c of [refC, onionC, inkC]) { c.width = W; c.height = H; }
+function fitPaper() {
+    const region = paper.parentElement;
+    const scale = Math.min((region.clientWidth - 36) / W, (region.clientHeight - 36) / H);
+    paper.style.width = `${Math.round(W * scale)}px`;
+    paper.style.height = `${Math.round(H * scale)}px`;
+}
+addEventListener('resize', fitPaper);
+
+// The real paint document: what you draw here is rendered by the same code
+// that renders the film, so the stroke you like is the stroke you get.
+const doc = new PaintDocument(kernels, W, H);
+const surface = doc.addLayer({ name: 'live' });
+const inkCtx = inkC.getContext('2d');
+const imageData = inkCtx.createImageData(W, H);
+
+function repaint() {
+    surface.clear();
+    surface.drawAll(tool.strokesOf().map(toEngineStroke), { at: 1 });
+    doc.flatten();
+    imageData.data.set(doc.toRgba8());
+    inkCtx.putImageData(imageData, 0, 0);
+    drawOnion();
+    drawOriginMark();
+}
+
+/** The model's stroke, as `core/paint` wants it. */
+const toEngineStroke = (s) => ({
+    points: s.points, brush: s.brush, color: s.color, size: s.size,
+    opacity: s.opacity, seed: s.seed ?? 0,
+});
+
+function drawOriginMark() {
+    const c = inkCtx;
+    c.save();
+    c.strokeStyle = '#ff5fa2'; c.lineWidth = 1.5;
+    c.beginPath();
+    c.moveTo(origin[0] - 11, origin[1]); c.lineTo(origin[0] + 11, origin[1]);
+    c.moveTo(origin[0], origin[1] - 11); c.lineTo(origin[0], origin[1] + 11);
+    c.stroke();
+    c.restore();
+}
+
+// --- onion skin -----------------------------------------------------------
+const onionCtx = onionC.getContext('2d');
+const onionDoc = new PaintDocument(kernels, W, H);
+const onionLayer = onionDoc.addLayer({ name: 'onion' });
+const onionData = onionCtx.createImageData(W, H);
+function drawOnion() {
+    onionCtx.clearRect(0, 0, W, H);
+    const prev = tool.frames[tool.frameIndex - 1];
+    if (!$('onionOn').checked || !prev) return;
+    onionLayer.clear();
+    onionLayer.drawAll(tool.strokesOf(prev).map(toEngineStroke), { at: 1 });
+    onionDoc.flatten();
+    onionData.data.set(onionDoc.toRgba8());
+    onionCtx.putImageData(onionData, 0, 0);
+    onionCtx.globalCompositeOperation = 'source-in';
+    onionCtx.fillStyle = `rgba(90,160,255,${$('onionA').value / 100})`;
+    onionCtx.fillRect(0, 0, W, H);
+    onionCtx.globalCompositeOperation = 'source-over';
+}
+
+// --- reference underlay, for tracing -------------------------------------
+const refCtx = refC.getContext('2d');
+let refImage = null;
+function drawRef() {
+    refCtx.clearRect(0, 0, W, H);
+    if (!refImage) return;
+    refCtx.globalAlpha = $('refOpacity').value / 100;
+    const k = ($('refScale').value / 100) * Math.min(W / refImage.width, H / refImage.height);
+    const w = refImage.width * k, h = refImage.height * k;
+    refCtx.drawImage(refImage, (W - w) / 2, (H - h) / 2, w, h);
+    refCtx.globalAlpha = 1;
+}
+$('refFile').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    refImage = await createImageBitmap(file);
+    drawRef();
+    status(`reference ${refImage.width}x${refImage.height}`);
+});
+for (const id of ['refOpacity', 'refScale']) {
+    $(id).addEventListener('input', () => { $(`${id}V`).textContent = $(id).value; drawRef(); });
+}
+
+// --- drawing --------------------------------------------------------------
+for (const name of Object.keys(BRUSHES)) {
+    const o = document.createElement('option');
+    o.value = o.textContent = name;
+    $('brush').append(o);
+}
+$('brush').value = 'pencil';
+for (const id of ['size', 'opacity', 'smooth', 'onionA']) {
+    $(id).addEventListener('input', () => {
+        $(`${id}V`).textContent = $(id).value;
+        if (id === 'smooth') recorder.smoothing = $(id).value / 100;
+        if (id === 'onionA') drawOnion();
+    });
+}
+
+const brushSettings = () => ({
+    brush: mode === 'erase' ? 'eraser' : $('brush').value,
+    color: $('color').value,
+    size: Number($('size').value),
+    opacity: Number($('opacity').value) / 100,
+});
+
+const recorder = new StrokeRecorder(inkC, {
+    brush: brushSettings,
+    smoothing: 0.5,
+    onUpdate: (stroke) => {
+        // Live feedback: the committed strokes plus the one in progress.
+        surface.clear();
+        surface.drawAll([...tool.strokesOf().map(toEngineStroke), toEngineStroke(stroke)], { at: 1 });
+        doc.flatten();
+        imageData.data.set(doc.toRgba8());
+        inkCtx.putImageData(imageData, 0, 0);
+        drawOriginMark();
+    },
+    onEnd: (stroke) => {
+        if (mode === 'origin') return;
+        tool.addStroke({ ...stroke, ...brushSettings() });
+        repaint();
+        renderFrames();
+    },
+}).attach();
+
+// Picking the joint is a click, not a stroke.
+inkC.addEventListener('pointerdown', (e) => {
+    if (mode !== 'origin') return;
+    const r = inkC.getBoundingClientRect();
+    origin = [Math.round((e.clientX - r.left) * W / r.width),
+              Math.round((e.clientY - r.top) * H / r.height)];
+    repaint();
+    status(`origin ${origin[0]}, ${origin[1]}`);
+}, true);
+
+function setMode(next) {
+    mode = next;
+    for (const [id, m] of [['tDraw', 'draw'], ['tErase', 'erase'], ['tOrigin', 'origin']]) {
+        $(id).setAttribute('aria-pressed', String(m === next));
+    }
+}
+$('tDraw').onclick = () => setMode('draw');
+$('tErase').onclick = () => setMode('erase');
+$('tOrigin').onclick = () => setMode('origin');
+addEventListener('keydown', (e) => {
+    if (e.target.matches('input, select, textarea')) return;
+    if (e.key === 'b') setMode('draw');
+    if (e.key === 'e') setMode('erase');
+    if (e.key === 'o') setMode('origin');
+    if (e.key === 'z' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        (e.shiftKey ? tool.redo() : tool.undo()) && (repaint(), renderFrames());
+    }
+    if (e.key === '[') { tool.frameIndex = Math.max(0, tool.frameIndex - 1); repaint(); renderFrames(); }
+    if (e.key === ']') { tool.frameIndex = Math.min(tool.frames.length - 1, tool.frameIndex + 1); repaint(); renderFrames(); }
+});
+
+// --- frames and layers ----------------------------------------------------
+function renderFrames() {
+    const host = $('frames');
+    host.textContent = '';
+    tool.frames.forEach((f, i) => {
+        const el = document.createElement('div');
+        el.className = 'fr';
+        el.setAttribute('aria-current', String(i === tool.frameIndex));
+        const n = document.createElement('div');
+        n.className = 'n';
+        n.textContent = `${i + 1} · ${tool.strokesOf(f).length}s`;
+        const hold = document.createElement('input');
+        hold.type = 'number'; hold.min = '1'; hold.value = String(f.hold);
+        hold.title = 'frames this drawing is held';
+        hold.onchange = () => { f.hold = Math.max(1, Number(hold.value) || 1); renderFrames(); };
+        hold.onclick = (e) => e.stopPropagation();
+        el.append(n, hold);
+        el.onclick = () => { tool.frameIndex = i; repaint(); renderFrames(); };
+        host.append(el);
+    });
+    const n = tool.frames.length;
+    status(`${n} drawing${n === 1 ? '' : 's'} · exposed over ${tool.duration} frames `
+        + `· sheet "${tool.toExposureSheet()}"`);
+}
+
+function renderLayers() {
+    const host = $('layers');
+    host.textContent = '';
+    tool.layers.forEach((l, i) => {
+        const el = document.createElement('div');
+        el.className = 'layer';
+        el.setAttribute('aria-current', String(i === tool.layerIndex));
+        const vis = document.createElement('input');
+        vis.type = 'checkbox'; vis.checked = l.visible;
+        vis.onclick = (e) => { e.stopPropagation(); l.visible = vis.checked; repaint(); };
+        const nm = document.createElement('span');
+        nm.className = 'nm'; nm.textContent = l.name;
+        el.append(vis, nm);
+        el.onclick = () => { tool.layerIndex = i; renderLayers(); };
+        host.append(el);
+    });
+}
+
+$('newFrame').onclick = () => { tool.addFrame({ hold: 2 }); repaint(); renderFrames(); };
+$('dupFrame').onclick = () => { tool.duplicateFrame(); repaint(); renderFrames(); };
+$('undo').onclick = () => { tool.undo(); repaint(); renderFrames(); };
+$('redo').onclick = () => { tool.redo(); repaint(); renderFrames(); };
+$('clearFrame').onclick = () => {
+    for (const l of tool.layers) tool.frame.strokes.set(l.id, []);
+    repaint(); renderFrames();
+};
+$('addLayer').onclick = () => { tool.addLayer({}); renderLayers(); };
+$('delLayer').onclick = () => { tool.removeLayer(tool.layer?.id); renderLayers(); repaint(); };
+$('onionOn').onchange = drawOnion;
+$('paperColor').oninput = () => { paper.style.background = $('paperColor').value; };
+
+// --- export ---------------------------------------------------------------
+const show = (v) => { $('out').value = typeof v === 'string' ? v : JSON.stringify(v, null, 2); };
+$('expPart').onclick = () => show({ strokes: tool.toPartStrokes({ origin }) });
+$('expDrawing').onclick = () => show(tool.toDrawing({ id: 'sketch' }));
+$('expSheet').onclick = () => show({ do: 'expose', sheet: tool.toExposureSheet() });
+$('expSave').onclick = () => {
+    const blob = new Blob([JSON.stringify(tool.toJSON(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'drawing.json';
+    a.click();
+};
+$('copy').onclick = async () => {
+    await navigator.clipboard.writeText($('out').value);
+    status('copied');
+};
+
+fitPaper();
+renderFrames();
+renderLayers();
+repaint();
+drawRef();
+status(`ready · ${kernels.backend ?? 'kernels'} · draw with a stylus or mouse`);
+</script>
+</body>
+</html>

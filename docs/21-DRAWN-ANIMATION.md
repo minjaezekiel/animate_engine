@@ -196,14 +196,76 @@ The grounds are a flat warm paper with soft tonal blobs and **no outline** —
 the brick wall in shot 1 is suggested entirely in tone. `core/paint/` can do
 this; there is simply no scenery template that does. Authoring, not engine.
 
-### 3.6 Line weight that varies along the stroke
+### 3.6 A rig part that is DRAWN, not assembled
+
+**This section replaces the original §3.6, which said nothing needed
+building. It was wrong, and the frame is what showed it.**
+
+The original claim was that the rough look routes through `drawings` and the
+paint layer, so nothing was missing. That is true for a *backdrop*. It is not
+true for a *character*, and a character is what the reference film is.
+
+The first quadruped was assembled the way `generate.js` assembles a biped —
+tapered paths, ellipses, a filled silhouette per part. Rigged correctly,
+gaits measured and passing, and it read as **clip-art**. Not badly drawn:
+wrongly made. An even contour with a joint seam at every pivot is what a
+cutout rig looks like, and no amount of rigging fixes it, because the problem
+is that the drawing is a diagram of an animal rather than a drawing of one.
+
+So a part may now carry `strokes` instead of, or beside, a `shape`:
+
+```json
+{ "id": "body", "parent": null, "pivot": [0, 0],
+  "strokes": [
+    { "path": "M 62 -14 C 26 -26 -34 -8 -92 -2 C -124 2 -142 -4 -164 14",
+      "brush": "pencil", "color": "ink", "size": 7 }
+  ] }
+```
+
+The part becomes a `paint` node and is drawn with the pressure-responsive
+brushes, while still rotating about its joint like any other part. Rig **and**
+drawing, not rig *or* drawing.
+
+Three things make it work:
+
+- **`attachPainters` already walked the whole scene**, attaching a painter to
+  any node with `kind: 'paint'`. Nothing in the renderer needed changing; the
+  compiler simply never produced such a node for a part.
+- **The joint is the anchor.** `ax`/`ay` place the node's origin inside its
+  own surface, so a limb turns about where it attaches rather than about the
+  middle of its bounding box.
+- **Paths are flattened to points, not shifted as text.** Moving strokes into
+  surface space by adding an offset to every number in the path string
+  corrupts `H`, `V` and `A`, which do not take alternating x,y pairs. The
+  brush resamples by arc length anyway, so flattening costs nothing.
+
+It also makes boil reach a character at last. `boil` refused a rig on the
+grounds that a cutout character has no strokes to redraw — correct at the
+time, and obsolete now. Naming a drawn cast member boils every one of its
+parts, each on its own seed, because a figure whose every contour jumps on
+the same frame reads as a glitch rather than as a redraw.
+
+**Draw the contours past the joints.** A hand-drawn animal has one continuous
+line through the shoulder. A contour that stops exactly at a pivot is how a
+cutout rig announces itself, and overshooting is free.
+
+#### What this does not solve
+
+The generated quadruped in `core/script/quadruped.js` is still assembled from
+shapes, and still reads as clip-art. It is kept because it is the parameterised
+one — four breeds, measured gaits, derived proportions — and because the gait
+cycles drive a drawn character unchanged, which is the whole point of keeping
+the part names identical. A drawn animal is authored art; a generated one is
+a default. They are different jobs.
+
+### 3.7 Line weight that varies along the stroke
 
 `08-ART-VOCABULARY.md` records "No variable-width line" as a limit of the
-Canvas2D vector path. That is true and stays true — but it is irrelevant here,
-because the paint layer's `pencil` brush is pressure-driven and already
-produces exactly this. The rough look routes through `drawings`, not through
-`path`. **Nothing needs building; the doc needs correcting so the next reader
-does not conclude the look is impossible.**
+Canvas2D vector path. That is true and stays true — it is a limit of `path`,
+not of the engine, because the paint layer's `pencil` brush is pressure-driven
+and produces exactly this. With §3.6 that reaches characters too. **The
+vocabulary doc needs correcting so the next reader does not conclude the look
+is impossible.**
 
 ---
 
@@ -215,7 +277,8 @@ does not conclude the look is impossible.**
 | 1 | `smear` over `buildEcho` | yes | low — the pass existed | **built** |
 | 2 | `boil` | yes | medium — must refuse on rigs, must stay deterministic | **built** |
 | 2 | paper/wash scenery templates | no | low | |
-| 3 | quadruped `generate` | yes | high — new rig, new gaits | |
+| 3 | quadruped `generate` | yes | high — new rig, new gaits | **built** |
+| 3 | `part.strokes` — a drawn rig | yes | medium — found only by looking | **built** |
 | 4 | the film itself | no | — | |
 
 Waves 1 and 2 are what make a `rough-pencil` short possible at all. Wave 3 is

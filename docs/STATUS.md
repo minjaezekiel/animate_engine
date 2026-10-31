@@ -259,7 +259,11 @@ a reference the engine demonstrably could not have produced — `anime22.mp4`,
 | `do: 'boil'` — redrawn contour | **done** — a stepped exposure index added to every stroke's jitter seed |
 | Boil refuses a rig | **done** — boil redraws strokes; a cutout character has none, so it could only ever do nothing |
 | Paper and tonal-wash scenery | — not started |
-| Quadruped `generate` | — not started |
+| Quadruped rig + gaits | **done** — `core/script/quadruped.js`, four breeds, walk/trot/bound with measured footfall order and duty factor ([23-QUADRUPED.md](23-QUADRUPED.md)) |
+| `part.strokes` — a rig part DRAWN, not assembled | **done** — the part becomes a paint node and still turns about its joint |
+| `measureCharacter` sees strokes | **done** — without it a drawn character measured as a point and `standOnGround` buried it |
+| Boil reaches a drawn character | **done** — naming the cast member boils every part, each on its own seed |
+| Generated quadruped art | *weak* — rigged and measured, but assembled from shapes, so it reads as clip-art. The drawn path is the one to use |
 
 ### What the measurement changed
 
@@ -275,6 +279,29 @@ The whole-film average exposure is 2.5 frames per drawing, which reads as
 `shot.step` is one integer per shot and cannot say any of this. That is the
 whole case for `expose`, and it came from a histogram, not from taste.
 
+### The correction the user made, which no measurement would have
+
+The first quadruped was assembled the way the biped is: tapered paths and
+ellipses, one filled silhouette per part. Every gait test passed — footfall
+order, duty factor, suspension, stride, loop continuity, withers height — and
+the result read as **clip-art**. The user said so twice before it landed:
+*"try drawing with a free hand without joining shapes"*.
+
+They were right, and nothing in the test suite could have said so, because
+nothing was wrong in the sense a test can express. An even contour with a seam
+at every pivot is a correct rig and a bad drawing.
+
+The fix is `part.strokes`: a rig part drawn with the pressure brushes instead
+of assembled from primitives, still rotating about its joint. It also made
+`boil` reach a character for the first time — boil had been refusing rigs on
+the correct grounds that a cutout character has no strokes to redraw.
+
+| | assembled | drawn |
+|---|---|---|
+| contour | even, one width | pressure-varied, overlapping |
+| joints | a seam at every pivot | contours overshoot, so the line reads through |
+| boil | nothing to redraw | every part, each on its own seed |
+
 ### Three things that only measuring caught
 
 - **`cast.echo` already did multiples.** The first draft of the design doc
@@ -284,6 +311,10 @@ whole case for `expose`, and it came from a histogram, not from taste.
   *identity* and frees the old kernel buffer when the brush key changes, so
   a clone per exposure leaks one buffer per stroke per exposure and defeats
   the cache. The seed is written back onto the same objects.
+- **A drawn character measured as a point.** `measureCharacter` reads
+  `shape`, so a part made of strokes had no extent, `standOnGround` put the
+  root on the floor and the legs went through it. The rig was fine; the
+  staging had no way to see it.
 - **`seeked` does not mean a video frame is drawable.** The first version of
   the measuring tool produced four identical stills from four different
   timestamps and they looked entirely plausible. Only

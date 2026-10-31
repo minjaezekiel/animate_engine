@@ -376,8 +376,12 @@ Stated plainly so it is not discovered the expensive way.
 - **No clipping.** The 2D draw loop is flat with no `save`/`restore` stack.
   Shadows are drawn to fit inside a silhouette rather than clipped to it,
   which is what cel animation does anyway.
-- **No variable-width line.** Canvas2D strokes at one width. Uniform cel line
-  weight is what limited animation uses, so this costs less than it sounds.
+- **No variable-width line *on a `path`*.** Canvas2D strokes at one width, and
+  uniform cel line weight is what limited animation uses. This is a limit of
+  the vector path, not of the engine: a part carrying `strokes` is drawn with
+  the pressure-responsive brushes in `core/paint/` instead, which is how the
+  rough-pencil look is made. See
+  [21-DRAWN-ANIMATION.md](21-DRAWN-ANIMATION.md) §3.6.
 - **An expression override is drawn front-on per view, not per view per
   slot.** An angry brow in profile is the angry brow's profile member, not a
   separately art-directed drawing.

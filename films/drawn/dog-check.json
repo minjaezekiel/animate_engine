@@ -1,0 +1,110 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "dog rig check",
+    "fps": 24,
+    "width": 1280,
+    "height": 720
+  },
+  "palettes": {
+    "paper": {
+      "coat": "#e8d5bd",
+      "coatShade": "#d4bb9c",
+      "coatLine": "#8a5a3c",
+      "ink": "#5a3a24",
+      "white": "#fdf6ec",
+      "bg": "#f5ddc6"
+    }
+  },
+  "characters": {
+    "dog": {
+      "generate": {
+        "kind": "quadruped",
+        "build": "scruffy",
+        "coat": "coat",
+        "nose": "ink"
+      },
+      "proportions": {
+        "length": 300
+      }
+    }
+  },
+  "scenes": [
+    {
+      "id": "s1",
+      "palette": "paper",
+      "background": {
+        "color": "bg"
+      },
+      "ground": {
+        "y": 600
+      },
+      "cast": [
+        {
+          "character": "dog",
+          "as": "dog",
+          "at": [
+            560
+          ]
+        }
+      ],
+      "shots": [
+        {
+          "id": "stand",
+          "duration": 1,
+          "actions": [
+            {
+              "target": "dog",
+              "do": "play",
+              "action": "breathe"
+            }
+          ]
+        },
+        {
+          "id": "walk",
+          "duration": 3,
+          "actions": [
+            {
+              "target": "dog",
+              "do": "play",
+              "action": "walk"
+            }
+          ]
+        },
+        {
+          "id": "trot",
+          "duration": 2,
+          "actions": [
+            {
+              "target": "dog",
+              "do": "play",
+              "action": "trot"
+            }
+          ]
+        },
+        {
+          "id": "scratch",
+          "duration": 2,
+          "actions": [
+            {
+              "target": "dog",
+              "do": "play",
+              "action": "scratch"
+            }
+          ]
+        },
+        {
+          "id": "bark",
+          "duration": 1,
+          "actions": [
+            {
+              "target": "dog",
+              "do": "play",
+              "action": "bark"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

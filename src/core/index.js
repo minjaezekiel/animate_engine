@@ -80,6 +80,7 @@ export {
 export { parseScreenplay, estimateSeconds, retimeToAudio } from './script/screenplay.js';
 export {
     generateCharacterParts, generateMouth, generateActions,
+    generatedParts, generatedCycles, isQuadruped,
     DEFAULT_PROPORTIONS, BUILDS, resolveProportions,
 } from './script/generate.js';
 

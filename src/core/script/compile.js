@@ -9,7 +9,8 @@ import { DEFAULTS, FILM_VERSION } from './schema.js';
 const EPS = 1e-4;
 import { validateFilm } from './validate.js';
 import { castVoices } from '../voice/synthesize.js';
-import { generateCharacterParts, generateMouth, generateActions } from './generate.js';
+import { generateMouth, generatedParts, generatedCycles, isQuadruped } from './generate.js';
+import { pathToRuns } from '../paint/path.js';
 import { solveChain, chainFromParts, chainRootOffset } from '../rig/IK2D.js';
 import { gripAngles, gripMitt, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
 import { groundAt, measureCharacter } from './staging.js';
@@ -515,13 +516,18 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
         // three per part -- flat base, a hard-edged shadow, and line work --
         // and one part/one shape/one node could not express that.
         const layers = Array.isArray(part.shapes) ? part.shapes : null;
+        // A part may be DRAWN rather than assembled. `strokes` turns it into a
+        // paint node that still rotates about its joint.
+        const painted = part.strokes?.length
+            ? paintPartProps(part, colorOf, diagnostics, `characters.${charName}.parts.${part.id}`)
+            : null;
         scene.add({
             id: nodeId,
             // A part with BOTH a shape and layers keeps its own shape: the
             // layers are children, and children draw over their parent, which
             // is exactly base-then-shade. Forcing `group` whenever layers
             // existed silently dropped the base drawing.
-            kind: part.shape?.kind ?? 'group',
+            kind: painted ? 'paint' : (part.shape?.kind ?? 'group'),
             name: part.id,
             // The pivot is the joint: a limb rotates about where it attaches,
             // which is the whole trick behind a cutout rig reading correctly.
@@ -538,6 +544,7 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
                 alpha: part.alpha ?? 1,
                 ...drawProps(part, colorOf),
                 ...swapProps(part, colorOf),
+                ...(painted ?? {}),
             }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
             z: part.z ?? 0,
         }, part.parent ? `${rootId}/${part.parent}` : rootId);
@@ -566,8 +573,11 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
 
     // Mouth: one node whose shape is swapped by the viseme track. Keeping all
     // shapes on a single node means lipsync writes one discrete channel.
+    // A quadruped has a jaw, not a viseme chart: it is not going to lipsync,
+    // and generating a human mouth chart for it would park one on its ribs.
     const mouthSpec = char.mouth
-        ?? (char.generate ? generateMouth(char.proportions, char.generate) : null);
+        ?? ((char.generate && !isQuadruped(char.generate))
+            ? generateMouth(char.proportions, char.generate) : null);
     if (mouthSpec) {
         const m = mouthSpec;
         const shapes = {};
@@ -605,7 +615,7 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
  */
 export function characterParts(char) {
     if (char.parts?.length) return char.parts;
-    return char.generate ? generateCharacterParts(char.generate, char.proportions) : [];
+    return char.generate ? generatedParts(char.generate, char.proportions) : [];
 }
 
 /**
@@ -903,15 +913,20 @@ function buildBoil({ scene, timeline, action, shotStart, shotEnd, sceneId, diagn
     const node = scene.get(nodeId);
     if (!node) {
         diagnostics.push({ severity: 'warning', path,
-            message: `boil: no drawing "${action.target}" in this scene.` });
+            message: `boil: no drawing or cast member "${action.target}" in this scene.` });
         return;
     }
-    // Boiling a rig is wrong: boil belongs to the DRAWING. A cutout character
-    // has no strokes to redraw, so the request would silently do nothing.
-    if (node.kind !== 'paint' && node.kind !== 'photo') {
+    // Boil belongs to the DRAWING, but a character drawn with `part.strokes`
+    // IS drawings -- one per part. Naming the cast member boils all of them,
+    // which is what an animator means by "boil the dog".
+    const targets = [];
+    if (node.kind === 'paint' || node.kind === 'photo') targets.push(nodeId);
+    else scene.walk((n) => { if (n.kind === 'paint') targets.push(n.id); }, nodeId);
+    if (!targets.length) {
         diagnostics.push({ severity: 'warning', path,
-            message: `boil: "${action.target}" is a ${node.kind}, not a drawing. Boil redraws `
-                + `strokes, so it applies to a scene's "drawings", not to a generated character.` });
+            message: `boil: "${action.target}" is a ${node.kind} with no strokes to redraw. `
+                + `Boil applies to a scene's "drawings", or to a character whose parts carry `
+                + `"strokes" -- a character assembled from shapes has no contour to redraw.` });
         return;
     }
 
@@ -923,21 +938,131 @@ function buildBoil({ scene, timeline, action, shotStart, shotEnd, sceneId, diagn
     }
     const start = shotStart + (action.at ?? 0);
     const end = action.for != null ? start + action.for : shotEnd;
-    if (action.amplitude != null) {
-        key(timeline, nodeId, 'props.boilAmount', start, action.amplitude,
-            { type: 'number', ease: 'step' });
-    }
-    // One key per exposure, frame-aligned so the redraw lands on a frame
-    // rather than between two.
+    // Each part gets its own seed offset, so the whole figure does not boil
+    // in lockstep -- a drawing whose every contour jumps on the same frame
+    // reads as a glitch rather than as a redraw.
     let i = 0;
-    for (let t = start; t < end; t += 1 / rate, i++) {
-        key(timeline, nodeId, 'props.boil', Math.round(t * fps) / fps, i,
-            { type: 'number', ease: 'step' });
+    for (const [ti, id] of targets.entries()) {
+        if (action.amplitude != null) {
+            key(timeline, id, 'props.boilAmount', start, action.amplitude,
+                { type: 'number', ease: 'step' });
+        }
+        // One key per exposure, frame-aligned so the redraw lands on a frame
+        // rather than between two.
+        i = 0;
+        for (let t = start; t < end; t += 1 / rate, i++) {
+            key(timeline, id, 'props.boil', Math.round(t * fps) / fps, i + ti * 7,
+                { type: 'number', ease: 'step' });
+        }
     }
     if (i === 0) {
         diagnostics.push({ severity: 'warning', path,
             message: `boil: the span is shorter than one exposure at ${rate}/s; nothing to boil.` });
     }
+}
+
+
+/**
+ * A stroke's runs as point lists, whether it was authored as `points` or as
+ * path data.
+ *
+ * Flattening here rather than translating the path text is deliberate: `H`,
+ * `V` and `A` do not take alternating x,y pairs, so shifting every number in
+ * a path string corrupts exactly the commands that are hardest to notice. The
+ * brush resamples to dabs by arc length regardless, so nothing is lost.
+ */
+function strokePoints(stroke) {
+    if (stroke.points?.length) {
+        return [stroke.points.map((pt) => (Array.isArray(pt)
+            ? { x: pt[0], y: pt[1], p: pt[2] ?? 1 }
+            : { ...pt, p: pt.p ?? 1 }))];
+    }
+    return stroke.path ? pathToRuns(stroke.path).filter((run) => run.length) : [];
+}
+
+/**
+ * The local-space box a part's freehand strokes occupy, plus the margin the
+ * widest brush needs so a nib centred on the contour is not clipped in half.
+ */
+function strokeBounds(strokes, fallbackSize = 8) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, pad = 0;
+    for (const stroke of strokes) {
+        pad = Math.max(pad, (stroke.size ?? fallbackSize));
+        for (const pt of strokePoints(stroke).flat()) {
+            if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
+            if (pt.x < x0) x0 = pt.x;
+            if (pt.y < y0) y0 = pt.y;
+            if (pt.x > x1) x1 = pt.x;
+            if (pt.y > y1) y1 = pt.y;
+        }
+    }
+    if (!Number.isFinite(x0)) return null;
+    const m = pad * 0.75 + 2;
+    return [x0 - m, y0 - m, x1 + m, y1 + m];
+}
+
+/**
+ * A part drawn FREEHAND rather than assembled from primitives.
+ *
+ * Joining ellipses and tapered paths makes a figure that reads as clip-art no
+ * matter how well it is rigged -- the contour is too even and the joints show.
+ * A part carrying `strokes` becomes a `paint` node instead, so it is drawn
+ * with the pressure-responsive brushes in `core/paint/` and still rotates
+ * about its joint like any other part. Rig and drawing, not rig or drawing.
+ *
+ * It is also what lets `boil` reach a character: boil redraws strokes, and
+ * until a part could HAVE strokes there were none on a rig to redraw.
+ */
+function paintPartProps(part, colorOf, diagnostics, path) {
+    const strokes = (part.strokes ?? []).map((stroke) => ({
+        brush: stroke.brush ?? 'pencil',
+        ...stroke,
+        color: colorOf(stroke.color) ?? '#000000',
+    }));
+    if (!strokes.length) return null;
+    for (const stroke of strokes) {
+        if (!stroke.path && !stroke.points) {
+            diagnostics.push({ severity: 'warning', path,
+                message: `part "${part.id}": a stroke has neither "path" nor "points".` });
+        }
+    }
+    // An authored `box` wins: a part whose strokes are drawn on later frames
+    // needs a surface big enough for all of them, which this cannot infer.
+    const box = part.box ?? strokeBounds(strokes);
+    if (!box) {
+        diagnostics.push({ severity: 'warning', path,
+            message: `part "${part.id}": no stroke has any point, so it would render as nothing.` });
+        return null;
+    }
+    const [x0, y0, x1, y1] = box;
+    const width = Math.max(1, Math.ceil(x1 - x0));
+    const height = Math.max(1, Math.ceil(y1 - y0));
+    return {
+        paint: {
+            width, height,
+            layers: [{
+                name: part.id, blend: 'normal', opacity: 1, visible: true,
+                // Into surface space: the box's top-left becomes (0, 0). A
+                // path with several subpaths becomes several strokes, which
+                // is what it already was.
+                strokes: strokes.flatMap((stroke, si) => strokePoints(stroke).map((run, ri) => {
+                    const { path: _drop, ...rest } = stroke;
+                    return {
+                        ...rest,
+                        seed: stroke.seed ?? (si * 131 + ri),
+                        points: run.map((pt) => ({ ...pt, x: pt.x - x0, y: pt.y - y0 })),
+                    };
+                })),
+            }],
+            background: null,
+        },
+        progress: part.progress ?? 1,
+        w: width, h: height,
+        // The JOINT, not the image centre: `ax`/`ay` are the anchor in
+        // destination units from the image's top-left, so the part turns
+        // about where it attaches exactly as a shape-based part does.
+        ax: -x0, ay: -y0,
+    };
 }
 
 /**
@@ -1143,13 +1268,13 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             // walk, with no diagnostic to say why.
             const spec = char?.actions?.[action.action]
                 ?? ((char?.generate || char?.proportions)
-                    ? generateActions(char.proportions)[action.action] : null);
+                    ? generatedCycles(char)[action.action] : null);
             if (!spec) {
                 diagnostics.push({
                     severity: 'warning', path: `scenes.${sceneId}.actions`,
                     message: `play: "${charName}" has no action "${action.action}". `
                         + `Known: ${[...new Set([...Object.keys(char?.actions ?? {}),
-                            ...Object.keys(generateActions(char?.proportions ?? {}))])].join(', ')}.`,
+                            ...Object.keys(generatedCycles(char ?? {}))])].join(', ')}.`,
                 });
             }
             if (!spec) return;

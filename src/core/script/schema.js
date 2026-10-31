@@ -40,6 +40,10 @@ export const KNOWN = {
                 'generate', 'view', 'expression', 'role'],
     generate: ['skin', 'cloth', 'trouser', 'hair', 'hairColor', 'eye', 'white', 'shoe',
                'face', 'build', 'facing',
+               // 'quadruped' selects the four-legged rig. See 23-QUADRUPED.md.
+               'kind',
+               // quadruped colours and tempo
+               'coat', 'belly', 'nose', 'cadence',
                // 'none' | 'mitten' | 'fingers' -- how much hand to draw below
                // the wrist. See generate.js `handParts`.
                'hands',
@@ -52,6 +56,11 @@ export const KNOWN = {
     template: ['template', 'time', 'props'],
     part: ['id', 'parent', 'pivot', 'shape', 'shapes', 'swap', 'fill', 'stroke',
            'strokeWidth', 'z', 'at', 'alpha',
+           // A part DRAWN freehand rather than assembled from primitives:
+           // brush strokes that still rotate about the joint. `box` is the
+           // local-space surface extent, inferred from the strokes when
+           // omitted. See 21-DRAWN-ANIMATION.md.
+           'strokes', 'box', 'progress',
            // stroke ends and corners: `shapes.js` has always read these, and
            // defaults both to 'round'. A wide band drawn as a stroke needs
            // 'butt' or it bulges past the ends of its own path.

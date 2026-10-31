@@ -20,6 +20,36 @@ import { squashKeys } from '../anim/principles.js';
  * Pure and deterministic: same proportions in, same parts out.
  */
 
+import { generateQuadrupedActions, generateQuadrupedParts } from './quadruped.js';
+
+/**
+ * A quadruped is its own rig, not a `build`. See 23-QUADRUPED.md: the biped
+ * measures everything as a fraction of HEIGHT, which is the wrong unit for a
+ * horizontal animal whose length and withers height vary independently.
+ */
+export const isQuadruped = (generate) => generate?.kind === 'quadruped';
+
+/**
+ * The part tree for a generated character of either species.
+ *
+ * Every caller that needs a rig goes through one of these two dispatchers
+ * rather than deciding for itself, so adding a species does not mean finding
+ * four call sites -- which is how `generateActions` ended up being called
+ * with no `generate` argument in three places.
+ */
+export function generatedParts(generate = {}, proportions = {}) {
+    return isQuadruped(generate)
+        ? generateQuadrupedParts(generate, proportions)
+        : generateCharacterParts(generate, proportions);
+}
+
+/** The free cycles for a generated character of either species. */
+export function generatedCycles(char = {}) {
+    return isQuadruped(char.generate)
+        ? generateQuadrupedActions(char.proportions ?? {}, char.generate ?? {})
+        : generateActions(char.proportions ?? {}, char.generate ?? {});
+}
+
 export const DEFAULT_PROPORTIONS = {
     height: 180,        // head-to-foot in scene units
     heads: 6.2,         // total height in head-heights, the unit animators use

@@ -1,0 +1,694 @@
+{
+  "version": "jirex.film/1",
+  "palettes": {
+    "paper": {
+      "ink": "#7a4a2c",
+      "bg": "#f7e7d4"
+    }
+  },
+  "characters": {
+    "dog": {
+      "palette": "paper",
+      "generate": {
+        "kind": "quadruped"
+      },
+      "proportions": {
+        "length": 300
+      },
+      "parts": [
+        {
+          "id": "body",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "z": 10,
+          "strokes": [
+            {
+              "path": "M 62 -14 C 26 -26 -34 -8 -92 -2 C -124 2 -142 -4 -164 14",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M 62 -14 C 92 14 86 76 48 108 C 28 124 -4 118 -26 106",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M -26 106 C -56 96 -74 74 -96 62",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            },
+            {
+              "path": "M 40 20 C 10 44 -30 56 -74 54",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.5
+            }
+          ]
+        },
+        {
+          "id": "spine",
+          "parent": "body",
+          "pivot": [
+            -164,
+            14
+          ],
+          "z": 9
+        },
+        {
+          "id": "rump",
+          "parent": "spine",
+          "pivot": [
+            0,
+            0
+          ],
+          "z": 9,
+          "strokes": [
+            {
+              "path": "M 18 -4 C -22 10 -38 62 -22 104",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M -22 104 C 2 116 34 108 52 88",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            },
+            {
+              "path": "M -6 36 C 14 54 22 78 18 96",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.5
+            }
+          ]
+        },
+        {
+          "id": "tail",
+          "parent": "rump",
+          "pivot": [
+            -14,
+            6
+          ],
+          "z": 8,
+          "strokes": [
+            {
+              "path": "M 6 8 C -22 -26 -40 -66 -36 -104",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            },
+            {
+              "path": "M 6 8 C -10 -24 -26 -62 -22 -100",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4
+            }
+          ]
+        },
+        {
+          "id": "tailTip",
+          "parent": "tail",
+          "pivot": [
+            -36,
+            -104
+          ],
+          "z": 8,
+          "strokes": [
+            {
+              "path": "M 0 0 C 4 -26 16 -42 32 -50",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            }
+          ]
+        },
+        {
+          "id": "neck",
+          "parent": "body",
+          "pivot": [
+            52,
+            -10
+          ],
+          "z": 9,
+          "strokes": [
+            {
+              "path": "M -16 10 C 6 -28 34 -58 62 -74",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M 14 42 C 26 10 40 -14 58 -34",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            }
+          ]
+        },
+        {
+          "id": "head",
+          "parent": "neck",
+          "pivot": [
+            62,
+            -74
+          ],
+          "z": 20
+        },
+        {
+          "id": "skull",
+          "parent": "head",
+          "pivot": [
+            0,
+            0
+          ],
+          "z": 20,
+          "strokes": [
+            {
+              "path": "M -22 16 C -26 -14 -8 -34 20 -34 C 40 -34 52 -22 54 -6",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6.5
+            },
+            {
+              "path": "M -22 16 C -14 30 2 38 22 34",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            }
+          ]
+        },
+        {
+          "id": "muzzle",
+          "parent": "head",
+          "pivot": [
+            30,
+            -8
+          ],
+          "z": 21,
+          "strokes": [
+            {
+              "path": "M -8 -22 C 18 -28 44 -26 62 -16",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M -4 14 C 20 18 44 10 60 -4",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M 62 -16 C 70 -10 70 -6 60 -4",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.5
+            }
+          ]
+        },
+        {
+          "id": "nose",
+          "parent": "muzzle",
+          "pivot": [
+            60,
+            -12
+          ],
+          "z": 22,
+          "strokes": [
+            {
+              "path": "M -8 -4 C 0 -12 10 -10 12 0 C 12 8 2 10 -6 6",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            }
+          ]
+        },
+        {
+          "id": "eye",
+          "parent": "skull",
+          "pivot": [
+            16,
+            -12
+          ],
+          "z": 23,
+          "strokes": [
+            {
+              "path": "M -9 0 C -6 -8 4 -9 8 -2 C 8 5 -2 8 -9 0",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.5
+            }
+          ]
+        },
+        {
+          "id": "earNear",
+          "parent": "head",
+          "pivot": [
+            8,
+            -30
+          ],
+          "z": 25,
+          "strokes": [
+            {
+              "path": "M 0 4 C -10 -24 -6 -52 10 -62 C 20 -46 22 -20 14 2",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6
+            }
+          ]
+        },
+        {
+          "id": "earFar",
+          "parent": "head",
+          "pivot": [
+            -14,
+            -26
+          ],
+          "z": 18,
+          "strokes": [
+            {
+              "path": "M 0 4 C -12 -18 -10 -42 2 -52 C 12 -38 14 -16 10 2",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            }
+          ]
+        },
+        {
+          "id": "jaw",
+          "parent": "head",
+          "pivot": [
+            24,
+            10
+          ],
+          "z": 19,
+          "strokes": [
+            {
+              "path": "M -6 0 C 16 10 38 8 54 -2",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            }
+          ]
+        },
+        {
+          "id": "foreUpperL",
+          "parent": "body",
+          "pivot": [
+            14,
+            54
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -16 -18 C -10 14 -6 44 -4 70",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.03
+            },
+            {
+              "path": "M 16 -10 C 16 18 14 46 10 70",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.03
+            }
+          ]
+        },
+        {
+          "id": "foreLowerL",
+          "parent": "foreUpperL",
+          "pivot": [
+            3,
+            70
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -8 -6 C -8 20 -8 46 -6 66",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.41
+            },
+            {
+              "path": "M 8 -6 C 9 20 8 46 6 66",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.41
+            }
+          ]
+        },
+        {
+          "id": "forePasternL",
+          "parent": "foreLowerL",
+          "pivot": [
+            0,
+            66
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -6 -4 C -6 10 -5 20 -4 28",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.1
+            },
+            {
+              "path": "M 6 -4 C 6 10 5 20 4 28",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.1
+            }
+          ]
+        },
+        {
+          "id": "forePawL",
+          "parent": "forePasternL",
+          "pivot": [
+            0,
+            28
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -6 -2 C -8 8 0 14 12 12 C 18 10 18 2 14 -4",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.1
+            }
+          ]
+        },
+        {
+          "id": "thighL",
+          "parent": "rump",
+          "pivot": [
+            -22.2,
+            66
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -22 -24 C -30 2 -30 28 -24 48",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.34
+            },
+            {
+              "path": "M 20 -16 C 12 10 2 32 -6 48",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 4.03
+            }
+          ]
+        },
+        {
+          "id": "shankL",
+          "parent": "thighL",
+          "pivot": [
+            -15,
+            48
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -8 -6 C -2 14 6 34 12 52",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.41
+            },
+            {
+              "path": "M 10 -8 C 16 12 22 32 26 50",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.41
+            }
+          ]
+        },
+        {
+          "id": "hockL",
+          "parent": "shankL",
+          "pivot": [
+            19,
+            51
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -6 -4 C -6 12 -5 28 -4 42",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.1
+            },
+            {
+              "path": "M 6 -4 C 6 12 5 28 4 42",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.1
+            }
+          ]
+        },
+        {
+          "id": "hindPawL",
+          "parent": "hockL",
+          "pivot": [
+            0,
+            42
+          ],
+          "z": 6,
+          "strokes": [
+            {
+              "path": "M -6 -2 C -8 8 0 14 12 12 C 18 10 18 2 14 -4",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 3.1
+            }
+          ]
+        },
+        {
+          "id": "foreUpperR",
+          "parent": "body",
+          "pivot": [
+            46,
+            58
+          ],
+          "z": 15,
+          "strokes": [
+            {
+              "path": "M -16 -18 C -10 14 -6 44 -4 70",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6.5
+            },
+            {
+              "path": "M 16 -10 C 16 18 14 46 10 70",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6.5
+            }
+          ]
+        },
+        {
+          "id": "foreLowerR",
+          "parent": "foreUpperR",
+          "pivot": [
+            3,
+            70
+          ],
+          "z": 15,
+          "strokes": [
+            {
+              "path": "M -8 -6 C -8 20 -8 46 -6 66",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 8 -6 C 9 20 8 46 6 66",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            }
+          ]
+        },
+        {
+          "id": "forePasternR",
+          "parent": "foreLowerR",
+          "pivot": [
+            0,
+            66
+          ],
+          "z": 15,
+          "strokes": [
+            {
+              "path": "M -6 -4 C -6 10 -5 20 -4 28",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M 6 -4 C 6 10 5 20 4 28",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            }
+          ]
+        },
+        {
+          "id": "forePawR",
+          "parent": "forePasternR",
+          "pivot": [
+            0,
+            28
+          ],
+          "z": 15,
+          "strokes": [
+            {
+              "path": "M -6 -2 C -8 8 0 14 12 12 C 18 10 18 2 14 -4",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            }
+          ]
+        },
+        {
+          "id": "thighR",
+          "parent": "rump",
+          "pivot": [
+            0.1999999999999993,
+            70
+          ],
+          "z": 15,
+          "strokes": [
+            {
+              "path": "M -22 -24 C -30 2 -30 28 -24 48",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 7
+            },
+            {
+              "path": "M 20 -16 C 12 10 2 32 -6 48",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 6.5
+            }
+          ]
+        },
+        {
+          "id": "shankR",
+          "parent": "thighR",
+          "pivot": [
+            -15,
+            48
+          ],
+          "z": 15,
+          "strokes": [
+            {
+              "path": "M -8 -6 C -2 14 6 34 12 52",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            },
+            {
+              "path": "M 10 -8 C 16 12 22 32 26 50",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5.5
+            }
+          ]
+        },
+        {
+          "id": "hockR",
+          "parent": "shankR",
+          "pivot": [
+            19,
+            51
+          ],
+          "z": 15,
+          "strokes": [
+            {
+              "path": "M -6 -4 C -6 12 -5 28 -4 42",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            },
+            {
+              "path": "M 6 -4 C 6 12 5 28 4 42",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            }
+          ]
+        },
+        {
+          "id": "hindPawR",
+          "parent": "hockR",
+          "pivot": [
+            0,
+            42
+          ],
+          "z": 15,
+          "strokes": [
+            {
+              "path": "M -6 -2 C -8 8 0 14 12 12 C 18 10 18 2 14 -4",
+              "brush": "pencil",
+              "color": "ink",
+              "size": 5
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "meta": {
+    "title": "drawn dog walks",
+    "fps": 24,
+    "width": 1280,
+    "height": 720
+  },
+  "scenes": [
+    {
+      "id": "s1",
+      "palette": "paper",
+      "background": {
+        "color": "bg"
+      },
+      "ground": {
+        "y": 620
+      },
+      "cast": [
+        {
+          "character": "dog",
+          "as": "dog",
+          "at": [
+            560
+          ]
+        }
+      ],
+      "shots": [
+        {
+          "id": "walk",
+          "duration": 3,
+          "step": 2,
+          "actions": [
+            {
+              "target": "dog",
+              "do": "play",
+              "action": "walk"
+            },
+            {
+              "target": "dog",
+              "do": "boil",
+              "rate": 8
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

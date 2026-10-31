@@ -2,6 +2,7 @@ import { samplePose, applyPose, createPoseBaseline, resetPose } from '../anim/Ev
 import { characterParts, filmShots } from './compile.js';
 import { estimateFrameCost } from './budget.js';
 import { applyToPoint } from '../math/mat2d.js';
+import { pathToRuns } from '../paint/path.js';
 
 /**
  * Staging checks: is what you authored actually on screen?
@@ -29,6 +30,43 @@ const CHANNELS = [
 ];
 
 /** Where a character's parts reach, relative to its cast root, at rest. */
+/**
+ * The local-space extent of a part's freehand strokes.
+ *
+ * `box`, when the author gave one, is authoritative -- it is also what the
+ * compiler rasterises into -- so the two agree by construction.
+ */
+function strokesExtent(strokes, box) {
+    if (Array.isArray(box) && box.length === 4) {
+        return { left: box[0], top: box[1], right: box[2], bottom: box[3] };
+    }
+    let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity, pad = 0;
+    for (const stroke of strokes) {
+        pad = Math.max(pad, stroke.size ?? 8);
+        for (const run of strokeRuns(stroke)) {
+            for (const pt of run) {
+                if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
+                if (pt.x < left) left = pt.x;
+                if (pt.y < top) top = pt.y;
+                if (pt.x > right) right = pt.x;
+                if (pt.y > bottom) bottom = pt.y;
+            }
+        }
+    }
+    if (!Number.isFinite(left)) return null;
+    const m = pad * 0.75 + 2;
+    return { left: left - m, top: top - m, right: right + m, bottom: bottom + m };
+}
+
+/** A stroke's point runs, from `points` or from path data. */
+function strokeRuns(stroke) {
+    if (stroke.points?.length) {
+        return [stroke.points.map((pt) => (Array.isArray(pt)
+            ? { x: pt[0], y: pt[1] } : pt))];
+    }
+    return stroke.path ? pathToRuns(stroke.path).filter((run) => run.length) : [];
+}
+
 export function measureCharacter(parts) {
     const byId = new Map(parts.map((p) => [p.id, p]));
     const offsetOf = (part) => {
@@ -54,6 +92,11 @@ export function measureCharacter(parts) {
         const [ox, oy] = offsetOf(part);
         const sw = part.strokeWidth ?? 0;
         take(ox, oy, shapeExtent(part.shape, sw));
+        // A part may be DRAWN rather than shaped. Measuring only `shape` made
+        // a freehand character measure as a point, so `standOnGround` buried
+        // it: the whole animal sank to its own root and the legs went through
+        // the floor. See 21-DRAWN-ANIMATION.md.
+        if (part.strokes?.length) take(ox, oy, strokesExtent(part.strokes, part.box));
         // A part may draw through a swap set instead of a single `shape` --
         // every procedural head feature does -- and through stacked layers for
         // cel tones. Measuring only `part.shape` lost the whole head, so the

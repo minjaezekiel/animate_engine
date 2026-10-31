@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { compileFilm } from '../../src/core/script/compile.js';
+import { validateFilm } from '../../src/core/script/validate.js';
 import { samplePose, applyPose } from '../../src/core/anim/Evaluator.js';
 import { PaintPainter } from '../../src/backends/canvas2d/PaintPainter.js';
 import { loadKernels } from '../../src/kernels/index.js';
@@ -55,17 +56,62 @@ test('the index is stepped, never interpolated -- a redraw is not a morph', () =
     assert.equal(v(3 / 24), 1, 'and now the second');
 });
 
-test('boiling refuses a rig and says why', () => {
+test('boiling a character assembled from shapes refuses, and says why', () => {
     const r = compileFilm(film([{ target: 'man', do: 'boil', rate: 8 }]));
     assert.equal(boilKeys(r).length, 0);
     const d = r.diagnostics.find((x) => /boil:/.test(x.message));
-    assert.match(d.message, /is a cast member, not a drawing/);
-    assert.match(d.message, /"drawings"/, 'it names where boil does belong');
+    assert.match(d.message, /no strokes to redraw/);
+    assert.match(d.message, /"strokes"/, 'it names what a character needs to be boilable');
+});
+
+test('boiling a DRAWN character boils every one of its parts', () => {
+    const drawn = {
+        version: 'jirex.film/1',
+        meta: { fps: 24, width: 400, height: 300 },
+        palettes: { p: { ink: '#2b1a10' } },
+        characters: { pup: { palette: 'p', proportions: { height: 120 }, parts: [
+            { id: 'body', parent: null, pivot: [0, 0], strokes: [
+                { path: 'M -40 0 C -20 -30, 20 -30, 40 0', brush: 'pencil', color: 'ink', size: 7 }] },
+            { id: 'tail', parent: 'body', pivot: [-40, 0], strokes: [
+                { path: 'M 0 0 Q -20 -20 -30 -40', brush: 'pencil', color: 'ink', size: 5 }] },
+        ] } },
+        scenes: [{ id: 's1', palette: 'p',
+            cast: [{ character: 'pup', as: 'pup', at: [200, 150] }],
+            shots: [{ id: 'a', duration: 1,
+                      actions: [{ target: 'pup', do: 'boil', rate: 8 }] }] }],
+    };
+    assert.deepEqual(validateFilm(drawn).filter((d) => d.severity === 'error'), []);
+    const r = compileFilm(drawn);
+    const boiled = new Set(r.timeline.tracks
+        .filter((t) => t.path === 'props.boil').map((t) => t.target));
+    assert.deepEqual([...boiled].sort(), ['s1/pup/body', 's1/pup/tail']);
+});
+
+test('parts do not boil in lockstep', () => {
+    const drawn = compileFilm({
+        version: 'jirex.film/1',
+        meta: { fps: 24, width: 400, height: 300 },
+        palettes: { p: { ink: '#2b1a10' } },
+        characters: { pup: { palette: 'p', proportions: { height: 120 }, parts: [
+            { id: 'body', parent: null, pivot: [0, 0], strokes: [
+                { path: 'M -40 0 L 40 0', brush: 'pencil', color: 'ink', size: 7 }] },
+            { id: 'tail', parent: 'body', pivot: [-40, 0], strokes: [
+                { path: 'M 0 0 L -30 -40', brush: 'pencil', color: 'ink', size: 5 }] },
+        ] } },
+        scenes: [{ id: 's1', palette: 'p',
+            cast: [{ character: 'pup', as: 'pup', at: [200, 150] }],
+            shots: [{ id: 'a', duration: 1,
+                      actions: [{ target: 'pup', do: 'boil', rate: 8 }] }] }],
+    });
+    const seedAt0 = (target) => drawn.timeline.tracks
+        .find((t) => t.target === target && t.path === 'props.boil').keys[0].v;
+    assert.notEqual(seedAt0('s1/pup/body'), seedAt0('s1/pup/tail'),
+        'a figure whose every contour jumps on the same seed reads as a glitch');
 });
 
 test('boiling an unknown target warns', () => {
     const r = compileFilm(film([{ target: 'nope', do: 'boil' }]));
-    assert.ok(r.diagnostics.some((d) => /boil: no drawing "nope"/.test(d.message)));
+    assert.ok(r.diagnostics.some((d) => /boil: no drawing or cast member "nope"/.test(d.message)));
 });
 
 test('a non-positive rate warns rather than looping forever', () => {

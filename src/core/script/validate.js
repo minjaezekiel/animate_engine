@@ -1,6 +1,7 @@
 import { FILM_VERSION, KNOWN, DO_VERBS, TRANSITION_KINDS, KNOWN_SCENERY,
          ASSET_KINDS, SHAPE_KINDS } from './schema.js';
-import { generateActions, BUILDS } from './generate.js';
+import { generateActions, generatedCycles, isQuadruped, BUILDS } from './generate.js';
+import { QUADRUPED_BUILDS } from './quadruped.js';
 import { FACE_KITS } from '../art/face.js';
 import { TEMPLATE_NAMES, TIME_NAMES, PROP_NAMES } from '../art/scenery.js';
 import { EFFECTS } from '../motion/PhotoMotion.js';
@@ -124,16 +125,21 @@ export function validateFilm(film) {
                 // `draw` and `boil` name a drawing rather than a cast member,
                 // so the cast check does not apply to them. `expose` may name
                 // either, or nothing at all -- no target means the whole shot.
-                if (a.do === 'draw' || a.do === 'boil') {
+                if (a.do === 'boil') {
+                    // A character whose parts carry `strokes` IS drawings, one
+                    // per part, so naming the cast member is legitimate. Only
+                    // the compiler can tell whether this one has any, and it
+                    // warns if not.
+                    if (a.target && !drawingNames.has(a.target) && !castNames.has(a.target)) {
+                        err(`${hp}.actions`, `boil: no drawing or cast member "${a.target}" in this scene.`
+                            + (drawingNames.size ? ` Have: ${[...drawingNames].join(', ')}.` : ''));
+                    }
+                } else if (a.do === 'draw') {
                     if (a.target && !drawingNames.has(a.target)) {
-                        // Naming a cast member is the mistake worth explaining:
-                        // boil redraws strokes, and a generated character has
-                        // none, so the request could only ever do nothing.
                         err(`${hp}.actions`, castNames.has(a.target)
-                            ? `${a.do}: "${a.target}" is a cast member, not a drawing. `
-                                + `${a.do === 'boil' ? 'Boil redraws strokes' : 'draw reveals strokes'}, `
-                                + `so it applies to a scene's "drawings", not to a character.`
-                            : `${a.do}: no drawing or photo "${a.target}" in this scene.`
+                            ? `draw: "${a.target}" is a cast member, not a drawing. draw reveals `
+                                + `strokes, so it applies to a scene's "drawings".`
+                            : `draw: no drawing or photo "${a.target}" in this scene.`
                                 + (drawingNames.size ? ` Have: ${[...drawingNames].join(', ')}.` : ''));
                     }
                 } else if (a.do === 'expose') {
@@ -158,7 +164,10 @@ export function validateFilm(film) {
                     // `generate` alone rejected `play walk` on an uploaded
                     // character that was perfectly able to walk.
                     const char = characters[charName];
-                    const generated = (char?.generate || char?.proportions) ? GENERATED_ACTIONS : [];
+                    // A quadruped's free cycles are gaits, not a human walk,
+                    // so the list has to come from the character.
+                    const generated = (char?.generate || char?.proportions)
+                        ? Object.keys(generatedCycles(char)) : [];
                     if (charName && a.action
                         && !char?.actions?.[a.action]
                         && !generated.includes(a.action)) {
@@ -249,11 +258,17 @@ export function validateFilm(film) {
  */
 function validateGenerate(path, generate, warn) {
     unknown(path, generate, KNOWN.generate, warn);
+    // Builds are per species: a quadruped's are breeds, and checking a dog
+    // against the biped table reports every correct value as unknown.
+    const builds = isQuadruped(generate) ? QUADRUPED_BUILDS : BUILDS;
     if (generate.build != null && typeof generate.build === 'string'
-        && !(generate.build in BUILDS)) {
+        && !(generate.build in builds)) {
         warn(`${path}.build`, `Unknown build "${generate.build}". `
-            + `Known: ${Object.keys(BUILDS).join(', ')}.`);
+            + `Known: ${Object.keys(builds).join(', ')}.`);
     }
+    // The face kit, hair and hands below are the biped's; a quadruped has
+    // none of them and would be reported against all three.
+    if (isQuadruped(generate)) return;
     if (generate.hair != null && !FACE_KITS.hair.includes(generate.hair)) {
         warn(`${path}.hair`, `Unknown hair "${generate.hair}"; a default cap is drawn. `
             + `Known: ${FACE_KITS.hair.join(', ')}.`);

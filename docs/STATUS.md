@@ -2,7 +2,7 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-10-31 (Phase 31: **drawn animation** -- exposure sheets, time-gated smears and boil, from measuring a hand-drawn reference the engine could not have produced. Phase 30: **"Finding Gold"**, a ten-part 1080x1920 series, and the three defects building it exposed -- `lineCap` never reaching the renderer, every transition in six finished films being a hard cut, and `transform.x` being absolute rather than a delta. Phase 29: the **walk cycle** rebuilt on the real key poses -- it had no `down`, no foot roll, and a hip rise that left every walking character hovering above the ground. Phase 28: a render at a non-authored size **cropped** the film instead of scaling it. Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
+Last updated: 2026-11-01 (Phase 32: **voices and delivery** -- Swahili confirmed working, voices level-matched after measuring a 6.6 dB gap between two of them, casting by role, and a narration pacing analyser that found our own films are 54% speech against the references' 73%. Phase 31: **drawn animation** -- exposure sheets, time-gated smears and boil, from measuring a hand-drawn reference the engine could not have produced. Phase 30: **"Finding Gold"**, a ten-part 1080x1920 series, and the three defects building it exposed -- `lineCap` never reaching the renderer, every transition in six finished films being a hard cut, and `transform.x` being absolute rather than a delta. Phase 29: the **walk cycle** rebuilt on the real key poses -- it had no `down`, no foot roll, and a hip rise that left every walking character hovering above the ground. Phase 28: a render at a non-authored size **cropped** the film instead of scaling it. Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
 
 Legend: **done** · *partial* · — not started
 
@@ -240,6 +240,50 @@ which is what turned "over budget" into "the backdrop is 100% of it").
   pixels out of a ~50px circumference.
 
 ---
+
+---
+
+## Phase 32 — voices and delivery — *partial*
+
+Design and the measurements: [24-VOICE-AND-DELIVERY.md](24-VOICE-AND-DELIVERY.md).
+
+| Item | State |
+|---|---|
+| Swahili | **done** — `sw_CD-lanfrica-medium` was already in the shipped catalogue. Synthesised and measured to confirm: 6.77 s, 16 words, ~142 wpm |
+| Voice level matching | **done** — `core/audio/loudness.js`. Two Piper voices differ by **6.6 dB** on the same sentence |
+| Measured over VOICED frames only | **done** — a mostly-silent line would otherwise be amplified until its few words were shouted |
+| Per-voice `gain` | **done** — a trim on the voices block, kept separate from the per-line gain |
+| Casting by role, not model id | **done** — `core/voice/catalog.js`, 11 presets; `castEnsemble` returns distinct voices and reports a shortfall |
+| Five characters, five voices | **done** — already supported by the format; now tested and castable in one line |
+| `scripts/narration-pacing.mjs` | **done** — speech ratio, phrase, pause, onset rate, dynamics, hook vs body |
+| Kokoro provider | — not started |
+| Pacing check inside `check-film` | — not started |
+| Per-character rate and pitch | — not started |
+
+### The finding that matters
+
+| | narrated references | Finding Gold (ours) |
+|---|---|---|
+| speech ratio | **73%** | **54%** |
+| pauses per minute | 32–34 | 20–22 |
+| onsets/s | 2.1–2.6 | 2.1–2.2 |
+
+**Our films leave about a fifth of their runtime silent.** The speaking rate
+is right — onset rate matches almost exactly — so the fault is the gaps
+between lines, which come from shot lengths being set before the narration
+was written.
+
+And the hooks are measurably different from the bodies in every narrated
+sample: the first eight seconds run at 78–87% speech with **2.0–2.4 s**
+phrases, against 72–73% and 1.1–1.4 s after. An opening is one long
+uninterrupted run. A pause in the first eight seconds is an exit.
+
+### A tool that looked like it was working
+
+The first version of the pacing analyser counted any unbroken run of voiced
+frames as a phrase and reported medians of **40–140 ms**. Speech dips below
+any threshold between syllables and across every stop consonant, so those
+were syllables, not breath groups. Gaps under 180 ms are now bridged first.
 
 ---
 

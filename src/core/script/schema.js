@@ -100,6 +100,9 @@ export const KNOWN = {
     camera: ['from', 'to', 'ease', 'h', 'at', 'for', 'shake'],
     audioCue: ['asset', 'at', 'gain', 'fadeIn', 'fadeOut', 'offset', 'duration', 'bus'],
     asset: ['kind', 'src', 'file', 'provider', 'frames', 'grid', 'pivot', 'fit'],
+    // A cast voice: its provider spec, plus an optional per-voice trim so
+    // casting a character quieter is one edit, not a `gain` on every line.
+    voiceEntry: ['spec', 'gain', 'name', 'lang', 'notes'],
     background: ['color', 'gradient', 'image', 'fit'],
 };
 

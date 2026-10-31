@@ -1,6 +1,8 @@
 import { hashString } from '../util/id.js';
 import { lipsyncLine } from '../audio/lipsync.js';
 import { createCue } from '../audio/cues.js';
+import { normalizeGain, speechRms, toDb } from '../audio/loudness.js';
+import { resolveVoices } from './catalog.js';
 
 /**
  * Turns a compiled film's dialogue into audio cues plus viseme tracks.
@@ -13,6 +15,10 @@ import { createCue } from '../audio/cues.js';
 export async function synthesizeDialogue({
     lipsyncJobs, registry, buffers = {}, fps = 24,
     sampleRate = 48000, onProgress = null, existingAssets = {},
+    // Level-match every voice to the same speech loudness. Two Piper voices
+    // saying the same sentence differ by 6.6 dB, which in a scene with five
+    // characters is one of them shouting for no authored reason.
+    normalize = true, voiceLevel = 0.06,
 }) {
     const cues = [];
     const tracks = [];
@@ -53,9 +59,24 @@ export async function synthesizeDialogue({
         if (buffer) {
             const assetId = audioAssetId ?? `vo_${hashString(`${voiceSpec}|${text}`)}`;
             buffers[assetId] = buffer;
+            // Normalise, then the voice's own trim, then the line's. The line
+            // is last so an author's deliberate whisper survives the levelling.
+            const auto = normalize
+                ? normalizeGain(buffer.getChannelData(0), buffer.sampleRate, { target: voiceLevel })
+                : 1;
             cues.push(createCue({
-                id: `${nodeId}@${at}`, assetId, at, gain: job.gain ?? 1, bus: 'voice',
+                id: `${nodeId}@${at}`, assetId, at, bus: 'voice',
+                gain: auto * (job.voiceGain ?? 1) * (job.gain ?? 1),
             }));
+            if (normalize && (auto > 2 || auto < 0.5)) {
+                diagnostics.push({
+                    severity: 'info',
+                    path: `dialogue:${speaker}@${at}`,
+                    message: `Voice levelled by ${toDb(auto)} dB `
+                        + `(measured ${speechRms(buffer.getChannelData(0), buffer.sampleRate)
+                            .rms.toFixed(4)} against a ${voiceLevel} target).`,
+                });
+            }
         }
 
         if (lipsync && nodeId) {
@@ -86,15 +107,24 @@ export async function synthesizeDialogue({
  * takes on another.
  */
 export function castVoices(film) {
-    const voices = film.voices ?? {};
+    // Preset names resolve to specs first, so a film may cast by ROLE
+    // ("elder-m-en") rather than by model id, and still say the id outright
+    // where it wants to.
+    const resolved = resolveVoices(film.voices ?? {});
+    const voices = resolved.voices;
     const out = {};
-    const diagnostics = [];
+    const gains = {};
+    const diagnostics = [...resolved.diagnostics];
     for (const [name, char] of Object.entries(film.characters ?? {})) {
         const ref = char.voice;
         if (!ref) continue;
         const entry = voices[ref];
-        if (entry?.spec) out[name] = entry.spec;
-        else if (String(ref).includes(':')) out[name] = ref;   // inline spec
+        if (entry?.spec) {
+            out[name] = entry.spec;
+            // A per-VOICE trim, so casting a character quieter is one edit
+            // rather than a `gain` on every line they speak.
+            if (entry.gain != null) gains[name] = entry.gain;
+        } else if (String(ref).includes(':')) out[name] = ref;   // inline spec
         else {
             diagnostics.push({
                 severity: 'warning',
@@ -103,5 +133,5 @@ export function castVoices(film) {
             });
         }
     }
-    return { castBySpeaker: out, diagnostics };
+    return { castBySpeaker: out, voiceGains: gains, diagnostics };
 }

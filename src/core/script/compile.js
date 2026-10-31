@@ -69,7 +69,7 @@ export function compileFilm(film, { assets = {} } = {}) {
     const audioCues = [];
     const lipsyncJobs = [];
 
-    const { castBySpeaker, diagnostics: voiceDiag } = castVoices(film);
+    const { castBySpeaker, voiceGains, diagnostics: voiceDiag } = castVoices(film);
     diagnostics.push(...voiceDiag);
 
     // --- camera: starts at frame centre so authored coordinates read as
@@ -224,7 +224,7 @@ export function compileFilm(film, { assets = {} } = {}) {
 
             for (const line of shot.dialogue ?? []) {
                 buildDialogue({
-                    line, shotStart, shotEnd, sceneId, castMap, castBySpeaker,
+                    line, shotStart, shotEnd, sceneId, castMap, castBySpeaker, voiceGains,
                     film, lipsyncJobs, audioCues, diagnostics,
                 });
             }
@@ -1769,7 +1769,8 @@ const defaultChannel = (channel) => (channel === 'sx' || channel === 'sy' ? 1 : 
 
 // ------------------------------------------------------------------ dialogue
 
-function buildDialogue({ line, shotStart, shotEnd, sceneId, castMap, castBySpeaker, film, lipsyncJobs, audioCues, diagnostics }) {
+function buildDialogue({ line, shotStart, shotEnd, sceneId, castMap, castBySpeaker,
+                        voiceGains = {}, film, lipsyncJobs, audioCues, diagnostics }) {
     if (!line.text && !line.audio) return;
     const at = shotStart + (line.at ?? 0);
     const cast = castMap.get(line.speaker);
@@ -1796,6 +1797,7 @@ function buildDialogue({ line, shotStart, shotEnd, sceneId, castMap, castBySpeak
         audioAssetId: line.audio ?? null,
         lipsync: line.lipsync !== false,
         gain: line.gain ?? 1,
+        voiceGain: (charName ? voiceGains[charName] : null) ?? 1,
         durationSec: line.duration ?? null,
         subtitle: line.subtitle !== false,
         shotEnd,

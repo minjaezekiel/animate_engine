@@ -79,7 +79,9 @@
     "test:draw": "node --test test/core/draw.test.mjs",
     "test:draw:e2e": "node test/e2e/draw.mjs",
     "test:freehand": "node --test test/core/freehand.test.mjs",
-    "test:quadruped": "node --test test/core/quadruped.test.mjs"
+    "test:quadruped": "node --test test/core/quadruped.test.mjs",
+    "test:voice": "node --test test/core/voice.test.mjs",
+    "pacing": "node scripts/narration-pacing.mjs"
   },
   "keywords": [
     "animation",

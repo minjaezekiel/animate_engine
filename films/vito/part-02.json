@@ -3107,7 +3107,7 @@
       "shots": [
         {
           "id": "a0",
-          "duration": 8.5,
+          "duration": 7.68,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -3430,7 +3430,7 @@
       "shots": [
         {
           "id": "m0",
-          "duration": 7.5,
+          "duration": 6.27,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -3481,7 +3481,7 @@
         },
         {
           "id": "m1",
-          "duration": 8.5,
+          "duration": 7.73,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -4738,7 +4738,7 @@
         },
         {
           "id": "m2",
-          "duration": 9,
+          "duration": 9.9,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -4790,7 +4790,7 @@
       "shots": [
         {
           "id": "p0",
-          "duration": 6.5,
+          "duration": 4.68,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -5003,7 +5003,7 @@
         },
         {
           "id": "p1",
-          "duration": 9,
+          "duration": 8.02,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -5504,7 +5504,7 @@
         },
         {
           "id": "p2",
-          "duration": 9.5,
+          "duration": 8.45,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -5647,7 +5647,7 @@
       "shots": [
         {
           "id": "w0",
-          "duration": 6.5,
+          "duration": 5.26,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -5770,7 +5770,7 @@
         },
         {
           "id": "w1",
-          "duration": 8.5,
+          "duration": 7.58,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6181,7 +6181,7 @@
         },
         {
           "id": "w2",
-          "duration": 8,
+          "duration": 7.44,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6322,7 +6322,7 @@
       "shots": [
         {
           "id": "q0",
-          "duration": 7,
+          "duration": 6.35,
           "dialogue": [
             {
               "speaker": "bakari",
@@ -6380,7 +6380,7 @@
         },
         {
           "id": "q1",
-          "duration": 8,
+          "duration": 7.25,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6471,7 +6471,7 @@
       "shots": [
         {
           "id": "n0",
-          "duration": 7.5,
+          "duration": 6.42,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6576,7 +6576,7 @@
         },
         {
           "id": "n1",
-          "duration": 6.5,
+          "duration": 5.84,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6663,7 +6663,7 @@
         },
         {
           "id": "n2",
-          "duration": 7,
+          "duration": 5.98,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6750,7 +6750,7 @@
         },
         {
           "id": "n3",
-          "duration": 9.5,
+          "duration": 9.9,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6852,6 +6852,158 @@
               "ease": "step"
             }
           ]
+        },
+        {
+          "id": "n4",
+          "duration": 7.58,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kuna kitu kimoja zaidi kinachounganisha viwanda vyote vitatu: vyote vinafanya kazi chini ya ardhi, mbali na macho yetu.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "n5",
+          "duration": 9.03,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kwa hiyo huwezi kuona kiwanda kikifanya kazi. Unachoona ni matokeo yake baada ya mamilioni ya miaka ya mmomonyoko kuyafikisha juu.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "n6",
+          "duration": 6.13,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Na ndiyo maana milima ya zamani ni rafiki wa mtafiti. Mlima mpya bado haujafunua chochote.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.54,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 2.7,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.54,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 2.7,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.38,
+              "ease": "step"
+            }
+          ]
         }
       ]
     },
@@ -6893,7 +7045,7 @@
       "shots": [
         {
           "id": "c0",
-          "duration": 7.5,
+          "duration": 4.82,
           "dialogue": [
             {
               "speaker": "nuru",

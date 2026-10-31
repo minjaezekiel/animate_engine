@@ -1,0 +1,5011 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "Madini ya Vito — Usidanganywe",
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "subtitleStyle": {
+      "font": "600 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "fill": "#f4f1e8",
+      "stroke": "#05080d",
+      "strokeWidth": 7,
+      "lineHeight": 46,
+      "maxWidth": 960,
+      "bottomMargin": 372
+    },
+    "estimatedTiming": true
+  },
+  "palettes": {
+    "vito": {
+      "bg": "#0b1018",
+      "panel": "#141d2d",
+      "ink": "#f4f1e8",
+      "dim": "#93a1b5",
+      "gold": "#ffc64d",
+      "fluid": "#e2663c",
+      "water": "#4aa3d8",
+      "sulphide": "#b8a86a",
+      "structure": "#e24a6a",
+      "granite": "#cfc3b8",
+      "greenstone": "#3f5d4a",
+      "soil": "#6b5a44",
+      "quartz": "#e8e4da",
+      "basalt": "#2f4150",
+      "gem": "#5b7cfa",
+      "tanzanite": "#4a63d8",
+      "violet": "#8a6ad6",
+      "tsavorite": "#3fbf7f",
+      "ruby": "#e0344f",
+      "sapphire": "#2f6fd0",
+      "garnet": "#b3384f",
+      "rock": "#5a5347",
+      "rockDark": "#3a352d",
+      "gneiss": "#7d8794",
+      "graphite": "#2a2f36",
+      "pegmatite": "#d8cfc0",
+      "waterDeep": "#1f5d87",
+      "foam": "#cfe9f7",
+      "heat": "#e2663c",
+      "hot": "#f0a03c",
+      "fault": "#e24a6a",
+      "skin": "#8d5a3b",
+      "skinAlt": "#6f4529",
+      "cloth": "#2f7f6a",
+      "clothAlt": "#c9702f",
+      "clothWarm": "#8a5a3c",
+      "trouser": "#39404b",
+      "hair": "#241a14",
+      "hairGrey": "#9aa0a6",
+      "eye": "#2b1d14",
+      "white": "#f6f2e8",
+      "shoe": "#2a2320",
+      "teeth": "#f6f2e8",
+      "mouth": "#4a2420",
+      "accent": "#ffc64d",
+      "light": "#fff3cf"
+    }
+  },
+  "voices": {
+    "nuru_v": {
+      "spec": "host-sw"
+    },
+    "bakari_v": {
+      "spec": "young-m-sw"
+    },
+    "hamisi_v": {
+      "spec": "elder-m-sw"
+    }
+  },
+  "characters": {
+    "nuru": {
+      "palette": "vito",
+      "voice": "nuru_v",
+      "proportions": {
+        "height": 520
+      },
+      "generate": {
+        "build": "athletic",
+        "hands": "mitten",
+        "cloth": "cloth",
+        "trouser": "trouser",
+        "hair": "braids",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "tapered",
+          "eyes": "round",
+          "brow": "arched",
+          "nose": "broad",
+          "lips": "full",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.12
+          },
+          "armR": {
+            "rot": -0.12
+          },
+          "foreL": {
+            "rot": 0.18
+          },
+          "foreR": {
+            "rot": -0.18
+          }
+        },
+        "present": {
+          "armR": {
+            "rot": -0.62
+          },
+          "foreR": {
+            "rot": -0.52
+          },
+          "head": {
+            "rot": -0.05
+          }
+        },
+        "count": {
+          "armR": {
+            "rot": -0.85
+          },
+          "foreR": {
+            "rot": -0.9
+          }
+        },
+        "kneel": {
+          "armR": {
+            "rot": -0.95
+          },
+          "foreR": {
+            "rot": -0.55
+          },
+          "head": {
+            "rot": 0.22
+          }
+        }
+      }
+    },
+    "bakari": {
+      "palette": "vito",
+      "voice": "bakari_v",
+      "proportions": {
+        "height": 504.4
+      },
+      "generate": {
+        "build": "slim",
+        "hands": "mitten",
+        "skin": "skinAlt",
+        "cloth": "clothAlt",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "round",
+          "eyes": "wide",
+          "brow": "flat",
+          "nose": "button",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.14
+          },
+          "armR": {
+            "rot": -0.14
+          },
+          "foreL": {
+            "rot": 0.2
+          },
+          "foreR": {
+            "rot": -0.2
+          }
+        },
+        "ask": {
+          "armR": {
+            "rot": -0.7
+          },
+          "foreR": {
+            "rot": -0.75
+          },
+          "head": {
+            "rot": 0.08
+          }
+        }
+      }
+    },
+    "hamisi": {
+      "palette": "vito",
+      "voice": "hamisi_v",
+      "proportions": {
+        "height": 494
+      },
+      "generate": {
+        "build": "heavy",
+        "hands": "mitten",
+        "cloth": "clothWarm",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hairGrey",
+        "face": {
+          "jaw": "square",
+          "eyes": "hooded",
+          "brow": "heavy",
+          "nose": "broad",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.1
+          },
+          "armR": {
+            "rot": -0.1
+          },
+          "foreL": {
+            "rot": 0.22
+          },
+          "foreR": {
+            "rot": -0.22
+          }
+        },
+        "tell": {
+          "armR": {
+            "rot": -0.5
+          },
+          "foreR": {
+            "rot": -0.7
+          },
+          "head": {
+            "rot": -0.06
+          }
+        }
+      }
+    },
+    "sell": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "kicker",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            318
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MADINI YA VITO  ·  SEHEMU 6",
+            "font": "700 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "title",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            392
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Usidanganywe",
+            "font": "800 70px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "titlesub",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            462
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "jinsi ya kuuza bila kupunjwa",
+            "font": "600 31px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "s0_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            730
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "s0_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            730
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#ffc64d"
+        },
+        {
+          "id": "s0_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            688
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "PIMA MWENYEWE",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "s0_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            740
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Kwa mizani, mbele ya macho yako.\nUsikubali kuambiwa uzito tu.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "s1_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            936
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "s1_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            936
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#3fbf7f"
+        },
+        {
+          "id": "s1_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            894
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "ULIZA BEI TATU",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "s1_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            946
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Kwa watu tofauti, siku tofauti.\nBei moja si bei. Bei tatu ni soko.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "s2_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1142
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "s2_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            1142
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#e0344f"
+        },
+        {
+          "id": "s2_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1100
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "USIWE NA HARAKA",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "s2_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1152
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Haraka ndiyo kitu cha kwanza\nmnunuzi anachokiona usoni mwako.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        }
+      ]
+    },
+    "yield": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "yh",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            548
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "GHAFI NA KILICHOKATWA",
+            "font": "800 40px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "rough",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M200,820 L340,790 L420,880 L400,1010 L280,1090 L170,1000 L150,890Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#5d6fb8",
+          "stroke": "#9fb0e8",
+          "strokeWidth": 4
+        },
+        {
+          "id": "flaw",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M230,860 C241.7,870 295,896.7 300,920 C305,943.3 266.7,986.7 260,1000"
+          },
+          "z": 12,
+          "alpha": 0,
+          "stroke": "#cfd8f8",
+          "strokeWidth": 4
+        },
+        {
+          "id": "roughL",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            285,
+            1142
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "ghafi",
+            "font": "800 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "cg_p0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,922.5 L833.5,928.7 L760,1130Z"
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#1d2f7a",
+          "stroke": "#2c4192",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M833.5,928.7 L878.9,945 L760,1130Z"
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "#203380",
+          "stroke": "#3e54a6",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M878.9,945 L878.9,965 L760,1130Z"
+          },
+          "z": 23,
+          "alpha": 0,
+          "fill": "#31469b",
+          "stroke": "#5a71c7",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M878.9,965 L833.5,981.3 L760,1130Z"
+          },
+          "z": 25,
+          "alpha": 0,
+          "fill": "#4f6ace",
+          "stroke": "#768ee8",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M833.5,981.3 L760,987.5 L760,1130Z"
+          },
+          "z": 26,
+          "alpha": 0,
+          "fill": "#6988f9",
+          "stroke": "#88a1fc",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,987.5 L686.5,981.3 L760,1130Z"
+          },
+          "z": 26,
+          "alpha": 0,
+          "fill": "#6988f9",
+          "stroke": "#88a1fc",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M686.5,981.3 L641.1,965 L760,1130Z"
+          },
+          "z": 25,
+          "alpha": 0,
+          "fill": "#4f6ace",
+          "stroke": "#768ee8",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p7",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M641.1,965 L641.1,945 L760,1130Z"
+          },
+          "z": 23,
+          "alpha": 0,
+          "fill": "#31469b",
+          "stroke": "#5a71c7",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p8",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M641.1,945 L686.5,928.7 L760,1130Z"
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "#203380",
+          "stroke": "#3e54a6",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_p9",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M686.5,928.7 L760,922.5 L760,1130Z"
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#1d2f7a",
+          "stroke": "#2c4192",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,922.5 L833.5,928.7 L793.8,877.9 L760,875.1Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "#4d4196",
+          "stroke": "#5e52aa",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M833.5,928.7 L878.9,945 L814.7,885.4 L793.8,877.9Z"
+          },
+          "z": 31,
+          "alpha": 0,
+          "fill": "#6052a7",
+          "stroke": "#7265ba",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M878.9,945 L878.9,965 L814.7,894.6 L814.7,885.4Z"
+          },
+          "z": 33,
+          "alpha": 0,
+          "fill": "#7f6ec2",
+          "stroke": "#9384d4",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M878.9,965 L833.5,981.3 L793.8,902.1 L814.7,894.6Z"
+          },
+          "z": 35,
+          "alpha": 0,
+          "fill": "#9e89dd",
+          "stroke": "#b4a2ed",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M833.5,981.3 L760,987.5 L760,905 L793.8,902.1Z"
+          },
+          "z": 36,
+          "alpha": 0,
+          "fill": "#b19aee",
+          "stroke": "#c8b5fd",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,987.5 L686.5,981.3 L726.2,902.1 L760,905Z"
+          },
+          "z": 36,
+          "alpha": 0,
+          "fill": "#b19aee",
+          "stroke": "#c8b5fd",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M686.5,981.3 L641.1,965 L705.3,894.6 L726.2,902.1Z"
+          },
+          "z": 35,
+          "alpha": 0,
+          "fill": "#9e89dd",
+          "stroke": "#b4a2ed",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c7",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M641.1,965 L641.1,945 L705.3,885.4 L705.3,894.6Z"
+          },
+          "z": 33,
+          "alpha": 0,
+          "fill": "#7f6ec2",
+          "stroke": "#9384d4",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c8",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M641.1,945 L686.5,928.7 L726.2,877.9 L705.3,885.4Z"
+          },
+          "z": 31,
+          "alpha": 0,
+          "fill": "#6052a7",
+          "stroke": "#7265ba",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_c9",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M686.5,928.7 L760,922.5 L760,875.1 L726.2,877.9Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "#4d4196",
+          "stroke": "#5e52aa",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "cg_tab",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,875.1 L793.8,877.9 L814.7,885.4 L814.7,894.6 L793.8,902.1 L760,905 L726.2,902.1 L705.3,894.6 L705.3,885.4 L726.2,877.9Z"
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "#9d86e8",
+          "stroke": "ink",
+          "strokeWidth": 2.5
+        },
+        {
+          "id": "cg_gird",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,922.5 L833.5,928.7 L878.9,945 L878.9,965 L833.5,981.3 L760,987.5 L686.5,981.3 L641.1,965 L641.1,945 L686.5,928.7Z"
+          },
+          "z": 41,
+          "alpha": 0,
+          "stroke": "ink",
+          "strokeWidth": 3
+        },
+        {
+          "id": "cg_out",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,987.5 L686.5,981.3 L641.1,965 L641.1,945 L686.5,928.7 L760,922.5 L833.5,928.7 L878.9,945 L878.9,965 L833.5,981.3 L760,987.5 L760.0,922.5"
+          },
+          "z": 42,
+          "alpha": 0,
+          "stroke": "ink",
+          "strokeWidth": 3.5
+        },
+        {
+          "id": "cg_cul",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M760,987.5 L760,1130 L760,922.5"
+          },
+          "z": 42,
+          "alpha": 0,
+          "stroke": "ink",
+          "strokeWidth": 3.5
+        },
+        {
+          "id": "cutL",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            760,
+            1182
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "kilichokatwa",
+            "font": "800 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "arrow",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M450,960 L580,960 L548,936 M580,960 L548,984"
+          },
+          "z": 50,
+          "alpha": 0,
+          "stroke": "ink",
+          "strokeWidth": 6
+        },
+        {
+          "id": "lossT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1300
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "UZITO UNAOPOTEA: ZAIDI YA NUSU",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "fault"
+        }
+      ]
+    },
+    "fake": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "kh",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            520
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "DALILI TATU ZA KIOO",
+            "font": "800 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "k0_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            690
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "k0_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            690
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#e0344f"
+        },
+        {
+          "id": "k0_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            648
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "VIPUTO VYA MVIRINGO",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "k0_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Maumbile hayatengenezi viputo kamili.\nHicho ni kioo.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "k1_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            896
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "k1_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            896
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#e0344f"
+        },
+        {
+          "id": "k1_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            854
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "RANGI KAMILI SANA",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "k1_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            906
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Kito cha kweli kina maeneo mepesi na mazito.\nUsawa kamili ni dalili ya hatari.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "k2_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1102
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "k2_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            1102
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#e0344f"
+        },
+        {
+          "id": "k2_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1060
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "BEI NDOGO KUPITA KIASI",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "k2_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1112
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Hakuna anayeuza tanzanite ya kweli\nkwa bei ya kioo.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        }
+      ]
+    },
+    "heat": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "hh",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            548
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "KUPASHA MOTO SI UDANGANYIFU",
+            "font": "800 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "before",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M300,780 L410,796 L438,906 L352,978 L262,898Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#8a6a4a",
+          "stroke": "#c6a884",
+          "strokeWidth": 4
+        },
+        {
+          "id": "beforeL",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            350,
+            1042
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "kahawia — kama ilivyochimbwa",
+            "font": "600 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 440
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "after",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M670,780 L780,796 L808,906 L722,978 L632,898Z"
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "tanzanite",
+          "stroke": "gem",
+          "strokeWidth": 4
+        },
+        {
+          "id": "afterL",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            720,
+            1042
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "bluu — baada ya joto",
+            "font": "600 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 440
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "heatArrow",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M470,880 L600,880 L568,856 M600,880 L568,904"
+          },
+          "z": 50,
+          "alpha": 0,
+          "stroke": "heat",
+          "strokeWidth": 7
+        },
+        {
+          "id": "heatN",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            535,
+            820
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "nyuzi 500",
+            "font": "800 28px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "heat"
+        },
+        {
+          "id": "ruleBg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1230
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 160,
+            "cx": true,
+            "cy": true
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "#12241a",
+          "stroke": "#3fbf7f",
+          "strokeWidth": 3
+        },
+        {
+          "id": "ruleT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1186
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "SHERIA PEKEE NI UKWELI",
+            "font": "800 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 61,
+          "alpha": 0,
+          "fill": "tsavorite"
+        },
+        {
+          "id": "ruleB",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1256
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Tatizo si kupasha moto. Tatizo ni kuficha.",
+            "font": "700 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 61,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    },
+    "chain": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "xh",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            520
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "TULIYOYAONA",
+            "font": "800 42px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cn0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            130,
+            630
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 24,
+            "ry": 24
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "cn0_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            186,
+            630
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Kito cha sehemu moja",
+            "font": "700 33px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 820
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cn0_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M130,656 L130,722"
+          },
+          "z": 19,
+          "alpha": 0,
+          "stroke": "#2b3a52",
+          "strokeWidth": 4
+        },
+        {
+          "id": "cn1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            130,
+            748
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 24,
+            "ry": 24
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "heat"
+        },
+        {
+          "id": "cn1_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            186,
+            748
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Viwanda vitatu",
+            "font": "700 33px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 820
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cn1_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M130,774 L130,840"
+          },
+          "z": 19,
+          "alpha": 0,
+          "stroke": "#2b3a52",
+          "strokeWidth": 4
+        },
+        {
+          "id": "cn2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            130,
+            866
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 24,
+            "ry": 24
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "water"
+        },
+        {
+          "id": "cn2_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            186,
+            866
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Mto unakuambia",
+            "font": "700 33px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 820
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cn2_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M130,892 L130,958"
+          },
+          "z": 19,
+          "alpha": 0,
+          "stroke": "#2b3a52",
+          "strokeWidth": 4
+        },
+        {
+          "id": "cn3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            130,
+            984
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 24,
+            "ry": 24
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "tsavorite"
+        },
+        {
+          "id": "cn3_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            186,
+            984
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Dalili za ardhini",
+            "font": "700 33px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 820
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cn3_l",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M130,1010 L130,1076"
+          },
+          "z": 19,
+          "alpha": 0,
+          "stroke": "#2b3a52",
+          "strokeWidth": 4
+        },
+        {
+          "id": "cn4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            130,
+            1102
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 24,
+            "ry": 24
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "cn4_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            186,
+            1102
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Vipimo vinne",
+            "font": "700 33px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 820
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "xf",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1300
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Ardhi hii ni tajiri.\nUtajiri wake unahitaji maarifa, si bahati.",
+            "font": "800 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "gold",
+          "lineHeight": 50
+        },
+        {
+          "id": "xd",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1424
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Haya ni mafunzo ya jumla, si ushauri wa kisheria wala wa bei.",
+            "font": "600 25px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "dim"
+        }
+      ]
+    },
+    "card": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "card_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            960
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 1080,
+            "h": 1920,
+            "cx": true,
+            "cy": true
+          },
+          "z": 200,
+          "alpha": 0,
+          "fill": "#05080d"
+        },
+        {
+          "id": "card_next",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Asante kwa kuangalia — sambaza kwa mwenye kuhitaji",
+            "font": "700 40px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "card_series",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            876
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MADINI YA VITO",
+            "font": "800 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "card_tag",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            936
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "jinsi vito vinazaliwa na jinsi ya kuvitafuta",
+            "font": "600 29px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "card_share",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1046
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "#MadiniYaVito  #Tanzania  #Vito",
+            "font": "700 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "card_eng",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1160
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Imeundwa na Jirex — injini huria ya uhuishaji",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "card_repo",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1204
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "github.com/minjaezekiel/jireX",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "ghafi",
+      "palette": "vito",
+      "background": {
+        "color": "#0a0e15"
+      },
+      "transitionIn": {
+        "kind": "fade",
+        "from": "#000000",
+        "duration": 0.7
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "yield",
+          "as": "yield",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "a0",
+          "duration": 7.1,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Watu wengi hawapotezi pesa kwa kukosa vito. Wanapoteza kwa kuuza vibaya, siku ile ile walipovipata.",
+              "at": 0.3,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "yh",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "yh",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.75,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "rough",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "rough",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "flaw",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "flaw",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.8,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "roughL",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "roughL",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "a1",
+          "duration": 7.29,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Jambo la kwanza unalotakiwa kujua: jiwe ghafi na jiwe lililokatwa ni vitu viwili tofauti kabisa kwenye bei.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "arrow",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "arrow",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.26,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.56,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.32,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.62,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.38,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.68,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.44,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.74,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.8,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.56,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.86,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p7",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.62,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p7",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.92,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p8",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.68,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p8",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.98,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p9",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.74,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_p9",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.04,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.1,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.86,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.16,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.92,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.22,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.98,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.28,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.04,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.34,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.4,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.16,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.46,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c7",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.22,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c7",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.52,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c8",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.28,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c8",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.58,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c9",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.34,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_c9",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.64,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_tab",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_tab",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.7,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_gird",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.46,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_gird",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.76,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_out",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.52,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_out",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.82,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_cul",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.58,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cg_cul",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.88,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cutL",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "cutL",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.4,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "a2",
+          "duration": 6.57,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Jiwe ghafi lina maswali ndani yake. Litakatika vipi? Litabaki na uzito gani? Lina mpasuko wa ndani?",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "a3",
+          "duration": 6.71,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Mkataji akikata, uzito mwingi unapotea. Mara nyingi zaidi ya nusu, na wakati mwingine theluthi mbili.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.94,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.94,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.1,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.94,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.94,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.1,
+              "ease": "step"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "yield",
+              "do": "set",
+              "part": "lossT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.78,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "a4",
+          "duration": 7.29,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kwa hiyo mnunuzi hakupi bei ya kito. Anakupa bei ya hatari anayoibeba. Hiyo si lazima iwe udanganyifu.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        }
+      ]
+    },
+    {
+      "id": "kuuza",
+      "palette": "vito",
+      "background": {
+        "color": "#0b1018"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "sell",
+          "as": "sell",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "b0",
+          "duration": 5.55,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Lakini unaweza kupunguza hatari yako kwa kujua vitu vitatu kabla ya kuuza.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.85,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.62,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.07,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "titlesub",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.84,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "titlesub",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.29,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "b1",
+          "duration": 6.42,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kimoja: pima uzito wako mwenyewe, kwa mizani, mbele ya macho yako. Usikubali kuambiwa uzito tu.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s0_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s0_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s0_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s0_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s0_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s0_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s0_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s0_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "b2",
+          "duration": 6.27,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Pili: uliza bei kwa watu zaidi ya mmoja, siku tofauti. Bei moja si bei. Bei tatu ni soko.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s1_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s1_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s1_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s1_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s1_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s1_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "b3",
+          "duration": 6.42,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Tatu: usiuze ukiwa na haraka. Haraka ndiyo kitu cha kwanza mnunuzi anachokiona usoni mwako.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s2_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s2_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s2_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s2_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s2_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "sell",
+              "do": "set",
+              "part": "s2_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kioo",
+      "palette": "vito",
+      "background": {
+        "color": "#120a0e"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "fake",
+          "as": "fake",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "c0",
+          "duration": 5.26,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Sasa upande wa pili: jinsi ya kujua kama jiwe unalonunuliwa ni la kweli.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "kh",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "kh",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.75,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "c1",
+          "duration": 7.58,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Vito vingi vya bluu vinavyouzwa barabarani ni kioo. Viputo vya mviringo ndani, na rangi inayofanana kupita kiasi.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k0_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k0_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k0_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k0_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k0_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k0_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k0_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k0_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "c2",
+          "duration": 7.44,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Rangi kamili sana ni dalili ya hatari. Maumbile hayako sawasawa. Kito cha kweli kina maeneo mepesi na mazito.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k1_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k1_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k1_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k1_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k1_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k1_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "c3",
+          "duration": 7.44,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Na bei ndogo kupita kiasi ni dalili kubwa kuliko zote. Hakuna anayeuza tanzanite ya kweli kwa bei ya kioo.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k2_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k2_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k2_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k2_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k2_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "fake",
+              "do": "set",
+              "part": "k2_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "joto",
+      "palette": "vito",
+      "background": {
+        "color": "#140e08"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "heat",
+          "as": "heat",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "d0",
+          "duration": 6.42,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Lakini kuna jambo moja ambalo watu wanalichanganya kila siku, na ni muhimu kulielewa vizuri.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "hh",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "hh",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.75,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "before",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "before",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "beforeL",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "beforeL",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d1",
+          "duration": 8.02,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kupasha moto si udanganyifu. Tanzanite nyingi inapashwa moto ili kutoa rangi ya bluu, na hiyo inakubalika duniani kote.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "heatArrow",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "heatArrow",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "heatN",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "heatN",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.54,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 2.7,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.54,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 2.7,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "after",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.38,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "afterL",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "afterL",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d2",
+          "duration": 7.73,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Sheria pekee ni ukweli: muuzaji lazima aseme kama jiwe limepashwa moto. Tatizo si kupasha moto. Tatizo ni kuficha.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "ruleBg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "ruleBg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.8,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "ruleT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "ruleT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.1,
+              "ease": "step"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "ruleB",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "heat",
+              "do": "set",
+              "part": "ruleB",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.5,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "swali",
+      "palette": "vito",
+      "background": {
+        "color": "#101a26"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            330,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter"
+        },
+        {
+          "character": "bakari",
+          "as": "bakari",
+          "at": [
+            770,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter",
+          "facing": -1
+        }
+      ],
+      "shots": [
+        {
+          "id": "q0",
+          "duration": 4.51,
+          "dialogue": [
+            {
+              "speaker": "bakari",
+              "text": "Na mimi nikichimba na kupata, naweza kuuza tu hivi hivi?",
+              "at": 0.3,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "nuru",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "bakari",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "bakari",
+              "do": "pose",
+              "pose": "ask",
+              "at": 0.3,
+              "for": 0.6
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 0.995
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 3.656
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 1.581
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 4.113
+            }
+          ]
+        },
+        {
+          "id": "q1",
+          "duration": 7.39,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Hapana. Unahitaji leseni, na unahitaji kuuza kwenye njia inayotambulika. Bila hivyo huna ulinzi wowote.",
+              "at": 0.3,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "nuru",
+              "do": "pose",
+              "pose": "present",
+              "at": 0.3,
+              "for": 0.7
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 1.746
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 6.177
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 1.995
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 4.741
+            }
+          ]
+        },
+        {
+          "id": "q2",
+          "duration": 7.39,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Leseni si adhabu. Ni ushahidi kwamba jiwe lako ni lako, na ndiyo inayokupa nguvu ya kudai haki yako ukipunjwa.",
+              "at": 0.3,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "nuru",
+              "do": "pose",
+              "pose": "count",
+              "at": 0.4,
+              "for": 0.7
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 1.492
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 4.319
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 0.89
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 5.025
+            }
+          ]
+        },
+        {
+          "id": "q3",
+          "duration": 8.69,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Na usalama: mashimo ya wachimbaji wadogo yanaweza kuporomoka. Usichimbe peke yako, na usichimbe shimo refu bila msaada.",
+              "at": 0.3,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 1.101
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 5.673
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 8.293
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 2.031
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 5.189
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mnyororo",
+      "palette": "vito",
+      "background": {
+        "color": "#0b1018"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "chain",
+          "as": "chain",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "e0",
+          "duration": 5.26,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Tulianza na jiwe linalopatikana sehemu moja duniani, hapa Tanzania.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xh",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xh",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.75,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn0_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn0_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn0_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn0_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e1",
+          "duration": 6.86,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Tumeona lilivyozaliwa, viwanda vitatu vinavyotengeneza vito vyote, na jinsi mto unavyokuonyesha njia.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn1_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn1_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.1,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn2_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn2_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e2",
+          "duration": 6.57,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Tumeona dalili za ardhini, na vipimo vinne vya kujua kama jiwe lako linastahili kupimwa zaidi.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn3_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn3_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn3_l",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn3_l",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.2,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn4_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "cn4_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.3,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e3",
+          "duration": 5.4,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Ardhi hii ni tajiri. Lakini utajiri wake unahitaji maarifa, si bahati.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.774,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.774,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 1.95,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.774,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.774,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 1.95,
+              "ease": "step"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xf",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.58,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e4",
+          "duration": 6.86,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Haya ni mafunzo ya jumla, si ushauri wa kisheria wala wa bei. Ukipata jiwe muhimu, tafuta mtaalamu.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xd",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "chain",
+              "do": "set",
+              "part": "xd",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.45,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "palette": "vito",
+      "background": {
+        "color": "#05080d"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.5
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "card",
+          "as": "card",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "z0",
+          "duration": 3.5,
+          "actions": [
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.65,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_next",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_next",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.87,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_series",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_series",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.09,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_tag",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.86,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_tag",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.31,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_share",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.08,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_share",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.53,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_eng",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_eng",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.75,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_repo",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.52,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_repo",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.97,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

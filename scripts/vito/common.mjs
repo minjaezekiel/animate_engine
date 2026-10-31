@@ -10,6 +10,7 @@ import {
     L, M, SAFE, pathPart, poly, rectPart, smooth, textPart,
 } from '../lib/diagram.mjs';
 import { REPO, SERIES, SHARE, TAGLINE } from '../lib/vito.mjs';
+import { estimateLine } from '../../src/core/script/pacing.js';
 
 export { rng, squarePath, bez3, blinks, board, castBoard } from '../lib/boards.mjs';
 
@@ -235,3 +236,45 @@ export const statParts = (id, value, caption, {
                                    font: `700 30px ${FONT}`, fill: 'dim', alpha: 0, z,
                                    maxWidth: SAFE.x1 - SAFE.x0 }),
 ];
+
+/**
+ * Derive every shot's duration from the narration it carries.
+ *
+ * docs/27-RETENTION.md argues that the order matters: write the line, then
+ * let the picture follow it. Authoring a duration by hand and writing into it
+ * is the reverse, and it is the documented cause of the geology series
+ * leaving roughly a fifth of its runtime silent.
+ *
+ * A shot ends when BOTH are done -- the line, and the last thing that moves:
+ *
+ *   max(line.at + estimated span + pad,  last action + 0.4,  min)
+ *
+ * The line span uses the same estimator `check-film` reports with, which for
+ * Swahili counts syllables. The engine re-fits to the real audio at render
+ * time anyway (`estimatedTiming`), so this is about making the AUTHORED
+ * timing honest enough that the action schedule still fits once it does --
+ * a shot cut shorter than its own reveals loses them silently.
+ */
+export function fitShots(film, { pad = 0.85, min = 3.5, lang = 'sw' } = {}) {
+    const rate = (speaker) => ({ nuru: 1.06, bakari: 1.10, hamisi: 0.86 }[speaker] ?? 1);
+    for (const scene of film.scenes ?? []) {
+        for (const shot of scene.shots ?? []) {
+            let needed = min;
+            for (const line of shot.dialogue ?? []) {
+                needed = Math.max(needed,
+                    (line.at ?? 0) + estimateLine(line.text, { lang, rate: rate(line.speaker) })
+                        + pad);
+            }
+            for (const a of shot.actions ?? []) {
+                // A flow loop is deliberately LONGER than its shot: `flow` is
+                // periodic, so an over-long linear ramp costs nothing and
+                // saves re-keying per cycle. Counting its far key as a beat
+                // to wait for stretched one shot of part three to 41 seconds.
+                if (a.do === 'set' && a.channel === 'props.flow') continue;
+                needed = Math.max(needed, (a.at ?? 0) + (a.for ?? 0) + 0.4);
+            }
+            shot.duration = +needed.toFixed(2);
+        }
+    }
+    return film;
+}

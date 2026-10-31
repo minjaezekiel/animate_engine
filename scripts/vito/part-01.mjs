@@ -23,8 +23,8 @@ import {
     CHARACTERS, META, VITO_PALETTE, VOICES, offstage, says, vo,
 } from '../lib/vito.mjs';
 import {
-    blinks, board, castBoard, endCard, foldBand, gemParts, glintPart, hookTitle,
-    strata,
+    blinks, board, castBoard, endCard, fitShots, foldBand, gemParts, glintPart,
+    hookTitle, strata,
 } from './common.mjs';
 
 const FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif';
@@ -79,6 +79,12 @@ const P1 = [
           + 'miaka ishirini hadi thelathini tu.',
     /*20 */ 'Kila jiwe linalotoka hapa halirudi tena. Hiyo, zaidi ya rangi, ndiyo sababu '
           + 'ya thamani yake.',
+    /*21 */ 'Jambo lingine la kushangaza: tanzanite nyingi inayochimbwa ni ya kahawia, si '
+          + 'ya bluu. Joto la nyuzi mia tano linabadilisha rangi kuwa bluu.',
+    /*22 */ 'Hiyo si udanganyifu, na inakubalika kisheria, mradi muuzaji aseme ukweli. '
+          + 'Hata ardhi yenyewe hufanya hivyo chini kwa joto lake.',
+    /*23 */ 'Na sababu ya rangi mbili ni ajabu zaidi. Ukiigeuza, tanzanite inaonyesha '
+          + 'bluu, zambarau na nyekundu, kutegemea upande unaoiangalia.',
 ];
 
 // ---------------------------------------------------------------------------
@@ -590,6 +596,26 @@ export function partOne() {
                       ...reveal('vein', 'zoBlue', 3.2, { span: 0.7 }),
                       ...pop('vein', 'zoBlueT', 3.6, { span: 0.5 }),
                   ] },
+                { id: 'v4', duration: 8.0, dialogue: [vo(P1[21], 0.2)],
+                  actions: [
+                      ...ramp('vein', 'zoBlue', 'props.alpha', 0.4, 1.2, 1, 0),
+                      ...ramp('vein', 'zoGrey', 'props.alpha', 0.4, 1.2, 1, 1),
+                      ...conceal('vein', 'zoBlueT', 0.4, { span: 0.4 }),
+                      ...reveal('vein', 'zoGreyT', 0.9, { span: 0.4 }),
+                      ...ramp('vein', 'zoBlue', 'props.alpha', 4.4, 1.4, 0, 1),
+                      ...conceal('vein', 'zoGreyT', 4.4, { span: 0.4 }),
+                      ...reveal('vein', 'zoBlueT', 4.9, { span: 0.4 }),
+                  ] },
+                { id: 'v5', duration: 7.0, dialogue: [vo(P1[22], 0.2)], actions: [] },
+                { id: 'v6', duration: 7.5, dialogue: [vo(P1[23], 0.2)],
+                  actions: [
+                      ...ramp('vein', 'zoBlue', 'props.fill', 1.0, 1.0,
+                              '#4a63d8', '#8a6ad6'),
+                      ...ramp('vein', 'zoBlue', 'props.fill', 3.0, 1.0,
+                              '#8a6ad6', '#b3384f'),
+                      ...ramp('vein', 'zoBlue', 'props.fill', 5.0, 1.0,
+                              '#b3384f', '#4a63d8'),
+                  ] },
             ],
         },
         // --- the question, asked and answered
@@ -662,7 +688,7 @@ export function partOne() {
         },
     ];
 
-    return {
+    return fitShots({
         version: 'jirex.film/1',
         // Shot durations here are a word-count estimate, so the engine may
         // TIGHTEN them to the real audio as well as grow them. That is the
@@ -673,5 +699,5 @@ export function partOne() {
         voices: VOICES,
         characters,
         scenes,
-    };
+    });
 }

@@ -243,6 +243,100 @@ which is what turned "over budget" into "the backdrop is 100% of it").
 
 ---
 
+## Phase 33 — flow, delivery, pacing, and a Swahili series — **done**
+
+Three engine features, a six-part film, and five defects found by looking.
+
+### `props.flow` — travelling dashes
+
+`trim` could already repeat a dash pattern down a path: `applyTrim` sets
+`[span * L, L]`, so a SMALL `length` repeats instead of covering the shape,
+and advancing the offset makes the pattern travel. Reachable the whole time
+except that `trim` is an object and `applyPose` is shallow by design, so
+`set props.trim.offset` wrote a property literally named `"trim.offset"` that
+nothing read — no error, no diagnostic, no moving water. One scalar added to
+the offset at draw time, the same shape as `props.boil` and `props.progress`.
+
+Got the arithmetic wrong first: flow scaled by `length` alone advances by
+1/(span+1) of a period, so a loop authored 0 → 1 jumped a quarter period every
+cycle. Flow now counts whole periods. `RecordingContext` did not record
+`lineDashOffset`, so no test could have seen any of it; it does now, only when
+non-zero so no golden log moves. See `25-FLOW.md`.
+
+### `core/audio/delivery.js` — rate and pitch per character
+
+There is exactly **one** Swahili voice in the Piper catalogue, confirmed
+against its own path map: 1 of 119. `catalog.js` had said since it was written
+that a Swahili cast "is separated by pacing and pitch rather than by timbre",
+and nothing in the engine could change either. Pitch by resampling, duration
+back by WSOLA; the search is the point, because plain overlap-add splices at
+an arbitrary phase and warbles. Post-processing rather than a synthesiser
+setting, so it works for recorded takes too. Delivery runs BEFORE loudness
+normalisation, or it would undo the levelling Phase 32 added. See
+`26-DELIVERY.md`.
+
+### `core/script/pacing.js` — pacing before the render
+
+And this is where the interesting mistake was. The first version reported
+"speech ratio" and compared it with the 73 % measured from reference audio.
+**It is not the same quantity.** The audio tool counts voiced frames; a
+compiled film can only know line spans, which include intra-line pause. Same
+film, part one of the geology series: **81 % covered, 54 % voiced.** No
+calibration reconciles them — scaling 81 to 54 implies a voicing fraction of
+0.67, which applied to the references' 73 % would need 109 % coverage.
+
+So it reports LINE COVERAGE, says so in its own summary line, and takes its
+thresholds from our own films rather than from a different metric. That makes
+it discriminating: geology parts 1 and 10 pass at 81–82 %, part 4 is flagged
+at 70 % with its first word at 4.4 s, a 5.1 s hole at 28.9 s, and its two
+field scenes named at 36 % and 29 %. See `27-RETENTION.md`.
+
+### Measured, not assumed: Swahili is syllable-timed
+
+Synthesising 21 lines and comparing with their real durations:
+
+| basis | mean | variation |
+|---|---|---|
+| words/minute | 147 | 11 % |
+| characters/second | 16.1 | 6 % |
+| **syllables/second** | **6.50** | **5.6 %** |
+
+Swahili spelling is near-phonetic, so a vowel letter is a syllable, and word
+length varies enormously — `tu` and `kinachopatikana` are both one word. Mean
+absolute error on the worst lines falls from 18 % to 8 %. English keeps words:
+its spelling is not phonetic and no measurement justifies a syllable figure.
+
+### Madini ya Vito — six parts, Swahili
+
+1080×1920, 2:22–2:52 each, 82–85 % line coverage, hook 83–93 % from 0.3 s in
+all six. The hook plays before the title, because a card in the first two
+seconds spends the window. `fitShots` derives every shot's duration from the
+line it carries — the direct fix for the defect that left the geology series a
+fifth silent. See `28-MADINI-YA-VITO.md`.
+
+### Found by looking at a frame, not by a test
+
+| | |
+|---|---|
+| `SUBTITLE_STYLE` used `y`; the engine reads `bottomMargin` | Accepted, carried, ignored — every subtitle sat at the default |
+| `grab2d` could not show subtitles at all | They are attached in `studio.js` at render time, not by the compiler. Most viewers watch muted. `attachSubtitles` is now exported |
+| The gem was five shapes with a thresholded two-tone fill | Read as a clip-art diamond — the same mistake as the dog and the hands. Rebuilt as a facet ring with a continuous shade ramp |
+| Every folded layer grew spikes off the left of the frame | Joining two `smooth()` curves by string-surgery on the second one's `M` starts a new subpath the fill closes across the frame. `foldBand` replaces the prefix with an `L` |
+| The sea was a blue rectangle with sticks on it | Wavy surface, graded depth, five lanes at falling speeds |
+
+### And two in the tooling
+
+- **Every render re-downloaded 63 MB.** `vits-web` caches models in OPFS and a
+  headless render launches a *fresh* profile, so the cache is empty every run.
+  The first Swahili render crashed mid-download. `npm run vendor-voice` serves
+  the model locally; that render now finishes in **20.9 seconds**.
+- **`probe-video.mjs` reported every 48 kHz track as −17536 Hz.** The sample
+  rate is 16.16 fixed point, so 48000 sits in the high half as `0xBB800000`,
+  negative as a signed int32, and `>>` sign-extends it. It wanted `>>>`. Wrong
+  for every file it had ever read.
+
+797 unit tests pass.
+
 ## Phase 32 — voices and delivery — *partial*
 
 Design and the measurements: [24-VOICE-AND-DELIVERY.md](24-VOICE-AND-DELIVERY.md).

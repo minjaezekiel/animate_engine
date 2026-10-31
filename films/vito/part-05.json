@@ -1,0 +1,5480 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "Madini ya Vito — Vipimo vinne",
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "subtitleStyle": {
+      "font": "600 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "fill": "#f4f1e8",
+      "stroke": "#05080d",
+      "strokeWidth": 7,
+      "lineHeight": 46,
+      "maxWidth": 960,
+      "bottomMargin": 372
+    },
+    "estimatedTiming": true
+  },
+  "palettes": {
+    "vito": {
+      "bg": "#0b1018",
+      "panel": "#141d2d",
+      "ink": "#f4f1e8",
+      "dim": "#93a1b5",
+      "gold": "#ffc64d",
+      "fluid": "#e2663c",
+      "water": "#4aa3d8",
+      "sulphide": "#b8a86a",
+      "structure": "#e24a6a",
+      "granite": "#cfc3b8",
+      "greenstone": "#3f5d4a",
+      "soil": "#6b5a44",
+      "quartz": "#e8e4da",
+      "basalt": "#2f4150",
+      "gem": "#5b7cfa",
+      "tanzanite": "#4a63d8",
+      "violet": "#8a6ad6",
+      "tsavorite": "#3fbf7f",
+      "ruby": "#e0344f",
+      "sapphire": "#2f6fd0",
+      "garnet": "#b3384f",
+      "rock": "#5a5347",
+      "rockDark": "#3a352d",
+      "gneiss": "#7d8794",
+      "graphite": "#2a2f36",
+      "pegmatite": "#d8cfc0",
+      "waterDeep": "#1f5d87",
+      "foam": "#cfe9f7",
+      "heat": "#e2663c",
+      "hot": "#f0a03c",
+      "fault": "#e24a6a",
+      "skin": "#8d5a3b",
+      "skinAlt": "#6f4529",
+      "cloth": "#2f7f6a",
+      "clothAlt": "#c9702f",
+      "clothWarm": "#8a5a3c",
+      "trouser": "#39404b",
+      "hair": "#241a14",
+      "hairGrey": "#9aa0a6",
+      "eye": "#2b1d14",
+      "white": "#f6f2e8",
+      "shoe": "#2a2320",
+      "teeth": "#f6f2e8",
+      "mouth": "#4a2420",
+      "accent": "#ffc64d",
+      "light": "#fff3cf"
+    }
+  },
+  "voices": {
+    "nuru_v": {
+      "spec": "host-sw"
+    },
+    "bakari_v": {
+      "spec": "young-m-sw"
+    },
+    "hamisi_v": {
+      "spec": "elder-m-sw"
+    }
+  },
+  "characters": {
+    "nuru": {
+      "palette": "vito",
+      "voice": "nuru_v",
+      "proportions": {
+        "height": 520
+      },
+      "generate": {
+        "build": "athletic",
+        "hands": "mitten",
+        "cloth": "cloth",
+        "trouser": "trouser",
+        "hair": "braids",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "tapered",
+          "eyes": "round",
+          "brow": "arched",
+          "nose": "broad",
+          "lips": "full",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.12
+          },
+          "armR": {
+            "rot": -0.12
+          },
+          "foreL": {
+            "rot": 0.18
+          },
+          "foreR": {
+            "rot": -0.18
+          }
+        },
+        "present": {
+          "armR": {
+            "rot": -0.62
+          },
+          "foreR": {
+            "rot": -0.52
+          },
+          "head": {
+            "rot": -0.05
+          }
+        },
+        "count": {
+          "armR": {
+            "rot": -0.85
+          },
+          "foreR": {
+            "rot": -0.9
+          }
+        },
+        "kneel": {
+          "armR": {
+            "rot": -0.95
+          },
+          "foreR": {
+            "rot": -0.55
+          },
+          "head": {
+            "rot": 0.22
+          }
+        }
+      }
+    },
+    "bakari": {
+      "palette": "vito",
+      "voice": "bakari_v",
+      "proportions": {
+        "height": 504.4
+      },
+      "generate": {
+        "build": "slim",
+        "hands": "mitten",
+        "skin": "skinAlt",
+        "cloth": "clothAlt",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "round",
+          "eyes": "wide",
+          "brow": "flat",
+          "nose": "button",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.14
+          },
+          "armR": {
+            "rot": -0.14
+          },
+          "foreL": {
+            "rot": 0.2
+          },
+          "foreR": {
+            "rot": -0.2
+          }
+        },
+        "ask": {
+          "armR": {
+            "rot": -0.7
+          },
+          "foreR": {
+            "rot": -0.75
+          },
+          "head": {
+            "rot": 0.08
+          }
+        }
+      }
+    },
+    "hamisi": {
+      "palette": "vito",
+      "voice": "hamisi_v",
+      "proportions": {
+        "height": 494
+      },
+      "generate": {
+        "build": "heavy",
+        "hands": "mitten",
+        "cloth": "clothWarm",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hairGrey",
+        "face": {
+          "jaw": "square",
+          "eyes": "hooded",
+          "brow": "heavy",
+          "nose": "broad",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.1
+          },
+          "armR": {
+            "rot": -0.1
+          },
+          "foreL": {
+            "rot": 0.22
+          },
+          "foreR": {
+            "rot": -0.22
+          }
+        },
+        "tell": {
+          "armR": {
+            "rot": -0.5
+          },
+          "foreR": {
+            "rot": -0.7
+          },
+          "head": {
+            "rot": -0.06
+          }
+        }
+      }
+    },
+    "tests": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "kicker",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            318
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MADINI YA VITO  ·  SEHEMU 5",
+            "font": "700 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "title",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            392
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Vipimo vinne",
+            "font": "800 70px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "titlesub",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            462
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "bila maabara, bila gharama",
+            "font": "600 31px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "t0_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            654
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 164,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "t0_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            654
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 136,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#5b7cfa"
+        },
+        {
+          "id": "t0_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            620
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "1  ·  UGUMU",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "t0_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            672
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Likikwaruza kioo kwa urahisi — ugumu sita au zaidi.\nUkucha ukiliacha alama — si kito.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "t1_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            838
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 164,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "t1_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            838
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 136,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#ffc64d"
+        },
+        {
+          "id": "t1_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            804
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "2  ·  UZITO",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "t1_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            856
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Linganisha na jiwe la ukubwa sawa.\nVito vingi ni vizito kuliko unavyotarajia.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "t2_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1022
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 164,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "t2_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            1022
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 136,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#4aa3d8"
+        },
+        {
+          "id": "t2_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            988
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "3  ·  MWANGA",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "t2_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1040
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Angalia NDANI yake, si juu yake.\nViputo vya mviringo = kioo.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "t3_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1206
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 164,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "t3_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            1206
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 136,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#3fbf7f"
+        },
+        {
+          "id": "t3_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1172
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "4  ·  MSTARI",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "t3_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1224
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Kwaruza sahani isiyo na rangi.\nMstari wa rangi nyingi — mara nyingi si kito.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        }
+      ]
+    },
+    "mohs": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "mh",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            560
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "UGUMU: NANI ANAKWARUZA NANI",
+            "font": "800 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "bar",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            550,
+            900
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 860,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#223148"
+        },
+        {
+          "id": "barOk",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            636,
+            900
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 1,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "okT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1162
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "eneo la matumaini: 6 na juu",
+            "font": "800 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "tick0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M335,880 L335,920"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 5
+        },
+        {
+          "id": "dot0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            335,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 13
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "lab0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            335,
+            834
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "ukucha",
+            "font": "700 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "num0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            335,
+            870
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "2.5",
+            "font": "800 24px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "tick1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M421,880 L421,920"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "dim",
+          "strokeWidth": 5
+        },
+        {
+          "id": "dot1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            421,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 13
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "lab1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            421,
+            974
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "sarafu",
+            "font": "700 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "num1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            421,
+            940
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "3.5",
+            "font": "800 24px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "tick2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M593,880 L593,920"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "ink",
+          "strokeWidth": 5
+        },
+        {
+          "id": "dot2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            593,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 13
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "lab2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            593,
+            834
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "kisu / kioo",
+            "font": "700 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "num2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            593,
+            870
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "5.5",
+            "font": "800 24px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "tick3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M722,880 L722,920"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "quartz",
+          "strokeWidth": 5
+        },
+        {
+          "id": "dot3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            722,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 13
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "quartz"
+        },
+        {
+          "id": "lab3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            722,
+            974
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "quartz",
+            "font": "700 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "quartz"
+        },
+        {
+          "id": "num3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            722,
+            940
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "7",
+            "font": "800 24px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "tick4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M894,880 L894,920"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "sapphire",
+          "strokeWidth": 5
+        },
+        {
+          "id": "dot4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            894,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 13
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "sapphire"
+        },
+        {
+          "id": "lab4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            894,
+            834
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "yakuti",
+            "font": "700 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "sapphire"
+        },
+        {
+          "id": "num4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            894,
+            870
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "9",
+            "font": "800 24px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "tick5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M980,880 L980,920"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "ink",
+          "strokeWidth": 5
+        },
+        {
+          "id": "dot5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            980,
+            900
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 13
+          },
+          "z": 21,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "lab5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            980,
+            974
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "almasi",
+            "font": "700 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "num5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            980,
+            940
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "10",
+            "font": "800 24px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 22,
+          "alpha": 0,
+          "fill": "dim"
+        }
+      ]
+    },
+    "light": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "lh",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            548
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "ANGALIA NDANI, SI JUU",
+            "font": "800 40px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "fakeT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            300,
+            640
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "KIOO",
+            "font": "800 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "fault"
+        },
+        {
+          "id": "realT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            780,
+            640
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "KITO",
+            "font": "800 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "tsavorite"
+        },
+        {
+          "id": "fakeBody",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            300,
+            920
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 190,
+            "ry": 210
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#2d4a63",
+          "stroke": "#7fb6d8",
+          "strokeWidth": 4
+        },
+        {
+          "id": "realBody",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            780,
+            920
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 190,
+            "ry": 210
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#2a4f3c",
+          "stroke": "#8fe0b4",
+          "strokeWidth": 4
+        },
+        {
+          "id": "fakeN",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            300,
+            1176
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "viputo vya mviringo kamili",
+            "font": "600 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 430
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "fault"
+        },
+        {
+          "id": "realN",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            780,
+            1176
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "nyuzi na mipasuko ya ajabu",
+            "font": "600 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 430
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "tsavorite"
+        },
+        {
+          "id": "bub0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            250,
+            850
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 22,
+            "ry": 22
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#0d1826",
+          "stroke": "#bfe4f7",
+          "strokeWidth": 3
+        },
+        {
+          "id": "bub1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            340,
+            930
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 16,
+            "ry": 16
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#0d1826",
+          "stroke": "#bfe4f7",
+          "strokeWidth": 3
+        },
+        {
+          "id": "bub2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            286,
+            996
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 13
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#0d1826",
+          "stroke": "#bfe4f7",
+          "strokeWidth": 3
+        },
+        {
+          "id": "bub3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            360,
+            846
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 11,
+            "ry": 11
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#0d1826",
+          "stroke": "#bfe4f7",
+          "strokeWidth": 3
+        },
+        {
+          "id": "inc0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M700,846 C710,852.7 755.7,870.3 760,886 C764.3,901.7 719.3,923.3 726,940 C732.7,956.7 787.7,978.3 800,986"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "#d7f3e4",
+          "strokeWidth": 4
+        },
+        {
+          "id": "inc1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M820,862 C826.7,871.3 861.3,901.3 860,918 C858.7,934.7 820,954.7 812,962"
+          },
+          "z": 20,
+          "alpha": 0,
+          "stroke": "#a8dcc2",
+          "strokeWidth": 3
+        },
+        {
+          "id": "inc2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M742,1012 L778,1002 L790,1036 L754,1046Z"
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#8fe0b4"
+        },
+        {
+          "id": "lightT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1300
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "KASORO NI USHAHIDI WA ASILI, SI TATIZO",
+            "font": "800 33px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "gold"
+        }
+      ]
+    },
+    "pan": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "ph",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            548
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "KARAI: KUKUSANYA VIZITO",
+            "font": "800 40px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "pan",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            920
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 310,
+            "ry": 170
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#3a3b40",
+          "stroke": "#6d6f78",
+          "strokeWidth": 6
+        },
+        {
+          "id": "panIn",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            930
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 250,
+            "ry": 130
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#23242a"
+        },
+        {
+          "id": "wash",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M300,880 C283.3,890 230,915 200,940 C170,965 133.3,1015 120,1030"
+          },
+          "z": 14,
+          "alpha": 0,
+          "stroke": "water",
+          "strokeWidth": 12,
+          "lineCap": "round",
+          "trim": {
+            "end": 0.3,
+            "length": 180
+          },
+          "flow": 0
+        },
+        {
+          "id": "washL",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            120,
+            1092
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "chepesi kinamwagika",
+            "font": "600 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 420
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "hv0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            560,
+            960
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 11
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#b3384f"
+        },
+        {
+          "id": "hv1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            600,
+            946
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 11
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#2f6fd0"
+        },
+        {
+          "id": "hv2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            528,
+            972
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 11
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#e0344f"
+        },
+        {
+          "id": "hv3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            578,
+            980
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 11
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#8a6ad6"
+        },
+        {
+          "id": "hv4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            620,
+            968
+          ],
+          "shape": {
+            "kind": "ellipse",
+            "rx": 13,
+            "ry": 11
+          },
+          "z": 20,
+          "alpha": 0,
+          "fill": "#b3384f"
+        },
+        {
+          "id": "hvL",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            1000,
+            1040
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "garnet, zircon, yakuti",
+            "font": "800 29px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "right",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "hvL_lead",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M1000,1064 L610,980"
+          },
+          "z": 39,
+          "alpha": 0,
+          "stroke": "gold",
+          "strokeWidth": 2
+        },
+        {
+          "id": "warnBg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1270
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 60,
+          "alpha": 0,
+          "fill": "#2a1218",
+          "stroke": "#e0344f",
+          "strokeWidth": 3
+        },
+        {
+          "id": "warnT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1212
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "TAHADHARI",
+            "font": "800 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 61,
+          "alpha": 0,
+          "fill": "fault"
+        },
+        {
+          "id": "warnB",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1292
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Zumaridi haina uzito zaidi ya mchanga.\nKarai halitaikusanya — hata kama ipo.",
+            "font": "700 29px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 900
+          },
+          "z": 61,
+          "alpha": 0,
+          "fill": "ink",
+          "lineHeight": 38
+        }
+      ]
+    },
+    "card": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "card_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            960
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 1080,
+            "h": 1920,
+            "cx": true,
+            "cy": true
+          },
+          "z": 200,
+          "alpha": 0,
+          "fill": "#05080d"
+        },
+        {
+          "id": "card_next",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Ya mwisho: usidanganywe, na usipunjwe",
+            "font": "700 40px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "card_series",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            876
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MADINI YA VITO",
+            "font": "800 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "card_tag",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            936
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "jinsi vito vinazaliwa na jinsi ya kuvitafuta",
+            "font": "600 29px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "card_share",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1046
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "#MadiniYaVito  #Tanzania  #Vito",
+            "font": "700 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "card_eng",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1160
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Imeundwa na Jirex — injini huria ya uhuishaji",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "card_repo",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1204
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "github.com/minjaezekiel/jireX",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "vipimo",
+      "palette": "vito",
+      "background": {
+        "color": "#0b1018"
+      },
+      "transitionIn": {
+        "kind": "fade",
+        "from": "#000000",
+        "duration": 0.7
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "tests",
+          "as": "tests",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "a0",
+          "duration": 8.26,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Huhitaji maabara kujua kama jiwe lako lina thamani. Unahitaji vipimo vinne tu, na vyote unaweza kuvifanya leo nyumbani.",
+              "at": 0.3,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.75,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.48,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.83,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.56,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.91,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.99,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.35,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.08,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.43,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.16,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.51,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.24,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.59,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.95,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.68,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.03,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.76,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.11,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.84,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.19,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.55,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.28,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.63,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.36,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.71,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.44,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.79,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.84,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.34,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "titlesub",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.08,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "titlesub",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.58,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ugumu",
+      "palette": "vito",
+      "background": {
+        "color": "#0b1016"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "mohs",
+          "as": "mohs",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "b0",
+          "duration": 7.58,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kipimo cha kwanza: ugumu. Hiki ndicho kinachotenganisha vito na mawe ya kawaida haraka kuliko kipimo kingine chochote.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "mh",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "mh",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.65,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "bar",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "bar",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "b1",
+          "duration": 7.87,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Ukucha wako una ugumu wa kama mbili na nusu. Sarafu ya shaba, tatu na nusu. Kisu cha chuma na kioo cha dirisha, tano na nusu.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.85,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.57,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.92,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.99,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.71,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.06,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.35,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.07,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.42,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.49,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.21,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.56,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.15,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.87,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.22,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.94,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.29,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.01,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.36,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "b2",
+          "duration": 9.03,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Jaribu kukwaruza kioo na jiwe lako. Likikwaruza kioo kwa urahisi, lina ugumu wa angalau sita, na hapo unaanza kuwa na matumaini.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "barOk",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "barOk",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "barOk",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "barOk",
+              "channel": "transform.sx",
+              "value": 344,
+              "at": 2,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "barOk",
+              "channel": "transform.x",
+              "value": 636,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "barOk",
+              "channel": "transform.x",
+              "value": 808,
+              "at": 2,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.75,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.47,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.82,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.89,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.61,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.96,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.75,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.47,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.82,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.89,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.61,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.96,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "tick5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.55,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.27,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "dot5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.62,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.34,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "lab5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.69,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.41,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "num5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.76,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 5.54,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 5.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 5.54,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 5.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 5.7,
+              "ease": "step"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 5.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "mohs",
+              "do": "set",
+              "part": "okT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.38,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "b3",
+          "duration": 6.86,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Lakini kwaruza jiwe lako, si kioo tu. Ukikuta ukucha wako unaliacha alama, si kito. Ni laini mno.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "b4",
+          "duration": 4.97,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kipimo cha pili: uzito. Shika jiwe lako na jiwe lingine la ukubwa sawa.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "b5",
+          "duration": 7.15,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Vito vingi ni vizito zaidi kuliko unavyotarajia. Zircon na garnet zinashangaza mkono wa kwanza unaozishika.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        }
+      ]
+    },
+    {
+      "id": "mwanga",
+      "palette": "vito",
+      "background": {
+        "color": "#090e14"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "light",
+          "as": "light",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "c0",
+          "duration": 6.57,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kipimo cha tatu: mwanga. Shikilia jiwe juani au kwenye tochi na uangalie ndani yake, si juu yake.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lh",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lh",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.65,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "fakeBody",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "fakeBody",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "realBody",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "realBody",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "fakeT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "fakeT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.8,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "realT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "realT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "c1",
+          "duration": 6.86,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Ukiona viputo vidogo vya mviringo ndani, ni kioo. Maumbile hayatengenezi viputo vya mviringo kamili.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 0.872,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 0.872,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 0.872,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 0.872,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.78,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 0.82,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.092,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.092,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 1.22,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 0.82,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.092,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.092,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 1.22,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.82,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 1.04,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.312,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.312,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 1.44,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 1.04,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.312,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.312,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 1.44,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.04,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.22,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 1.26,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.532,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 1.532,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 1.66,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 1.26,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.532,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 1.532,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 1.66,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.26,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "bub3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.44,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "fakeN",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "fakeN",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.8,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "c2",
+          "duration": 7.44,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kasoro za kweli za kito zina maumbo ya ajabu: nyuzi, mipasuko, chembe ndogo. Kasoro ni ushahidi wa asili, si tatizo.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "light",
+              "do": "set",
+              "part": "inc0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "inc0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.05,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "inc1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "inc1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.35,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "inc2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "inc2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.65,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "realN",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "realN",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.8,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 4.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.54,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.7,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 4.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.54,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.7,
+              "ease": "step"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "light",
+              "do": "set",
+              "part": "lightT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.38,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "c3",
+          "duration": 6.42,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kipimo cha nne: mstari. Kwaruza jiwe kwenye kipande cha sahani isiyo na rangi, upande wa chini usio glossy.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "c4",
+          "duration": 8.16,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Vito vingi vya thamani havina mstari, au vina mstari mweupe. Jiwe linaloacha mstari wa rangi nyingi mara nyingi ni madini ya kawaida.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        }
+      ]
+    },
+    {
+      "id": "swali",
+      "palette": "vito",
+      "background": {
+        "color": "#101a26"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            330,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter"
+        },
+        {
+          "character": "bakari",
+          "as": "bakari",
+          "at": [
+            770,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter",
+          "facing": -1
+        }
+      ],
+      "shots": [
+        {
+          "id": "q0",
+          "duration": 5.46,
+          "dialogue": [
+            {
+              "speaker": "bakari",
+              "text": "Na kwa mchanga wa mtoni? Pale sioni jiwe moja, naona changarawe yote.",
+              "at": 0.3,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "nuru",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "bakari",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "bakari",
+              "do": "pose",
+              "pose": "ask",
+              "at": 0.3,
+              "for": 0.6
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 0.83
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 3.294
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 2.1
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 5.063
+            }
+          ]
+        },
+        {
+          "id": "q1",
+          "duration": 7.25,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Hapo unatumia karai. Jaza changarawe, zamisha majini, tikisa kwa mzunguko, na ondoa chepesi juu taratibu.",
+              "at": 0.3,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "nuru",
+              "do": "pose",
+              "pose": "present",
+              "at": 0.3,
+              "for": 0.7
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 2.075
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 5.406
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 1.689
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 4.607
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "karai",
+      "palette": "vito",
+      "background": {
+        "color": "#0d1117"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "pan",
+          "as": "pan",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "d0",
+          "duration": 7,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kizito kinabaki chini kabisa ya karai. Baada ya dakika chache utabaki na konzi ndogo ya madini mazito.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "wash",
+              "channel": "props.flow",
+              "value": 0,
+              "at": 0,
+              "ease": "linear"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "wash",
+              "channel": "props.flow",
+              "value": 15,
+              "at": 30,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "ph",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "ph",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.65,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "pan",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "pan",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "panIn",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.75,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "panIn",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.25,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "wash",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "wash",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.9,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "washL",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "washL",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.2,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.238,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.238,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.35,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.238,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.238,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.35,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.18,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.18,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.418,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.418,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.53,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.18,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.418,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.418,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.53,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.18,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.36,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.36,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.598,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.598,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.71,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.36,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.598,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.598,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.71,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.36,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.54,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.778,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.778,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.89,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.778,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.778,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.89,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.54,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.72,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.72,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.958,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.958,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.07,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.72,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.958,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.958,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.07,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.72,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hv4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.9,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d1",
+          "duration": 7.87,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Ndani ya konzi hiyo ndipo garnet nyekundu, zircon, na yakuti hukaa. Ni vipande vidogo, lakini vinakuambia nini kipo juu ya mto.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hvL",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hvL",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hvL_lead",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "hvL_lead",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d2",
+          "duration": 4.24,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Lakini kuna tahadhari muhimu, na watu wengi hawaijui.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "d3",
+          "duration": 6.86,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Karai linakusanya vitu vizito tu. Zumaridi na beryl nyingine hazina uzito zaidi ya mchanga wa kawaida.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "warnBg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "warnBg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "warnT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "warnT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "warnB",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "pan",
+              "do": "set",
+              "part": "warnB",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.7,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "d4",
+          "duration": 7.87,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kwa hiyo ukiosha kwa ajili ya zumaridi, hutaipata hata kama ipo. Utafikiri hakuna kitu, kumbe upo mahali sahihi.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        }
+      ]
+    },
+    {
+      "id": "lengo",
+      "palette": "vito",
+      "background": {
+        "color": "#0b1018"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "tests",
+          "as": "tests",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "e0",
+          "duration": 7.15,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Vipimo hivi havikuambii jina la kito. Vinakuambia kama jiwe lako linastahili kupelekwa kwa mtaalamu.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t0_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t1_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t2_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "tests",
+              "do": "set",
+              "part": "t3_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "e1",
+          "duration": 7.44,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Na hilo ndilo lengo. Usitumie pesa kupima kila jiwe. Tumia vipimo hivi kuchagua mawe machache yanayostahili.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "palette": "vito",
+      "background": {
+        "color": "#05080d"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.5
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "card",
+          "as": "card",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "c9",
+          "duration": 4.82,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Sehemu ya mwisho: jinsi ya kutodanganywa, na jinsi ya kuuza bila kupunjwa.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.65,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_next",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_next",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.87,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_series",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_series",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.09,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_tag",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.86,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_tag",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.31,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_share",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.08,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_share",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.53,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_eng",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_eng",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.75,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_repo",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.52,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_repo",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.97,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -22,7 +22,8 @@ import {
     CHARACTERS, META, VITO_PALETTE, VOICES, offstage, says, vo,
 } from '../lib/vito.mjs';
 import {
-    blinks, board, castBoard, cardRows, endCard, gemParts, hookTitle, statParts,
+    blinks, board, castBoard, cardRows, endCard, fitShots, gemParts, hookTitle,
+    statParts,
 } from './common.mjs';
 
 const FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif';
@@ -59,6 +60,12 @@ const P2 = [
     /*15 */ 'Kwa hiyo unapoona mwamba uliopasuka, wenye mishipa, na ulio wa zamani sana, '
           + 'umeona sehemu ambayo viwanda vyote vitatu vinaweza kuwa vilifanya kazi.',
     /*16 */ 'Sehemu inayofuata: mto. Kwa sababu vito havikai palipozaliwa.',
+    /*17 */ 'Kuna kitu kimoja zaidi kinachounganisha viwanda vyote vitatu: vyote '
+          + 'vinafanya kazi chini ya ardhi, mbali na macho yetu.',
+    /*18 */ 'Kwa hiyo huwezi kuona kiwanda kikifanya kazi. Unachoona ni matokeo yake '
+          + 'baada ya mamilioni ya miaka ya mmomonyoko kuyafikisha juu.',
+    /*19 */ 'Na ndiyo maana milima ya zamani ni rafiki wa mtafiti. Mlima mpya '
+          + 'bado haujafunua chochote.',
 ];
 
 // --- board: the three factories -------------------------------------------
@@ -350,6 +357,11 @@ export function partTwo() {
                   actions: build('needs', needs.rows.rowIds(2), 0.3, { gap: 0.1, span: 0.4 }) },
                 { id: 'n3', duration: 9.5, dialogue: [vo(P2[15], 0.2)],
                   actions: pop('needs', 'nf', 4.0, { span: 0.5 }) },
+                { id: 'n4', duration: 8.0, dialogue: [vo(P2[17], 0.2)],
+                  actions: conceal('needs', 'nf', 0.2, { span: 0.4 }) },
+                { id: 'n5', duration: 8.5, dialogue: [vo(P2[18], 0.2)], actions: [] },
+                { id: 'n6', duration: 7.0, dialogue: [vo(P2[19], 0.2)],
+                  actions: pop('needs', 'nf', 2.2, { span: 0.5 }) },
             ],
         },
         {
@@ -364,12 +376,12 @@ export function partTwo() {
         },
     ];
 
-    return {
+    return fitShots({
         version: 'jirex.film/1',
         meta: { ...META('Viwanda vitatu'), estimatedTiming: true },
         palettes: { vito: VITO_PALETTE },
         voices: VOICES,
         characters,
         scenes,
-    };
+    });
 }

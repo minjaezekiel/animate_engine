@@ -16,10 +16,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 import { partOne } from './vito/part-01.mjs';
 import { partTwo } from './vito/part-02.mjs';
+import { partThree } from './vito/part-03.mjs';
+import { partFour } from './vito/part-04.mjs';
+import { partFive } from './vito/part-05.mjs';
+import { partSix } from './vito/part-06.mjs';
 
 const OUT_DIR = new URL('../films/vito/', import.meta.url).pathname;
 
-const PARTS = { 1: partOne, 2: partTwo };
+const PARTS = { 1: partOne, 2: partTwo, 3: partThree, 4: partFour, 5: partFive, 6: partSix };
 
 const want = process.env.PART ? process.env.PART.split(',') : Object.keys(PARTS);
 await mkdir(OUT_DIR, { recursive: true });

@@ -4416,7 +4416,7 @@
       "shots": [
         {
           "id": "h0",
-          "duration": 9,
+          "duration": 7.97,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -5142,7 +5142,7 @@
         },
         {
           "id": "h1",
-          "duration": 6.6,
+          "duration": 10.05,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -5265,7 +5265,7 @@
         },
         {
           "id": "h2",
-          "duration": 7.4,
+          "duration": 6.27,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6072,7 +6072,7 @@
         },
         {
           "id": "h3",
-          "duration": 6.9,
+          "duration": 5.69,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6215,7 +6215,7 @@
       "shots": [
         {
           "id": "s0",
-          "duration": 6.7,
+          "duration": 6.13,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6500,7 +6500,7 @@
         },
         {
           "id": "s1",
-          "duration": 8.4,
+          "duration": 6.86,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6751,7 +6751,7 @@
       "shots": [
         {
           "id": "f0",
-          "duration": 7,
+          "duration": 6.86,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -6955,7 +6955,7 @@
         },
         {
           "id": "f1",
-          "duration": 8.8,
+          "duration": 7.44,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -7242,7 +7242,7 @@
       "shots": [
         {
           "id": "x0",
-          "duration": 7.4,
+          "duration": 7,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -8481,7 +8481,7 @@
         },
         {
           "id": "x1",
-          "duration": 7.5,
+          "duration": 6.86,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -8624,7 +8624,7 @@
       "shots": [
         {
           "id": "v0",
-          "duration": 6.2,
+          "duration": 6.13,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -8891,7 +8891,7 @@
         },
         {
           "id": "v1",
-          "duration": 6.4,
+          "duration": 5.98,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -9752,7 +9752,7 @@
         },
         {
           "id": "v2",
-          "duration": 6.5,
+          "duration": 5.69,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -9821,7 +9821,7 @@
         },
         {
           "id": "v3",
-          "duration": 7.5,
+          "duration": 6.57,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -9959,6 +9959,230 @@
               "ease": "step"
             }
           ]
+        },
+        {
+          "id": "v4",
+          "duration": 8.6,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Jambo lingine la kushangaza: tanzanite nyingi inayochimbwa ni ya kahawia, si ya bluu. Joto la nyuzi mia tano linabadilisha rangi kuwa bluu.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "step"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoGrey",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoGrey",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlueT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlueT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoGreyT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoGreyT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.8,
+              "ease": "step"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoGreyT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoGreyT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.8,
+              "ease": "step"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlueT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlueT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.3,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "v5",
+          "duration": 8.31,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Hiyo si udanganyifu, na inakubalika kisheria, mradi muuzaji aseme ukweli. Hata ardhi yenyewe hufanya hivyo chini kwa joto lake.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "v6",
+          "duration": 9.32,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Na sababu ya rangi mbili ni ajabu zaidi. Ukiigeuza, tanzanite inaonyesha bluu, zambarau na nyekundu, kutegemea upande unaoiangalia.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.fill",
+              "value": "#4a63d8",
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.fill",
+              "value": "#8a6ad6",
+              "at": 2,
+              "ease": "step"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.fill",
+              "value": "#8a6ad6",
+              "at": 3,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.fill",
+              "value": "#b3384f",
+              "at": 4,
+              "ease": "step"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.fill",
+              "value": "#b3384f",
+              "at": 5,
+              "ease": "smooth"
+            },
+            {
+              "target": "vein",
+              "do": "set",
+              "part": "zoBlue",
+              "channel": "props.fill",
+              "value": "#4a63d8",
+              "at": 6,
+              "ease": "step"
+            }
+          ]
         }
       ]
     },
@@ -9998,7 +10222,7 @@
       "shots": [
         {
           "id": "q0",
-          "duration": 7,
+          "duration": 5.63,
           "dialogue": [
             {
               "speaker": "bakari",
@@ -10056,7 +10280,7 @@
         },
         {
           "id": "q1",
-          "duration": 8.5,
+          "duration": 7.97,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -10153,7 +10377,7 @@
       "shots": [
         {
           "id": "k0",
-          "duration": 7.4,
+          "duration": 6.13,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -10402,7 +10626,7 @@
         },
         {
           "id": "k1",
-          "duration": 6,
+          "duration": 7.44,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -10507,7 +10731,7 @@
         },
         {
           "id": "k2",
-          "duration": 7.2,
+          "duration": 7.44,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -10630,7 +10854,7 @@
         },
         {
           "id": "k3",
-          "duration": 6.6,
+          "duration": 6.27,
           "dialogue": [
             {
               "speaker": "nuru",
@@ -10773,7 +10997,7 @@
       "shots": [
         {
           "id": "c0",
-          "duration": 7,
+          "duration": 7.58,
           "dialogue": [
             {
               "speaker": "nuru",

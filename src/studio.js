@@ -423,8 +423,16 @@ export class FilmStudio {
     }
 }
 
-/** Dialogue text becomes a discrete track on the single subtitle node. */
-function attachSubtitles(compiled, voiced) {
+/**
+ * Dialogue text becomes a discrete track on the single subtitle node.
+ *
+ * Exported because subtitles are attached HERE and not in the compiler, so
+ * anything that poses a scene without rendering it -- `grab2d`, a contact
+ * sheet, an editor preview -- shows no subtitle at all. Most viewers watch
+ * muted, which makes the subtitle part of the picture, and until now there
+ * was no way to check it was inside the frame without a full render.
+ */
+export function attachSubtitles(compiled, voiced) {
     const jobs = compiled.lipsyncJobs.filter((j) => j.subtitle && j.text);
     if (!jobs.length) return;
     const track = {

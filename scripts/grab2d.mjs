@@ -98,6 +98,15 @@ const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async
     });
     notes.push(`scene: ${nodes} nodes, ${images} images resolved, ${unresolved} not`);
 
+    // Subtitles are attached at render time, not by the compiler, so a posed
+    // scene has an EMPTY subtitle node. Most viewers watch muted, which makes
+    // the subtitle part of the picture -- a still that cannot show it cannot
+    // be used to check it is inside the frame. Line lengths here come from
+    // the text estimate rather than from synthesis, which is right for a
+    // still: what is being checked is where the words sit, not for how long.
+    const { attachSubtitles } = await import('/src/studio.js');
+    attachSubtitles(prepared, { cues: [], buffers: {} });
+
     const { Canvas2DBackend } = await import('/src/backends/canvas2d/Canvas2DBackend.js');
     const { samplePose, applyPose, createPoseBaseline, resetPose } =
         await import('/src/core/anim/Evaluator.js');

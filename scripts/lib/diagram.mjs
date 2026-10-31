@@ -220,6 +220,11 @@ export const ellipsePart = (id, rx, ry, opts = {}) =>
  */
 export function labelParts(id, text, at, pointsTo, {
     font = TYPE.label, fill = 'ink', stroke = 'dim', align, z = 40,
+    // Where the leader leaves the label. The default starts it at the text
+    // ANCHOR, which for a left-aligned label is its left edge -- so a leader
+    // pointing right runs straight through its own words. Opt-in rather than
+    // changed outright, so no existing film moves.
+    leadAt = null,
 } = {}) {
     // Grow away from the nearer edge: a label on the right of the frame reads
     // right-aligned, ending at its anchor.
@@ -235,7 +240,8 @@ export function labelParts(id, text, at, pointsTo, {
         at: [x, at[1]], font, fill, z, align: side, maxWidth,
     })];
     if (pointsTo) {
-        out.push(pathPart(`${id}_lead`, `${M(x, at[1])} ${L(...pointsTo)}`,
+        const [lx, ly] = leadAt ?? [x, at[1]];
+        out.push(pathPart(`${id}_lead`, `${M(lx, ly)} ${L(...pointsTo)}`,
             { stroke, strokeWidth: 2, z: z - 1 }));
     }
     return out;
@@ -440,3 +446,107 @@ export const logScale = (d0, d1, r0, r1) => {
     const l1 = Math.log10(d1);
     return (v) => r0 + ((Math.log10(v) - l0) / (l1 - l0)) * (r1 - r0);
 };
+
+// ---------------------------------------------------------------------------
+// Flowing water
+// ---------------------------------------------------------------------------
+
+/**
+ * Loop `props.flow` so a dashed stroke travels.
+ *
+ * `flow` counts whole dash periods, so a ramp of N over N * period seconds
+ * moves one period per `period` and is seamless at every instant -- not only
+ * at the ends. One key pair is therefore enough; per-cycle keys would be the
+ * same line with more numbers in it.
+ *
+ * `ease` is linear and not negotiable. Water does not accelerate between
+ * keys: `smooth` on a flow ramp produces a visible pulse once per cycle,
+ * which reads as a stutter rather than as current.
+ */
+export function flowLoop(target, part, { period = 2, cycles = 8, at = 0, from = 0 } = {}) {
+    return [
+        { target, do: 'set', part, channel: 'props.flow', value: t(from),
+          at: t(at), ease: 'linear' },
+        { target, do: 'set', part, channel: 'props.flow', value: t(from + cycles),
+          at: t(at + cycles * period), ease: 'linear' },
+    ];
+}
+
+/**
+ * A closed band of constant width around a centreline.
+ *
+ * Offsetting each point along the normal of the mean of its two adjacent
+ * segment directions. Good enough for a river in a diagram; it will pinch on
+ * a hairpin, which is why the banks below are drawn from the same points
+ * rather than from the polygon's edges.
+ */
+export function bandPath(points, width) {
+    const half = width / 2;
+    const normals = points.map((p, i) => {
+        const prev = points[Math.max(0, i - 1)];
+        const next = points[Math.min(points.length - 1, i + 1)];
+        const dx = next[0] - prev[0], dy = next[1] - prev[1];
+        const len = Math.hypot(dx, dy) || 1;
+        return [-dy / len, dx / len];
+    });
+    const left = points.map((p, i) => [p[0] + normals[i][0] * half, p[1] + normals[i][1] * half]);
+    const right = points.map((p, i) => [p[0] - normals[i][0] * half, p[1] - normals[i][1] * half]);
+    return `${smooth(left)} L${n(right[right.length - 1][0])},${n(right[right.length - 1][1])} `
+        + `${smooth([...right].reverse()).slice(1)} ${Z}`;
+}
+
+/**
+ * A river: a filled body, two banks, and streaks that travel.
+ *
+ * The streaks ARE the water. A filled blue shape is a lake however nicely it
+ * is drawn; what reads as current is short highlights moving downstream at
+ * slightly different speeds, which is also how flat 2D water has always been
+ * faked. `lanes` places them across the channel, shorter and fainter toward
+ * the banks because that is where real flow slows.
+ *
+ * Returns `{ parts, actions }` -- the actions are the flow loops, which need
+ * the cast name the river is cast under.
+ */
+export function riverParts(id, points, {
+    width = 150, lanes = 5, water = 'water', deep = 'waterDeep', foam = 'foam',
+    bank = null, period = 2.2, cycles = 60, z = -40, dash = 0.22, lineWidth = 7,
+} = {}) {
+    const parts = [
+        pathPart(`${id}_body`, bandPath(points, width), { fill: deep, z }),
+        pathPart(`${id}_shallow`, bandPath(points, width * 0.62), { fill: water, z: z + 1 }),
+    ];
+    if (bank) {
+        parts.push(pathPart(`${id}_bankL`, smooth(points.map(([x, y]) => [x, y - width / 2])),
+                            { stroke: bank, strokeWidth: 5, z: z + 2 }));
+        parts.push(pathPart(`${id}_bankR`, smooth(points.map(([x, y]) => [x, y + width / 2])),
+                            { stroke: bank, strokeWidth: 5, z: z + 2 }));
+    }
+    const actions = [];
+    for (let i = 0; i < lanes; i++) {
+        // -1 .. 1 across the channel, avoiding the exact banks.
+        const u = lanes === 1 ? 0 : (i / (lanes - 1)) * 1.6 - 0.8;
+        const edge = Math.abs(u);
+        const offset = u * (width / 2);
+        const line = points.map(([x, y]) => [x, y + offset]);
+        const sid = `${id}_f${i}`;
+        parts.push(pathPart(sid, smooth(line), {
+            stroke: edge > 0.55 ? foam : water,
+            strokeWidth: Math.max(3, lineWidth * (1 - edge * 0.45)),
+            alpha: 0.55 + 0.4 * (1 - edge),
+            lineCap: 'round',
+            z: z + 3 + i,
+            // A short on-dash on a short period: several highlights down the
+            // channel at once, not one streak chasing along it.
+            trim: { end: dash * (1 - edge * 0.3), length: 150 + i * 23 },
+            flow: 0,
+        }));
+        // Mid-channel runs fastest. Lanes at different speeds are what stops
+        // the whole river reading as one sliding sheet.
+        actions.push([sid, { period: period * (1 + edge * 0.5), cycles, from: i * 0.17 }]);
+    }
+    return { parts, actions };
+}
+
+/** The flow loops for a river, once its cast name is known. */
+export const riverFlow = (target, actions, at = 0) =>
+    actions.flatMap(([part, opts]) => flowLoop(target, part, { ...opts, at }));

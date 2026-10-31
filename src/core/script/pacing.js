@@ -36,13 +36,41 @@
 
 /**
  * Words per minute by language, over the whole span of a line including its
- * internal pauses. `sw` is MEASURED -- the Swahili voice produced 16 words in
- * 6.77s -- and `en` is from the same exercise on `en_GB-alba-medium`. An
- * estimator that silently assumed English would misreport every Swahili film,
+ * internal pauses. Both figures are measured from synthesis, not assumed. An
+ * estimator that silently used English for a Swahili film would misreport it,
  * so the figure used is always reported.
+ *
+ * `sw` was first recorded as 142 from a single 16-word sentence. Measured
+ * properly across 21 lines of a real film it is 147.
  */
-export const WORD_RATES = { sw: 142, en: 150 };
+export const WORD_RATES = { sw: 147, en: 150 };
 export const DEFAULT_WORD_RATE = 150;
+
+/**
+ * Syllables per second, where that predicts better than words.
+ *
+ * Measured over 21 synthesised Swahili lines, against their real audio
+ * durations:
+ *
+ *   words per minute   147      11% line-to-line variation
+ *   characters/second  16.1      6%
+ *   SYLLABLES/second    6.50     5.6%
+ *
+ * Swahili orthography is very nearly phonetic and every vowel letter is a
+ * syllable nucleus, so counting vowels counts syllables -- which is why it
+ * halves the error. Word count is a poor predictor there because Swahili word
+ * length varies so much: `tu` and `kinachopatikana` are both one word.
+ *
+ * English is NOT in this table on purpose. Its spelling is not phonetic --
+ * silent `e`, vowel digraphs -- so a vowel count is not a syllable count, and
+ * no English measurement has been taken to justify a figure. Words remain the
+ * estimator there.
+ */
+export const SYLLABLE_RATES = { sw: 6.50 };
+
+/** Syllables, for a language where a vowel letter is a syllable nucleus. */
+export const syllablesIn = (text) =>
+    (String(text ?? '').match(/[aeiouAEIOU]/g) ?? []).length;
 
 export const PACING_TARGETS = {
     /**
@@ -86,10 +114,11 @@ export const wordsIn = (text) =>
  * raising a narrator's rate is a pacing edit to the whole film.
  */
 export function estimateLine(text, { lang = null, rate = 1 } = {}) {
-    const words = wordsIn(text);
-    if (!words) return 0;
+    if (!wordsIn(text)) return 0;
+    const sps = SYLLABLE_RATES[lang];
+    if (sps) return syllablesIn(text) / sps / (rate || 1);
     const wpm = WORD_RATES[lang] ?? DEFAULT_WORD_RATE;
-    return (words / wpm) * 60 / (rate || 1);
+    return (wordsIn(text) / wpm) * 60 / (rate || 1);
 }
 
 /** Merge overlapping or near-touching line spans into runs. */
@@ -178,7 +207,10 @@ export function analysePacing(compiled, targets = PACING_TARGETS) {
         words,
         lang,
         wordRate: WORD_RATES[lang] ?? DEFAULT_WORD_RATE,
-        wordRateSource: WORD_RATES[lang] ? `measured for "${lang}"` : 'default',
+        wordRateSource: SYLLABLE_RATES[lang]
+            ? `${SYLLABLE_RATES[lang]} syllables/s, measured for "${lang}"`
+            : (WORD_RATES[lang] ? `${WORD_RATES[lang]} wpm, measured for "${lang}"`
+                                : `${DEFAULT_WORD_RATE} wpm, default`),
         spoken,
         coverage: spoken / duration,
         /**
@@ -274,7 +306,7 @@ export function pacingDiagnostics(report, targets = PACING_TARGETS) {
         message: `${pc(report.coverage)} line coverage, ${report.lines} lines in `
             + `${report.runs} runs, ${Math.round(report.density)} words per minute of `
             + `runtime, hook ${pc(report.hook.coverage)} from ${s1(report.hook.firstWord)}s. `
-            + `Line spans estimated at ${report.wordRate} wpm, ${report.wordRateSource}. `
+            + `Line spans estimated at ${report.wordRateSource}. `
             + 'Coverage is not the speech ratio the audio tool measures: part one of the '
             + 'geology series is 81% covered and 54% voiced.',
     });

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { analysePacing, estimateLine, langOfSpec, wordsIn,
-         WORD_RATES, PACING_TARGETS } from '../../src/core/script/pacing.js';
+import { analysePacing, estimateLine, langOfSpec, syllablesIn, wordsIn,
+         SYLLABLE_RATES, WORD_RATES, PACING_TARGETS } from '../../src/core/script/pacing.js';
 import { compileFilm } from '../../src/core/script/compile.js';
 
 /**
@@ -34,16 +34,37 @@ const pacingOf = (film) => analysePacing(compileFilm(film, { assets: null }));
 // The estimator
 // ---------------------------------------------------------------------------
 
-test('a line span is words over the language word rate', () => {
+test('English is estimated by words over the measured word rate', () => {
     // 150 words at 150 wpm is one minute.
-    const text = Array.from({ length: 150 }, () => 'neno').join(' ');
+    const text = Array.from({ length: 150 }, () => 'word').join(' ');
     assert.equal(wordsIn(text), 150);
     assert.equal(+estimateLine(text, { lang: 'en' }).toFixed(4), 60);
-    // Swahili is measured separately, and slower.
+    assert.equal(WORD_RATES.en, 150);
+});
+
+test('Swahili is estimated by SYLLABLES, because that measured twice as well', () => {
+    // Over 21 synthesised lines: words 11% variation, syllables 5.6%.
+    // Swahili spelling is near-phonetic, so a vowel letter is a syllable --
+    // and word length varies enormously, `tu` against `kinachopatikana`.
+    const text = 'kinachopatikana';                   // ki-na-cho-pa-ti-ka-na
+    assert.equal(syllablesIn(text), 7);
     assert.equal(+estimateLine(text, { lang: 'sw' }).toFixed(4),
-                 +((150 / WORD_RATES.sw) * 60).toFixed(4));
-    assert.ok(estimateLine(text, { lang: 'sw' }) > estimateLine(text, { lang: 'en' }),
-        'a Swahili film must not be estimated at the English rate');
+                 +(7 / SYLLABLE_RATES.sw).toFixed(4));
+    // The case that breaks a word-count estimator: same word count, very
+    // different lengths.
+    const short = 'tu tu tu';
+    const long = 'kinachopatikana kinachopatikana kinachopatikana';
+    assert.equal(wordsIn(short), wordsIn(long));
+    assert.ok(estimateLine(long, { lang: 'sw' }) > estimateLine(short, { lang: 'sw' }) * 3,
+        'three long words must not be estimated the same as three short ones');
+});
+
+test('a language with no measurement falls back to words, and says so', () => {
+    const text = Array.from({ length: 150 }, () => 'palabra').join(' ');
+    assert.equal(+estimateLine(text, { lang: 'es' }).toFixed(4),
+                 +((150 / 150) * 60).toFixed(4));
+    assert.equal(SYLLABLE_RATES.en, undefined,
+        'English spelling is not phonetic, so a vowel count is not a syllable count');
 });
 
 test('delivery rate shortens the line, because it actually does', () => {
@@ -99,11 +120,10 @@ test('the word rate used is reported, so a Swahili film is not read as English',
     const sw = pacingOf(filmOf(40, [[0, 'moja mbili tatu nne tano']],
                                 { voice: 'tts:sw_CD-lanfrica-medium' }));
     assert.equal(sw.lang, 'sw');
-    assert.equal(sw.wordRate, WORD_RATES.sw);
-    assert.match(sw.wordRateSource, /measured/);
+    assert.match(sw.wordRateSource, /syllables\/s, measured for "sw"/);
     const unknown = pacingOf(filmOf(40, [[0, 'a b c d e']], { voice: 'file:take.wav' }));
     assert.equal(unknown.lang, null);
-    assert.equal(unknown.wordRateSource, 'default');
+    assert.match(unknown.wordRateSource, /default/);
 });
 
 // ---------------------------------------------------------------------------

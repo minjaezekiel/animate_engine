@@ -87,8 +87,9 @@ easier to reason about and is what `riverParts` does.
 A continuous ramp over a long shot ends up at `flow: 40` and the keys get hard
 to read. It also need not be continuous: the dash pattern is periodic and
 `flow` is measured in periods, so **`flow` and `flow + 1` draw identical
-pixels.** A loop of exactly 1.0 per cycle is therefore seamless, and
-`flowLoop` emits one linear key pair per cycle with `ease: 'linear'`:
+pixels.** A ramp of N over N periods is therefore seamless at every instant,
+not only at the ends, so `flowLoop` emits a single linear key pair and lets
+the ramp run: per-cycle keys would be the same line with more numbers in it.
 
 ```js
 flowLoop('river', 'streak0', { period: 2.0, cycles: 8 })

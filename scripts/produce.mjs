@@ -5,6 +5,7 @@
  * browser APIs the pipeline depends on (OfflineAudioContext, MediaRecorder,
  * WebCodecs, the TTS worker) are the real ones.
  */
+import { existsSync } from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -14,6 +15,14 @@ const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const ROOT = new URL('..', import.meta.url).pathname;
 const FILM = process.env.FILM ?? 'demo/film.json';
+/**
+ * A locally served, repointed vits-web if this checkout has one. `vendor/` is
+ * not in git -- `npm run vendor-voice` fetches it -- so the CDN remains the
+ * default and nothing breaks without it.
+ */
+const TTS_MODULE_URL = process.env.TTS_MODULE_URL
+    ?? (existsSync(new URL('../vendor/vits-web.js', import.meta.url))
+        ? '/vendor/vits-web.js' : null);
 const OUT = process.env.OUT ?? 'demo/out/the-keeper.webm';
 const WIDTH = Number(process.env.WIDTH ?? 1280);
 const HEIGHT = Number(process.env.HEIGHT ?? 720);
@@ -72,7 +81,15 @@ await page.exposeFunction('report', (msg) => console.log('  ' + msg));
 
 const result = await page.evaluate(async (origin, cfg) => {
     const { FilmStudio } = await import(`${origin}/src/studio.js`);
-    const studio = new FilmStudio({ onLog: (m) => window.report(m) });
+    // A vendored, repointed vits-web when this checkout has one, so the
+    // render does not depend on fetching 63MB from huggingface.co. A fresh
+    // headless profile has an empty OPFS every run, so without this EVERY
+    // render re-downloads the voice -- which is what crashed the renderer
+    // mid-download, and what the 503s did to the geology series.
+    const studio = new FilmStudio({
+        onLog: (m) => window.report(m),
+        ...(cfg.ttsModuleUrl ? { ttsModuleUrl: cfg.ttsModuleUrl } : {}),
+    });
     const film = await (await fetch(`${origin}/${cfg.film}`)).json();
 
     const notes = [];
@@ -168,7 +185,7 @@ const result = await page.evaluate(async (origin, cfg) => {
         wallSec: +((performance.now() - t0) / 1000).toFixed(1),
     };
 }, base, { film: FILM, width: WIDTH, height: HEIGHT, fps: FPS, useTts: USE_TTS,
-           format: FORMAT });
+           format: FORMAT, ttsModuleUrl: TTS_MODULE_URL });
 
 // The extension follows what was actually encoded, not what was asked for.
 const ext = result.type.includes('mp4') ? '.mp4' : '.webm';

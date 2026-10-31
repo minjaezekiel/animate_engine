@@ -56,7 +56,12 @@ for (const trak of children(moov.start, moov.end)) {
         const avcC = find(['avcC'], entry.start + 78, entry.end);
         if (avcC) extra += `  profile=0x${buf[avcC.start + 1].toString(16)} level=${buf[avcC.start + 3]}`;
     } else if (kind === 'soun') {
-        extra = `${buf.readUInt16BE(entry.start + 16)}ch ${buf.readUInt32BE(entry.start + 24) >> 16}Hz`;
+        // `>>>`, not `>>`. The sample rate is 16.16 fixed point, so 48000 sits
+        // in the high half as 0xBB800000 -- which is negative as a signed
+        // int32, and a signed shift sign-extends it. Every 48kHz file this
+        // probe has ever read reported -17536Hz.
+        extra = `${buf.readUInt16BE(entry.start + 16)}ch `
+            + `${buf.readUInt32BE(entry.start + 24) >>> 16}Hz`;
     }
     // exact sample timing
     const stts = find(['mdia', 'minf', 'stbl', 'stts'], trak.start, trak.end);

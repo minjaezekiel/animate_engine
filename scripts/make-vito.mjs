@@ -15,10 +15,11 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 
 import { partOne } from './vito/part-01.mjs';
+import { partTwo } from './vito/part-02.mjs';
 
 const OUT_DIR = new URL('../films/vito/', import.meta.url).pathname;
 
-const PARTS = { 1: partOne };
+const PARTS = { 1: partOne, 2: partTwo };
 
 const want = process.env.PART ? process.env.PART.split(',') : Object.keys(PARTS);
 await mkdir(OUT_DIR, { recursive: true });

@@ -1,0 +1,7038 @@
+{
+  "version": "jirex.film/1",
+  "meta": {
+    "title": "Madini ya Vito — Viwanda vitatu",
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "subtitleStyle": {
+      "font": "600 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "fill": "#f4f1e8",
+      "stroke": "#05080d",
+      "strokeWidth": 7,
+      "lineHeight": 46,
+      "maxWidth": 960,
+      "bottomMargin": 372
+    },
+    "estimatedTiming": true
+  },
+  "palettes": {
+    "vito": {
+      "bg": "#0b1018",
+      "panel": "#141d2d",
+      "ink": "#f4f1e8",
+      "dim": "#93a1b5",
+      "gold": "#ffc64d",
+      "fluid": "#e2663c",
+      "water": "#4aa3d8",
+      "sulphide": "#b8a86a",
+      "structure": "#e24a6a",
+      "granite": "#cfc3b8",
+      "greenstone": "#3f5d4a",
+      "soil": "#6b5a44",
+      "quartz": "#e8e4da",
+      "basalt": "#2f4150",
+      "gem": "#5b7cfa",
+      "tanzanite": "#4a63d8",
+      "violet": "#8a6ad6",
+      "tsavorite": "#3fbf7f",
+      "ruby": "#e0344f",
+      "sapphire": "#2f6fd0",
+      "garnet": "#b3384f",
+      "rock": "#5a5347",
+      "rockDark": "#3a352d",
+      "gneiss": "#7d8794",
+      "graphite": "#2a2f36",
+      "pegmatite": "#d8cfc0",
+      "waterDeep": "#1f5d87",
+      "foam": "#cfe9f7",
+      "heat": "#e2663c",
+      "hot": "#f0a03c",
+      "fault": "#e24a6a",
+      "skin": "#8d5a3b",
+      "skinAlt": "#6f4529",
+      "cloth": "#2f7f6a",
+      "clothAlt": "#c9702f",
+      "clothWarm": "#8a5a3c",
+      "trouser": "#39404b",
+      "hair": "#241a14",
+      "hairGrey": "#9aa0a6",
+      "eye": "#2b1d14",
+      "white": "#f6f2e8",
+      "shoe": "#2a2320",
+      "teeth": "#f6f2e8",
+      "mouth": "#4a2420",
+      "accent": "#ffc64d",
+      "light": "#fff3cf"
+    }
+  },
+  "voices": {
+    "nuru_v": {
+      "spec": "host-sw"
+    },
+    "bakari_v": {
+      "spec": "young-m-sw"
+    },
+    "hamisi_v": {
+      "spec": "elder-m-sw"
+    }
+  },
+  "characters": {
+    "nuru": {
+      "palette": "vito",
+      "voice": "nuru_v",
+      "proportions": {
+        "height": 520
+      },
+      "generate": {
+        "build": "athletic",
+        "hands": "mitten",
+        "cloth": "cloth",
+        "trouser": "trouser",
+        "hair": "braids",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "tapered",
+          "eyes": "round",
+          "brow": "arched",
+          "nose": "broad",
+          "lips": "full",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.12
+          },
+          "armR": {
+            "rot": -0.12
+          },
+          "foreL": {
+            "rot": 0.18
+          },
+          "foreR": {
+            "rot": -0.18
+          }
+        },
+        "present": {
+          "armR": {
+            "rot": -0.62
+          },
+          "foreR": {
+            "rot": -0.52
+          },
+          "head": {
+            "rot": -0.05
+          }
+        },
+        "count": {
+          "armR": {
+            "rot": -0.85
+          },
+          "foreR": {
+            "rot": -0.9
+          }
+        },
+        "kneel": {
+          "armR": {
+            "rot": -0.95
+          },
+          "foreR": {
+            "rot": -0.55
+          },
+          "head": {
+            "rot": 0.22
+          }
+        }
+      }
+    },
+    "bakari": {
+      "palette": "vito",
+      "voice": "bakari_v",
+      "proportions": {
+        "height": 504.4
+      },
+      "generate": {
+        "build": "slim",
+        "hands": "mitten",
+        "skin": "skinAlt",
+        "cloth": "clothAlt",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hair",
+        "face": {
+          "jaw": "round",
+          "eyes": "wide",
+          "brow": "flat",
+          "nose": "button",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.14
+          },
+          "armR": {
+            "rot": -0.14
+          },
+          "foreL": {
+            "rot": 0.2
+          },
+          "foreR": {
+            "rot": -0.2
+          }
+        },
+        "ask": {
+          "armR": {
+            "rot": -0.7
+          },
+          "foreR": {
+            "rot": -0.75
+          },
+          "head": {
+            "rot": 0.08
+          }
+        }
+      }
+    },
+    "hamisi": {
+      "palette": "vito",
+      "voice": "hamisi_v",
+      "proportions": {
+        "height": 494
+      },
+      "generate": {
+        "build": "heavy",
+        "hands": "mitten",
+        "cloth": "clothWarm",
+        "trouser": "trouser",
+        "hair": "short-fade",
+        "hairColor": "hairGrey",
+        "face": {
+          "jaw": "square",
+          "eyes": "hooded",
+          "brow": "heavy",
+          "nose": "broad",
+          "lips": "medium",
+          "ears": "round"
+        }
+      },
+      "view": "threeQuarter",
+      "poses": {
+        "stand": {
+          "armL": {
+            "rot": 0.1
+          },
+          "armR": {
+            "rot": -0.1
+          },
+          "foreL": {
+            "rot": 0.22
+          },
+          "foreR": {
+            "rot": -0.22
+          }
+        },
+        "tell": {
+          "armR": {
+            "rot": -0.5
+          },
+          "foreR": {
+            "rot": -0.7
+          },
+          "head": {
+            "rot": -0.06
+          }
+        }
+      }
+    },
+    "fact": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "kicker",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            318
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MADINI YA VITO  ·  SEHEMU 2",
+            "font": "700 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "title",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            392
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Viwanda vitatu",
+            "font": "800 70px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "titlesub",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            462
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "kila kito kinatoka kwenye kimojawapo",
+            "font": "600 31px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 0,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "f0_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            695
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f0_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            695
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 162,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#e2663c"
+        },
+        {
+          "id": "f0_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            648
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "1  ·  MOTO — magma",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f0_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Mwamba unayeyuka, kisha unapoa polepole chini ya ardhi.\nPegmatite: tourmaline, aquamarine, garnet.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "f1_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            911
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f1_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            911
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 162,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#5b7cfa"
+        },
+        {
+          "id": "f1_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            864
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "2  ·  SHINIKIZO — metamorphic",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f1_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            916
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Joto na mgandamizo bila kuyeyuka. Atomu zinapangika upya.\nTanzanite, tsavorite, rubi, yakuti.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "f2_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1127
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 190,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "f2_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            1127
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 162,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#4aa3d8"
+        },
+        {
+          "id": "f2_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1080
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "3  ·  MAJI YA MOTO — hydrothermal",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "f2_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1132
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Maji yanabeba madini, yanapoa, madini yanakaa kwenye ufa.\nQuartz, amethyst, zumaridi.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        }
+      ]
+    },
+    "magma": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            900
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 1160,
+            "h": 900,
+            "cx": true,
+            "cy": true
+          },
+          "z": -20,
+          "alpha": 0,
+          "fill": "#2a1a14"
+        },
+        {
+          "id": "h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            520
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "KASI YA KUPOA INAAMUA UKUBWA",
+            "font": "700 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "fastT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            300,
+            600
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "kupoa haraka",
+            "font": "700 29px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "hot"
+        },
+        {
+          "id": "slowT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            780,
+            600
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "kupoa polepole",
+            "font": "700 29px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "sm0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            214.79539418966237,
+            826.4244126603701
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            117.85579646806022,
+            835.3840788879608
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            235.08234457651645,
+            770.1781510299716
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            424.3470399535699,
+            760.6656208538634
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            469.3064180610817,
+            957.1090826853745
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            320.9634208485805,
+            952.7867863380956
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            346.116422711993,
+            878.1106651925564
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm7",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            275.33942565940845,
+            899.8001736666505
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm8",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            440.2638783839397,
+            941.3457192442268
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm9",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            451.83850065239665,
+            809.3006401481921
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm10",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            297.3567452810573,
+            836.9027703946196
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm11",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            201.3835653672102,
+            798.6064406781474
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm12",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            351.2644970764543,
+            1034.801745129212
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm13",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            454.521147310491,
+            944.2845909389694
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm14",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            318.99793193135133,
+            902.4314420091395
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm15",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            265.866882208974,
+            736.266948112303
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm16",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            412.1607901219978,
+            762.8752510641605
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm17",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            384.09379578249394,
+            753.5740424046136
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm18",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            407.7776619863086,
+            902.4499123994469
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm19",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            390.43497787821343,
+            992.4321809709243
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm20",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            222.85066238215018,
+            942.7213140762743
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm21",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            326.5508345757052,
+            787.3815178802822
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm22",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            400.01841022497797,
+            789.3577275190032
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm23",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            339.47290342919837,
+            990.6681430568569
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm24",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            190.5997143577806,
+            830.562423407206
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm25",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            247.91423509460057,
+            1029.5752335675404
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm26",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            208.96993370275806,
+            819.8518697754319
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm27",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            270.43660221876047,
+            751.731904092205
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm28",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            183.8549605085883,
+            956.4840917967795
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm29",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            304.4274605415357,
+            930.0613296320988
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm30",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            184.35479667545056,
+            812.7639139223902
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm31",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            200.95430016366328,
+            906.0773065995777
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm32",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            248.8081722942549,
+            894.3626298947116
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm33",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            311.34442604027595,
+            803.7582878175357
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm34",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            427.21556259188634,
+            988.4025990943211
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm35",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            181.37229572908922,
+            798.3937309178499
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm36",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            386.28547215700706,
+            844.7666083945165
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm37",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            181.71097588372845,
+            893.1552139302499
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm38",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            193.8758072063021,
+            776.2322393508887
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm39",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            309.58901884547316,
+            954.4390473212578
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm40",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            297.3266409556081,
+            877.8152750453968
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm41",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            265.3674063921447,
+            1027.4688330547833
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm42",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            312.79149335533936,
+            768.1862152333097
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "sm43",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            208.96167615039002,
+            970.4353513950491
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 22,
+            "h": 22,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#d9b48a",
+          "stroke": "#8a6a4a",
+          "strokeWidth": 1.5
+        },
+        {
+          "id": "bg0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M712,790 L760,713.2 L808,790 L760,866.8Z"
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#9fb6ff",
+          "stroke": "#e6ecff",
+          "strokeWidth": 3
+        },
+        {
+          "id": "bg1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M842,900 L880,839.2 L918,900 L880,960.8Z"
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#9fb6ff",
+          "stroke": "#e6ecff",
+          "strokeWidth": 3
+        },
+        {
+          "id": "bg2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M684,950 L726,882.8 L768,950 L726,1017.2Z"
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#9fb6ff",
+          "stroke": "#e6ecff",
+          "strokeWidth": 3
+        },
+        {
+          "id": "bg3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M830,1010 L860,962 L890,1010 L860,1058Z"
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#9fb6ff",
+          "stroke": "#e6ecff",
+          "strokeWidth": 3
+        },
+        {
+          "id": "div",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M540,640 L540,1140"
+          },
+          "z": 30,
+          "alpha": 0,
+          "stroke": "#3a4a60",
+          "strokeWidth": 3
+        },
+        {
+          "id": "fastN",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            300,
+            1182
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "fuwele nyingi ndogo",
+            "font": "600 26px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 430
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "slowN",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            780,
+            1182
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "fuwele chache kubwa = KITO",
+            "font": "800 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 430
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "gem"
+        }
+      ]
+    },
+    "meta": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            900
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 1160,
+            "h": 860,
+            "cx": true,
+            "cy": true
+          },
+          "z": -20,
+          "alpha": 0,
+          "fill": "#242a33"
+        },
+        {
+          "id": "h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            528
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "BILA KUYEYUKA",
+            "font": "700 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "band0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,600 C3.3,595.7 123.3,571 220,574 C316.7,577 433.3,617.3 540,618 C646.7,618.7 763.3,579.3 860,578 C956.7,576.7 1076.7,604.7 1120,610"
+          },
+          "z": 0,
+          "alpha": 0,
+          "stroke": "#4e5663",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "band1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,658 C3.3,653.7 123.3,629 220,632 C316.7,635 433.3,675.3 540,676 C646.7,676.7 763.3,637.3 860,636 C956.7,634.7 1076.7,662.7 1120,668"
+          },
+          "z": 1,
+          "alpha": 0,
+          "stroke": "#8d97a6",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "band2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,716 C3.3,711.7 123.3,687 220,690 C316.7,693 433.3,733.3 540,734 C646.7,734.7 763.3,695.3 860,694 C956.7,692.7 1076.7,720.7 1120,726"
+          },
+          "z": 2,
+          "alpha": 0,
+          "stroke": "#4e5663",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "band3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,774 C3.3,769.7 123.3,745 220,748 C316.7,751 433.3,791.3 540,792 C646.7,792.7 763.3,753.3 860,752 C956.7,750.7 1076.7,778.7 1120,784"
+          },
+          "z": 3,
+          "alpha": 0,
+          "stroke": "#8d97a6",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "band4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,832 C3.3,827.7 123.3,803 220,806 C316.7,809 433.3,849.3 540,850 C646.7,850.7 763.3,811.3 860,810 C956.7,808.7 1076.7,836.7 1120,842"
+          },
+          "z": 4,
+          "alpha": 0,
+          "stroke": "#4e5663",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "band5",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,890 C3.3,885.7 123.3,861 220,864 C316.7,867 433.3,907.3 540,908 C646.7,908.7 763.3,869.3 860,868 C956.7,866.7 1076.7,894.7 1120,900"
+          },
+          "z": 5,
+          "alpha": 0,
+          "stroke": "#8d97a6",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "band6",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,948 C3.3,943.7 123.3,919 220,922 C316.7,925 433.3,965.3 540,966 C646.7,966.7 763.3,927.3 860,926 C956.7,924.7 1076.7,952.7 1120,958"
+          },
+          "z": 6,
+          "alpha": 0,
+          "stroke": "#4e5663",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "band7",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,1006 C3.3,1001.7 123.3,977 220,980 C316.7,983 433.3,1023.3 540,1024 C646.7,1024.7 763.3,985.3 860,984 C956.7,982.7 1076.7,1010.7 1120,1016"
+          },
+          "z": 7,
+          "alpha": 0,
+          "stroke": "#8d97a6",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "band8",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M-40,1064 C3.3,1059.7 123.3,1035 220,1038 C316.7,1041 433.3,1081.3 540,1082 C646.7,1082.7 763.3,1043.3 860,1042 C956.7,1040.7 1076.7,1068.7 1120,1074"
+          },
+          "z": 8,
+          "alpha": 0,
+          "stroke": "#4e5663",
+          "strokeWidth": 30,
+          "lineCap": "butt"
+        },
+        {
+          "id": "sqL",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M84,900 L250,900 L216,876 M250,900 L216,924"
+          },
+          "z": 40,
+          "alpha": 0,
+          "stroke": "fault",
+          "strokeWidth": 8,
+          "lineCap": "round"
+        },
+        {
+          "id": "sqR",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M996,900 L830,900 L864,876 M830,900 L864,924"
+          },
+          "z": 40,
+          "alpha": 0,
+          "stroke": "fault",
+          "strokeWidth": 8,
+          "lineCap": "round"
+        },
+        {
+          "id": "gm0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M354,712 L380,678 L406,712 L380,746Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "tanzanite",
+          "stroke": "gem",
+          "strokeWidth": 3
+        },
+        {
+          "id": "gm1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M614,806 L640,772 L666,806 L640,840Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "tanzanite",
+          "stroke": "gem",
+          "strokeWidth": 3
+        },
+        {
+          "id": "gm2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M440,902 L466,868 L492,902 L466,936Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "tanzanite",
+          "stroke": "gem",
+          "strokeWidth": 3
+        },
+        {
+          "id": "gm3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M698,988 L724,954 L750,988 L724,1022Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "tanzanite",
+          "stroke": "gem",
+          "strokeWidth": 3
+        },
+        {
+          "id": "gm4",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M514,1064 L540,1030 L566,1064 L540,1098Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "tanzanite",
+          "stroke": "gem",
+          "strokeWidth": 3
+        },
+        {
+          "id": "metaT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1172
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "UKANDA WA MSUMBIJI — TANZANIA",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "gem"
+        }
+      ]
+    },
+    "hydro": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            900
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 1160,
+            "h": 880,
+            "cx": true,
+            "cy": true
+          },
+          "z": -20,
+          "alpha": 0,
+          "fill": "#2d2a24"
+        },
+        {
+          "id": "h",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            520
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MAJI YANABEBA, YANAPOA, YANAACHA",
+            "font": "700 32px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "seam",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M80,1180 C116.7,1153.3 226.7,1053.3 300,1020 C373.3,986.7 443.3,1010 520,980 C596.7,950 680,886.7 760,840 C840,793.3 960,723.3 1000,700"
+          },
+          "z": -10,
+          "alpha": 0,
+          "stroke": "quartz",
+          "strokeWidth": 52,
+          "lineCap": "round"
+        },
+        {
+          "id": "flow0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M80,1180 C116.7,1153.3 226.7,1053.3 300,1020 C373.3,986.7 443.3,1010 520,980 C596.7,950 680,886.7 760,840 C840,793.3 960,723.3 1000,700"
+          },
+          "z": -8,
+          "alpha": 0,
+          "stroke": "heat",
+          "strokeWidth": 22,
+          "lineCap": "round",
+          "trim": {
+            "end": 0.3,
+            "length": 300
+          },
+          "flow": 0
+        },
+        {
+          "id": "flow1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M80,1167 C116.7,1140.3 226.7,1040.3 300,1007 C373.3,973.7 443.3,997 520,967 C596.7,937 680,873.7 760,827 C840,780.3 960,710.3 1000,687"
+          },
+          "z": -7,
+          "alpha": 0,
+          "stroke": "hot",
+          "strokeWidth": 10,
+          "lineCap": "round",
+          "trim": {
+            "end": 0.22,
+            "length": 390
+          },
+          "flow": 0
+        },
+        {
+          "id": "ufa",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            240,
+            1098
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "UFA",
+            "font": "800 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "cr0",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M338,1034 L338,994 L360,962 L382,994 L382,1034Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "#b088e0",
+          "stroke": "#e3d2ff",
+          "strokeWidth": 3
+        },
+        {
+          "id": "cr1",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M538,982 L538,942 L560,910 L582,942 L582,982Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "#b088e0",
+          "stroke": "#e3d2ff",
+          "strokeWidth": 3
+        },
+        {
+          "id": "cr2",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M678,910 L678,870 L700,838 L722,870 L722,910Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "#b088e0",
+          "stroke": "#e3d2ff",
+          "strokeWidth": 3
+        },
+        {
+          "id": "cr3",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            0,
+            0
+          ],
+          "shape": {
+            "kind": "path",
+            "d": "M838,820 L838,780 L860,748 L882,780 L882,820Z"
+          },
+          "z": 30,
+          "alpha": 0,
+          "fill": "#b088e0",
+          "stroke": "#e3d2ff",
+          "strokeWidth": 3
+        },
+        {
+          "id": "hydroT",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1300
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MISHIPA MYEUPE = MAJI YALIPITA HAPA",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 40,
+          "alpha": 0,
+          "fill": "quartz"
+        }
+      ]
+    },
+    "needs": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "nh",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            520
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "KILA KIWANDA KINAHITAJI VITATU",
+            "font": "800 38px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "n0_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            690
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "n0_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            690
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#3fbf7f"
+        },
+        {
+          "id": "n0_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            648
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "NAFASI",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "n0_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Ufa, pango, au nafasi kati ya chembe.\nFuwele haiwezi kukua kwenye mwamba uliojaa.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "n1_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            896
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "n1_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            896
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#ffc64d"
+        },
+        {
+          "id": "n1_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            854
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MUDA",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "n1_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            906
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Maelfu hadi mamilioni ya miaka.\nFuwele kubwa daima ni ya zamani.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "n2_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1102
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 960,
+            "h": 180,
+            "cx": true,
+            "cy": true
+          },
+          "z": 10,
+          "alpha": 0,
+          "fill": "#131c2b",
+          "stroke": "#223148",
+          "strokeWidth": 2
+        },
+        {
+          "id": "n2_chip",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            84,
+            1102
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 10,
+            "h": 152,
+            "cx": true,
+            "cy": true
+          },
+          "z": 11,
+          "alpha": 0,
+          "fill": "#e0344f"
+        },
+        {
+          "id": "n2_t",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1060
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "VIAMBATO",
+            "font": "800 34px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "n2_b",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            114,
+            1112
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Vanadiumu, kromiamu, berili, boroni.\nNdivyo vinavyotoa rangi.",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "left",
+            "baseline": "middle",
+            "maxWidth": 870
+          },
+          "z": 12,
+          "alpha": 0,
+          "fill": "dim",
+          "lineHeight": 34
+        },
+        {
+          "id": "nf",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1232
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Kikose kimoja — hakuna kito.",
+            "font": "800 36px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 940
+          },
+          "z": 50,
+          "alpha": 0,
+          "fill": "gold"
+        }
+      ]
+    },
+    "card": {
+      "role": "effect",
+      "palette": "vito",
+      "parts": [
+        {
+          "id": "card_bg",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            960
+          ],
+          "shape": {
+            "kind": "rect",
+            "w": 1080,
+            "h": 1920,
+            "cx": true,
+            "cy": true
+          },
+          "z": 200,
+          "alpha": 0,
+          "fill": "#05080d"
+        },
+        {
+          "id": "card_next",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            700
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Inayofuata: mto unakuambia kitu",
+            "font": "700 40px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "gem"
+        },
+        {
+          "id": "card_series",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            876
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "MADINI YA VITO",
+            "font": "800 54px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "ink"
+        },
+        {
+          "id": "card_tag",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            936
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "jinsi vito vinazaliwa na jinsi ya kuvitafuta",
+            "font": "600 29px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "card_share",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1046
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "#MadiniYaVito  #Tanzania  #Vito",
+            "font": "700 30px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "gold"
+        },
+        {
+          "id": "card_eng",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1160
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "Imeundwa na Jirex — injini huria ya uhuishaji",
+            "font": "600 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle",
+            "maxWidth": 960
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "dim"
+        },
+        {
+          "id": "card_repo",
+          "parent": null,
+          "pivot": [
+            0,
+            0
+          ],
+          "at": [
+            540,
+            1204
+          ],
+          "shape": {
+            "kind": "text",
+            "text": "github.com/minjaezekiel/jireX",
+            "font": "700 27px \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+            "align": "center",
+            "baseline": "middle"
+          },
+          "z": 210,
+          "alpha": 0,
+          "fill": "ink"
+        }
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "id": "viwanda",
+      "palette": "vito",
+      "background": {
+        "color": "#0b1018"
+      },
+      "transitionIn": {
+        "kind": "fade",
+        "from": "#000000",
+        "duration": 0.7
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "fact",
+          "as": "fact",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "a0",
+          "duration": 8.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Vito vyote duniani vinatoka kwenye viwanda vitatu tu, na ukijua kiwanda, unajua miamba ya kutembea juu yake.",
+              "at": 0.3,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f0_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f0_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f0_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f0_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f0_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f0_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f0_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f0_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f1_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f1_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f1_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f1_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f1_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f1_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f2_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f2_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.9,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f2_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f2_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.1,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f2_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "f2_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.2,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "kicker",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.9,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "title",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.14,
+              "ease": "step"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "titlesub",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.88,
+              "ease": "smooth"
+            },
+            {
+              "target": "fact",
+              "do": "set",
+              "part": "titlesub",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.38,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moto",
+      "palette": "vito",
+      "background": {
+        "color": "#140c08"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "magma",
+          "as": "magma",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "m0",
+          "duration": 7.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kiwanda cha kwanza ni moto: magma. Mwamba unaoyeyuka, kisha unapoa polepole sana chini ya ardhi.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "m1",
+          "duration": 8.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Ukipoa haraka, fuwele zinakuwa ndogo. Ukipoa polepole kwa maelfu ya miaka, zinakuwa kubwa za kutosha kuwa kito.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "div",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "div",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "fastT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "fastT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.725,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.925,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.75,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.95,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.775,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.975,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.825,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.025,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.85,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.05,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm7",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.875,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm7",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.075,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm8",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm8",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.1,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm9",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.925,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm9",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.125,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm10",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.95,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm10",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.15,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm11",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.975,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm11",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.175,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm12",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm12",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.2,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm13",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.025,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm13",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.225,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm14",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.05,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm14",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.25,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm15",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.075,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm15",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.275,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm16",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm16",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm17",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.125,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm17",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.325,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm18",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.15,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm18",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.35,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm19",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.175,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm19",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.375,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm20",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm20",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm21",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.225,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm21",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.425,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm22",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.25,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm22",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.45,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm23",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.275,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm23",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.475,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm24",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm24",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm25",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.325,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm25",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.525,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm26",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.35,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm26",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.55,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm27",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.375,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm27",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.575,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm28",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm28",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm29",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.425,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm29",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.625,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm30",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.45,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm30",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.65,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm31",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.475,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm31",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.675,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm32",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm32",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.7,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm33",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.525,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm33",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.725,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm34",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.55,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm34",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.75,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm35",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.575,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm35",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.775,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm36",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm36",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.8,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm37",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.625,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm37",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.825,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm38",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.65,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm38",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.85,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm39",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.675,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm39",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.875,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm40",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm40",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.9,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm41",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.725,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm41",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.925,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm42",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.75,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm42",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.95,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm43",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.775,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "sm43",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.975,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "fastN",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "fastN",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.6,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "slowT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "slowT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.4,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.672,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.672,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.672,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.672,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.58,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.62,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.892,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.892,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.02,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.62,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.892,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.892,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.02,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.62,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.8,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.84,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.112,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.112,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.24,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.84,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.112,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.112,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.24,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.84,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.02,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 4.06,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.332,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.332,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.46,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 4.06,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.332,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.332,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.46,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.06,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "bg3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.24,
+              "ease": "step"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "slowN",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "magma",
+              "do": "set",
+              "part": "slowN",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 5.2,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "m2",
+          "duration": 9,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Mabaki ya mwisho ya magma yanakusanya maji na vitu vya nadra, na kutengeneza mwamba unaoitwa pegmatite. Hapo ndipo tourmaline na aquamarine zinapatikana.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": []
+        }
+      ]
+    },
+    {
+      "id": "shinikizo",
+      "palette": "vito",
+      "background": {
+        "color": "#0d1118"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "meta",
+          "as": "meta",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "p0",
+          "duration": 6.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kiwanda cha pili ni shinikizo: mabadiliko ya mwamba, bila kuyeyuka.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.7,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.05,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.81,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.16,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.92,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.27,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.03,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.38,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.49,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band5",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.25,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band5",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band6",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.36,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band6",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.71,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band7",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.47,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band7",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.82,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band8",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.58,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "band8",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.93,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "p1",
+          "duration": 9,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Mwamba unakandamizwa na kuchomwa, atomu zinapangika upya, na madini mapya yanazaliwa pale pale ulipokuwa mwamba wa zamani.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "sqL",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "sqL",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.75,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "sqR",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "sqR",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.75,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.872,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 2.872,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.872,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 2.872,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.78,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.172,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.172,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.172,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.172,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.08,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.472,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.472,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.6,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.472,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.472,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.6,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.38,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.772,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.772,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.9,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.772,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.772,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.9,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.68,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.072,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.072,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.2,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.072,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.072,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.2,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "gm4",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.98,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "p2",
+          "duration": 9.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Hapa ndipo tanzanite inatoka. Pia tsavorite, rubi na yakuti. Na ukanda wa Msumbiji unaopita Tanzania ni kiwanda cha aina hii.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.74,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.74,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.9,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.74,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.74,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.9,
+              "ease": "step"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "meta",
+              "do": "set",
+              "part": "metaT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.58,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "maji",
+      "palette": "vito",
+      "background": {
+        "color": "#12100c"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "hydro",
+          "as": "hydro",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "w0",
+          "duration": 6.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kiwanda cha tatu ni maji ya moto yanayobeba madini yakiyeyuka ndani yake.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "flow0",
+              "channel": "props.flow",
+              "value": 0,
+              "at": 0,
+              "ease": "linear"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "flow0",
+              "channel": "props.flow",
+              "value": 13,
+              "at": 30,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "flow1",
+              "channel": "props.flow",
+              "value": 0,
+              "at": 0,
+              "ease": "linear"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "flow1",
+              "channel": "props.flow",
+              "value": 9.6,
+              "at": 30,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.6,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "h",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "h",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "seam",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "seam",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "ufa",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "ufa",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.8,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "w1",
+          "duration": 8.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Maji hayo yanapita kwenye nyufa za miamba. Yanapopoa, hayawezi tena kubeba madini, na madini yanakaa kwenye ufa.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "flow0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "flow0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "flow1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "flow1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.472,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.472,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.6,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.472,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.472,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.6,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr0",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.38,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.772,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.772,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.9,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.772,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.772,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.9,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr1",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.68,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 3.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.072,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.072,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.2,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 3.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.072,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.072,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.2,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 3.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr2",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 3.98,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 4.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.372,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.372,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.5,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 4.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.372,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.372,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.5,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "cr3",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.28,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "duration": 8,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Ndiyo maana vito vingi vinapatikana kwenye mishipa myeupe ya quartz. Ule mshipa ulikuwa ufa, na maji yaliujaza.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.14,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 3.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.14,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 3.14,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 3.3,
+              "ease": "step"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 2.8,
+              "ease": "smooth"
+            },
+            {
+              "target": "hydro",
+              "do": "set",
+              "part": "hydroT",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 2.98,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "swali",
+      "palette": "vito",
+      "background": {
+        "color": "#101a26"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            330,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter"
+        },
+        {
+          "character": "bakari",
+          "as": "bakari",
+          "at": [
+            770,
+            839
+          ],
+          "scale": 1.5,
+          "view": "threeQuarter",
+          "facing": -1
+        }
+      ],
+      "shots": [
+        {
+          "id": "q0",
+          "duration": 7,
+          "dialogue": [
+            {
+              "speaker": "bakari",
+              "text": "Lakini mimi nikiwa shambani, sijui mwamba huu ulitoka kiwanda gani. Nitajuaje?",
+              "at": 0.3,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "nuru",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "bakari",
+              "do": "pose",
+              "pose": "stand",
+              "at": 0
+            },
+            {
+              "target": "bakari",
+              "do": "pose",
+              "pose": "ask",
+              "at": 0.3,
+              "for": 0.6
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 1.493
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 4.657
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 1.641
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 5.947
+            }
+          ]
+        },
+        {
+          "id": "q1",
+          "duration": 8,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kwa vitu vitatu ambavyo kila kiwanda lazima kiwe nacho. Nafasi, muda, na viambato. Kikose kimoja, hakuna kito.",
+              "at": 0.3,
+              "lipsync": true,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "nuru",
+              "do": "pose",
+              "pose": "present",
+              "at": 0.3,
+              "for": 0.7
+            },
+            {
+              "target": "nuru",
+              "do": "pose",
+              "pose": "count",
+              "at": 3.2,
+              "for": 0.6
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 1.581
+            },
+            {
+              "target": "nuru",
+              "do": "play",
+              "action": "blink",
+              "at": 4.113
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 1.253
+            },
+            {
+              "target": "bakari",
+              "do": "play",
+              "action": "blink",
+              "at": 5.027
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vitatu",
+      "palette": "vito",
+      "background": {
+        "color": "#0b1018"
+      },
+      "transitionOut": {
+        "kind": "crossfade",
+        "duration": 0.6
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "needs",
+          "as": "needs",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "n0",
+          "duration": 7.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Nafasi ni ufa, pango au nafasi kati ya chembe. Fuwele haiwezi kukua kwenye mwamba uliojaa.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nh",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nh",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.65,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n0_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.9,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n0_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.3,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n0_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n0_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.4,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n0_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.1,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n0_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.5,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n0_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n0_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.6,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "n1",
+          "duration": 6.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Muda ni maelfu hadi mamilioni ya miaka. Fuwele kubwa daima ni fuwele ya zamani.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n1_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n1_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n1_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n1_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n1_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n1_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n1_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n1_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "n2",
+          "duration": 7,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Viambato ni vile vya nadra: vanadiumu, kromiamu, berili, boroni. Ndiyo vinavyotoa rangi.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n2_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n2_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.7,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n2_chip",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.4,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n2_chip",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.8,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n2_t",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.5,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n2_t",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.9,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n2_b",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.6,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "n2_b",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1,
+              "ease": "step"
+            }
+          ]
+        },
+        {
+          "id": "n3",
+          "duration": 9.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Kwa hiyo unapoona mwamba uliopasuka, wenye mishipa, na ulio wa zamani sana, umeona sehemu ambayo viwanda vyote vitatu vinaweza kuwa vilifanya kazi.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sx",
+              "value": 0,
+              "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.34,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sx",
+              "value": 1.12,
+              "at": 4.34,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sx",
+              "value": 1,
+              "at": 4.5,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sy",
+              "value": 0,
+              "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.34,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sy",
+              "value": 1.12,
+              "at": 4.34,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "transform.sy",
+              "value": 1,
+              "at": 4.5,
+              "ease": "step"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 4,
+              "ease": "smooth"
+            },
+            {
+              "target": "needs",
+              "do": "set",
+              "part": "nf",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 4.18,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "palette": "vito",
+      "background": {
+        "color": "#05080d"
+      },
+      "transitionIn": {
+        "kind": "crossfade",
+        "duration": 0.5
+      },
+      "cast": [
+        {
+          "character": "nuru",
+          "as": "nuru",
+          "at": [
+            540,
+            976
+          ],
+          "scale": 1,
+          "alpha": 0,
+          "z": -900
+        },
+        {
+          "character": "card",
+          "as": "card",
+          "at": [
+            0,
+            0
+          ],
+          "scale": 1,
+          "alpha": 1,
+          "z": 0,
+          "role": "effect"
+        }
+      ],
+      "shots": [
+        {
+          "id": "c0",
+          "duration": 7.5,
+          "dialogue": [
+            {
+              "speaker": "nuru",
+              "text": "Sehemu inayofuata: mto. Kwa sababu vito havikai palipozaliwa.",
+              "at": 0.2,
+              "lipsync": false,
+              "subtitle": true
+            }
+          ],
+          "actions": [
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_bg",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.2,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_bg",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.65,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_next",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.42,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_next",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 0.87,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_series",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.64,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_series",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.09,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_tag",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 0.86,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_tag",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.31,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_share",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.08,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_share",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.53,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_eng",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.3,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_eng",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.75,
+              "ease": "step"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_repo",
+              "channel": "props.alpha",
+              "value": 0,
+              "at": 1.52,
+              "ease": "smooth"
+            },
+            {
+              "target": "card",
+              "do": "set",
+              "part": "card_repo",
+              "channel": "props.alpha",
+              "value": 1,
+              "at": 1.97,
+              "ease": "step"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

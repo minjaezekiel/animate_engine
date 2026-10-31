@@ -192,3 +192,46 @@ export function strata(id, layers, { x = 90, w = 900, top = 560, z = 0 } = {}) {
     });
     return { parts, bottom: y, ids: parts.map((p) => p.id) };
 }
+
+/**
+ * A stack of panels: a heading, a line of body text, and a colour chip.
+ *
+ * The recurring shape of this series -- three factories, four tests, five
+ * trap sites. Each row is its own group of ids so the narration can reveal
+ * them one at a time, which is the whole reason a board exists.
+ */
+export function cardRows(id, rows, {
+    top = 560, h = 150, gap = 18, x = 60, w = 960, z = 10,
+} = {}) {
+    const parts = [];
+    const ids = [];
+    rows.forEach(([title, body, chip], i) => {
+        const y = top + i * (h + gap);
+        const rid = `${id}${i}`;
+        parts.push(
+            rectPart(`${rid}_bg`, w, h, { at: [x + w / 2, y + h / 2], fill: '#131c2b',
+                                          stroke: '#223148', strokeWidth: 2, alpha: 0, z }),
+            rectPart(`${rid}_chip`, 10, h - 28, { at: [x + 24, y + h / 2], fill: chip,
+                                                  alpha: 0, z: z + 1 }),
+            textPart(`${rid}_t`, title, { at: [x + 54, y + 48], font: `800 34px ${FONT}`,
+                                          fill: 'ink', align: 'left', alpha: 0, z: z + 2,
+                                          maxWidth: w - 90 }),
+            textPart(`${rid}_b`, body, { at: [x + 54, y + 100], font: `600 27px ${FONT}`,
+                                         fill: 'dim', align: 'left', alpha: 0, z: z + 2,
+                                         maxWidth: w - 90, lineHeight: 34 }),
+        );
+        ids.push([`${rid}_bg`, `${rid}_chip`, `${rid}_t`, `${rid}_b`]);
+    });
+    return { parts, ids, rowIds: (i) => ids[i], allIds: ids.flat(),
+             bottom: top + rows.length * (h + gap) };
+}
+
+/** A big number with a caption under it, for a statistic that has to land. */
+export const statParts = (id, value, caption, {
+    at = [540, 900], fill = 'gold', size = 96, z = 50,
+} = {}) => [
+    textPart(`${id}_v`, value, { at, font: `800 ${size}px ${FONT}`, fill, alpha: 0, z }),
+    textPart(`${id}_c`, caption, { at: [at[0], at[1] + size * 0.62],
+                                   font: `700 30px ${FONT}`, fill: 'dim', alpha: 0, z,
+                                   maxWidth: SAFE.x1 - SAFE.x0 }),
+];

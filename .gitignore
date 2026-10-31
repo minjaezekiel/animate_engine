@@ -8,3 +8,7 @@ demo/out/
 .mutation-audit.lock
 out/
 *.mp4
+
+# Vendored TTS runtime and voice models: 63MB per voice, fetched by
+# `npm run vendor-voice` so a render does not depend on huggingface.co.
+vendor/

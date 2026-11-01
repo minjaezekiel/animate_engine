@@ -20,6 +20,8 @@ const FILM = process.env.FILM ?? 'demo/film.json';
  * not in git -- `npm run vendor-voice` fetches it -- so the CDN remains the
  * default and nothing breaks without it.
  */
+/** A locally-running VoiceStudio, for cloned voices. Absent by default. */
+const VOICE_STUDIO = process.env.VOICE_STUDIO ?? null;
 const TTS_MODULE_URL = process.env.TTS_MODULE_URL
     ?? (existsSync(new URL('../vendor/vits-web.js', import.meta.url))
         ? '/vendor/vits-web.js' : null);
@@ -89,6 +91,7 @@ const result = await page.evaluate(async (origin, cfg) => {
     const studio = new FilmStudio({
         onLog: (m) => window.report(m),
         ...(cfg.ttsModuleUrl ? { ttsModuleUrl: cfg.ttsModuleUrl } : {}),
+        ...(cfg.voiceStudioUrl ? { voiceStudioUrl: cfg.voiceStudioUrl } : {}),
     });
     const film = await (await fetch(`${origin}/${cfg.film}`)).json();
 
@@ -185,7 +188,8 @@ const result = await page.evaluate(async (origin, cfg) => {
         wallSec: +((performance.now() - t0) / 1000).toFixed(1),
     };
 }, base, { film: FILM, width: WIDTH, height: HEIGHT, fps: FPS, useTts: USE_TTS,
-           format: FORMAT, ttsModuleUrl: TTS_MODULE_URL });
+           format: FORMAT, ttsModuleUrl: TTS_MODULE_URL,
+           voiceStudioUrl: VOICE_STUDIO });
 
 // The extension follows what was actually encoded, not what was asked for.
 const ext = result.type.includes('mp4') ? '.mp4' : '.webm';

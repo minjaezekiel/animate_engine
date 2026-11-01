@@ -62,11 +62,23 @@ export class VoiceRegistry {
         const voiceId = i < 0 ? null : spec.slice(i + 1);
         const provider = this.providers.get(providerId);
         if (!provider) return null;
-        if (!voiceId) {
-            const list = await provider.listVoices();
-            return list[0] ?? null;
+        // A provider whose listing THROWS must not take the whole ladder with
+        // it. The point of the ladder is that a film cast against a voice
+        // source that is absent still renders from whatever is present, and
+        // an unguarded `listVoices()` here defeated that: a film naming a
+        // local voice server that was not running failed outright instead of
+        // falling through to the bundled voices.
+        const list = await provider.listVoices().catch(() => null);
+        if (!list) {
+            // Still name the voice, so `synthesize` can try the provider and
+            // fall through on its own terms rather than silently picking
+            // someone else's voice here.
+            return voiceId
+                ? createVoice({ id: voiceId, source: provider.source ?? 'tts',
+                                provider: providerId })
+                : null;
         }
-        const list = await provider.listVoices();
+        if (!voiceId) return list[0] ?? null;
         return list.find((v) => v.id === voiceId)
             ?? createVoice({ id: voiceId, source: provider.source ?? 'tts', provider: providerId });
     }

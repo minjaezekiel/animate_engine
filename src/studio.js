@@ -19,6 +19,7 @@ import { FileProvider } from './core/art/providers/FileProvider.js';
 import { MicProvider } from './core/voice/providers/MicProvider.js';
 import { UploadProvider } from './core/voice/providers/UploadProvider.js';
 import { TtsVitsProvider } from './core/voice/providers/TtsVitsProvider.js';
+import { VoiceStudioProvider } from './core/voice/providers/VoiceStudioProvider.js';
 import { TtsHttpProvider } from './core/voice/providers/TtsHttpProvider.js';
 import { synthesizeDialogue } from './core/voice/synthesize.js';
 import { renderMix, decodeAudio } from './audio/OfflineMixer.js';
@@ -42,7 +43,10 @@ const SAMPLE_RATE = 48000;
 
 export class FilmStudio {
     constructor({ sampleRate = SAMPLE_RATE, muxerFactory = null, ttsModuleUrl, onLog = null,
-                  parallel = null } = {}) {
+                  parallel = null,
+                  // A locally-running VoiceStudio, for cloned and designed
+                  // voices. Absent by default; see 29-VOICE-STUDIO.md.
+                  voiceStudioUrl = null, voiceStudioOptions = null } = {}) {
         /**
          * Whether to build a kernel worker pool for photo warps. `null`
          * means "yes in a browser, no in Node"; see `_attachPainters`.
@@ -69,6 +73,17 @@ export class FilmStudio {
             ...(ttsModuleUrl ? { moduleUrl: ttsModuleUrl } : {}),
             onProgress: (p) => this.log(`voice model: ${describeProgress(p)}`),
         });
+        // A locally-running VoiceStudio, if one was configured. Registered
+        // FIRST so a cloned voice wins, and entirely optional so the render
+        // stays self-contained when it is absent -- `available()` returns
+        // false and the ladder falls through to Piper. See 29-VOICE-STUDIO.md.
+        if (voiceStudioUrl) {
+            this.voiceStudio = new VoiceStudioProvider({
+                baseUrl: voiceStudioUrl, decode, sampleRate,
+                ...(voiceStudioOptions ?? {}),
+            });
+            this.voices.register(this.voiceStudio);
+        }
         // Order is the fallback order: a film authored for TTS still renders
         // from uploaded or recorded takes if TTS cannot load.
         this.voices.register(this.tts);

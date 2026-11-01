@@ -82,7 +82,8 @@
     "test:quadruped": "node --test test/core/quadruped.test.mjs",
     "test:voice": "node --test test/core/voice.test.mjs",
     "pacing": "node scripts/narration-pacing.mjs",
-    "vendor-voice": "node scripts/vendor-voice.mjs"
+    "vendor-voice": "node scripts/vendor-voice.mjs",
+    "voice-studio": "node scripts/voice-studio.mjs"
   },
   "keywords": [
     "animation",

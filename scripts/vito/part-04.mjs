@@ -144,38 +144,47 @@ function boardBelt() {
         [586, 1028], [512, 1020], [446, 992], [392, 946], [344, 886], [310, 812],
         [294, 726], [300, 600],
     ];
+    // Roughly where they actually are, and spread far enough apart that seven
+    // labels do not pile into one corner. The first version put Merelani,
+    // Longido and Umba inside eighty pixels of each other and their labels
+    // overlapped into an unreadable knot.
     const SITES = [
-        ['mer', 614, 648, 'Merelani', 'gem'],
-        ['lon', 560, 614, 'Longido', 'ruby'],
-        ['umb', 694, 672, 'Umba', 'tsavorite'],
-        ['win', 560, 790, 'Winza', 'ruby'],
-        ['mah', 612, 876, 'Mahenge', 'garnet'],
-        ['son', 560, 964, 'Songea', 'sapphire'],
-        ['tun', 648, 976, 'Tunduru', 'violet'],
+        ['lon', 498, 622, 'Longido', 'ruby', 'left'],
+        ['mer', 566, 664, 'Merelani', 'gem', 'left'],
+        ['umb', 676, 636, 'Umba', 'tsavorite', 'right'],
+        ['win', 516, 788, 'Winza', 'ruby', 'left'],
+        ['mah', 638, 862, 'Mahenge', 'garnet', 'right'],
+        ['son', 540, 956, 'Songea', 'sapphire', 'left'],
+        ['tun', 664, 940, 'Tunduru', 'violet', 'right'],
     ];
     const parts = [
         pathPart('tzMap', poly(TZ, true),
                  { fill: '#242c22', stroke: 'dim', strokeWidth: 3, alpha: 0, z: 0 }),
-        // the belt: a band running the length of the country
-        pathPart('belt', smooth([[520, 560], [600, 700], [548, 860], [620, 1010]]),
-                 { stroke: '#3f5d4a', strokeWidth: 150, alpha: 0, z: 1,
+        // The belt, INSIDE the outline. At 150 wide from y 560 to 1010 it was
+        // a green sausage hanging off both ends of the country.
+        pathPart('belt', smooth([[540, 630], [600, 740], [556, 860], [612, 952]]),
+                 { stroke: '#3f5d4a', strokeWidth: 104, alpha: 0, z: 1,
                    lineCap: 'round' }),
-        textPart('beltL', 'UKANDA WA MSUMBIJI', { at: [540, 1104],
+        textPart('beltL', 'UKANDA WA MSUMBIJI', { at: [540, 1092],
             font: `800 32px ${FONT}`, fill: '#6fd3a0', alpha: 0, z: 60, maxWidth: 940 }),
-        textPart('beltH', 'MAENEO YANAYOJULIKANA', { at: [540, 510],
+        textPart('beltH', 'MAENEO YANAYOJULIKANA', { at: [540, 496],
             font: `700 32px ${FONT}`, fill: 'dim', alpha: 0, z: 60 }),
     ];
-    SITES.forEach(([id, x, y, name, col], i) => {
-        const left = i % 2 === 0;
+    SITES.forEach(([id, x, y, name, col, side]) => {
+        const left = side === 'left';
         parts.push(
             ellipsePart(id, 15, 15, { at: [x, y], fill: col, alpha: 0, z: 30 }),
+            // A dot inside a dark belt needs a ring, or it disappears into it.
+            ellipsePart(`${id}_r`, 22, 22, { at: [x, y], stroke: '#0b1016',
+                                             strokeWidth: 4, alpha: 0, z: 29 }),
             textPart(`${id}_t`, name, {
-                at: [left ? x - 32 : x + 32, y], font: `700 27px ${FONT}`,
+                at: [left ? x - 34 : x + 34, y], font: `700 28px ${FONT}`,
                 fill: 'ink', align: left ? 'right' : 'left', alpha: 0, z: 31 }),
         );
     });
     parts.push(textRule('beltT', 'MAENEO HAYA YOTE NI JIOLOJIA MOJA'));
-    return { ...board('belt', parts), site: (i) => [SITES[i][0], `${SITES[i][0]}_t`],
+    return { ...board('belt', parts),
+             site: (i) => [`${SITES[i][0]}_r`, SITES[i][0], `${SITES[i][0]}_t`],
              siteCount: SITES.length };
 }
 

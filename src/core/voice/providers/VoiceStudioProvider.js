@@ -79,6 +79,11 @@ export class VoiceStudioProvider {
         fields = { model: 'model', text: 'input', voice: 'voice', format: 'response_format' },
         fetchImpl = null,
         timeoutMs = 120_000,
+        // A liveness check that can take two minutes is not a liveness check.
+        // Synthesis of a long line legitimately takes a while; deciding
+        // whether anything is listening must not, or a dead host stalls the
+        // render instead of being skipped.
+        probeTimeoutMs = 3_000,
         headers = {},
     } = {}) {
         this.id = 'voicestudio';
@@ -95,6 +100,7 @@ export class VoiceStudioProvider {
         this.fields = fields;
         this.headers = headers;
         this.timeoutMs = timeoutMs;
+        this.probeTimeoutMs = probeTimeoutMs;
         this._fetch = fetchImpl ?? ((...a) => globalThis.fetch(...a));
         this._cache = new Map();          // `${voiceId}\0${text}` -> AudioBuffer
         this._catalog = null;
@@ -102,9 +108,9 @@ export class VoiceStudioProvider {
 
     _url(path) { return `${this.baseUrl}${path}`; }
 
-    async _json(path, init) {
+    async _json(path, init, timeoutMs = this.timeoutMs) {
         const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timer = ctl ? setTimeout(() => ctl.abort(), this.timeoutMs) : null;
+        const timer = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : null;
         try {
             const res = await this._fetch(this._url(path), {
                 ...init,
@@ -123,7 +129,7 @@ export class VoiceStudioProvider {
     async available() {
         if (typeof this._fetch !== 'function') return false;
         try {
-            await this._json(this.voicesPath, { method: 'GET' });
+            await this._json(this.voicesPath, { method: 'GET' }, this.probeTimeoutMs);
             return true;
         } catch { return false; }
     }
@@ -137,7 +143,8 @@ export class VoiceStudioProvider {
         const out = { baseUrl: this.baseUrl, reachable: false, voices: 0,
                       cloned: 0, languages: [], notes: [] };
         try {
-            const res = await this._json(this.wellKnownPath, { method: 'GET' });
+            const res = await this._json(this.wellKnownPath, { method: 'GET' },
+                                         this.probeTimeoutMs);
             out.capabilities = await res.json().catch(() => null);
         } catch { out.notes.push(`no ${this.wellKnownPath} (not fatal)`); }
         try {

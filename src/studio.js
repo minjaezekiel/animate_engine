@@ -172,6 +172,11 @@ export class FilmStudio {
             },
         });
         notes.push(...voiced.diagnostics);
+        // Why the ladder fell through, if it did. Without this a film cast
+        // against a voice server that was not running renders in a different
+        // voice and nothing says so -- which is the same silence the levels
+        // and the subtitle margin were lost to.
+        notes.push(...this.voices.diagnostics());
 
         // Pass 2: a shot shorter than its own dialogue would cut the speech
         // off, so retime to the audio that actually exists, then recompile.

@@ -19,26 +19,159 @@ export function createVoice({ id, name = id, source, provider, lang = 'en', tags
     return { id, name, source, provider, lang, tags, ref };
 }
 
+/**
+ * How long a provider's liveness and voice list stay trusted.
+ *
+ * The number is a balance between two real costs. Too short and a render
+ * re-probes a dead host once per line of dialogue; too long and an editor
+ * where someone starts a voice server mid-session never notices. Thirty
+ * seconds turns a 25-line film's 75 probes into two or three, and
+ * `invalidate()` exists for the editor case so it does not have to wait.
+ */
+const DEFAULT_STATUS_TTL_MS = 30_000;
+
 export class VoiceRegistry {
-    constructor() {
+    /**
+     * @param {object} [options]
+     * @param {number} [options.statusTtlMs] 0 disables caching, for tests.
+     * @param {() => number} [options.now] injectable clock, for tests.
+     */
+    constructor({ statusTtlMs = DEFAULT_STATUS_TTL_MS, now = () => Date.now() } = {}) {
         this.providers = new Map();
+        this.statusTtlMs = statusTtlMs;
+        this._now = now;
+        /**
+         * Per-provider memos for `available()` and `listVoices()`.
+         *
+         * These cache FAILURE as well as success, which is the whole point.
+         * Providers cache their own successful listings already; none of them
+         * caches a refusal, so before this a provider that was down was asked
+         * again for every line -- measured at 3 network attempts per line, 75
+         * for one film. Against a closed port that is instant; against a host
+         * that HANGS rather than refusing -- a dropping firewall, or an app
+         * still starting -- each one waits out the provider's timeout, and
+         * the render never finishes.
+         */
+        this._status = new Map();
+        this._voices = new Map();
+        this._notes = [];
     }
 
     register(provider) {
         if (!provider?.id) throw new Error('VoiceRegistry: provider needs an id');
         this.providers.set(provider.id, provider);
+        this.invalidate(provider.id);
         return this;
     }
 
     get(providerId) { return this.providers.get(providerId); }
 
+    /**
+     * Forget what we know about a provider, so the next call asks again.
+     * Call it when the user says they have just started a voice server.
+     */
+    invalidate(providerId = null) {
+        if (providerId == null) {
+            this._status.clear();
+            this._voices.clear();
+            this._notes.length = 0;
+            return this;
+        }
+        this._status.delete(providerId);
+        this._voices.delete(providerId);
+        return this;
+    }
+
+    /**
+     * Run `fn` at most once per TTL per key, and let concurrent callers share
+     * the one in-flight attempt.
+     *
+     * The single-flight part matters as much as the caching: without it,
+     * synthesising several lines in parallel stampedes a dead host with one
+     * simultaneous connection each, which the TTL alone would not prevent
+     * because none of them has settled yet.
+     *
+     * A rejection is recorded and reported as `null`. Callers distinguish
+     * "nothing there" from "it threw" through `diagnostics()`, not through an
+     * exception, because every caller of this is on a fallback path where
+     * throwing is the wrong answer.
+     */
+    async _once(map, key, fn) {
+        const hit = map.get(key);
+        if (hit) {
+            if (!hit.settled) return hit.promise;
+            if (this.statusTtlMs > 0 && this._now() - hit.at < this.statusTtlMs) {
+                return hit.value;
+            }
+        }
+        const entry = { settled: false, at: this._now(), value: null, error: null };
+        entry.promise = (async () => {
+            try {
+                entry.value = await fn();
+            } catch (err) {
+                entry.error = err;
+                entry.value = null;
+            }
+            entry.settled = true;
+            entry.at = this._now();
+            return entry.value;
+        })();
+        map.set(key, entry);
+        return entry.promise;
+    }
+
+    /** Is this provider usable? Memoized, single-flight, never throws. */
+    async isAvailable(provider) {
+        const ok = await this._once(this._status, provider.id, async () => {
+            const v = await provider.available();
+            return v === true;
+        });
+        if (ok !== true) this._note(provider, this._status.get(provider.id)?.error, 'unavailable');
+        return ok === true;
+    }
+
+    /** This provider's voices, or null if it could not say. Memoized. */
+    async voicesOf(provider) {
+        const list = await this._once(this._voices, provider.id,
+                                      () => provider.listVoices());
+        if (!Array.isArray(list)) {
+            this._note(provider, this._voices.get(provider.id)?.error, 'could not list its voices');
+            return null;
+        }
+        return list;
+    }
+
+    /**
+     * Record WHY a provider was skipped, once per provider per reason.
+     *
+     * Swallowing the error outright was the first version of the fallback
+     * fix, and it is the defect class this codebase keeps finding: the render
+     * worked, the voice was quietly someone else's, and nothing said so. A
+     * fallback the author cannot see is a fallback they cannot fix.
+     */
+    _note(provider, error, what) {
+        const key = `${provider.id}:${what}`;
+        if (this._notes.some((n) => n.key === key)) return;
+        this._notes.push({
+            key,
+            severity: 'info',
+            path: `voices.${provider.id}`,
+            message: `Voice provider "${provider.id}" ${what}`
+                + (error ? `: ${error.message}` : '')
+                + '. Falling back to the next provider.',
+        });
+    }
+
+    /** Everything that was skipped, and why. Safe to call at any time. */
+    diagnostics() {
+        return this._notes.map(({ key, ...d }) => d);
+    }
+
     /** Providers that report themselves usable right now, in priority order. */
     async availableProviders() {
         const out = [];
         for (const p of this.providers.values()) {
-            let ok = false;
-            try { ok = await p.available(); } catch { ok = false; }
-            if (ok) out.push(p);
+            if (await this.isAvailable(p)) out.push(p);
         }
         return out;
     }
@@ -46,14 +179,14 @@ export class VoiceRegistry {
     async listVoices() {
         const out = [];
         for (const p of await this.availableProviders()) {
-            try { out.push(...await p.listVoices()); } catch { /* skip a sulking provider */ }
+            out.push(...(await this.voicesOf(p) ?? []));
         }
         return out;
     }
 
     /**
      * Resolve a voice spec of the form "<providerId>:<voiceId>", e.g.
-     * "piper:en_US-amy-medium", "mic:myvoice", "upload:actor_jane".
+     * "piper:en_US-amy-medium", "mic:myvoice", "voicestudio:nuru-clone".
      */
     async resolve(spec) {
         if (!spec) return null;
@@ -62,25 +195,21 @@ export class VoiceRegistry {
         const voiceId = i < 0 ? null : spec.slice(i + 1);
         const provider = this.providers.get(providerId);
         if (!provider) return null;
-        // A provider whose listing THROWS must not take the whole ladder with
-        // it. The point of the ladder is that a film cast against a voice
-        // source that is absent still renders from whatever is present, and
-        // an unguarded `listVoices()` here defeated that: a film naming a
-        // local voice server that was not running failed outright instead of
-        // falling through to the bundled voices.
-        const list = await provider.listVoices().catch(() => null);
+        const named = () => createVoice({
+            id: voiceId, source: provider.source ?? 'tts', provider: providerId });
+        // A provider that cannot list its voices must not take the whole
+        // ladder down with it. The point of the ladder is that a film cast
+        // against a voice source that is absent still renders from whatever
+        // is present, and an unguarded `listVoices()` here defeated that.
+        const list = await this.voicesOf(provider);
         if (!list) {
-            // Still name the voice, so `synthesize` can try the provider and
-            // fall through on its own terms rather than silently picking
-            // someone else's voice here.
-            return voiceId
-                ? createVoice({ id: voiceId, source: provider.source ?? 'tts',
-                                provider: providerId })
-                : null;
+            // Still NAME the voice, so `synthesize` tries this provider and
+            // falls through on its own terms, rather than silently handing
+            // the line to someone else's voice here.
+            return voiceId ? named() : null;
         }
         if (!voiceId) return list[0] ?? null;
-        return list.find((v) => v.id === voiceId)
-            ?? createVoice({ id: voiceId, source: provider.source ?? 'tts', provider: providerId });
+        return list.find((v) => v.id === voiceId) ?? named();
     }
 
     /**
@@ -92,13 +221,13 @@ export class VoiceRegistry {
         const voice = await this.resolve(spec);
         if (voice) {
             const provider = this.providers.get(voice.provider);
-            if (provider && await provider.available().catch(() => false)) {
+            if (provider && await this.isAvailable(provider)) {
                 return provider.synthesize({ text, voice, lang: lang ?? voice.lang });
             }
         }
         for (const p of await this.availableProviders()) {
-            const list = await p.listVoices().catch(() => []);
-            if (list.length) return p.synthesize({ text, voice: list[0], lang });
+            const list = await this.voicesOf(p);
+            if (list?.length) return p.synthesize({ text, voice: list[0], lang });
         }
         return null;
     }

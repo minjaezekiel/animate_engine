@@ -130,7 +130,7 @@ is worth having precisely because that request shape is the inferred part.
 They are not a substitute for one real call. Run `npm run voice-studio` with
 `SAY=` set before trusting it with a film.
 
-## The defect this found
+## The defect this found, and the one the fix had
 
 Writing the "a missing studio must still render" test failed, and not in the
 provider. `VoiceRegistry.resolve()` called `provider.listVoices()` unguarded,
@@ -139,8 +139,54 @@ fallback never got a chance to run. A film naming a local voice server that
 was not running would have failed outright instead of falling back to the
 bundled voices.
 
-`resolve()` now tolerates a throwing provider, and still names the voice
-rather than silently substituting someone else's.
+The first fix was a `.catch(() => null)` around that one call. It was correct
+and it was bad, in two ways that only showed up when measured.
+
+**It was not performant.** Providers cache their own successful listings;
+none of them caches a *refusal*. So a provider that was down was asked again
+for every line — measured at **three network attempts per line, 75 for a
+25-line film**:
+
+| | before | after |
+|---|---|---|
+| attempts against a dead host, 25-line film | 75 | **2** |
+| 20 lines synthesised in parallel | 20 simultaneous connections | **1** |
+
+Against a closed port that is instant, because `ECONNREFUSED` returns at once
+— which is exactly why it was invisible. Against a host that **hangs** rather
+than refusing, a dropping firewall or an app still starting, each attempt
+waits out the provider's timeout. At the 120 s synthesis timeout that is two
+and a half hours of waiting for one film.
+
+**It was not visible.** Swallowing the error meant the render worked, the
+voice was quietly someone else's, and nothing said so. That is the same
+silence that lost the subtitle margin and the voice levels, and it is the
+defect class this codebase keeps rediscovering.
+
+### What it is now
+
+- **Memoized with a TTL** (30 s default) in the registry, caching *failure*
+  as well as success — the thing no provider does for itself. Thirty seconds
+  is a balance: short enough that an editor notices a server starting,
+  long enough that a render does not re-probe per line.
+- **Single-flight.** Concurrent callers join the one in-flight attempt. The
+  TTL alone cannot prevent a stampede, because in parallel nothing has
+  settled yet.
+- **`invalidate(id?)`** for "I have just started it", so the editor does not
+  have to wait out a TTL.
+- **`diagnostics()`**, reported by `studio.js` alongside the voice warnings,
+  one note per provider per reason so a 200-line film does not emit 200
+  notes. Severity `info`: an absent optional provider is expected, not an
+  error.
+- **A separate `probeTimeoutMs`** (3 s) on the provider. Synthesising a long
+  line legitimately takes a while; deciding whether anything is listening
+  must not, or a dead host stalls the render instead of being skipped.
+
+`test/core/voiceregistry.test.mjs` pins the **cost**, not just the behaviour:
+25 lines must cost at most two attempts against a dead host, 20 parallel
+lines at most one probe, and 200 lines at most four diagnostics. A future
+change that reintroduces the per-line probe fails those tests rather than
+quietly costing someone a render.
 
 ## Tests
 

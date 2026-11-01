@@ -35,8 +35,7 @@ const P6 = [
         + 'vibaya, siku ile ile walipovipata.',
     /* 1 */ 'Jambo la kwanza unalotakiwa kujua: jiwe ghafi na jiwe lililokatwa ni vitu '
           + 'viwili tofauti kabisa kwenye bei.',
-    /* 2 */ 'Jiwe ghafi lina maswali ndani yake. Litakatika vipi? Litabaki na uzito gani? '
-          + 'Lina mpasuko wa ndani?',
+    /* 2 */ 'Jiwe ghafi lina maswali ndani yake: litakatika vipi, na litabaki na uzito gani?',
     /* 3 */ 'Mkataji akikata, uzito mwingi unapotea. Mara nyingi zaidi ya nusu, na wakati '
           + 'mwingine theluthi mbili.',
     /* 4 */ 'Kwa hiyo mnunuzi hakupi bei ya kito. Anakupa bei ya hatari anayoibeba. Hiyo '
@@ -47,7 +46,7 @@ const P6 = [
     /* 7 */ 'Pili: uliza bei kwa watu zaidi ya mmoja, siku tofauti. Bei moja si bei. Bei '
           + 'tatu ni soko.',
     /* 8 */ 'Tatu: usiuze ukiwa na haraka. Haraka ndiyo kitu cha kwanza mnunuzi '
-          + 'anachokiona usoni mwako.',
+          + 'anachokiona.',
     /* 9 */ 'Sasa upande wa pili: jinsi ya kujua kama jiwe unalonunuliwa ni la kweli.',
     /*10 */ 'Vito vingi vya bluu vinavyouzwa barabarani ni kioo. Viputo vya mviringo '
           + 'ndani, na rangi inayofanana kupita kiasi.',
@@ -66,13 +65,11 @@ const P6 = [
           + 'Bila hivyo huna ulinzi wowote.',
     /*18 */ 'Leseni si adhabu. Ni ushahidi kwamba jiwe lako ni lako, na ndiyo inayokupa '
           + 'nguvu ya kudai haki yako ukipunjwa.',
-    /*19 */ 'Na usalama: mashimo ya wachimbaji wadogo yanaweza kuporomoka. Usichimbe '
-          + 'peke yako, na usichimbe shimo refu bila msaada.',
+    /*19 */ 'Na usalama: mashimo yanaweza kuporomoka. Usichimbe peke yako.',
     /*20 */ 'Tulianza na jiwe linalopatikana sehemu moja duniani, hapa Tanzania.',
-    /*21 */ 'Tumeona lilivyozaliwa, viwanda vitatu vinavyotengeneza vito vyote, na jinsi '
-          + 'mto unavyokuonyesha njia.',
-    /*22 */ 'Tumeona dalili za ardhini, na vipimo vinne vya kujua kama jiwe lako '
-          + 'linastahili kupimwa zaidi.',
+    /*21 */ 'Tumeona lilivyozaliwa, viwanda vitatu, mto, dalili za ardhini, na vipimo '
+          + 'vinne.',
+    /*22 */ 'Yote hayo ni mnyororo mmoja.',
     /*23 */ 'Ardhi hii ni tajiri. Lakini utajiri wake unahitaji maarifa, si bahati.',
     /*24 */ 'Haya ni mafunzo ya jumla, si ushauri wa kisheria wala wa bei. Ukipata jiwe '
           + 'muhimu, tafuta mtaalamu.',

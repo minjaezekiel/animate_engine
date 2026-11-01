@@ -10102,20 +10102,6 @@
           ]
         },
         {
-          "id": "v5",
-          "duration": 8.31,
-          "dialogue": [
-            {
-              "speaker": "nuru",
-              "text": "Hiyo si udanganyifu, na inakubalika kisheria, mradi muuzaji aseme ukweli. Hata ardhi yenyewe hufanya hivyo chini kwa joto lake.",
-              "at": 0.2,
-              "lipsync": false,
-              "subtitle": true
-            }
-          ],
-          "actions": []
-        },
-        {
           "id": "v6",
           "duration": 9.32,
           "dialogue": [
@@ -10854,11 +10840,11 @@
         },
         {
           "id": "k3",
-          "duration": 6.27,
+          "duration": 3.52,
           "dialogue": [
             {
               "speaker": "nuru",
-              "text": "Kila jiwe linalotoka hapa halirudi tena. Hiyo, zaidi ya rangi, ndiyo sababu ya thamani yake.",
+              "text": "Kila jiwe linalotoka hapa halirudi tena.",
               "at": 0.2,
               "lipsync": false,
               "subtitle": true

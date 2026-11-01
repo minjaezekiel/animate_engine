@@ -77,12 +77,9 @@ const P1 = [
           + 'viwanda, unajua wapi kuanza.',
     /*19 */ 'Na kuna jambo lingine. Akiba ya Merelani ni ndogo, na wachimbaji wanakadiria '
           + 'miaka ishirini hadi thelathini tu.',
-    /*20 */ 'Kila jiwe linalotoka hapa halirudi tena. Hiyo, zaidi ya rangi, ndiyo sababu '
-          + 'ya thamani yake.',
+    /*20 */ 'Kila jiwe linalotoka hapa halirudi tena.',
     /*21 */ 'Jambo lingine la kushangaza: tanzanite nyingi inayochimbwa ni ya kahawia, si '
           + 'ya bluu. Joto la nyuzi mia tano linabadilisha rangi kuwa bluu.',
-    /*22 */ 'Hiyo si udanganyifu, na inakubalika kisheria, mradi muuzaji aseme ukweli. '
-          + 'Hata ardhi yenyewe hufanya hivyo chini kwa joto lake.',
     /*23 */ 'Na sababu ya rangi mbili ni ajabu zaidi. Ukiigeuza, tanzanite inaonyesha '
           + 'bluu, zambarau na nyekundu, kutegemea upande unaoiangalia.',
 ];
@@ -606,8 +603,7 @@ export function partOne() {
                       ...conceal('vein', 'zoGreyT', 4.4, { span: 0.4 }),
                       ...reveal('vein', 'zoBlueT', 4.9, { span: 0.4 }),
                   ] },
-                { id: 'v5', duration: 7.0, dialogue: [vo(P1[22], 0.2)], actions: [] },
-                { id: 'v6', duration: 7.5, dialogue: [vo(P1[23], 0.2)],
+                { id: 'v6', duration: 7.5, dialogue: [vo(P1[22], 0.2)],
                   actions: [
                       ...ramp('vein', 'zoBlue', 'props.fill', 1.0, 1.0,
                               '#4a63d8', '#8a6ad6'),

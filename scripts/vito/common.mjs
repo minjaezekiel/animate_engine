@@ -271,6 +271,12 @@ export function fitShots(film, { pad = 0.85, min = 3.5, lang = 'sw' } = {}) {
                 // saves re-keying per cycle. Counting its far key as a beat
                 // to wait for stretched one shot of part three to 41 seconds.
                 if (a.do === 'set' && a.channel === 'props.flow') continue;
+                // Blinks are decoration spread across a shot, not a beat the
+                // shot has to wait for. They are generated against a guessed
+                // duration, so sizing the shot to fit them makes the guess
+                // self-fulfilling -- which opened a 5s hole in part six after
+                // its line was shortened.
+                if (a.do === 'play' && a.action === 'blink') continue;
                 needed = Math.max(needed, (a.at ?? 0) + (a.for ?? 0) + 0.4);
             }
             shot.duration = +needed.toFixed(2);

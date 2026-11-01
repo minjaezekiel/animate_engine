@@ -2947,11 +2947,11 @@
         },
         {
           "id": "a2",
-          "duration": 6.57,
+          "duration": 5.55,
           "dialogue": [
             {
               "speaker": "nuru",
-              "text": "Jiwe ghafi lina maswali ndani yake. Litakatika vipi? Litabaki na uzito gani? Lina mpasuko wa ndani?",
+              "text": "Jiwe ghafi lina maswali ndani yake: litakatika vipi, na litabaki na uzito gani?",
               "at": 0.2,
               "lipsync": false,
               "subtitle": true
@@ -3361,11 +3361,11 @@
         },
         {
           "id": "b3",
-          "duration": 6.42,
+          "duration": 5.69,
           "dialogue": [
             {
               "speaker": "nuru",
-              "text": "Tatu: usiuze ukiwa na haraka. Haraka ndiyo kitu cha kwanza mnunuzi anachokiona usoni mwako.",
+              "text": "Tatu: usiuze ukiwa na haraka. Haraka ndiyo kitu cha kwanza mnunuzi anachokiona.",
               "at": 0.2,
               "lipsync": false,
               "subtitle": true
@@ -4151,7 +4151,7 @@
       "shots": [
         {
           "id": "q0",
-          "duration": 4.51,
+          "duration": 4.23,
           "dialogue": [
             {
               "speaker": "bakari",
@@ -4301,11 +4301,11 @@
         },
         {
           "id": "q3",
-          "duration": 8.69,
+          "duration": 4.78,
           "dialogue": [
             {
               "speaker": "nuru",
-              "text": "Na usalama: mashimo ya wachimbaji wadogo yanaweza kuporomoka. Usichimbe peke yako, na usichimbe shimo refu bila msaada.",
+              "text": "Na usalama: mashimo yanaweza kuporomoka. Usichimbe peke yako.",
               "at": 0.3,
               "lipsync": true,
               "subtitle": true
@@ -4471,11 +4471,11 @@
         },
         {
           "id": "e1",
-          "duration": 6.86,
+          "duration": 5.4,
           "dialogue": [
             {
               "speaker": "nuru",
-              "text": "Tumeona lilivyozaliwa, viwanda vitatu vinavyotengeneza vito vyote, na jinsi mto unavyokuonyesha njia.",
+              "text": "Tumeona lilivyozaliwa, viwanda vitatu, mto, dalili za ardhini, na vipimo vinne.",
               "at": 0.2,
               "lipsync": false,
               "subtitle": true
@@ -4594,11 +4594,11 @@
         },
         {
           "id": "e2",
-          "duration": 6.57,
+          "duration": 3.7,
           "dialogue": [
             {
               "speaker": "nuru",
-              "text": "Tumeona dalili za ardhini, na vipimo vinne vya kujua kama jiwe lako linastahili kupimwa zaidi.",
+              "text": "Yote hayo ni mnyororo mmoja.",
               "at": 0.2,
               "lipsync": false,
               "subtitle": true

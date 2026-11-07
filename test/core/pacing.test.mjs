@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { analysePacing, estimateLine, langOfSpec, syllablesIn, wordsIn,
+import { analysePacing, estimateLine, langOf, langOfSpec, syllablesIn, wordsIn,
          SYLLABLE_RATES, WORD_RATES, PACING_TARGETS } from '../../src/core/script/pacing.js';
 import { compileFilm } from '../../src/core/script/compile.js';
 
@@ -242,4 +242,45 @@ test('the summary note states that coverage is not the audio speech ratio', () =
     const summary = r.diagnostics.find((d) => d.path === 'pacing' && d.severity === 'info');
     assert.match(summary.message, /81% covered and 54% voiced/,
         'the one number that stops the two metrics being conflated again');
+});
+
+// ---------------------------------------------------------------------------
+// Declared language: the model id is not the only way to know
+// ---------------------------------------------------------------------------
+
+test('a DECLARED lang beats one guessed from the spec', () => {
+    // `langOfSpec` can only read a Piper model id. Every other provider --
+    // a cloned VoiceStudio voice, an upload, a recording -- carries no
+    // language at all, so without this a Swahili film voiced by real Swahili
+    // speakers is estimated at the English word rate.
+    assert.equal(langOf({ voiceSpec: 'voicestudio:asha-sw' }), null,
+        'a cloned-voice id gives nothing away on its own');
+    assert.equal(langOf({ voiceSpec: 'voicestudio:asha-sw', voiceLang: 'sw-TZ' }), 'sw');
+    // The tables are keyed on the primary subtag, so a full tag is trimmed.
+    assert.equal(langOf({ voiceLang: 'en-GB' }), 'en');
+    // A declared language wins even where the spec disagrees: the film is
+    // the authority on what language it is in.
+    assert.equal(langOf({ voiceSpec: 'tts:en_GB-alba-medium', voiceLang: 'sw-TZ' }), 'sw');
+    // And the Piper path still works untouched.
+    assert.equal(langOf({ voiceSpec: 'tts:sw_CD-lanfrica-medium' }), 'sw');
+    assert.equal(langOf({}), null);
+});
+
+test('a film cast on a cloned voice is measured in its OWN language', () => {
+    // The defect this fixes, end to end: identical Swahili text, once with a
+    // declared language and once without. Estimated as English it is counted
+    // in words; Swahili words are long, so the English estimate is far too
+    // short and the report invents silence that is not there.
+    const text = 'Kinachopatikana kinachopatikana kinachopatikana kinachopatikana';
+    const declared = filmOf(30, [[0.3, text]],
+        { voice: { spec: 'voicestudio:asha-sw', lang: 'sw-TZ' } });
+    const bare = filmOf(30, [[0.3, text]], { voice: { spec: 'voicestudio:asha-sw' } });
+
+    const a = pacingOf(declared);
+    const b = pacingOf(bare);
+    assert.equal(a.lang, 'sw');
+    assert.match(a.wordRateSource, /syllables\/s, measured for "sw"/);
+    assert.ok(a.coverage > b.coverage * 1.5,
+        `declared Swahili must measure longer than the English fallback `
+        + `(${a.coverage} vs ${b.coverage})`);
 });

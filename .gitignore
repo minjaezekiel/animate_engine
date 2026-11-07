@@ -12,3 +12,9 @@ out/
 # Vendored TTS runtime and voice models: 63MB per voice, fetched by
 # `npm run vendor-voice` so a render does not depend on huggingface.co.
 vendor/
+
+# Built films. `films/<series>/*.json` is what `scripts/make-<series>.mjs`
+# writes, and `films/physics/sfx/*.wav` is what `make-sfx.mjs` writes --
+# both are build output, and the generators beside them are the source.
+# The rendered MP4s are already covered by `out/` and `*.mp4` above.
+films/

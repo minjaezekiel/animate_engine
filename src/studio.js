@@ -41,6 +41,11 @@ import { CALIBRATION, calibrate, estimateFrameCost, worstSpan } from './core/scr
 
 const SAMPLE_RATE = 48000;
 
+/** What `synthesizeDialogue` returns when it is not called. */
+const EMPTY_VOICING = Object.freeze({
+    cues: [], tracks: [], buffers: {}, diagnostics: [],
+});
+
 export class FilmStudio {
     constructor({ sampleRate = SAMPLE_RATE, muxerFactory = null, ttsModuleUrl, onLog = null,
                   parallel = null,
@@ -116,7 +121,29 @@ export class FilmStudio {
      * inspect diagnostics before committing to a two-minute encode.
      */
     async prepare(film, { assets = null, audioBuffers = {}, onProgress = null,
-                          retime = true, baseUrl = '' } = {}) {
+                          retime = true, baseUrl = '',
+                          // false: a line whose cast voice is unavailable
+                          // renders SILENT rather than in a stand-in. Both
+                          // providers stay supported either way -- this only
+                          // decides what happens when the cast one is absent.
+                          allowVoiceFallback = true,
+                          /**
+                           * true: do not fetch audio assets, do not
+                           * synthesize, do not mix. For a caller that wants
+                           * the POSED SCENE and nothing else -- a still, a
+                           * thumbnail, a staging check.
+                           *
+                           * `grab2d.mjs` has passed this since it was
+                           * written and nothing read it, so grabbing one
+                           * frame ran the whole voice pipeline: on a
+                           * thirty-six line film that is minutes of TTS to
+                           * draw a picture that contains no sound. Retiming
+                           * is skipped too, because it re-fits shots to
+                           * audio durations and there are none -- which also
+                           * means a still is posed at the AUTHORED time, not
+                           * the rendered one.
+                           */
+                          skipVoices = false } = {}) {
         let working = film;
         const notes = [];
 
@@ -149,10 +176,12 @@ export class FilmStudio {
         // Music beds and sound effects. Declared since the first phase and
         // never fetched by anything, so a film could name a score, validate
         // clean and render silent.
-        const sound = await loadAudioAssets(film, {
-            baseUrl, decode: (b) => decodeAudio(b, this.sampleRate),
-            onProgress: (p) => { this.log(`audio ${p.done}/${p.total}: ${p.id}`); onProgress?.(p); },
-        });
+        const sound = skipVoices
+            ? { buffers: {}, diagnostics: [] }
+            : await loadAudioAssets(film, {
+                baseUrl, decode: (b) => decodeAudio(b, this.sampleRate),
+                onProgress: (p) => { this.log(`audio ${p.done}/${p.total}: ${p.id}`); onProgress?.(p); },
+            });
         notes.push(...sound.diagnostics);
         const allBuffers = { ...sound.buffers, ...audioBuffers };
 
@@ -160,12 +189,13 @@ export class FilmStudio {
         let first = compileFilm(working, { assets: images });
         if (!first.timeline) return { ...first, audio: null };
 
-        const voiced = await synthesizeDialogue({
+        const voiced = skipVoices ? EMPTY_VOICING : await synthesizeDialogue({
             lipsyncJobs: first.lipsyncJobs,
             registry: this.voices,
             buffers: { ...allBuffers },
             fps: first.meta.fps,
             sampleRate: this.sampleRate,
+            allowVoiceFallback,
             onProgress: (p) => {
                 this.log(`voicing ${p.done}/${p.total}: ${String(p.text ?? '').slice(0, 44)}`);
                 onProgress?.({ stage: 'voice', ...p });
@@ -176,11 +206,11 @@ export class FilmStudio {
         // against a voice server that was not running renders in a different
         // voice and nothing says so -- which is the same silence the levels
         // and the subtitle margin were lost to.
-        notes.push(...this.voices.diagnostics());
+        if (!skipVoices) notes.push(...this.voices.diagnostics());
 
         // Pass 2: a shot shorter than its own dialogue would cut the speech
         // off, so retime to the audio that actually exists, then recompile.
-        if (retime) {
+        if (retime && !skipVoices) {
             const durations = {};
             for (const job of first.lipsyncJobs) {
                 const cue = voiced.cues.find((c) => c.id === `${job.nodeId}@${job.at}`);

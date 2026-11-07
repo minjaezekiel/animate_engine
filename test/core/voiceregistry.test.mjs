@@ -167,8 +167,73 @@ test('a skipped provider is REPORTED, not silently swallowed', async () => {
     assert.ok(notes.every((d) => d.path === 'voices.voicestudio'));
     assert.ok(notes.some((d) => /ECONNREFUSED/.test(d.message)),
         'the real reason, not a generic one');
-    assert.ok(notes.every((d) => d.severity === 'info'),
+    // TWO different notes, and the difference is the point. That an optional
+    // provider is absent is expected -- `info`. That a line consequently came
+    // out in somebody else's voice is not -- `warning`. Asserting everything
+    // was `info` conflated them, and it is the warning that makes a film cast
+    // against a local voice server fail visibly instead of quietly.
+    const skipped = notes.filter((d) => /Falling back to the next provider/.test(d.message));
+    const swapped = notes.filter((d) => /spoken by/.test(d.message));
+    assert.ok(skipped.length > 0 && skipped.every((d) => d.severity === 'info'),
         'an absent optional provider is expected, not an error');
+    assert.equal(swapped.length, 1, 'the substitution itself is reported exactly once');
+    assert.equal(swapped[0].severity, 'warning',
+        'a line in the wrong voice is a defect, not a note');
+});
+
+// ---------------------------------------------------------------------------
+// Substitution: the failure that otherwise looks exactly like success
+// ---------------------------------------------------------------------------
+
+test('a substituted voice is named in the result, not just in the notes', async () => {
+    const reg = new VoiceRegistry();
+    reg.register(counted('voicestudio', { throws: true }))
+       .register(counted('tts', { voices: [{ id: 'alba' }] }));
+    const out = await reg.synthesize('voicestudio:asha-en', { text: 'hi' });
+    assert.equal(out.audioBuffer.from, 'tts', 'it still renders');
+    assert.deepEqual(out.substituted, { requested: 'voicestudio:asha-en', actual: 'tts:alba' },
+        'and it says whose voice that actually was');
+});
+
+test('the happy path reports no substitution', async () => {
+    const reg = new VoiceRegistry();
+    reg.register(counted('a', { voices: [{ id: 'one' }] }));
+    const out = await reg.synthesize('a:one', { text: 'hello' });
+    assert.equal(out.substituted, null);
+    assert.equal(reg.diagnostics().filter((d) => d.severity === 'warning').length, 0);
+});
+
+test('allowFallback:false renders SILENT rather than in the wrong voice', async () => {
+    const reg = new VoiceRegistry();
+    reg.register(counted('voicestudio', { throws: true }))
+       .register(counted('tts', { voices: [{ id: 'alba' }] }));
+    const out = await reg.synthesize('voicestudio:asha-sw',
+                                     { text: 'habari', allowFallback: false });
+    assert.equal(out, null, 'a silent line is a bug you notice; a stand-in is one you ship');
+    const warn = reg.diagnostics().filter((d) => d.severity === 'warning');
+    assert.equal(warn.length, 1);
+    assert.match(warn[0].message, /Rendering silent rather than in the wrong voice/);
+});
+
+test('allowFallback:false does not punish a voice that CAN speak', async () => {
+    // Strictness must cost nothing on the happy path, or nobody turns it on.
+    const reg = new VoiceRegistry();
+    reg.register(counted('voicestudio', { voices: [{ id: 'asha-sw' }] }))
+       .register(counted('tts', { voices: [{ id: 'alba' }] }));
+    const out = await reg.synthesize('voicestudio:asha-sw',
+                                     { text: 'habari', allowFallback: false });
+    assert.equal(out.audioBuffer.from, 'voicestudio');
+    assert.equal(out.substituted, null);
+    assert.equal(reg.diagnostics().filter((d) => d.severity === 'warning').length, 0);
+});
+
+test('one warning per swap, not one per line, over a long render', async () => {
+    const reg = new VoiceRegistry();
+    reg.register(counted('voicestudio', { throws: true }))
+       .register(counted('tts', { voices: [{ id: 'alba' }] }));
+    for (let i = 0; i < 200; i++) await reg.synthesize('voicestudio:x', { text: `l${i}` });
+    const warn = reg.diagnostics().filter((d) => d.severity === 'warning');
+    assert.equal(warn.length, 1, `200 lines produced ${warn.length} warnings`);
 });
 
 test('diagnostics do not grow without bound over a long render', async () => {

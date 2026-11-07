@@ -29,7 +29,11 @@ const AT = (process.env.AT ?? '0').split(',').map(Number);
 const WIDTH = process.env.WIDTH ? Number(process.env.WIDTH) : null;
 const HEIGHT = process.env.HEIGHT ? Number(process.env.HEIGHT) : null;
 const T = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
-            '.json': 'application/json', '.png': 'image/png', '.css': 'text/css' };
+            '.json': 'application/json', '.png': 'image/png', '.css': 'text/css',
+            // Audio assets, for a film that carries sound cues. Served as
+            // octet-stream they still decode, but a still only needs the
+            // picture -- `prepare` fetches them regardless.
+            '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg' };
 
 const server = createServer(async (q, r) => {
     try {

@@ -22,6 +22,17 @@ const FILM = process.env.FILM ?? 'demo/film.json';
  */
 /** A locally-running VoiceStudio, for cloned voices. Absent by default. */
 const VOICE_STUDIO = process.env.VOICE_STUDIO ?? null;
+/**
+ * `STRICT_VOICE=1` refuses to substitute. A line whose cast voice cannot
+ * speak renders SILENT and says so, instead of coming out in whichever voice
+ * happened to be available.
+ *
+ * Both voice paths stay supported -- this only decides what happens when the
+ * one a film was CAST against is missing. For a series voiced by specific
+ * recorded people, a silent line is a bug you notice on the first watch and a
+ * stand-in is one you ship twelve times.
+ */
+const STRICT_VOICE = process.env.STRICT_VOICE === '1';
 const TTS_MODULE_URL = process.env.TTS_MODULE_URL
     ?? (existsSync(new URL('../vendor/vits-web.js', import.meta.url))
         ? '/vendor/vits-web.js' : null);
@@ -37,6 +48,10 @@ const TYPES = {
     '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
     '.json': 'application/json', '.png': 'image/png', '.txt': 'text/plain',
     '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm',
+    // Audio assets: synthesized SFX and music cues. Without this a .wav was
+    // served as application/octet-stream -- which decodes, but only because
+    // decodeAudioData sniffs the bytes rather than trusting the header.
+    '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg',
 };
 
 const server = createServer(async (req, res) => {
@@ -125,7 +140,8 @@ const result = await page.evaluate(async (origin, cfg) => {
         notes.push('rendered without synthesized speech (subtitles + text lipsync only)');
     }
 
-    const prepared = await studio.prepare(film, { retime: ttsOk });
+    const prepared = await studio.prepare(film, {
+        retime: ttsOk, allowVoiceFallback: !cfg.strictVoice });
     const problems = prepared.diagnostics.filter((d) => d.severity !== 'info');
     for (const d of problems) window.report(`${d.severity} ${d.path}: ${d.message}`);
 
@@ -189,7 +205,7 @@ const result = await page.evaluate(async (origin, cfg) => {
     };
 }, base, { film: FILM, width: WIDTH, height: HEIGHT, fps: FPS, useTts: USE_TTS,
            format: FORMAT, ttsModuleUrl: TTS_MODULE_URL,
-           voiceStudioUrl: VOICE_STUDIO });
+           voiceStudioUrl: VOICE_STUDIO, strictVoice: STRICT_VOICE });
 
 // The extension follows what was actually encoded, not what was asked for.
 const ext = result.type.includes('mp4') ? '.mp4' : '.webm';

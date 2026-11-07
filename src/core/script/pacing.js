@@ -104,6 +104,15 @@ export function langOfSpec(spec) {
     return m ? m[1] : null;
 }
 
+/**
+ * The language of one line: what the film declared, else what the model id
+ * gives away. `voiceLang` is a BCP-47-ish tag ("sw-CD"); the rate tables are
+ * keyed on the primary subtag, so it is trimmed to that.
+ */
+export const langOf = (job) =>
+    (job?.voiceLang ? String(job.voiceLang).toLowerCase().split('-')[0] : null)
+    ?? langOfSpec(job?.voiceSpec);
+
 export const wordsIn = (text) =>
     String(text ?? '').trim().split(/\s+/).filter(Boolean).length;
 
@@ -159,13 +168,16 @@ export function analysePacing(compiled, targets = PACING_TARGETS) {
     // each line is still estimated with its own.
     const langCount = new Map();
     for (const j of jobs) {
-        const lang = langOfSpec(j.voiceSpec);
+        // A DECLARED language wins over one guessed from the model id: the
+        // id only carries a language for Piper, and a film voiced by any
+        // other provider would otherwise be measured as English.
+        const lang = langOf(j);
         if (lang) langCount.set(lang, (langCount.get(lang) ?? 0) + 1);
     }
     const lang = [...langCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
     const spans = jobs.map((j) => {
-        const lineLang = langOfSpec(j.voiceSpec) ?? lang;
+        const lineLang = langOf(j) ?? lang;
         const seconds = estimateLine(j.text, { lang: lineLang, rate: j.delivery?.rate ?? 1 });
         return { start: j.at, end: Math.min(duration, j.at + seconds), speaker: j.speaker };
     }).filter((s) => s.end > s.start);

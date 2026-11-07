@@ -83,7 +83,10 @@
     "test:voice": "node --test test/core/voice.test.mjs",
     "pacing": "node scripts/narration-pacing.mjs",
     "vendor-voice": "node scripts/vendor-voice.mjs",
-    "voice-studio": "node scripts/voice-studio.mjs"
+    "voice-studio": "node scripts/voice-studio.mjs",
+    "make:structure": "node scripts/make-structure.mjs",
+    "make:physics": "node scripts/make-physics.mjs",
+    "make:sfx": "node scripts/make-sfx.mjs"
   },
   "keywords": [
     "animation",

@@ -71,7 +71,14 @@ export const KNOWN = {
            'blend', 'glow', 'trim', 'repeat', 'gradient',
            // travelling dashes: flowing water, moving fluid, current.
            // See docs/25-FLOW.md.
-           'flow'],
+           'flow',
+           // A part's authored transform. `compileFilm` has always read all
+           // three -- `rot: item.rot ?? 0`, `sx`/`sy` likewise -- but the
+           // validator did not know them, so a part authored at an angle
+           // worked perfectly and reported itself as a mistake on every
+           // build. A diagram whose span has to be drawn along its own +x
+           // and then turned is the case that found it.
+           'rot', 'sx', 'sy'],
     scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
             'scenery', 'palette', 'ground', 'template', 'drawings', 'photos'],
     // A still photograph animated by `core/motion/PhotoMotion.js`. `source`
@@ -88,8 +95,18 @@ export const KNOWN = {
              // backwards reveal reported its own option as unrecognized.
              'from',
              'part', 'bones', 'bend',
-             // `grip` blends toward a named hand pose
+             // `grip` blends toward a named hand pose; `squash` uses the same
+             // key for how far it deforms
              'amount',
+             // `squash`: how long it takes to recover, after `for`
+             'back',
+             // `spin`: whole revolutions, signed
+             'turns',
+             // `count` -- a numeric readout that ramps. `from`/`to`/`ease`
+             // are shared with the verbs above; these are its own.
+             'decimals', 'prefix', 'suffix', 'step',
+             // `shift` -- a relative [dx, dy] for a part inside a board
+             'by',
              // the four principles that need a number rather than a keyframe
              'anticipate', 'overshoot', 'arc', 'weight',
              // `expose` -- an X-sheet of hold lengths in frames, "4 4 2 1 1 2".
@@ -119,4 +136,5 @@ export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidt
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];
 export const TRANSITION_KINDS = ['fade', 'crossfade', 'none'];
 export const DO_VERBS = ['play', 'pose', 'move', 'reach', 'grip', 'set', 'show', 'hide', 'draw',
+                         'squash', 'spin', 'count', 'shift',
                          'expose', 'smear', 'boil'];

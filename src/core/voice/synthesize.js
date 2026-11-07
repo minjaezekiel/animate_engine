@@ -20,6 +20,10 @@ export async function synthesizeDialogue({
     // saying the same sentence differ by 6.6 dB, which in a scene with five
     // characters is one of them shouting for no authored reason.
     normalize = true, voiceLevel = 0.06,
+    // false renders a line SILENT rather than in a stand-in voice. A series
+    // cast against specific recorded people wants this: a silent line is a
+    // bug you notice, a stand-in is one you ship. See VoiceRegistry.
+    allowVoiceFallback = true,
 }) {
     const cues = [];
     const tracks = [];
@@ -37,7 +41,8 @@ export async function synthesizeDialogue({
                 // An explicit pre-recorded clip always wins over synthesis.
                 buffer = buffers[audioAssetId] ?? existingAssets[audioAssetId];
             } else if (text && registry) {
-                const result = await registry.synthesize(voiceSpec, { text });
+                const result = await registry.synthesize(voiceSpec, {
+                    text, allowFallback: allowVoiceFallback });
                 if (result?.audioBuffer) {
                     // Delivery BEFORE levelling. Resampling and the WSOLA
                     // crossfades both move the measured RMS, so normalising
@@ -127,6 +132,17 @@ export function castVoices(film) {
     const out = {};
     const gains = {};
     const deliveries = {};
+    /**
+     * The language each character speaks, where the film says so.
+     *
+     * `langOfSpec` can only read a Piper model id ("tts:sw_CD-lanfrica-..."),
+     * so ANY other provider -- a cloned VoiceStudio voice, an uploaded take,
+     * a recording -- carries no language at all and every pacing estimate
+     * falls back to English. A Swahili film cast against real Swahili voices
+     * was therefore measured at the English word rate, and reported gaps that
+     * were not there. A voice may now simply declare `lang`.
+     */
+    const langs = {};
     const diagnostics = [...resolved.diagnostics];
     for (const [name, char] of Object.entries(film.characters ?? {})) {
         const ref = char.voice;
@@ -137,6 +153,7 @@ export function castVoices(film) {
             // A per-VOICE trim, so casting a character quieter is one edit
             // rather than a `gain` on every line they speak.
             if (entry.gain != null) gains[name] = entry.gain;
+            if (entry.lang) langs[name] = entry.lang;
             // Rate and pitch, likewise per voice. This is what lets five
             // characters share the one Swahili model and still be a cast;
             // see docs/26-DELIVERY.md.
@@ -155,5 +172,6 @@ export function castVoices(film) {
             });
         }
     }
-    return { castBySpeaker: out, voiceGains: gains, voiceDeliveries: deliveries, diagnostics };
+    return { castBySpeaker: out, voiceGains: gains, voiceDeliveries: deliveries,
+             voiceLangs: langs, diagnostics };
 }

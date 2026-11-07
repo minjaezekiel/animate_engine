@@ -1,6 +1,7 @@
 import { Scene } from '../scene/Scene.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
 import { createClip } from '../anim/Clip.js';
+import { easeProgress } from '../anim/easing.js';
 import { createTrack, setKey } from '../anim/Track.js';
 import { createCue } from '../audio/cues.js';
 import { DEFAULTS, FILM_VERSION } from './schema.js';
@@ -69,7 +70,8 @@ export function compileFilm(film, { assets = {} } = {}) {
     const audioCues = [];
     const lipsyncJobs = [];
 
-    const { castBySpeaker, voiceGains, voiceDeliveries, diagnostics: voiceDiag } = castVoices(film);
+    const { castBySpeaker, voiceGains, voiceDeliveries, voiceLangs,
+            diagnostics: voiceDiag } = castVoices(film);
     diagnostics.push(...voiceDiag);
 
     // --- camera: starts at frame centre so authored coordinates read as
@@ -225,7 +227,7 @@ export function compileFilm(film, { assets = {} } = {}) {
             for (const line of shot.dialogue ?? []) {
                 buildDialogue({
                     line, shotStart, shotEnd, sceneId, castMap, castBySpeaker, voiceGains,
-                    voiceDeliveries,
+                    voiceDeliveries, voiceLangs,
                     film, lipsyncJobs, audioCues, diagnostics,
                 });
             }
@@ -835,14 +837,15 @@ function buildShake({ timeline, cameraId, cam, moveStart, startAt, dur, meta, ce
     }
 }
 
-function writeChannel({ timeline, target, channel, value, at, span, ease, h,
+function writeChannel({ timeline, scene, target, channel, value, at, span, ease, h,
                        anticipate = 0, overshoot = 0 }) {
     const path = `transform.${channel}`;
     if (span == null) {
         key(timeline, target, path, at, value, { type: 'number', ease, h });
         return;
     }
-    const prev = lastValueBefore(timeline, target, path, at) ?? defaultChannel(channel);
+    const prev = lastValueBefore(timeline, target, path, at)
+        ?? authoredChannel(scene, target, channel);
     key(timeline, target, path, at, prev, { type: 'number', ease, h });
     // Anticipation and follow-through both live here rather than in each
     // verb, because `pose`, `move` and `reach` all write through this one
@@ -911,8 +914,27 @@ function seedChannel(scene, timeline, nodeId, path) {
     const node = scene.get(nodeId);
     if (!node) return;
     const dot = path.indexOf('.');
+    const channel = path.slice(dot + 1);
     const bag = path.slice(0, dot) === 'props' ? node.props : node.transform;
-    const current = bag?.[path.slice(dot + 1)];
+    /**
+     * A SWAP channel's resting value lives in `swapDefaults`, not in `props`.
+     *
+     * `swapProps` puts it there deliberately -- stamping it on `props[channel]`
+     * would make the node its own nearest declaration of the channel, so a
+     * `view` written once on a cast root could never reach the head parts
+     * that have to turn with it.
+     *
+     * The cost was that this function saw `undefined` and seeded nothing, and
+     * a discrete track with no earlier key holds its FIRST key's value
+     * backwards to t=0. So an eye whose first blink is at 6.8s was *closed*
+     * for the first 6.8 seconds of the film -- the same trap the `show`/`hide`
+     * seeding above exists to prevent, one channel kind over. It is only
+     * reachable on a node the author is already keying, so it cannot
+     * reintroduce the inheritance bug: nothing is stamped on a node that
+     * nobody animates.
+     */
+    const current = bag?.[channel] ?? (bag === node.props
+        ? node.props?.swapDefaults?.[channel] : undefined);
     if (current === undefined) return;
     key(timeline, nodeId, path, 0, current, { type: typeof current === 'number' ? 'number' : undefined, ease: 'step' });
 }
@@ -1234,7 +1256,7 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             // `for` makes it a transition: hold the current value, then ramp.
             for (const [partId, channels] of Object.entries(pose)) {
                 for (const [channel, value] of Object.entries(channels)) {
-                    writeChannel({ timeline, target: `${rootId}/${partId}`,
+                    writeChannel({ timeline, scene, target: `${rootId}/${partId}`,
                                    channel, value, at, span, ease, h, anticipate, overshoot });
                 }
             }
@@ -1343,7 +1365,7 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
                 bend: action.bend ?? 1,
             });
             chain.bones.forEach((bone, i) => {
-                writeChannel({ timeline, target: `${rootId}/${bone.id}`,
+                writeChannel({ timeline, scene, target: `${rootId}/${bone.id}`,
                                channel: 'rot', value: solved.rots[i], at, span, ease, h,
                                anticipate, overshoot });
             });
@@ -1421,11 +1443,11 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             };
             const put = (id, value, scale = null) => {
                 if (!have.has(id)) return;
-                writeChannel({ timeline, target: `${rootId}/${id}`, channel: 'rot',
+                writeChannel({ timeline, scene, target: `${rootId}/${id}`, channel: 'rot',
                                value: dir * value * (1 - flat * 0.62), at, span: gripSpan,
                                ease, h, anticipate, overshoot });
                 if (scale != null) {
-                    writeChannel({ timeline, target: `${rootId}/${id}`, channel: 'sy',
+                    writeChannel({ timeline, scene, target: `${rootId}/${id}`, channel: 'sy',
                                    value: scale, at, span: gripSpan, ease, h });
                 }
                 written++;
@@ -1486,6 +1508,189 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             if (span != null) {
                 key(timeline, rootId, 'props.alpha', at + span,
                     action.do === 'show' ? 1 : 0, { type: 'number' });
+            }
+            break;
+        }
+        /**
+         * `squash` — squash and stretch, with volume roughly conserved.
+         *
+         * ```json
+         * { "target":"bolt", "do":"squash", "at":1.6, "for":0.1,
+         *   "amount":0.2, "back":0.24 }
+         * ```
+         *
+         * The oldest principle in animation and the engine had no way to say
+         * it. Hand-authoring it takes six `set` keys, and every one of them
+         * has to carry the node's ABSOLUTE scale -- a cast entry's `scale`
+         * writes `sx`/`sy`, so "20% wider" is `scale * 1.2` and the author
+         * has to know `scale`. Getting that wrong silently resizes the
+         * character for the rest of the film.
+         *
+         * Here the base is read from the node, so `amount` is the only
+         * number: positive squashes (wider, flatter), negative stretches
+         * (taller, narrower). `part` targets a sub-node; omitted, the whole
+         * cast member.
+         *
+         * Volume conservation is `sy = base / (1 + amount)` rather than
+         * `base * (1 - amount)`: the area of the ellipse is then unchanged,
+         * which is what makes a squash read as the same object deforming
+         * instead of a different, smaller one.
+         */
+        case 'squash': {
+            const node = action.part ? `${rootId}/${action.part}` : rootId;
+            const amount = action.amount ?? 0.2;
+            const hit = span ?? 0.1;
+            const back = action.back ?? hit * 2.2;
+            const baseX = authoredChannel(scene, node, 'sx');
+            const baseY = authoredChannel(scene, node, 'sy');
+            const wide = baseX * (1 + amount);
+            const flat = baseY / (1 + amount);
+            seedChannel(scene, timeline, node, 'transform.sx');
+            seedChannel(scene, timeline, node, 'transform.sy');
+            key(timeline, node, 'transform.sx', at, baseX, { type: 'number', ease: 'smooth' });
+            key(timeline, node, 'transform.sy', at, baseY, { type: 'number', ease: 'smooth' });
+            key(timeline, node, 'transform.sx', at + hit, wide, { type: 'number', ease: 'smooth' });
+            key(timeline, node, 'transform.sy', at + hit, flat, { type: 'number', ease: 'smooth' });
+            key(timeline, node, 'transform.sx', at + hit + back, baseX, { type: 'number' });
+            key(timeline, node, 'transform.sy', at + hit + back, baseY, { type: 'number' });
+            break;
+        }
+        /**
+         * `spin` — continuous rotation, in whole turns.
+         *
+         * ```json
+         * { "target":"bolt", "do":"spin", "part":"mark", "at":0, "for":2,
+         *   "turns":3 }
+         * ```
+         *
+         * `set transform.rot` can do this in two keys, but only if the author
+         * converts turns to radians and remembers that `ease` must be
+         * `linear` -- `smooth` puts a hesitation at each end of the ramp,
+         * which on a rolling ball reads as a stutter rather than as
+         * rotation. Both of those are mistakes worth making impossible.
+         *
+         * Negative `turns` spins the other way. The rotation is RELATIVE to
+         * whatever the node already holds, so a second `spin` continues from
+         * where the first stopped instead of snapping back.
+         */
+        case 'spin': {
+            const node = action.part ? `${rootId}/${action.part}` : rootId;
+            const turns = action.turns ?? 1;
+            const dur = span ?? 1;
+            const from = lastValueBefore(timeline, node, 'transform.rot', at)
+                ?? authoredChannel(scene, node, 'rot');
+            seedChannel(scene, timeline, node, 'transform.rot');
+            key(timeline, node, 'transform.rot', at, from,
+                { type: 'number', ease: 'linear' });
+            key(timeline, node, 'transform.rot', at + dur, from + turns * Math.PI * 2,
+                { type: 'number', ease: 'linear' });
+            break;
+        }
+        /**
+         * `shift` — move a part BY an offset, from wherever it already is.
+         *
+         * ```json
+         * { "target":"board", "part":"ball", "do":"shift", "by":[-170, 0],
+         *   "at":0.3, "for":1.2 }
+         * ```
+         *
+         * `move` names an absolute destination and targets a cast root. For
+         * a part inside a board there was nothing, so the only way to slide
+         * one was `set transform.x` -- and a part's authored `at` IS its
+         * `transform.x`, so "move it 170 left" written as `value: -170`
+         * teleports it to the left edge of the frame instead. The author has
+         * to look up the authored coordinate and do the arithmetic, and
+         * getting it wrong moves the element somewhere plausible rather than
+         * somewhere obviously broken, so nothing reports it.
+         *
+         * Relative, like `spin`, and from the same two sources in the same
+         * order: whatever the node was last keyed at, or failing that its
+         * authored position. So two shifts in a row compose, which is what
+         * "and then it moves again" has to mean.
+         */
+        case 'shift': {
+            const node = action.part ? `${rootId}/${action.part}` : rootId;
+            const by = Array.isArray(action.by) ? action.by : [0, 0];
+            const dur = span ?? 0;
+            for (const [i, chan] of ['x', 'y'].entries()) {
+                const d = by[i] ?? 0;
+                if (!d) continue;
+                const path = `transform.${chan}`;
+                const from = lastValueBefore(timeline, node, path, at)
+                    ?? authoredChannel(scene, node, chan);
+                seedChannel(scene, timeline, node, path);
+                key(timeline, node, path, at, from, { type: 'number', ease });
+                key(timeline, node, path, at + dur, from + d,
+                    { type: 'number', ease, h });
+            }
+            break;
+        }
+        /**
+         * `count` — a numeric readout that ramps.
+         *
+         * ```json
+         * { "target":"board", "part":"dist", "do":"count", "at":0.4, "for":1.2,
+         *   "from":0, "to":4.2, "decimals":1, "prefix":"d = ", "suffix":" px" }
+         * ```
+         *
+         * A number on screen that CHANGES is how you teach a quantity. A
+         * static label says what a thing is called; a readout that falls to
+         * zero as two balls touch says what the thing *means*, and the
+         * viewer never has to be told which number the diagram is about.
+         *
+         * Text cannot be interpolated, so the only way to say this before
+         * was one `set props.text` per displayed value -- forty keys for a
+         * two-second count, written out by hand, with the easing applied by
+         * the author rather than by the engine. That is not a thing anybody
+         * authors correctly twice.
+         *
+         * ## Why it samples, and why that is cheap
+         *
+         * The value is eased as a number and then formatted, so `ease`
+         * means here exactly what it means everywhere else. Sampling is at
+         * the timeline's own frame rate, because a key between two frames
+         * can never be seen -- so this is the coarsest sampling that is also
+         * exact.
+         *
+         * Consecutive duplicates are then dropped, which is what keeps it
+         * efficient rather than merely correct: a 0-decimal count from 0 to
+         * 5 over two seconds is **six** keys, not forty-eight, because only
+         * six distinct strings are ever displayed. The cost is proportional
+         * to what changes on screen instead of to the duration.
+         *
+         * `step` (the option, not the ease) overrides the sampling interval
+         * in seconds, for a readout that should tick rather than stream.
+         */
+        case 'count': {
+            const node = action.part ? `${rootId}/${action.part}` : rootId;
+            const from = action.from ?? 0;
+            const to = action.to ?? 0;
+            const dur = span ?? 0;
+            const dp = Math.max(0, Math.min(6, Math.round(action.decimals ?? 0)));
+            const pre = action.prefix ?? '';
+            const suf = action.suffix ?? '';
+            const show = (v) => `${pre}${v.toFixed(dp)}${suf}`;
+            const fps = timeline.fps || 24;
+            // A key that falls between two frames cannot be seen, so the
+            // frame rate is the coarsest sampling that is still exact.
+            const dt = action.step != null && action.step > 0
+                ? action.step : 1 / fps;
+            const steps = Math.max(1, Math.round(dur / dt));
+            seedChannel(scene, timeline, node, 'props.text');
+            let last = null;
+            for (let i = 0; i <= steps; i++) {
+                const u = steps === 0 ? 1 : i / steps;
+                const v = from + (to - from) * easeProgress(ease, u, h);
+                const text = show(v);
+                // Only a value the viewer will actually see earns a key.
+                if (text === last) continue;
+                last = text;
+                key(timeline, node, 'props.text', at + u * dur, text, { ease: 'step' });
+            }
+            // The destination is stated even if easing never quite reached
+            // it, so a count always ENDS on the number it was asked for.
+            if (last !== show(to)) {
+                key(timeline, node, 'props.text', at + dur, show(to), { ease: 'step' });
             }
             break;
         }
@@ -1782,10 +1987,32 @@ function lastValueBefore(timeline, target, path, t) {
 
 const defaultChannel = (channel) => (channel === 'sx' || channel === 'sy' ? 1 : 0);
 
+/**
+ * What a channel holds before anything keys it: the node's AUTHORED value,
+ * falling back to the channel's own default.
+ *
+ * `pose`, `reach` and `grip` ramp from "wherever the part already is", and
+ * the only honest answer to that before the first key is what the rig
+ * authored -- `at[0] + pivot[0]` for `x`, and so on. Using
+ * `defaultChannel` alone answered 0, which is the middle of the character,
+ * so the first pose in a scene that ramped a part's `x` or `y` slid it in
+ * from the root instead of moving it from where it was drawn. `move` has
+ * always read the scene this way (`?? scene.get(rootId)?.transform.x`); this
+ * is the same correction for the other three verbs.
+ *
+ * No existing film changes: every pose channel in the repo is `rot`, `sx`,
+ * `sy`, or `y` on a part authored at the origin, and for all of those the
+ * authored value already equals `defaultChannel`.
+ */
+const authoredChannel = (scene, target, channel) => {
+    const v = scene?.get?.(target)?.transform?.[channel];
+    return typeof v === 'number' ? v : defaultChannel(channel);
+};
+
 // ------------------------------------------------------------------ dialogue
 
 function buildDialogue({ line, shotStart, shotEnd, sceneId, castMap, castBySpeaker,
-                        voiceGains = {}, voiceDeliveries = {},
+                        voiceGains = {}, voiceDeliveries = {}, voiceLangs = {},
                         film, lipsyncJobs, audioCues, diagnostics }) {
     if (!line.text && !line.audio) return;
     const at = shotStart + (line.at ?? 0);
@@ -1817,6 +2044,10 @@ function buildDialogue({ line, shotStart, shotEnd, sceneId, castMap, castBySpeak
         // Rate and pitch for this character. `rate` changes the line's
         // LENGTH, so it moves the film's derived durations with it.
         delivery: (charName ? voiceDeliveries[charName] : null) ?? null,
+        // What language this line is IN, when the film declares it. Without
+        // it `langOfSpec` can only recognise a Piper model id, so every other
+        // provider is silently estimated as English.
+        voiceLang: (charName ? voiceLangs[charName] : null) ?? null,
         durationSec: line.duration ?? null,
         subtitle: line.subtitle !== false,
         shotEnd,

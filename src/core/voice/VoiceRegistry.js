@@ -213,21 +213,78 @@ export class VoiceRegistry {
     }
 
     /**
+     * Record that a line was spoken by someone other than who was cast.
+     *
+     * Separate from `_note`, and a WARNING rather than info, because the two
+     * say different things. `_note` says a provider was skipped, which for an
+     * optional provider is expected. This says a specific line came out in
+     * the wrong voice, which is never expected -- it is the exact failure
+     * 29-VOICE-STUDIO.md names: "the render worked, the voice was quietly
+     * someone else's, and nothing said so".
+     *
+     * Once per (requested -> actual) pair, so a 200-line film cast against a
+     * studio that is not running emits one warning and not two hundred.
+     */
+    _noteSubstitution(requested, actual) {
+        const key = `sub:${requested}->${actual ?? 'nothing'}`;
+        if (this._notes.some((n) => n.key === key)) return;
+        this._notes.push({
+            key,
+            severity: 'warning',
+            path: `voices.${String(requested).split(':')[0]}`,
+            message: actual
+                ? `Cast as "${requested}" but spoken by "${actual}". The voice you `
+                    + 'authored is not available, so the line is in a substitute voice. '
+                    + 'Pass `allowFallback: false` to render silent instead of wrong.'
+                : `Cast as "${requested}", which is unavailable, and fallback is off. `
+                    + 'Rendering silent rather than in the wrong voice.',
+        });
+    }
+
+    /**
      * Synthesize through whichever provider owns the voice. Falls back down
      * the provider list if the preferred one is unavailable, so a film
      * authored against TTS still renders on a machine without it.
+     *
+     * The fallback is now SAID OUT LOUD. It was silent, and a film cast
+     * against a local VoiceStudio that happened not to be running rendered
+     * end to end in a Piper voice with nothing anywhere reporting it -- which
+     * for a twelve-film bilingual series is twelve films in the wrong voice,
+     * discovered on watching them.
+     *
+     * @param {object} [opts]
+     * @param {boolean} [opts.allowFallback] false renders the line SILENT
+     *   rather than in a substitute voice. For a series cast against specific
+     *   human voices, silence is a bug you fix; a stand-in is one you ship.
      */
-    async synthesize(spec, { text, lang } = {}) {
+    async synthesize(spec, { text, lang, allowFallback = true } = {}) {
         const voice = await this.resolve(spec);
         if (voice) {
             const provider = this.providers.get(voice.provider);
             if (provider && await this.isAvailable(provider)) {
-                return provider.synthesize({ text, voice, lang: lang ?? voice.lang });
+                const out = await provider.synthesize({ text, voice, lang: lang ?? voice.lang });
+                // Only a real result counts as "the cast voice spoke". A
+                // provider returning null here still has to fall through.
+                if (out?.audioBuffer) return { ...out, voice, substituted: null };
             }
+        }
+        // Everything past this point is a SUBSTITUTE for what was authored.
+        if (!allowFallback) {
+            if (spec) this._noteSubstitution(spec, null);
+            return null;
         }
         for (const p of await this.availableProviders()) {
             const list = await this.voicesOf(p);
-            if (list?.length) return p.synthesize({ text, voice: list[0], lang });
+            if (!list?.length) continue;
+            const stand = list[0];
+            const out = await p.synthesize({ text, voice: stand, lang });
+            if (!out) continue;
+            const actual = `${p.id}:${stand.id}`;
+            // A spec that resolved to this very provider and voice is not a
+            // substitution -- it is the happy path arriving by the long road.
+            if (spec && actual !== spec) this._noteSubstitution(spec, actual);
+            return { ...out, voice: stand,
+                     substituted: spec && actual !== spec ? { requested: spec, actual } : null };
         }
         return null;
     }

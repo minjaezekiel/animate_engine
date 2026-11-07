@@ -10,6 +10,7 @@ import puppeteer from 'puppeteer-core';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { acquireLock } from '../../scripts/lib/render-lock.mjs';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -42,6 +43,9 @@ function serve() {
 const { server, port } = await serve();
 const base = `http://127.0.0.1:${port}`;
 
+// Same lock the render scripts take. This test is what killed a
+// three-minute render once, by being the second headless Chrome.
+await acquireLock('rendering the test film');
 const browser = await puppeteer.launch({
     executablePath: CHROME,
     headless: true,

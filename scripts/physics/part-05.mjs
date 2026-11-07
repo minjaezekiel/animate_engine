@@ -256,7 +256,10 @@ function boardEnds() {
  * makes it checkable rather than asserted.
  */
 function boardSquare() {
-    const b = bounceParts('qb', { x: 300, floor: 1180, h: 480, e: 0.64, width: 300,
+    // e = 0.8, so the apex lands at 0.64 of the drop -- which is the claim
+    // the board is making and the number its own tick is labelled with.
+    // `bounceParts` squares e for exactly this reason.
+    const b = bounceParts('qb', { x: 300, floor: 1180, h: 480, e: 0.8, width: 300,
                                   colour: 'momentum' });
     return {
         ...board('square', [

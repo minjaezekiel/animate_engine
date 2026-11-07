@@ -343,6 +343,27 @@ topic where the unconditional version is simply wrong.
   "both stop", a distinction the on-screen text keeps by saying "no bounce at
   all".
 
+## Restitution is a ratio of speeds, so height goes as e²
+
+`bounceParts(e)` draws the return apex at `h · e²`. It used to draw `h · e`.
+
+Kinetic energy goes as v², and so does the height a given speed buys, so a
+ball with e = 0.8 returns to 64% of its drop and not 80% — which is the
+single most common mistake made about restitution and the subject of a whole
+scene in part 5. A figure in the same series quietly drawing `h · e` was
+teaching the mistake in the margin while the narration corrected it in the
+middle.
+
+Part 1's three arcs are labelled e = 1, e = 0 and 0 < e < 1, where the square
+changes nothing, changes nothing, and lowers the middle arc to where it
+should always have been. No caption in either part claims a height, so the
+fix makes the drawing right without making any line wrong. Both films were
+re-rendered.
+
+There is deliberately no second parameter for "height ratio": two ways to
+say the same thing is how the two drifted apart in the first place. A caller
+who wants a literal height ratio passes `e: Math.sqrt(ratio)` and says so.
+
 ## Drawing rule
 
 > The normal is drawn as the line **through both centres**, always, and the
@@ -398,11 +419,18 @@ FORMAT=mp4 FILM=films/physics/part-01.json \
   OUT=out/physics/collisions-01.mp4 WIDTH=1080 HEIGHT=1920 npm run produce
 ```
 
-**Render one at a time.** Two headless Chrome instances at once — a render
-beside `test:e2e`, say — get one of them killed with `TargetCloseError:
-Target closed` partway through. The film that was being written is usually
-still complete, which makes the failure easy to misread as a bug in the
-film.
+**Renders serialise themselves.** Two headless Chrome instances at once — a
+render beside `test:e2e`, say — used to get one of them killed with
+`TargetCloseError: Target closed`, and because that can arrive *after* the
+file is on disk it looked exactly like a broken film. `scripts/lib/render-lock.mjs`
+is now taken by `produce`, `grab2d`, `narration-pacing` and the four heavy
+e2e tests alike — the render that started this was killed by `test:e2e`,
+not by another render, so a lock only `produce` respected would have let
+exactly that happen again. A second job waits and says so rather than
+fighting. `RENDER_LOCK=0` opts out on a
+machine with the memory. Measured first — two 480×270 renders coexist fine
+and one 1080×1920 render is fine alone, so the limit is memory, not the
+design.
 
 ## Where the code lives
 
@@ -438,6 +466,42 @@ count is now placed through `blockAt(top, lines, lineHeight)`.
 Check before spending a render. This series is narration-led, so the pacing
 report is the point rather than a footnote.
 
+## Measured, after rendering
+
+`node scripts/narration-pacing.mjs out/physics/collisions-0*.mp4` decodes
+each finished film and measures the delivery off a 50 Hz energy envelope.
+This is the ground truth that `check-film`'s line coverage only estimates.
+
+| | speech | phrase | pause | onsets/s |
+|---|---|---|---|---|
+| 1 | 74% | 1.50s | 0.66s × 24.1/min | 1.73 |
+| 2 | 74% | 1.60s | 0.60s × 24.3/min | 1.91 |
+| 3 | 75% | 1.78s | 0.66s × 23.4/min | 1.81 |
+| 4 | 75% | 2.06s | 0.90s × 21.4/min | 1.81 |
+| 5 | 75% | 2.02s | 0.88s × 21.6/min | 1.95 |
+| 6 | 76% | 2.60s | 0.98s × 18.8/min | 1.91 |
+| 7 | 73% | 1.64s | 0.52s × 24.7/min | 1.80 |
+
+**73–76% speech**, against the 73% `27-RETENTION.md` measured in the
+references and the **54%** it measured in part one of the geology series.
+The tighter pad and the 2.4s shot floor did what they were cut for.
+
+### And the one thing the measurement does not like
+
+The references **front-load**: 78–87% speech in their opening against
+72–73% after. These films do the opposite — the hook measures *below* the
+body in five of seven (62% in part 2, 66% in parts 3 and 5, against bodies
+at 73–76%).
+
+That is not the same defect `check-film` reports, which these all pass at
+90–91%: coverage credits a line for its whole estimated span, and the
+audio has the real gaps in it. The cause is that every hook here is
+**acted** — a whoosh, a roll, a beat before the reaction — and those beats
+are silent on purpose. Whether an animated hook should be held to a
+talking-head's speech ratio is a genuine question and not one a tool can
+answer. Recorded rather than quietly fixed; if retention data says the
+openings are losing people, this is the first number to attack.
+
 ## What is weak
 
 - **There is no music bed**, only effects. Three minutes of WAV is tens of
@@ -451,21 +515,21 @@ report is the point rather than a footnote.
   speech ratio `narration-pacing.mjs` measures. After a render that tool is
   the ground truth, and it has not been run over this film.
 - **Nothing is drawn by hand.** Every frame is assembled from primitives.
-- **Part 1's bounce heights are loose.** `bounceParts(e)` puts the return
-  apex at `h·e`, and physically it is `h·e²` — which is the whole point of
-  a scene in part 5. Part 1 never states that its heights ARE e, and its
-  three arcs are labelled e = 1, e = 0 and 0 < e < 1 where the difference
-  does not read, so it is imprecise rather than wrong. Part 5 draws the
-  square explicitly and makes a beat of it. Worth going back and
-  parameterising; not done.
 - **Nobody has watched these with sound.** Every board was verified from
-  still frames and the containers were probed, but the Chrome extension is
-  not connected in this environment and no human has played them back.
+  still frames, every container probed, and `narration-pacing.mjs` measured
+  the delivery off the decoded audio of each finished MP4 — but the Chrome
+  extension is not connected in this environment and no human has played
+  them back.
 - **`squash` and `spin` are 2D only.** `compile3d.js` has its own action
   switch and did not get them.
-- **`npm run test:av` fails, and did before this series.** The A/V sync
-  probe's 1 kHz click never reaches `prepared.audio`, so the suite cannot
-  currently prove the audio track is aligned with the video. Confirmed
-  pre-existing by running it in a clean worktree at HEAD. It matters more now
-  that a film in this repo carries 64 sound effects whose timing is the
-  point.
+- ~~`npm run test:av` fails~~ **fixed.** The probe looked for its 1 kHz
+  click above an absolute 0.9, and voice loudness matching legitimately
+  brings the synthetic provider down by 10.3 dB, so the click arrived at
+  0.289 and the one check that proves A/V alignment had been failing ever
+  since. The pipeline was right and the ruler was stale. The click is now
+  found relative to its own window's peak, which survives any gain the
+  chain applies; the measured separation (2.71× in the mix, 2.66–2.86×
+  after muxing) is printed and asserted, so an erosion of it fails loudly
+  instead of making the test pass by luck. Both encoders pass: the click
+  lands at 0.007 s on the paced WebM path and **0.000 s on MP4**, which is
+  the path all seven films use.

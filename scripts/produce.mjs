@@ -10,6 +10,7 @@ import puppeteer from 'puppeteer-core';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
+import { acquireLock, releaseLock } from './lib/render-lock.mjs';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -74,6 +75,41 @@ const server = createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, r));
 const base = `http://127.0.0.1:${server.address().port}`;
 console.log(`serving ${ROOT} at ${base}`);
+
+await acquireLock('rendering');
+let wrotePath = null;
+
+/**
+ * A render that dies has to say WHICH side of the write it died on.
+ *
+ * `browser.close()` throwing `TargetCloseError` after the file is on disk
+ * is a teardown detail and the film is fine. The same error thrown during
+ * the render is a lost film. They used to be indistinguishable: both
+ * printed the same thirty-line puppeteer stack and left you guessing
+ * whether the MP4 beside it was usable.
+ */
+process.on('uncaughtException', (err) => {
+    const closed = /Target closed|Protocol error|Session closed/i.test(String(err));
+    console.error('');
+    if (closed && wrotePath) {
+        console.error(`the browser went away during teardown, AFTER ${wrotePath} was`);
+        console.error('written and length-checked. The film is complete; nothing to redo.');
+        releaseLock();
+        process.exit(0);
+    }
+    if (closed) {
+        console.error('the browser was killed before the film was written.');
+        console.error('Most often that is memory: a full-size render holds the whole');
+        console.error('audio mix, the canvas and the muxed output at once, and a second');
+        console.error('headless Chrome alongside it is enough to lose one of them.');
+        console.error('Every script here that launches one takes the same lock, so');
+        console.error('whatever competed for memory came from outside this repo.');
+    } else {
+        console.error(String(err?.stack ?? err));
+    }
+    releaseLock();
+    process.exit(1);
+});
 
 const browser = await puppeteer.launch({
     executablePath: CHROME,
@@ -232,8 +268,12 @@ if (file.length !== result.size) {
     throw new Error(`readback is short: got ${file.length} of ${result.size} bytes`);
 }
 await writeFile(join(ROOT, out), file);
+wrotePath = out;
 console.log('\n' + JSON.stringify(result, null, 2));
 console.log(`\nwrote ${out} (${(file.length / 1e6).toFixed(2)} MB)`);
 
-await browser.close();
+// Teardown cannot invalidate a file that is already written and
+// length-checked, so it cannot be allowed to fail the run either.
+try { await browser.close(); } catch { /* it was already gone */ }
 server.close();
+releaseLock();

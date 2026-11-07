@@ -9,11 +9,29 @@
  * Includes the SYNC PROBE: a white flash and an audio click at known times,
  * asserted back out of the encoded file. That is the only check that proves
  * audio and video are actually aligned rather than merely both present.
+ *
+ * ## The click is found RELATIVE to the window's own peak
+ *
+ * It used to be found against an absolute threshold -- 0.9 in the mix, 0.5
+ * in the decoded file -- which quietly stopped working the day voice
+ * loudness matching landed. `normalizeGain` brings every voice to the same
+ * speech RMS, and for this synthetic provider that is a legitimate -10.3 dB:
+ * the click arrives in the mix at 0.289, the test demanded 0.9, and the one
+ * check that proves A/V alignment had been failing ever since. The pipeline
+ * was right and the ruler was stale.
+ *
+ * So the probe measures the click against the loudest thing in the same
+ * window instead. The click is deliberately ~2.7x the speech peak, and a
+ * ratio survives any uniform gain the chain applies -- which is the property
+ * the absolute threshold was missing. The measured separation is reported on
+ * every run and asserted, so a future change that erodes it fails loudly
+ * instead of making this test pass by luck.
  */
 import puppeteer from 'puppeteer-core';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { acquireLock } from '../../scripts/lib/render-lock.mjs';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -49,6 +67,9 @@ const server = createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, r));
 const base = `http://127.0.0.1:${server.address().port}`;
 
+// Same lock the render scripts take. This test is what killed a
+// three-minute render once, by being the second headless Chrome.
+await acquireLock('rendering the A/V probe');
 const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true,
     args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required',
@@ -88,6 +109,44 @@ const result = await onPage(() => page.evaluate(async (origin, durationSec, form
     // A synthetic provider: a 1.5s tone burst per line, plus a 1kHz click at
     // the very start so the sync probe has something to find.
     const SR = 48000;
+
+    /**
+     * Find the sync click without caring how loud anything is.
+     *
+     * Returns the first sample at or above `ratio` of the window's own peak,
+     * plus the numbers needed to judge whether the probe is still trustworthy:
+     * the peak itself, and the loudest thing AFTER the click, which is the
+     * speech. If those two ever converge the click is no longer distinguishable
+     * and the test should say so rather than guess.
+     */
+    const CLICK_SECONDS = 0.02;
+    function findClick(data, sampleRate, { window = 2, ratio = 0.5 } = {}) {
+        const n = Math.min(data.length, Math.round(sampleRate * window));
+        const after = Math.round(sampleRate * CLICK_SECONDS * 2);
+        let peak = 0;
+        let rest = 0;
+        for (let i = 0; i < n; i++) {
+            const a = Math.abs(data[i]);
+            if (a > peak) peak = a;
+            if (i >= after && a > rest) rest = a;
+        }
+        // A silent window has no click in it, and no peak to measure one against.
+        if (peak < 1e-4) return { sample: -1, peak: 0, rest: 0, ratio: 0 };
+        const floor = peak * ratio;
+        let sample = -1;
+        for (let i = 0; i < n; i++) {
+            if (Math.abs(data[i]) >= floor) { sample = i; break; }
+        }
+        return {
+            sample,
+            peak: +peak.toFixed(4),
+            rest: +rest.toFixed(4),
+            // How far the click stands above everything else. The separation,
+            // not the level, is what this probe depends on.
+            ratio: rest > 0 ? +(peak / rest).toFixed(2) : Infinity,
+        };
+    }
+
     const ac = new OfflineAudioContext(1, 1, SR);
     const makeBuffer = (secs, withClick) => {
         const buf = ac.createBuffer(1, Math.round(secs * SR), SR);
@@ -172,13 +231,12 @@ const result = await onPage(() => page.evaluate(async (origin, durationSec, form
     });
 
     // Measure the audio mix's own envelope, so the click's position in the
-    // MIX is known independently of the encoder.
-    const ch = prepared.audio.getChannelData(0);
-    let clickAt = -1;
-    for (let i = 0; i < Math.min(ch.length, SR * 2); i++) {
-        if (Math.abs(ch[i]) > 0.9) { clickAt = i; break; }
-    }
-    out.mixClickSample = clickAt;
+    // MIX is known independently of the encoder. Relative to the window's
+    // own peak: the chain legitimately scales dialogue, and an absolute
+    // threshold here is a number that goes stale without telling anybody.
+    const mix = findClick(prepared.audio.getChannelData(0), SR);
+    out.mixClickSample = mix.sample;
+    out.mixClick = mix;
 
     const canvas = document.createElement('canvas');
     canvas.width = 320; canvas.height = 180;
@@ -220,16 +278,15 @@ const result = await onPage(() => page.evaluate(async (origin, durationSec, form
         const bytes = await res.blob.arrayBuffer();
         const dctx = new OfflineAudioContext(1, 1, SR);
         const decoded = await dctx.decodeAudioData(bytes.slice(0));
-        const d = decoded.getChannelData(0);
-        let peak = -1;
-        for (let i = 0; i < Math.min(d.length, SR * 2); i++) {
-            if (Math.abs(d[i]) > 0.5) { peak = i; break; }
-        }
+        const found = findClick(decoded.getChannelData(0), decoded.sampleRate);
         out.decodedAudio = {
             duration: +decoded.duration.toFixed(3),
             rate: decoded.sampleRate,
-            clickSample: peak,
-            clickSec: peak >= 0 ? +(peak / decoded.sampleRate).toFixed(3) : null,
+            clickSample: found.sample,
+            clickSec: found.sample >= 0
+                ? +(found.sample / decoded.sampleRate).toFixed(3) : null,
+            peak: found.peak,
+            separation: found.ratio,
         };
     } catch (e) {
         out.decodedAudio = { error: e.message };
@@ -256,10 +313,24 @@ if (!result.prepared.audio && !result.prepared.audioDuration) fail.push('no audi
 if (result.prepared.cues !== 2) fail.push(`expected 2 audio cues, got ${result.prepared.cues}`);
 if (result.prepared.visemeTracks !== 2) fail.push(`expected 2 viseme tracks, got ${result.prepared.visemeTracks}`);
 if (result.prepared.visemeKeys < 10) fail.push(`only ${result.prepared.visemeKeys} viseme keys -- lipsync not working`);
-// The click is a 1kHz sine starting at zero crossing, so it needs ~11
-// samples at 48kHz to exceed the 0.9 threshold. Allow 1ms of ramp.
+// The click is a 1kHz sine starting at a zero crossing, so it takes ~12
+// samples at 48kHz to climb past half its own peak. Allow 1ms of ramp.
 if (result.mixClickSample < 0 || result.mixClickSample > 48) {
     fail.push(`click should start the mix, found at sample ${result.mixClickSample}`);
+}
+/**
+ * The probe depends on the click standing clear of the speech, not on
+ * either being any particular level. 2.7x is the designed separation;
+ * below 1.6x the finder could latch onto a loud syllable instead and this
+ * test would start passing or failing for the wrong reason.
+ */
+const MIN_SEPARATION = 1.6;
+for (const [where, got] of [['mix', result.mixClick?.ratio],
+                            ['encoded audio', result.decodedAudio?.separation]]) {
+    if (got != null && Number.isFinite(got) && got < MIN_SEPARATION) {
+        fail.push(`sync click only ${got}x above the speech in the ${where} `
+            + `(need ${MIN_SEPARATION}x) -- the probe can no longer tell them apart`);
+    }
 }
 if (result.video?.error) fail.push(`output undecodable: ${result.video.error}`);
 else if (Math.abs(result.video.duration - want) > 0.25) {
@@ -282,3 +353,6 @@ if (fail.length) {
 console.log(`\nPASS: ${want}s film as ${result.blob.type} via ${result.sink}, audio muxed, `
     + `lipsync keyed, click at ${result.decodedAudio.clickSec}s, `
     + `duration ${result.video.duration}s.`);
+console.log(`  sync click ${result.mixClick.ratio}x above the speech in the mix `
+    + `(peak ${result.mixClick.peak}), ${result.decodedAudio.separation}x after muxing. `
+    + `Levels are free to change; the separation is what this probe needs.`);

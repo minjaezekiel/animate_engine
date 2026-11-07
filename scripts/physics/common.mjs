@@ -794,16 +794,33 @@ export function normalParts(id, a, b, {
 /**
  * A bounce: a ball dropping and returning to a fraction of its height.
  *
- * The arc is drawn, not simulated -- `restitution` is the height ratio and
- * the second apex sits at `h * e` above the floor. That is the definition
- * made visible, which is the point of the diagram.
+ * `e` is RESTITUTION, and the return apex is therefore at `h · e²`.
+ *
+ * That square is the whole point and it used to be missing. Restitution is
+ * a ratio of SPEEDS; kinetic energy goes as v², and so does the height a
+ * given speed buys you. So a ball with e = 0.8 comes back to 64% of its
+ * drop, not 80% -- which is the single most common mistake made about
+ * restitution, and part five of the series spends a scene on it. A figure
+ * in the same series that quietly drew `h · e` was teaching the mistake in
+ * the margin while the narration corrected it in the middle.
+ *
+ * Part one's three arcs are labelled e = 1, e = 0 and 0 < e < 1, where the
+ * square changes nothing, changes nothing, and lowers the middle arc to
+ * where it should always have been. No caption in either part claims a
+ * height, so this makes the drawing right without making any line wrong.
+ *
+ * A caller who genuinely wants to specify the HEIGHT ratio asks for
+ * `e: Math.sqrt(ratio)` and says so at the call site. There is deliberately
+ * no second parameter for it: two ways to say the height is how the two
+ * drifted apart in the first place.
  */
 export function bounceParts(id, {
     x = 300, floor = 1180, h = 420, e = 0.8, z = 40, colour = 'restitution',
     label = null, width = 160,
 } = {}) {
     const top = floor - h;
-    const back = floor - h * e;
+    const heightRatio = e * e;
+    const back = floor - h * heightRatio;
     const d = `${M(x, top)} ${Q(x + width * 0.3, floor - h * 0.1, x + width * 0.5, floor)} `
         + `${Q(x + width * 0.7, back + (floor - back) * 0.1, x + width, back)}`;
     const parts = [
@@ -822,7 +839,11 @@ export function bounceParts(id, {
             at: [x + width / 2, floor + 56], font: `800 38px ${FONT}`, fill: colour,
             z, alpha: 0, maxWidth: 360 }));
     }
-    return { parts, ids: parts.map((p) => p.id) };
+    return {
+        parts, ids: parts.map((p) => p.id),
+        /** What the figure actually drew, so a label cannot contradict it. */
+        e, heightRatio: +heightRatio.toFixed(4),
+    };
 }
 
 /**

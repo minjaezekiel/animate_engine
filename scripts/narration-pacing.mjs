@@ -25,6 +25,7 @@ import puppeteer from 'puppeteer-core';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { basename, dirname, join, normalize, resolve } from 'node:path';
+import { acquireLock } from './lib/render-lock.mjs';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -48,6 +49,9 @@ const server = createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
+// Same lock every other headless script here takes: a second Chrome
+// beside a full-size render is what gets one of them killed.
+await acquireLock('measuring');
 const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true, protocolTimeout: 600_000,
     args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'],

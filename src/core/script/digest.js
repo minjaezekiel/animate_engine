@@ -149,6 +149,39 @@ function subjectRow(s) {
     };
 }
 
+/**
+ * The dominant hue of a subject, from its own pixels.
+ *
+ * "What colour is this?" is a question about the MOST COMMON colour, not the
+ * mean one. Averaging RGB over a bounding box reported a blue Earth as
+ * "grey", because 21% of a box around a sphere is black space and an average
+ * with black is desaturated; taking the brightest quarter instead reported it
+ * as "white", because the brightest pixels on Earth are cloud. Both answers
+ * were arithmetically correct and neither answered the question.
+ *
+ * So each lit pixel is classified and the winner reported, which is robust to
+ * both the background and the highlights and costs one pass. "Lit" is 20% of
+ * the subject's OWN peak -- a threshold relative to the subject rather than
+ * an absolute one, so it works on a dim planet and a glowing core alike.
+ *
+ * `px` is `[luma, r, g, b]` rows, 0-255 for the channels.
+ */
+export function dominantHue(px) {
+    if (!px?.length) return null;
+    let peak = 0;
+    for (const p of px) if (p[0] > peak) peak = p[0];
+    const counts = new Map();
+    for (const [L, r, g, b] of px) {
+        if (L < peak * 0.2) continue;
+        const name = hueName(r / 255, g / 255, b / 255);
+        counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    let best = 0;
+    let hue = null;
+    for (const [name, c] of counts) if (c > best) { best = c; hue = name; }
+    return hue;
+}
+
 /** Build a digest from one sampled frame. */
 export function frameDigest({ t, shotId, frame = [], subjects = [], overlay = [],
                               blend = null }) {

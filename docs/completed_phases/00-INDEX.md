@@ -18,6 +18,7 @@ including the ones with no document of their own.
 | [34-EARTH-3D.md](34-EARTH-3D.md) | "Inside the Earth" — the 3D path tested against a minute of film: 24 defects, the token measurement that produced `digest`, and the black planet |
 | [35-3D-TRANSITIONS.md](35-3D-TRANSITIONS.md) | The spaces at the joints — fade, dip, wipe, iris and `continue` on a path that had no transitions at all, and the camera that would not hold still |
 | [36-VOICE-RUNTIME.md](36-VOICE-RUNTIME.md) | Kokoro and OpenVoice made renderable — a content-addressed take cache, so a film is voiced once and never again, and the 2D path's registry finally reaching the gateway |
+| [37-DIGEST-2D.md](37-DIGEST-2D.md) | `digest` on the 2D path — what is on screen as numbers, at about a thirtieth of what screenshots cost, where fifty of the fifty-one finished films live |
 
 Reference documents that describe how the engine works — rather than what was
 built when — stay in [../](../): the film script, the core contracts, voices,

@@ -342,6 +342,26 @@ server.tool(
 );
 
 server.tool(
+  'digest_film',
+  'What is on screen in a 2D film, as NUMBERS rather than pixels: per-subject box, '
+  + 'coverage, luma, dominant hue, the framing read in heads, and every string of '
+  + 'on-screen text. About 1,200 tokens for a 19-shot film against ~2,000 for ONE '
+  + 'screenshot. Run this before grabbing a frame: structured numbers catch '
+  + 'everything geometric, temporal and typographic, and a frame catches everything '
+  + 'about material and light.',
+  {
+    film: z.string().describe('path to the film json, relative to the repo'),
+    at: z.string().optional()
+      .describe('comma-separated times; default is one sample 55% through each shot'),
+  },
+  async ({ film, at }) => {
+    const r = await runScript('digest2d.mjs', { FILM: film, AT: at ?? null },
+                              { timeoutMs: 600_000 });
+    return asText(quietLines(r.out));
+  }
+);
+
+server.tool(
   'bake_voices',
   'Synthesize a film\'s dialogue ONCE into the on-disk take cache, or audition a '
   + 'single line. A render reads baked takes and synthesizes only what is missing, so '

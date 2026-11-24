@@ -113,7 +113,9 @@
     "test:takes": "node --test test/core/takecache.test.mjs",
     "render:earth:kokoro": "VOICE_BACKEND=kokoro VOICE_CAST=kokoro:bm_george FILM=films/earth3d.json OUT=out/earth/inside-the-earth-kokoro.mp4 WIDTH=1280 HEIGHT=720 FORMAT=mp4 node scripts/produce3d.mjs",
     "say": "node scripts/say.mjs",
-    "test:openvoice": "node --test test/core/openvoice.test.mjs"
+    "test:openvoice": "node --test test/core/openvoice.test.mjs",
+    "digest2d": "node scripts/digest2d.mjs",
+    "test:digest2d": "node --test test/core/digest2d.test.mjs"
   },
   "keywords": [
     "animation",

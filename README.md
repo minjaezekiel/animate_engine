@@ -15,7 +15,7 @@ MIT licensed — see [LICENSE](LICENSE).
 
 ## Current status
 
-**Phase 41 · 2026-11-24.** 1,029 unit tests pass in Node, plus browser-driven
+**Phase 42 · 2026-11-24.** 1,040 unit tests pass in Node, plus browser-driven
 end-to-end suites that render real video and then probe the file that comes
 out rather than trusting the renderer's own report — `test:av` and
 `test:av:mp4` hunt a 1 kHz click in the muxed audio to prove picture and sound
@@ -34,6 +34,7 @@ Where the two rendering paths actually stand:
 | Music and sound cues, levelled and limited | yes | yes |
 | Subtitles, titles, screen callouts | yes | yes |
 | Framing, exposure and pacing checks | yes | yes |
+| `digest` — what is on screen, as numbers | yes | yes |
 | Transitions between shots | yes — fade, crossfade, dip | yes — fade, dip, wipe, iris, `continue`; **no crossfade** |
 | Keyframeable post (rack focus) | partial | no |
 | Procedural textures | n/a | yes |
@@ -57,11 +58,10 @@ discovered:
 - **The dockable workspace** (`src/editor/dock.js`) is tested and mounted on
   no page.
 
-The largest single gap is now the one the audit named rather than one path
+The largest single gaps are now the ones the audit named rather than one path
 lagging the other: there is **no motion blur on either path**, **no
 rigid-body dynamics at all**, music is **never ducked under dialogue**, and
-`digest` — the cheapest check in the repo — exists only on the 3D path, where
-one of the fifty-one finished films lives.
+post is not keyframeable, so there is no rack focus.
 
 ## What it does today
 
@@ -205,7 +205,7 @@ they cost one `fillRect` and appear in every container; `continue` is not
 drawn at all — it eases the camera into the incoming framing before the cut,
 so there is no join to hide.
 
-`check` and `digest` are the point. Between them they catch most of what a
+`check` and `digest` are the point. `npm run digest2d` is the 2D half. Between them they catch most of what a
 finished render would have shown you ten minutes later, and `digest` reports a
 whole film's worth of screen state — per-subject bounds, coverage, luma,
 dominant hue and every string of on-screen text — for about a fiftieth of what
@@ -379,6 +379,7 @@ one answer:
 | [docs/completed_phases/34-EARTH-3D.md](docs/completed_phases/34-EARTH-3D.md) | **the 3D engine tested against a minute of film** — 24 defects, and the token measurement |
 | [docs/completed_phases/35-3D-TRANSITIONS.md](docs/completed_phases/35-3D-TRANSITIONS.md) | fade, dip, wipe, iris and `continue` on a path that had none — and the camera that would not hold still |
 | [docs/completed_phases/36-VOICE-RUNTIME.md](docs/completed_phases/36-VOICE-RUNTIME.md) | **a line is synthesized once, ever** — the take cache, and the 2D path finally reaching the voice gateway |
+| [docs/completed_phases/37-DIGEST-2D.md](docs/completed_phases/37-DIGEST-2D.md) | `digest` on the 2D path — ~1,200 tokens for a 19-shot film against ~38,000 in screenshots |
 
 ## Known limits
 
@@ -397,8 +398,8 @@ everything open is queued in [docs/pending/](docs/pending/).
   falls, stacks or collides. The collision-maths series animated its
   collisions with keyframes.
 - **Post is not keyframeable**, so there is no rack focus.
-- **`digest` is 3D only**, so the cheapest check in the repo is unavailable to
-  the fifty 2D films.
+- **No curve editor and no dope sheet.** Easing is chosen by name from a
+  table, so weight is fixed by changing a word rather than dragging a handle.
 
 - **2D IK is solved against the rest pose**, so a character whose torso is
   leaning or breathing has moved the shoulder out from under the solve.

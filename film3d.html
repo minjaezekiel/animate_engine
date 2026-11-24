@@ -49,7 +49,7 @@ import { key as writeKey } from './src/core/anim/Timeline.js';
 import { paintTexture, normalFromHeight } from './src/core/art/textures.js';
 import { overlayAt, subtitleSpans, checkOverlay } from './src/core/art/overlay.js';
 import { transitionOps, checkTransitions, blendAt } from './src/core/art/transitions.js';
-import { frameDigest, hueName } from './src/core/script/digest.js';
+import { frameDigest, dominantHue } from './src/core/script/digest.js';
 import { createCompositeCanvas, createProjector, createMeasurer } from './src/render/Overlay2D.js';
 
 /**
@@ -560,29 +560,10 @@ window.render3d = async function render3d(film, opts = {}) {
                     }
                 }
                 /**
-                 * Hue from the BRIGHTEST QUARTER of the box, not all of it.
-                 *
-                 * A bounding box around a sphere is 21% background, and in
-                 * space the background is black. Averaging the whole box
-                 * desaturates everything toward grey -- the first digest
-                 * reported a perfectly blue Earth as "grey", which is exactly
-                 * the kind of wrong answer that sends an agent chasing a
-                 * defect that is not there.
-                 *
-                 * The brightest quartile is a cheap stand-in for "the pixels
-                 * that are the object": the subject is lit and the space
-                 * around it is not.
-                 */
-                px.sort((a, b) => b[0] - a[0]);
-                /**
-                 * The MODE of the per-pixel hue, over the object's lit pixels.
-                 *
-                 * Averaging RGB over a bounding box reported a blue Earth as
-                 * "grey", because 21% of a box around a sphere is black
-                 * space and an average with black is desaturated. Taking the
-                 * brightest quarter instead reported it as "white", because
-                 * the brightest pixels on Earth are cloud. Both answers were
-                 * arithmetically correct and neither answered the question.
+                 * The MODE of the per-pixel hue, over the object's lit
+                 * pixels -- now `dominantHue` in `core/script/digest.js`, so
+                 * the 2D path gets this answer from the same code rather
+                 * than a second copy of it.
                  *
                  * "What colour is this?" is a question about the MOST COMMON
                  * colour, not the mean one -- a mean of blue and white is
@@ -594,16 +575,7 @@ window.render3d = async function render3d(film, opts = {}) {
                  * to the subject rather than an absolute one, so it works on
                  * a dim planet and a glowing core alike.
                  */
-                const peak = px.length ? px[0][0] : 0;
-                const counts = new Map();
-                for (const [L, pr, pg, pb] of px) {
-                    if (L < peak * 0.2) continue;
-                    const name = hueName(pr / 255, pg / 255, pb / 255);
-                    counts.set(name, (counts.get(name) ?? 0) + 1);
-                }
-                let hue = null;
-                let best = 0;
-                for (const [name, c] of counts) if (c > best) { best = c; hue = name; }
+                const hue = dominantHue(px);
                 subjects.push({
                     id, visible: node.visible, box: [x0, y0, x1, y1], luma, hue,
                 });

@@ -187,7 +187,15 @@ export function groundAt(ground, x) {
 
 const trackOf = (timeline, path) => timeline._index?.get(`__camera\u0000${path}`);
 
-function cameraAt(timeline, t, meta, trackValueAt) {
+/**
+ * The rectangle of scene the camera sees at t.
+ *
+ * Exported because `digest2d.js` needs exactly this to turn a cast member's
+ * world box into a fraction of the frame -- the same arithmetic the off-frame
+ * check here has always done, and a second copy of it would be a second place
+ * for the zoom convention to drift.
+ */
+export function cameraAt(timeline, t, meta, trackValueAt) {
     const read = (path, fallback) => {
         const track = trackOf(timeline, path);
         return track ? trackValueAt(track, t) : fallback;

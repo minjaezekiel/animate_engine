@@ -27,7 +27,49 @@ const GEOMETRY = {
     cube: (T, g) => new T.BoxGeometry(g.width ?? 1, g.height ?? 1, g.depth ?? 1,
                                       g.widthSegments ?? 1, g.heightSegments ?? 1, g.depthSegments ?? 1),
     box: (T, g) => GEOMETRY.cube(T, g),
-    sphere: (T, g) => new T.SphereGeometry(g.radius ?? 0.5, g.widthSegments ?? 24, g.heightSegments ?? 16),
+    /**
+     * A sphere, optionally a WEDGE of one.
+     *
+     * `phiStart`/`phiLength` sweep longitude and `thetaStart`/`thetaLength`
+     * sweep latitude, both in degrees here because every other angle in a
+     * film script is in degrees.
+     *
+     * This is four parameters THREE has always had and this adapter never
+     * passed, and their absence is why a cutaway was impossible. A planet
+     * opened to its core is a stack of concentric hemispheres --
+     * `phiLength: 180` -- and until now the only sphere available was a
+     * closed one, so showing the inside of anything meant either CSG (a
+     * dependency and a correctness surface) or clipping the whole scene.
+     * Half a sphere is neither: it is the geometry that was wanted, built
+     * directly, with no fragments discarded and no shadow to fix up.
+     */
+    sphere: (T, g) => new T.SphereGeometry(
+        g.radius ?? 0.5, g.widthSegments ?? 24, g.heightSegments ?? 16,
+        (g.phiStart ?? 0) * Math.PI / 180,
+        (g.phiLength ?? 360) * Math.PI / 180,
+        (g.thetaStart ?? 0) * Math.PI / 180,
+        (g.thetaLength ?? 180) * Math.PI / 180),
+
+    /**
+     * A flat disc, or an annulus with `innerRadius`.
+     *
+     * The cap on a sectioned sphere. A hemisphere is open at its cut face,
+     * and an open hemisphere shows you the inside of its own far wall --
+     * which is the same inverted-winding illusion that made the presenter's
+     * body look solid while every garment over it was culled. A ring per
+     * layer closes the section into a face you can actually read, and an
+     * annulus is the right primitive because a layer IS an annulus: the
+     * mantle's cut face is a ring between the core and the crust.
+     */
+    circle: (T, g) => (g.innerRadius
+        ? new T.RingGeometry(g.innerRadius, g.radius ?? 0.5,
+                             g.radialSegments ?? 48, 1,
+                             (g.thetaStart ?? 0) * Math.PI / 180,
+                             (g.thetaLength ?? 360) * Math.PI / 180)
+        : new T.CircleGeometry(g.radius ?? 0.5, g.radialSegments ?? 48,
+                               (g.thetaStart ?? 0) * Math.PI / 180,
+                               (g.thetaLength ?? 360) * Math.PI / 180)),
+    ring: (T, g) => GEOMETRY.circle(T, { innerRadius: 0.25, ...g }),
     cylinder: (T, g) => new T.CylinderGeometry(g.radiusTop ?? 0.5, g.radiusBottom ?? g.radiusTop ?? 0.5,
                                                g.height ?? 1, g.radialSegments ?? 24,
                                                g.heightSegments ?? 1, g.openEnded ?? false),
@@ -76,7 +118,22 @@ const GEOMETRY = {
     },
 };
 
+/** `new T.Object3D()`, named so the pre-walk block above reads as intent. */
+const THREE_OBJECT = (T) => new T.Object3D();
+
 const BLENDING = { additive: 'AdditiveBlending', normal: 'NormalBlending', multiply: 'MultiplyBlending' };
+
+/**
+ * Kept in step with `TEXTURE_SLOTS` in `core/script/compile3d.js`, which is
+ * what warns about an undeclared name. Duplicated rather than imported
+ * because this module is the backend and that one is the compiler, and the
+ * compiler does not import the backend in either direction.
+ */
+const TEXTURE_SLOT_NAMES = [
+    'map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap',
+    'bumpMap', 'alphaMap', 'aoMap', 'displacementMap', 'clearcoatMap',
+    'sheenColorMap', 'specularMap', 'iridescenceMap', 'lightMap',
+];
 
 /** Fallbacks, so a film that declares a character gets teeth without naming them. */
 const MOUTH_MATERIALS = {
@@ -133,11 +190,228 @@ function textTexture(T, spec) {
  */
 const COLOR_PROPS = ['sheenColor', 'attenuationColor', 'specularColor', 'emissive'];
 
-function makeMaterial(T, spec = {}, blending = null) {
+/**
+ * Material properties a film gives as `[x, y]` and THREE wants as a Vector2.
+ *
+ * The third instance of the same bug, and the worst of the three. A JSON film
+ * can only write arrays, `Material.setValues` copies into the existing
+ * Vector2 with `currentValue.copy(newValue)`, and `Vector2.copy` reads `.x`
+ * and `.y` -- which on an array are `undefined`. So `normalScale: [0.45,
+ * 0.45]` sets the normal scale to (NaN, NaN).
+ *
+ * NaN in the normal makes every lighting dot product NaN, and the surface
+ * renders BLACK. Not magenta, not missing -- black, which looks exactly like
+ * a lighting problem. The Earth's entire sunlit face came back unlit while
+ * the floor and the presenter beside it were correctly lit, and three
+ * separate hypotheses about shadow acne, light direction and colour space
+ * were checked before the actual cause, which is a two-element array.
+ *
+ * `COLOR_PROPS` exists for a string where THREE wants a Color. This is the
+ * same hole one type over, and the general lesson is that spreading
+ * unrecognised keys into a THREE constructor is free until it is silent.
+ */
+const VECTOR2_PROPS = ['normalScale', 'clearcoatNormalScale', 'iridescenceThicknessRange'];
+
+/**
+ * Build the film's `textures` block into THREE textures, once.
+ *
+ * Two sources. A `src` is fetched -- somebody's photograph, a NASA albedo
+ * plate, a scanned fabric -- and is asynchronous, so it is loaded by the
+ * page and handed in already resolved, exactly as `models` and `environment`
+ * are. Everything else is SYNTHESIZED by `core/art/textures.js`, which is
+ * pure arithmetic over a byte array and therefore testable in Node and
+ * identical on every machine.
+ *
+ * Synthesis is the primary path on purpose: a film in this repo has to be
+ * renderable by anyone who clones it, and that rules out depending on
+ * somebody else's image for the engine's default surface quality -- the same
+ * argument `make-music.mjs` makes about its score.
+ */
+export function buildTextures(T, textures, { paintTexture, normalFromHeight, images = {} } = {}) {
+    const out = new Map();
+    const painted = new Map();
+    // Two passes: a derived texture (`normalFrom`) reads a painted one, and
+    // object key order is not a dependency order.
+    for (const [id, spec] of Object.entries(textures ?? {})) {
+        if (spec.src || spec.text || spec.normalFrom) continue;
+        painted.set(id, paintTexture(spec));
+    }
+    for (const [id, spec] of Object.entries(textures ?? {})) {
+        let texture = null;
+        if (spec.src) {
+            texture = images[id] ?? null;
+            if (!texture) continue;            // the page already reported it
+        } else if (spec.text) {
+            texture = textTexture(T, spec.text);
+        } else {
+            const bytes = spec.normalFrom
+                ? normalFromHeight(painted.get(spec.normalFrom), spec.strength ?? 2)
+                : painted.get(id);
+            if (!bytes) continue;
+            const canvas = document.createElement('canvas');
+            canvas.width = bytes.width;
+            canvas.height = bytes.height;
+            canvas.getContext('2d').putImageData(
+                new ImageData(bytes.data, bytes.width, bytes.height), 0, 0);
+            texture = new T.CanvasTexture(canvas);
+        }
+        /**
+         * Colour space, and the one that is wrong by default.
+         *
+         * An albedo map holds sRGB values and must be tagged `SRGBColorSpace`
+         * or every colour renders about 2.2 gammas too bright. A normal,
+         * roughness or height map holds LINEAR data and must NOT be tagged,
+         * or the renderer un-gammas numbers that were never gammaed -- which
+         * shows up as a surface that is far too rough in the midtones and is
+         * almost impossible to attribute by eye.
+         *
+         * `linear: true` on the spec, or a derived normal map, means linear.
+         */
+        const linear = spec.linear === true || !!spec.normalFrom
+            || spec.role === 'data';
+        texture.colorSpace = linear ? T.NoColorSpace : T.SRGBColorSpace;
+        // Repeat in x, clamp in y: an equirectangular map on a sphere meets
+        // itself at the date line and does not meet itself across a pole.
+        // Mirrored or clamped wrapping in x puts a visible seam down the
+        // Pacific on every frame of a rotating globe.
+        texture.wrapS = spec.wrapS === 'clamp' ? T.ClampToEdgeWrapping : T.RepeatWrapping;
+        texture.wrapT = spec.wrapT === 'repeat' ? T.RepeatWrapping : T.ClampToEdgeWrapping;
+        if (spec.repeat) texture.repeat.set(spec.repeat[0] ?? 1, spec.repeat[1] ?? 1);
+        if (spec.offset) texture.offset.set(spec.offset[0] ?? 0, spec.offset[1] ?? 0);
+        // 8x costs nothing measurable and is the difference between a planet
+        // whose terrain reads at a grazing angle and one that turns to mush
+        // at the limb -- which is most of a sphere's visible area.
+        texture.anisotropy = spec.anisotropy ?? 8;
+        texture.needsUpdate = true;
+        out.set(id, texture);
+    }
+    return out;
+}
+
+/**
+ * A view-dependent rim: atmosphere, force field, hot metal at a grazing
+ * angle.
+ *
+ * # Why this is a shader and nothing else here is
+ *
+ * Every other material in this engine is a configured THREE material,
+ * deliberately -- a hand-written shader is a second rendering model to keep
+ * correct through every engine upgrade. This is the one effect that cannot be
+ * configured, because it depends on the angle between the surface normal and
+ * the view direction, and no PBR parameter exposes that.
+ *
+ * It matters out of proportion to its size. A planet without a limb glow
+ * reads as a painted ball however good its albedo is: the atmosphere is what
+ * tells a viewer there is air, and the only place air is visible is where you
+ * are looking through a lot of it -- at the edge.
+ *
+ * Rendered on the BACK faces of a slightly larger sphere and blended
+ * additively, so the shell is invisible in front of the planet and bright
+ * around it, which is what a thin atmosphere actually does.
+ *
+ * `clipping: true` plus the clipping chunks: a raw ShaderMaterial does NOT
+ * get clipping planes for free the way a built-in material does, so without
+ * these four includes an atmosphere stays whole across a cutaway and seals
+ * the notch shut.
+ */
+function glowMaterial(T, spec = {}) {
+    return new T.ShaderMaterial({
+        uniforms: {
+            uColor: { value: new T.Color(spec.color ?? '#6fb3ff') },
+            uIntensity: { value: spec.intensity ?? 1 },
+            uPower: { value: spec.power ?? 3 },
+            uBias: { value: spec.bias ?? 0 },
+        },
+        vertexShader: `
+            #include <clipping_planes_pars_vertex>
+            varying vec3 vNormalV;
+            varying vec3 vViewV;
+            void main() {
+                vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                vNormalV = normalize(normalMatrix * normal);
+                vViewV = normalize(-mv.xyz);
+                gl_Position = projectionMatrix * mv;
+                #include <clipping_planes_vertex>
+            }`,
+        fragmentShader: `
+            #include <clipping_planes_pars_fragment>
+            uniform vec3 uColor;
+            uniform float uIntensity;
+            uniform float uPower;
+            uniform float uBias;
+            varying vec3 vNormalV;
+            varying vec3 vViewV;
+            void main() {
+                #include <clipping_planes_fragment>
+                // abs(), because this is drawn on back faces and their
+                // normals point away: without it the whole shell is dark
+                // and the glow appears only as a ring of z-fighting.
+                float facing = abs(dot(normalize(vNormalV), normalize(vViewV)));
+                float rim = uBias + (1.0 - uBias) * pow(1.0 - facing, uPower);
+                gl_FragColor = vec4(uColor * uIntensity * rim, rim);
+            }`,
+        transparent: true,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+        clipping: true,
+        side: spec.side === 'front' ? T.FrontSide
+            : spec.side === 'double' ? T.DoubleSide : T.BackSide,
+    });
+}
+
+function makeMaterial(T, spec = {}, blending = null, textures = null, clipPlanes = null) {
+    if (spec?.glow) return glowMaterial(T, spec);
     const { color, emissive, blending: _ignore, basic, text, physical, ...rest } = spec;
     for (const prop of COLOR_PROPS) {
         if (typeof rest[prop] === 'string') rest[prop] = new T.Color(rest[prop]);
     }
+    for (const prop of VECTOR2_PROPS) {
+        const v = rest[prop];
+        if (Array.isArray(v)) rest[prop] = new T.Vector2(v[0] ?? 1, v[1] ?? v[0] ?? 1);
+        else if (typeof v === 'number') rest[prop] = new T.Vector2(v, v);
+    }
+    /**
+     * A texture slot named as a string becomes the texture it names.
+     *
+     * Without this the string itself lands in `material.map`, THREE asks it
+     * for `.isTexture`, gets undefined, and renders the surface untextured
+     * with nothing logged anywhere -- the same silent-wrong-type failure
+     * `COLOR_PROPS` exists to prevent one line above. The compiler warns
+     * about an undeclared name; this drops it rather than passing a string
+     * through, so a mistyped map costs a flat surface and not a broken one.
+     */
+    for (const slot of TEXTURE_SLOT_NAMES) {
+        const ref = rest[slot];
+        if (typeof ref !== 'string') continue;
+        const found = textures?.get(ref);
+        if (found) rest[slot] = found;
+        else delete rest[slot];
+    }
+    /**
+     * Per-material clipping: `clip: ["sectionX", "sectionZ"]`.
+     *
+     * Global planes cut everything, which is right for a sectioned view and
+     * wrong whenever the subject is sectioned and the set is not.
+     *
+     * `clipIntersection` is the parameter that decides what a pair of planes
+     * MEANS, and the default is the opposite of what a cutaway wants. False
+     * (the default) clips the UNION of the two half-spaces, which takes away
+     * three quarters of a sphere. True clips only their INTERSECTION, which
+     * takes away the quarter-wedge -- the classic cutaway. One boolean, and
+     * it is the whole difference between a notch and a quarter left standing.
+     */
+    if (Array.isArray(rest.clip)) {
+        const planes = rest.clip.map((name) => clipPlanes?.get(name)).filter(Boolean);
+        delete rest.clip;
+        if (planes.length) {
+            rest.clippingPlanes = planes;
+            rest.clipIntersection = spec.clipIntersection === true;
+        }
+    } else {
+        delete rest.clip;
+    }
+    delete rest.clipIntersection;
+    delete rest.side;
     if (text) {
         // Unlit, because a slide is a light source in the room, not a surface
         // being lit by one -- a lit screen picks up the key light's gradient
@@ -777,9 +1051,16 @@ export function buildScene3D(T, compiled, {
      * `mergeGeometries`.
      */
     models = null, cloneModel = null, environment = null,
+    /**
+     * Built textures, keyed by the id the film declared. Built by the page
+     * (via `buildTextures`) for the same reason models are: a `src` has to
+     * be fetched, and this function is synchronous.
+     */
+    textures = null,
 } = {}) {
     const { scene: recipe, meta, emitters, cameraId, lookId } = compiled;
     const sims = [];
+    const clipPlanes = [];
     const root = new T.Scene();
     root.background = new T.Color(meta.background);
     if (environment) {
@@ -803,6 +1084,32 @@ export function buildScene3D(T, compiled, {
     registry.set(cameraId, camera);
     registry.set(lookId, lookTarget);
 
+    /**
+     * Clip planes FIRST, before any material exists.
+     *
+     * A material that names a plane has to be handed the plane object itself
+     * -- THREE holds the reference and reads `constant` every frame, which is
+     * what makes an animated cut work at all. So the planes cannot be created
+     * during the walk that also creates the materials: node order in a scene
+     * recipe is parent-before-child, not plane-before-user, and a shell
+     * declared before its plane would silently get no clipping.
+     */
+    const clipByName = new Map();
+    recipe.walk((node) => {
+        if (node.kind !== 'clipPlane') return;
+        const p = node.props ?? {};
+        const holder = new THREE_OBJECT(T);
+        holder.visible = false;
+        holder.name = node.id;
+        holder.position.set(p.at?.[0] ?? 0, 0, 0);
+        const plane = new T.Plane(new T.Vector3(...(p.normal ?? [1, 0, 0])),
+                                 p.at?.[0] ?? 0);
+        clipPlanes.push({ plane, holder, shadows: p.shadows !== false });
+        clipByName.set(node.id.replace(/^__clip:/, ''), plane);
+        root.add(holder);
+        registry.set(node.id, holder);
+    });
+
     // Walk the recipe in parent-before-child order so a parent object always
     // exists to attach to. `Scene.walk` is depth-first from the root, which
     // guarantees exactly that.
@@ -813,13 +1120,19 @@ export function buildScene3D(T, compiled, {
         if (node.kind === 'mesh') {
             const build = GEOMETRY[p.geometry?.kind];
             if (!build) return;
-            object = new T.Mesh(build(T, p.geometry), makeMaterial(T, p.material, p.blending));
-            object.castShadow = true;
-            object.receiveShadow = true;
+            object = new T.Mesh(build(T, p.geometry),
+                                makeMaterial(T, p.material, p.blending, textures, clipByName));
+            // A cut face and a sky shell are both single-sided surfaces seen
+            // from the inside at some point in a move, so a mesh may ask for
+            // which sides to draw rather than always getting the front.
+            if (p.material?.side === 'double') object.material.side = T.DoubleSide;
+            else if (p.material?.side === 'back') object.material.side = T.BackSide;
+            object.castShadow = p.castShadow !== false;
+            object.receiveShadow = p.receiveShadow !== false;
         } else if (node.kind === 'humanoid') {
             if (!mergeGeometries) return;
             const built = buildHumanoid(T, mergeGeometries, node,
-                                        (m) => makeMaterial(T, m, null));
+                                        (m) => makeMaterial(T, m, null, textures, clipByName));
             object = built.group;
             // The face is addressed as `<character>/face`, so a film writes
             // `morph.mouthSmileLeft` onto it exactly as it writes any channel.
@@ -860,7 +1173,8 @@ export function buildScene3D(T, compiled, {
                 child.receiveShadow = p.receiveShadow !== false;
             });
         } else if (node.kind === 'cloth') {
-            const sim = buildCloth(T, node, (m) => makeMaterial(T, m, null), (id) => registry.get(id));
+            const sim = buildCloth(T, node, (m) => makeMaterial(T, m, null, textures, clipByName),
+                                   (id) => registry.get(id));
             sims.push(sim);
             object = sim.mesh;
         } else if (node.kind === 'fluid') {
@@ -887,6 +1201,11 @@ export function buildScene3D(T, compiled, {
         if (p.at) object.position.set(p.at[0], p.at[1], p.at[2]);
         if (p.rot) object.rotation.set(p.rot[0], p.rot[1], p.rot[2]);
         if (p.scale) object.scale.set(p.scale[0], p.scale[1], p.scale[2]);
+        // An authored `visible: false`. The compiler has accepted `set
+        // visible` as a channel since Phase 14 and nothing ever applied the
+        // AUTHORED value, so a part that is meant to appear part-way through
+        // a film was on screen from frame one.
+        if (node.visible === false) object.visible = false;
         object.name = node.id;
         const parent = node.parentId && node.parentId !== recipe.rootId
             ? registry.get(node.parentId) : null;
@@ -918,7 +1237,7 @@ export function buildScene3D(T, compiled, {
         const parent = (spec.parent && registry.get(spec.parent)) || root;
         const meshes = [];
         for (let i = 0; i < spec.emitter.count; i++) {
-            const mesh = new T.Mesh(geometry, makeMaterial(T, spec.material, spec.blending));
+            const mesh = new T.Mesh(geometry, makeMaterial(T, spec.material, spec.blending, textures, clipByName));
             mesh.visible = false;
             mesh.name = `${spec.id}#${i}`;
             parent.add(mesh);
@@ -946,6 +1265,11 @@ export function buildScene3D(T, compiled, {
         // where a bone ended up -- the camera's aim, a cape's pin, a particle
         // parented to a hand.
         if (solveConstraints) solveConstraints(root);
+        // The plane's animated distance, pushed into the plane the renderer
+        // tests. `constant` is negated against the normal's direction by
+        // THREE's own convention, so writing `at` straight in is what makes
+        // `cut to: 0.9` mean "the plane is 0.9 m along its normal".
+        for (const c of clipPlanes) c.plane.constant = c.holder.position.x;
         for (const sim of sims) sim.step(tSec);
         camera.lookAt(lookTarget.position);
         camera.updateProjectionMatrix();
@@ -977,6 +1301,7 @@ export function buildScene3D(T, compiled, {
 
     const resolve = (id) => registry.get(id);
     return { root, camera, lookTarget, registry, resolve, step, pools, sims,
+             clipPlanes, textures,
              constraints: compiled.constraints ?? [],
              dispose() {
                  root.traverse((o) => { o.geometry?.dispose?.(); o.material?.dispose?.(); });

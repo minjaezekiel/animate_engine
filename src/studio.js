@@ -51,7 +51,17 @@ export class FilmStudio {
                   parallel = null,
                   // A locally-running VoiceStudio, for cloned and designed
                   // voices. Absent by default; see 29-VOICE-STUDIO.md.
-                  voiceStudioUrl = null, voiceStudioOptions = null } = {}) {
+                  voiceStudioUrl = null, voiceStudioOptions = null,
+                  // The RMS every synthesized line is levelled to, on its
+                  // VOICED frames. `normalizeGain` has always defaulted to
+                  // 0.06 (about -24 dBFS), which is deliberate and quiet --
+                  // and far below the ~-14 LUFS everything else in a phone
+                  // feed is mastered to, so a film rendered at the default
+                  // plays noticeably softer than the post above it. Exposed
+                  // rather than changed: the default stays 0.06 so no
+                  // existing film moves.
+                  voiceLevel = 0.06 } = {}) {
+        this.voiceLevel = voiceLevel;
         /**
          * Whether to build a kernel worker pool for photo warps. `null`
          * means "yes in a browser, no in Node"; see `_attachPainters`.
@@ -195,6 +205,7 @@ export class FilmStudio {
             buffers: { ...allBuffers },
             fps: first.meta.fps,
             sampleRate: this.sampleRate,
+            voiceLevel: this.voiceLevel,
             allowVoiceFallback,
             onProgress: (p) => {
                 this.log(`voicing ${p.done}/${p.total}: ${String(p.text ?? '').slice(0, 44)}`);
@@ -235,6 +246,7 @@ export class FilmStudio {
                     buffers: voiced.buffers,
                     fps: first.meta.fps,
                     sampleRate: this.sampleRate,
+                    voiceLevel: this.voiceLevel,
                 });
                 voiced.cues = again.cues;
                 voiced.tracks = again.tracks;
@@ -254,6 +266,10 @@ export class FilmStudio {
                 cues, buffers: voiced.buffers,
                 sampleRate: this.sampleRate,
                 durationSec: first.meta.duration,
+                // The master stage reports its headroom on both paths: a mix
+                // that had to be pulled back is a cue to fix the gains, and
+                // silence about it is how a film ships distorted.
+                onReport: (m) => this.log(m),
             })
             : null;
 

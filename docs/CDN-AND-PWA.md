@@ -26,7 +26,7 @@ Installability needs a secure context: `https://` or `http://localhost`.
 ### Two layout rules the platform imposes
 
 Both of these were wrong until a test asserted them, and neither reports an
-error when it is — see [DEFECTS.md](DEFECTS.md#defects-in-the-new-code).
+error when it is — see [pending/DEFECTS.md](pending/DEFECTS.md#defects-in-the-new-code).
 
 - **`sw.js` must live at the repository root.** A service worker's default
   scope is its own directory, and a static host sends no
@@ -140,7 +140,7 @@ Phase 1 introduces `scripts/build.mjs` (esbuild) emitting
 `dist/animate-engine.{esm.js,umd.js,umd.min.js}` and fixes `package.json` to
 point `main`/`module`/`exports`/`unpkg`/`jsdelivr` at `dist/`, so a CDN import
 becomes one line. Until then, `package.json` still points at the legacy
-single-file build — see [DEFECTS.md](DEFECTS.md), "CDN users get a stale
+single-file build — see [pending/DEFECTS.md](pending/DEFECTS.md), "CDN users get a stale
 build".
 
 ## The import map is required for TTS

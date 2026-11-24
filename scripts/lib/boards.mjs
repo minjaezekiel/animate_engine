@@ -114,8 +114,22 @@ export function strata(id, layers, { x = 90, w = 900, top = 560, z = 0 } = {}) {
  * trap sites. Each row is its own group of ids so the narration can reveal
  * them one at a time, which is the whole reason a board exists.
  */
+/**
+ * The card's own colours are OPTIONS, not constants.
+ *
+ * They were constants -- `#131c2b` on `#223148` -- and correct for the four
+ * series that came before, all of which stage on near-black. The forex series
+ * stages on sage PAPER, and the same card rendered there as a dark navy slab
+ * carrying near-black title text: invisible, and invisible in a way nothing
+ * reports, because a colour is never out of bounds. `validateFilm`,
+ * `compileFilm` and `analysePacing` all passed it; one grabbed frame did not.
+ *
+ * Defaulted to the old values so none of the twenty-nine existing films move.
+ */
 export function cardRows(id, rows, {
     top = 560, h = 150, gap = 18, x = 60, w = 960, z = 10,
+    bg = '#131c2b', border = '#223148', borderWidth = 2,
+    titleFill = 'ink', bodyFill = 'dim',
 } = {}) {
     const parts = [];
     const ids = [];
@@ -123,15 +137,16 @@ export function cardRows(id, rows, {
         const y = top + i * (h + gap);
         const rid = `${id}${i}`;
         parts.push(
-            rectPart(`${rid}_bg`, w, h, { at: [x + w / 2, y + h / 2], fill: '#131c2b',
-                                          stroke: '#223148', strokeWidth: 2, alpha: 0, z }),
+            rectPart(`${rid}_bg`, w, h, { at: [x + w / 2, y + h / 2], fill: bg,
+                                          stroke: border, strokeWidth: borderWidth,
+                                          alpha: 0, z }),
             rectPart(`${rid}_chip`, 10, h - 28, { at: [x + 24, y + h / 2], fill: chip,
                                                   alpha: 0, z: z + 1 }),
             textPart(`${rid}_t`, title, { at: [x + 54, y + 48], font: `800 34px ${FONT}`,
-                                          fill: 'ink', align: 'left', alpha: 0, z: z + 2,
+                                          fill: titleFill, align: 'left', alpha: 0, z: z + 2,
                                           maxWidth: w - 90 }),
             textPart(`${rid}_b`, body, { at: [x + 54, y + 100], font: `600 27px ${FONT}`,
-                                         fill: 'dim', align: 'left', alpha: 0, z: z + 2,
+                                         fill: bodyFill, align: 'left', alpha: 0, z: z + 2,
                                          maxWidth: w - 90, lineHeight: 34 }),
         );
         ids.push([`${rid}_bg`, `${rid}_chip`, `${rid}_t`, `${rid}_b`]);
@@ -140,12 +155,25 @@ export function cardRows(id, rows, {
              bottom: top + rows.length * (h + gap) };
 }
 
-/** A big number with a caption under it, for a statistic that has to land. */
+/**
+ * A big number with a caption under it, for a statistic that has to land.
+ *
+ * **The caption is pushed down by one line-height per EXTRA line.** A text
+ * part anchors on its LAST line, not its first, so a two-line caption placed
+ * at `size * 0.62` below the number puts its first line back up through the
+ * number's descenders -- which is exactly what "a fifty-period average needs
+ * fifty periods" did to the `50` in the indicators part. Single-line captions
+ * are unaffected (`lines - 1` is zero), so nothing authored before this moves.
+ */
 export const statParts = (id, value, caption, {
-    at = [540, 900], fill = 'gold', size = 96, z = 50,
-} = {}) => [
-    textPart(`${id}_v`, value, { at, font: `800 ${size}px ${FONT}`, fill, alpha: 0, z }),
-    textPart(`${id}_c`, caption, { at: [at[0], at[1] + size * 0.62],
-                                   font: `700 30px ${FONT}`, fill: 'dim', alpha: 0, z,
-                                   maxWidth: SAFE.x1 - SAFE.x0 }),
-];
+    at = [540, 900], fill = 'gold', size = 96, z = 50, lineHeight = 38,
+} = {}) => {
+    const lines = String(caption ?? '').split('\n').length;
+    return [
+        textPart(`${id}_v`, value, { at, font: `800 ${size}px ${FONT}`, fill, alpha: 0, z }),
+        textPart(`${id}_c`, caption, {
+            at: [at[0], at[1] + size * 0.62 + (lines - 1) * lineHeight],
+            font: `700 30px ${FONT}`, fill: 'dim', alpha: 0, z,
+            lineHeight, maxWidth: SAFE.x1 - SAFE.x0 }),
+    ];
+};

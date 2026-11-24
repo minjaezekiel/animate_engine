@@ -54,7 +54,7 @@ Both editors in this repository did that, and it is the wrong shape:
 
 - **Cost is the document, not the edit.** Dragging a joint for two seconds
   at 60 Hz is 120 edits; against a 500 KB film that is 60 MB of garbage and
-  120 full serialisations for 120 changed numbers. `DEFECTS.md` already
+  120 full serialisations for 120 changed numbers. `pending/DEFECTS.md` already
   lists the legacy editor's version — `markChanged` → `serializeProject()`
   → `localStorage.setItem` on *every mutation*.
 - **A snapshot cannot say what it is undoing.** No label, so no "Undo move

@@ -415,5 +415,16 @@ repaint();
 drawRef();
 status(`ready · ${kernels.backend ?? 'kernels'} · draw with a stylus or mouse`);
 </script>
+<style>
+/* A consistent way back to the map, on every surface. Added because five
+   programs with no link between them is the navigation problem, and a link
+   is the whole fix. */
+.to-workspace{position:fixed;left:8px;bottom:8px;z-index:9999;
+  font:600 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  color:#aab3c0;background:rgba(18,22,28,.88);border:1px solid #2d3542;
+  border-radius:99px;padding:6px 11px;text-decoration:none;backdrop-filter:blur(6px)}
+.to-workspace:hover,.to-workspace:focus-visible{color:#fff;border-color:#4fc3f7;outline:none}
+</style>
+<a href="workspace.html" class="to-workspace" title="All surfaces and commands">← Workspace</a>
 </body>
 </html>

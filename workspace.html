@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jireX Workspace</title>
+<meta name="description" content="Every surface and command in the jireX animation engine, grouped by what you are trying to do.">
+<!--
+    The front door.
+
+    # The problem
+
+    This repo has five UI surfaces -- index.html, film.html, studio.html,
+    draw.html and film3d.html -- and until now nothing connected them. A
+    person arriving had to read the README to find out that "the 3D editor"
+    and "the film studio" are different programs, that one of them is the
+    legacy r128 editor, and that the thing which actually renders a finished
+    film is a terminal command in neither.
+
+    Measured with `scripts/shot-ui.mjs`, which was written for this and did
+    not exist before. The 3D editor has 120 controls in its document and
+    shows 17 at rest, so it is NOT a wall of buttons -- a first guess that
+    the tool itself corrected. The real problems it found:
+
+      * the six rail items were `div`s with click handlers, so the entire
+        tool rail was unreachable by keyboard;
+      * their names were `:hover` tooltips at `opacity: 0`, so six unlabelled
+        glyphs were the only navigation there was;
+      * EXPORT was split across two panels under three headings, and which
+        one you wanted depended on knowing that "Export as Video" meant the
+        recording and "Export Animation" meant the data;
+      * and nothing connected the five surfaces to each other at all.
+
+    The first three are fixed in `index.html` and `styles.css`. This page is
+    the fourth.
+
+    # The shape
+
+    Grouped by TASK, in the order the work actually happens: make, check,
+    render, voice. Not by subsystem, and not by which file something lives
+    in, because neither of those is a thing anyone wants.
+
+    Every card says what it is FOR in one line, because "Studio" and "Film
+    Studio" are indistinguishable names for different programs and a label
+    cannot fix that -- only a sentence can.
+
+    Commands are shown next to the surfaces they belong with rather than in a
+    separate reference, because the honest fact about this engine is that
+    half of it is a terminal and hiding that helps nobody.
+-->
+<style>
+:root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --surface: #f6f7f9;
+    --surface-2: #eceef2;
+    --line: #dcdfe6;
+    --ink: #14181f;
+    --ink-2: #4a5362;
+    --ink-3: #6b7484;
+    --accent: #1f6feb;
+    --accent-ink: #ffffff;
+    --warn: #9a5b00;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+    --radius: 10px;
+}
+:root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+        --bg: #0c0e13;
+        --surface: #141820;
+        --surface-2: #1c222c;
+        --line: #272e3a;
+        --ink: #e8ecf2;
+        --ink-2: #a6b0c0;
+        --ink-3: #78828f;
+        --accent: #58a6ff;
+        --accent-ink: #0c0e13;
+        --warn: #e3b341;
+    }
+}
+:root[data-theme="dark"] {
+    --bg: #0c0e13;
+    --surface: #141820;
+    --surface-2: #1c222c;
+    --line: #272e3a;
+    --ink: #e8ecf2;
+    --ink-2: #a6b0c0;
+    --ink-3: #78828f;
+    --accent: #58a6ff;
+    --accent-ink: #0c0e13;
+    --warn: #e3b341;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 var(--sans);
+    padding: 0 16px 80px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+header { padding: 56px 0 10px; }
+h1 {
+    font-size: clamp(28px, 4.4vw, 40px);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    margin: 0 0 10px;
+    font-weight: 680;
+}
+.lede { color: var(--ink-2); max-width: 62ch; margin: 0 0 6px; font-size: 17px; }
+.meta { color: var(--ink-3); font-size: 13.5px; font-family: var(--mono); margin-top: 14px; }
+
+nav.jump {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 12px 0; margin: 20px 0 8px;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+}
+nav.jump a {
+    font-size: 13.5px; font-weight: 560; text-decoration: none;
+    color: var(--ink-2); padding: 5px 11px; border-radius: 99px;
+    border: 1px solid transparent;
+}
+nav.jump a:hover, nav.jump a:focus-visible {
+    color: var(--ink); background: var(--surface-2); border-color: var(--line);
+}
+
+section { margin-top: 44px; scroll-margin-top: 64px; }
+h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-3); font-weight: 650; margin: 0 0 4px;
+}
+.section-note { color: var(--ink-2); margin: 0 0 18px; max-width: 68ch; font-size: 15px; }
+
+.grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+.card {
+    display: flex; flex-direction: column; gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-decoration: none; color: inherit;
+}
+a.card:hover, a.card:focus-visible {
+    border-color: var(--accent);
+    background: var(--surface-2);
+    outline: none;
+}
+.card h3 {
+    margin: 0; font-size: 16.5px; font-weight: 640; letter-spacing: -0.01em;
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+}
+.card p { margin: 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.5; }
+.tag {
+    font: 600 10.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 7px; border-radius: 5px;
+    background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line);
+}
+.tag.legacy { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+.tag.new { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+
+code, kbd {
+    font-family: var(--mono); font-size: 13px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 5px; padding: 1.5px 5px;
+}
+.cmd {
+    display: block; font-family: var(--mono); font-size: 13px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 8px 10px; color: var(--ink-2);
+    overflow-x: auto; white-space: pre;
+}
+.cmd b { color: var(--ink); font-weight: 600; }
+
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+caption { text-align: left; color: var(--ink-3); font-size: 13.5px; padding-bottom: 8px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); font-weight: 650; }
+td.mono { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+
+.toggle {
+    position: fixed; right: 16px; bottom: 16px; z-index: 20;
+    font: 600 12.5px var(--sans); color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 99px; padding: 9px 15px; cursor: pointer;
+}
+.toggle:hover { color: var(--ink); border-color: var(--accent); }
+
+footer { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line);
+         color: var(--ink-3); font-size: 14px; }
+footer a { color: var(--accent); }
+
+@media (max-width: 560px) {
+    header { padding-top: 34px; }
+    .card { padding: 15px; }
+}
+</style>
+
+<body>
+<div class="wrap">
+
+<header>
+    <h1>jireX workspace</h1>
+    <p class="lede">
+        A browser animation engine: 2D films from a screenplay, 3D films from a
+        declarative script, drawn animation, voices, and deterministic rendering
+        to MP4.
+    </p>
+    <p class="lede">
+        Everything below is grouped by what you are trying to do, not by which
+        file it lives in.
+    </p>
+    <p class="meta">npm install &nbsp;·&nbsp; npm run serve &nbsp;·&nbsp; open http://localhost:8080/workspace.html</p>
+</header>
+
+<nav class="jump" aria-label="Sections">
+    <a href="#make">Make</a>
+    <a href="#check">Check</a>
+    <a href="#render">Render</a>
+    <a href="#voices">Voices</a>
+    <a href="#build">Build a film</a>
+    <a href="#limits">Known limits</a>
+</nav>
+
+<section id="make">
+    <h2>Make</h2>
+    <p class="section-note">
+        Four editors. They are separate programs with similar names, so each one
+        says here what it is for — pick by the sentence, not the title.
+    </p>
+    <div class="grid">
+        <a class="card" href="film.html">
+            <h3>Film Studio <span class="tag">2D</span></h3>
+            <p>
+                Author a film as a screenplay or a <code>film.json</code>, cast voices,
+                preview it, and export MP4 or WebM. The surface most finished work in
+                this repo came out of.
+            </p>
+        </a>
+        <a class="card" href="studio.html">
+            <h3>Pose Editor <span class="tag">2D</span></h3>
+            <p>
+                Drag a character's joints directly and scrub the timeline. For getting a
+                pose right when typing degrees is not working.
+            </p>
+        </a>
+        <a class="card" href="draw.html">
+            <h3>Draw <span class="tag">2D</span></h3>
+            <p>
+                Freehand and trace, on an exposure sheet, with time-gated smears and boil.
+                For animation that should look drawn rather than tweened.
+            </p>
+        </a>
+        <a class="card" href="index.html">
+            <h3>3D Editor <span class="tag legacy">legacy</span></h3>
+            <p>
+                Primitives, lights, PBR materials, skeletons, keyframes and physics, in a
+                single-file Three.js editor. Still the only interactive 3D surface — a 3D
+                <em>film</em> is authored as a document and rendered headless.
+            </p>
+        </a>
+    </div>
+</section>
+
+<section id="check">
+    <h2>Check</h2>
+    <p class="section-note">
+        Run these before spending a render. All of them are seconds, none of them
+        encodes anything, and between them they catch most of what a finished
+        film would have shown you ten minutes later.
+    </p>
+    <div class="scroll">
+    <table>
+        <caption>Each answers a different question, and only the last one costs real tokens.</caption>
+        <thead><tr><th>Command</th><th>Answers</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">npm run check:earth</td>
+                <td>Compiler diagnostics, framing measured by projecting each subject's
+                    bounds through the camera, exposure from real pixels at 160×90, and
+                    the overlay checked over its own draw list.</td></tr>
+            <tr><td class="mono">DIGEST=1 node scripts/produce3d.mjs</td>
+                <td><b>What is on screen, as numbers.</b> Per subject: screen box, frame
+                    coverage, mean luma, dominant hue — plus every string of overlay text.
+                    About 400 tokens for a whole film against roughly 2,000 for one
+                    screenshot.</td></tr>
+            <tr><td class="mono">node scripts/check-film.mjs</td>
+                <td>The 2D equivalent: compile, validate, stage and budget, no render.</td></tr>
+            <tr><td class="mono">npm run tex earth:albedo</td>
+                <td>Paints a procedural texture to a PNG in Node, with no browser, so a
+                    seam or a clipped ramp can be <em>seen</em> in under a second.</td></tr>
+            <tr><td class="mono">npm run pacing</td>
+                <td>Speech as a fraction of runtime, against measured references.</td></tr>
+            <tr><td class="mono">GRAB=12,40.3 node scripts/produce3d.mjs</td>
+                <td>Rendered frames as PNGs. The only check that catches a model not
+                    looking like the thing it is meant to be — and the one to reach for
+                    last.</td></tr>
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<section id="render">
+    <h2>Render</h2>
+    <p class="section-note">
+        Rendering is a terminal job on both paths: it needs a real browser for
+        WebGL, WebCodecs and the TTS worker, and it takes a lock so two of them
+        cannot fight over memory.
+    </p>
+    <div class="grid">
+        <div class="card">
+            <h3>2D film</h3>
+            <span class="cmd">FILM=demo/film.json OUT=out/film.mp4 \
+<b>npm run produce</b></span>
+            <p>H.264/AAC through WebCodecs, faster than real time. <code>FORMAT=webm</code>
+               for the zero-dependency paced path.</p>
+        </div>
+        <div class="card">
+            <h3>3D film <span class="tag new">mp4</span></h3>
+            <span class="cmd">FILM=films/earth3d.json OUT=out/earth.mp4 \
+<b>npm run produce:3d</b></span>
+            <p>Same encoder, same container, same chunked readback. Textures, cutaways,
+               subtitles, callouts and the post chain all come from the one document.</p>
+        </div>
+    </div>
+</section>
+
+<section id="voices">
+    <h2>Voices</h2>
+    <p class="section-note">
+        Four engines behind one gateway. A film casts by <em>role</em>
+        (<code>narrator-m-en</code>), never by model id, so the same document
+        renders offline on Piper and on a cloned voice when one is configured.
+        <code>VOICE_BACKEND=&lt;name&gt;</code> promotes one without removing the
+        safety net.
+    </p>
+    <div class="scroll">
+    <table>
+        <caption><code>npm run voices</code> prints this live, and <code>-- --probe</code> asks each one what it has.</caption>
+        <thead><tr><th>Engine</th><th>Spec</th><th>Runs</th><th>Clones</th><th>Licence</th></tr></thead>
+        <tbody>
+            <tr><td>VoiceStudio</td><td class="mono">voicestudio:</td><td>a local app you start</td><td>yes</td><td>its own</td></tr>
+            <tr><td>OpenVoice V2</td><td class="mono">openvoice:</td><td>an HTTP server you start</td><td>yes</td><td>MIT</td></tr>
+            <tr><td>Kokoro 82M</td><td class="mono">kokoro:</td><td>browser, ONNX</td><td>no</td><td>Apache-2.0</td></tr>
+            <tr><td>Piper</td><td class="mono">tts:</td><td>browser, ONNX, vendored</td><td>no</td><td>MIT</td></tr>
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<section id="build">
+    <h2>Build a film</h2>
+    <p class="section-note">
+        The 3D path end to end, as it actually runs. Each step is cheap until
+        the last one.
+    </p>
+    <span class="cmd"><b>npm run make:earth-audio</b>   # synthesize the score and effects
+<b>npm run make:earth</b>         # write films/earth3d.json from the generator
+<b>npm run check:earth</b>        # compile, framing, exposure, overlay — seconds
+DIGEST=1 FILM=films/earth3d.json node scripts/produce3d.mjs
+                           # what is on screen, as numbers
+GRAB=3,22,36 FILM=films/earth3d.json node scripts/produce3d.mjs
+                           # look at three frames
+<b>npm run render:earth</b>       # 1920×1080 H.264/AAC
+node scripts/verify-renders.mjs out/earth/inside-the-earth.mp4</span>
+</section>
+
+<section id="limits">
+    <h2>Known limits</h2>
+    <p class="section-note">
+        The honest list for the 3D path, kept here rather than only in the docs
+        because a limit you find out about after a render is worse than one you
+        read first. Full detail in <code>docs/completed_phases/34-EARTH-3D.md</code>.
+    </p>
+    <div class="scroll">
+    <table>
+        <thead><tr><th>Limit</th><th>What it costs</th></tr></thead>
+        <tbody>
+            <tr><td>No modelling tool</td><td>Every 3D form is typed as numbers, rendered, and looked at. There is no viewport, no vertex editing, no sculpting.</td></tr>
+            <tr><td>Post is not keyframeable</td><td>One focal plane for the whole film. No rack focus, no exposure ramp, no bloom that builds.</td></tr>
+            <tr><td>No day/night mask</td><td>An emissive map glows on the lit side too, so city lights have to be dialled down until they are invisible by day.</td></tr>
+            <tr><td>Particles cannot collide</td><td>Inherent to solving them in closed form, which is also what makes them seekable.</td></tr>
+            <tr><td>No per-object motion blur</td><td>Particles stretch by velocity; meshes do not.</td></tr>
+            <tr><td>No action dependencies</td><td>Nothing can say "start when that lands". Both are timed against the same clock and nothing checks they agree.</td></tr>
+            <tr><td>Clothing is an inflated body</td><td>No drape, no folds, no collar. The cloth solver drapes a cape, not a sleeve.</td></tr>
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<footer>
+    <p>
+        Docs: <code>docs/00-OVERVIEW.md</code> &middot; status register:
+        <code>docs/STATUS.md</code> &middot; 3D findings:
+        <code>docs/completed_phases/34-EARTH-3D.md</code>
+    </p>
+    <p>
+        What is still open, in order: <code>docs/pending/00-INDEX.md</code>.
+        Finished phases: <code>docs/completed_phases/</code>.
+    </p>
+</footer>
+
+</div>
+
+<button class="toggle" id="themeToggle" type="button" aria-live="polite">Theme: system</button>
+
+<script>
+/**
+ * Theme, remembered per viewer.
+ *
+ * `localStorage` is per-origin and per-browser and can throw outright in a
+ * private window, so every access is guarded and the page renders correctly
+ * when it comes back empty. A remembered theme is a convenience; nothing here
+ * depends on it.
+ */
+(function () {
+    var btn = document.getElementById('themeToggle');
+    var order = ['system', 'light', 'dark'];
+    var mode = 'system';
+    try { mode = localStorage.getItem('jirex.theme') || 'system'; } catch (e) { /* fine */ }
+
+    function apply() {
+        if (mode === 'system') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', mode);
+        btn.textContent = 'Theme: ' + mode;
+    }
+    btn.addEventListener('click', function () {
+        mode = order[(order.indexOf(mode) + 1) % order.length];
+        try { localStorage.setItem('jirex.theme', mode); } catch (e) { /* fine */ }
+        apply();
+    });
+    apply();
+}());
+</script>
+</body>
+</html>

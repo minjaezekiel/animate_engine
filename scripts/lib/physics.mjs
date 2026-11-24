@@ -18,7 +18,7 @@
  * 2. **A ball has no arms, so acting is brows, squash and spin.** The poses
  *    here key brow rotation, brow height and the ball's own `sx`/`sy`. There
  *    is no `armR` to swing and therefore none of the forearm-compounding trap
- *    that `30-STRUCTURE-SERIES.md` documents.
+ *    that `../../docs/completed_phases/30-STRUCTURE-SERIES.md` documents.
  *
  * 3. **The pad is tighter.** `27-RETENTION.md` measured our own films at 54%
  *    speech against the references' 73%, and named the cause: slack at the
@@ -52,7 +52,7 @@ export const SHARE = '#GameDev #GamePhysics #Python #IndieDev #LearnToCode';
 /**
  * The pinned banner, top of frame, present for the whole part.
  *
- * Lifted from `anime6` by way of `30-STRUCTURE-SERIES.md`: a caption pinned
+ * Lifted from `anime6` by way of `../../docs/completed_phases/30-STRUCTURE-SERIES.md`: a caption pinned
  * from frame one so a viewer arriving three seconds in -- which on these
  * platforms is most of them -- knows what they are watching.
  */
@@ -152,7 +152,7 @@ export const VOICE_IDS = {
  *
  * Three genuinely different MODELS, and deliberately three different
  * accents -- American, RP, Scottish. English has ten presets in the
- * catalogue, so unlike the Swahili half of `30-STRUCTURE-SERIES.md` nothing
+ * catalogue, so unlike the Swahili half of `../../docs/completed_phases/30-STRUCTURE-SERIES.md` nothing
  * here is faked out of rate and pitch: the only delivery number below is
  * Bolt's rate, and that is characterisation rather than a workaround.
  *
@@ -172,7 +172,7 @@ const PIPER = {
  *
  * Bolt is the only one that moves. 1.06 makes his lines ~6% shorter than a
  * flat estimate assumes, and ignoring it OVER-sizes every shot he is in --
- * the mirror of the Mzee Rajabu defect in `30-STRUCTURE-SERIES.md`, where a
+ * the mirror of the Mzee Rajabu defect in `../../docs/completed_phases/30-STRUCTURE-SERIES.md`, where a
  * slow speaker's shots came out short. Same cause, opposite sign.
  */
 export const DELIVERY = {

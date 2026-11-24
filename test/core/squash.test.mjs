@@ -12,7 +12,7 @@ import { trackValueAt } from '../../src/core/anim/Track.js';
  * All three came out of building the "Game Physics" series, whose cast is
  * billiard balls rather than humanoid rigs -- a ball has no arms, so all of
  * its acting is squash, spin and brow position, and none of the three had
- * engine support. See `docs/31-GAME-PHYSICS-SERIES.md`.
+ * engine support. See `../../docs/completed_phases/../../docs/completed_phases/31-GAME-PHYSICS-SERIES.md`.
  */
 
 const at = (compiled, target, path, t) => {

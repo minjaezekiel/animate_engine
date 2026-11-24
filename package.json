@@ -22,7 +22,9 @@
     "docs",
     "README.md",
     "LICENSE",
-    "rust"
+    "rust",
+    "workspace.html",
+    "film3d.html"
   ],
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
@@ -86,7 +88,24 @@
     "voice-studio": "node scripts/voice-studio.mjs",
     "make:structure": "node scripts/make-structure.mjs",
     "make:physics": "node scripts/make-physics.mjs",
-    "make:sfx": "node scripts/make-sfx.mjs"
+    "make:sfx": "node scripts/make-sfx.mjs",
+    "make:forex": "node scripts/make-forex.mjs",
+    "render:forex": "bash scripts/render-forex.sh",
+    "measure:audio": "node scripts/measure-audio.mjs",
+    "extract:audio": "node scripts/extract-audio.mjs",
+    "verify:renders": "node scripts/verify-renders.mjs",
+    "make:earth": "node scripts/make-earth.mjs",
+    "make:earth-audio": "node scripts/make-earth-audio.mjs",
+    "check:earth": "CHECK=1 FILM=films/earth3d.json node scripts/produce3d.mjs",
+    "render:earth": "FILM=films/earth3d.json OUT=out/earth/inside-the-earth.mp4 WIDTH=1920 HEIGHT=1080 FORMAT=mp4 node scripts/produce3d.mjs",
+    "tex": "node scripts/preview-texture.mjs",
+    "voices": "node scripts/list-voices.mjs",
+    "test:textures": "node --test test/core/textures.test.mjs",
+    "test:overlay": "node --test test/core/overlay.test.mjs",
+    "test:clip": "node --test test/core/clip3d.test.mjs",
+    "test:digest": "node --test test/core/digest.test.mjs",
+    "digest:earth": "DIGEST=1 FILM=films/earth3d.json node scripts/produce3d.mjs",
+    "shot:ui": "node scripts/shot-ui.mjs"
   },
   "keywords": [
     "animation",

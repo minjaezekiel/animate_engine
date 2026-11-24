@@ -91,7 +91,7 @@ falls through to the bundled Piper voices. **A film cast against VoiceStudio
 still renders on a machine that has never heard of it** — asserted by a test,
 not assumed.
 
-That matters because of what `28-MADINI-YA-VITO.md` records: the Swahili
+That matters because of what `completed_phases/28-MADINI-YA-VITO.md` records: the Swahili
 renders were made self-contained on purpose, after a 63 MB network fetch
 crashed one outright. Adding a dependency on a running desktop application
 would undo that, so it is added as an option and not a requirement.

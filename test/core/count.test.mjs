@@ -12,7 +12,7 @@ import { trackValueAt } from '../../src/core/anim/Track.js';
  * number: a distance that falls to zero as two circles touch, an impulse
  * that resolves to a figure, a restitution between nought and one. A static
  * label names a quantity; a readout that moves is what makes the quantity
- * mean something. See `docs/31-GAME-PHYSICS-SERIES.md`.
+ * mean something. See `../../docs/completed_phases/../../docs/completed_phases/31-GAME-PHYSICS-SERIES.md`.
  *
  * The two properties worth testing are not "does it set text" but:
  *

@@ -387,7 +387,7 @@ test('motion is measured on the cast, where the camera cannot flatter it', async
 });
 
 test('a cycle layers over a pose instead of being silenced by it', () => {
-    // This was root cause 1 in docs/10-ACTION-GAPS.md: a pose compiled to
+    // This was root cause 1 in ../../docs/pending/../../docs/pending/10-ACTION-GAPS.md: a pose compiled to
     // absolute keys, a cycle was a clip instance on the same channel, the pose
     // won -- and because a track reads as its first key at every earlier time
     // and its last at every later one, ONE pose silenced the cycle for the

@@ -2,7 +2,7 @@
 
 Live state is in [STATUS.md](STATUS.md); this file is the plan and the
 reasoning. Defect dispositions referenced here are in
-[DEFECTS.md](DEFECTS.md).
+[pending/DEFECTS.md](pending/DEFECTS.md).
 
 ## The shape of the plan
 

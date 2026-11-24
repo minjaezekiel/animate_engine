@@ -28,43 +28,43 @@
         </div>
         
         <!-- Navigation Sidebar -->
-        <div class="nav-sidebar">
-            <div class="nav-item active" data-panel="objects">
+        <div class="nav-sidebar" role="tablist" aria-label="Tool panels">
+            <button type="button" class="nav-item active" data-panel="objects" role="tab" aria-selected="true" aria-controls="objectsPanel">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 2l-5.5 9h11z M12 22l5.5-9h-11z M3.5 9L9 20l5.5-9z M20.5 9L15 20l-5.5-9z"/>
                 </svg>
-                <span class="nav-tooltip">Objects</span>
-            </div>
-            <div class="nav-item" data-panel="edit">
+                <span class="nav-label">Objects</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="edit" role="tab" aria-selected="false" aria-controls="editPanel">
                 <svg viewBox="0 0 24 24">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                 </svg>
-                <span class="nav-tooltip">Edit</span>
-            </div>
-            <div class="nav-item" data-panel="animate">
+                <span class="nav-label">Edit</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="animate" role="tab" aria-selected="false" aria-controls="animatePanel">
                 <svg viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z"/>
                 </svg>
-                <span class="nav-tooltip">Animate</span>
-            </div>
-            <div class="nav-item" data-panel="record">
+                <span class="nav-label">Animate</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="record" role="tab" aria-selected="false" aria-controls="recordPanel">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
                 </svg>
-                <span class="nav-tooltip">Record</span>
-            </div>
-            <div class="nav-item" data-panel="media">
+                <span class="nav-label">Record</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="media" role="tab" aria-selected="false" aria-controls="mediaPanel">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4c.73 0 1.41-.21 2-.55V21h7V3h-7zm2 14h-3v-7.38c-.63-.52-1.43-.83-2.26-.83-1.93 0-3.5 1.57-3.5 3.5s1.57 3.5 3.5 3.5c.83 0 1.63-.31 2.26-.83V17h3v-2z"/>
                 </svg>
-                <span class="nav-tooltip">Media</span>
-            </div>
-            <div class="nav-item" data-panel="export">
+                <span class="nav-label">Media</span>
+            </button>
+            <button type="button" class="nav-item" data-panel="export" role="tab" aria-selected="false" aria-controls="exportPanel">
                 <svg viewBox="0 0 24 24">
                     <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
                 </svg>
-                <span class="nav-tooltip">Export</span>
-            </div>
+                <span class="nav-label">Export</span>
+            </button>
         </div>
         
         <!-- Tool Panels -->
@@ -390,25 +390,17 @@
                     </div>
                 </div>
             </div>
-            <div class="tool-section">
-                <div class="tool-section-header">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                    </svg>
-                    Export Recording
-                </div>
-                <div class="tool-section-content">
-                    <div class="export-options-grid">
-                        <button class="button secondary" id="exportVideo" disabled>Export as Video</button>
-                        <button class="button secondary" id="exportGIF">Export as GIF</button>
-                        <button class="button secondary" id="exportSequence">Export as Image Sequence</button>
-                        <button class="button secondary" id="exportData">Export Animation Data</button>
-                        <button class="button secondary" id="saveProject">Save Project</button>
-                        <button class="button secondary" id="loadProject">Load Project</button>
-                        <input type="file" id="loadProjectFile" accept="application/json" style="display:none">
-                    </div>
-                </div>
-            </div>
+            <!--
+                "Export Recording" used to live here, with six buttons --
+                video, GIF, sequence, animation data, save and load -- while
+                the Export panel carried four more and Share carried two. So
+                exporting was in two panels under three headings, and which
+                one you wanted depended on knowing that "Export as Video"
+                meant the recording and "Export Animation" meant the data.
+
+                All twelve are in the Export panel now, grouped by what you
+                get: a video, a project file, animation data, or a link.
+            -->
         </div>
         
         <div class="tool-panel" id="mediaPanel">
@@ -481,19 +473,60 @@
                 Export Options
                 <span class="tool-panel-close" data-panel="export">×</span>
             </div>
+            <!--
+                Grouped by WHAT YOU GET, not by which subsystem produces it.
+                "Video" and "Project file" are things a person wants; "Export
+                Formats" and "Export Recording" are things the code does.
+            -->
             <div class="tool-section">
                 <div class="tool-section-header">
                     <svg viewBox="0 0 24 24">
-                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
                     </svg>
-                    Export Formats
+                    Video
                 </div>
                 <div class="tool-section-content">
                     <div class="export-options-grid">
-                        <button class="button secondary" id="exportScene">Export Scene</button>
-                        <button class="button secondary" id="importScene">Import Scene</button>
-                        <button class="button secondary" id="exportAnimation">Export Animation</button>
-                        <button class="button secondary" id="importAnimation">Import Animation</button>
+                        <button class="button secondary" id="exportVideo" disabled>Video (WebM)</button>
+                        <button class="button secondary" id="exportGIF">Animated GIF</button>
+                        <button class="button secondary" id="exportSequence">Image sequence</button>
+                    </div>
+                    <p class="tool-hint">
+                        Record a take first. For a finished film with voice and
+                        subtitles, render headless:
+                        <code>npm run produce:3d</code>
+                    </p>
+                </div>
+            </div>
+            <div class="tool-section">
+                <div class="tool-section-header">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                    </svg>
+                    Project file
+                </div>
+                <div class="tool-section-content">
+                    <div class="export-options-grid">
+                        <button class="button secondary" id="saveProject">Save project</button>
+                        <button class="button secondary" id="loadProject">Load project</button>
+                        <button class="button secondary" id="exportScene">Export scene</button>
+                        <button class="button secondary" id="importScene">Import scene</button>
+                        <input type="file" id="loadProjectFile" accept="application/json" style="display:none">
+                    </div>
+                </div>
+            </div>
+            <div class="tool-section">
+                <div class="tool-section-header">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
+                    </svg>
+                    Animation data
+                </div>
+                <div class="tool-section-content">
+                    <div class="export-options-grid">
+                        <button class="button secondary" id="exportData">Export keyframes</button>
+                        <button class="button secondary" id="exportAnimation">Export animation</button>
+                        <button class="button secondary" id="importAnimation">Import animation</button>
                     </div>
                 </div>
             </div>
@@ -505,8 +538,8 @@
                     Share
                 </div>
                 <div class="tool-section-content">
-                    <button class="button secondary" id="shareProject" style="width: 100%;">Share Project</button>
-                    <button class="button secondary" id="publishProject" style="width: 100%; margin-top: 5px;">Publish Online</button>
+                    <button class="button secondary" id="shareProject" style="width: 100%;">Share project</button>
+                    <button class="button secondary" id="publishProject" style="width: 100%; margin-top: 5px;">Publish online</button>
                 </div>
             </div>
         </div>
@@ -773,5 +806,16 @@
 <!-- animateEngine.js self-initializes against #viewport and exposes the global
      `AnimationEngine` namespace: window.AnimationEngine.animationEngine is the
      live instance; window.AnimationEngine.AnimationEngine is the class. -->
+<style>
+/* A consistent way back to the map, on every surface. Added because five
+   programs with no link between them is the navigation problem, and a link
+   is the whole fix. */
+.to-workspace{position:fixed;left:8px;bottom:8px;z-index:9999;
+  font:600 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  color:#aab3c0;background:rgba(18,22,28,.88);border:1px solid #2d3542;
+  border-radius:99px;padding:6px 11px;text-decoration:none;backdrop-filter:blur(6px)}
+.to-workspace:hover,.to-workspace:focus-visible{color:#fff;border-color:#4fc3f7;outline:none}
+</style>
+<a href="workspace.html" class="to-workspace" title="All surfaces and commands">← Workspace</a>
 </body>
 </html>

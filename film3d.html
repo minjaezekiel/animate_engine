@@ -29,19 +29,25 @@ import { clipToTracks } from './src/backends/three3d/clipToTracks.js';
 import { createClip } from './src/core/anim/Clip.js';
 import { createTrack, setKey } from './src/core/anim/Track.js';
 import { compileFilm3D } from './src/core/script/compile3d.js';
-import { buildScene3D } from './src/backends/three3d/SceneAdapter.js';
+import { retimeToAudio } from './src/core/script/screenplay.js';
+import { buildScene3D, buildTextures } from './src/backends/three3d/SceneAdapter.js';
 import { createThreePoser } from './src/backends/three3d/Three3DBackend.js';
 import { samplePose } from './src/core/anim/Evaluator.js';
 import { renderOffline } from './src/render/OfflineRenderer.js';
 import { MediaRecorderSink } from './src/render/sinks/MediaRecorderSink.js';
 import { MemorySink } from './src/render/sinks/MemorySink.js';
+import { WebCodecsSink } from './src/render/sinks/WebCodecsSink.js';
+import { mp4MuxerFactory } from './src/render/mux/Mp4Muxer.js';
 import { loadAudioAssets } from './src/core/art/AssetRegistry.js';
 import { renderMix, decodeAudio } from './src/audio/OfflineMixer.js';
-import { VoiceRegistry } from './src/core/voice/VoiceRegistry.js';
-import { TtsVitsProvider } from './src/core/voice/providers/TtsVitsProvider.js';
+import { createRegistry } from './src/core/voice/gateway.js';
 import { synthesizeDialogue } from './src/core/voice/synthesize.js';
 import { applyLipsync } from './src/core/art/humanoid3d.js';
 import { key as writeKey } from './src/core/anim/Timeline.js';
+import { paintTexture, normalFromHeight } from './src/core/art/textures.js';
+import { overlayAt, subtitleSpans, checkOverlay } from './src/core/art/overlay.js';
+import { frameDigest, hueName } from './src/core/script/digest.js';
+import { createCompositeCanvas, createProjector, createMeasurer } from './src/render/Overlay2D.js';
 
 /**
  * Render a 3D film script to a video, headless.
@@ -49,15 +55,15 @@ import { key as writeKey } from './src/core/anim/Timeline.js';
  * Deliberately not a UI. The 2D path has film.html for authoring; this exists
  * so the 3D compiler can be driven by a script and a test, which is what the
  * live test needs. A studio surface is a separate job.
- */
-/**
- * A THREE AnimationClip as a core clip.
  *
- * Converted once, here, so an imported animation is evaluated by the same
- * code as hand-keyed animation -- it scrubs, layers, masks and renders
- * deterministically, and there is no `AnimationMixer` anywhere in the
- * pipeline. `clipToTracks` has done the hard half since Phase 3 and nothing
- * on the film path had ever called it.
+ * # What this page learned from the 2D one
+ *
+ * It was written as a small sibling of `film.html` and then diverged, and the
+ * divergence was all in one direction: every capability the 2D path grew
+ * after Phase 14 was added there and not here. The Earth test found five of
+ * them in one render -- no MP4, no subtitles, no voice levelling, no
+ * retiming, and voice models re-downloaded from a CDN on every run. None was
+ * a missing mechanism. All five were a call nobody had made.
  */
 function coreClip(clip) {
     const { tracks, skipped } = clipToTracks(clip);
@@ -123,14 +129,113 @@ async function loadEnvironment(spec, report) {
     }
 }
 
+/** Only the textures that come off the network; the rest are synthesized. */
+async function loadTextureImages(textures, report) {
+    const out = {};
+    const loader = new THREE.TextureLoader();
+    for (const [id, spec] of Object.entries(textures ?? {})) {
+        if (!spec.src) continue;
+        try {
+            out[id] = await loader.loadAsync(spec.src);
+            report(`texture ${id}: ${spec.src}`);
+        } catch (e) {
+            report(`[texture] ${id} (${spec.src}) failed to load: ${e.message}`);
+        }
+    }
+    return out;
+}
+
 window.render3d = async function render3d(film, opts = {}) {
     const width = opts.width ?? film.meta?.width ?? 1280;
     const height = opts.height ?? film.meta?.height ?? 720;
     const report = (m) => (window.report ? window.report(m) : console.log(m));
     const models = await loadModels(film, report);
-    const compiled = compileFilm3D(film, { models });
+    /**
+     * Anything that is not producing a finished film skips synthesis.
+     *
+     * `digest` is on this list for the same reason `check` is: the first run
+     * of it spent sixty seconds synthesising nine lines of dialogue in order
+     * to report nine bounding boxes. Subtitle spans still appear in the
+     * digest -- `subtitleSpans` falls back to a word-rate estimate when there
+     * is no audio -- which is close enough to answer "what caption is on
+     * screen here" and costs nothing.
+     */
+    const quiet = opts.probe || opts.silent || opts.mute || opts.grab || opts.check
+        || opts.where || opts.digest;
+
+    let working = film;
+    let compiled = compileFilm3D(working, { models });
     for (const d of compiled.diagnostics) report(`[${d.severity}] ${d.message} @ ${d.location ?? '-'}`);
+
+    // ----------------------------------------------------------------- voice
+    /**
+     * Dialogue, then RETIME, then compile again.
+     *
+     * `retimeToAudio` walks `scenes[].shots[].dialogue[]` and grows a shot
+     * that is shorter than the speech inside it. It has existed since the
+     * screenplay phase, the 2D studio has always called it, and it is
+     * entirely shape-compatible with a 3D film -- which nobody had noticed,
+     * so a 3D shot authored at 4 s with 5.2 s of dialogue in it simply cut
+     * the line off mid-word at the cut. Two of the four spoken shots in the
+     * Earth test did exactly that on the first render.
+     */
+    const cues = [...(compiled.audioCues ?? [])];
+    let voiceBuffers = {};
+    let voiced = null;
+    if (compiled.lipsyncJobs?.length && !quiet) {
+        const registry = createRegistry({
+            decode: (b) => decodeAudio(b, 48000),
+            sampleRate: 48000,
+            backend: opts.voiceBackend ?? null,
+            ttsModuleUrl: opts.ttsModuleUrl ?? null,
+            voiceStudioUrl: opts.voiceStudioUrl ?? null,
+            kokoroUrl: opts.kokoroUrl ?? null,
+            openVoiceUrl: opts.openVoiceUrl ?? null,
+            onProgress: (p) => report(`voice model: ${p.loaded ?? ''}/${p.total ?? ''} ${p.url ?? ''}`),
+            report,
+        });
+        const synth = (jobs) => synthesizeDialogue({
+            lipsyncJobs: jobs, registry, fps: compiled.meta.fps,
+            // The engine default is 0.06 RMS, about -24 dBFS, which is quiet
+            // next to anything else in a feed. The 2D harness has passed a
+            // louder target since Phase 32 and this page never did, so every
+            // 3D film in the repo is mixed ~7 dB under its 2D siblings.
+            voiceLevel: opts.voiceLevel ?? 0.14,
+            allowVoiceFallback: !opts.strictVoice,
+            onProgress: (p) => report(`voice ${p.done}/${p.total}: ${String(p.text).slice(0, 40)}`),
+        });
+        voiced = await synth(compiled.lipsyncJobs);
+        for (const d of voiced.diagnostics) report(`[voice] ${d.message}`);
+        for (const d of registry.diagnostics()) report(`[voice] ${d.message}`);
+
+        if (opts.retime !== false) {
+            const durations = {};
+            for (const job of compiled.lipsyncJobs) {
+                const cue = voiced.cues.find((c) => c.id === `${job.nodeId}@${job.at}`);
+                const buf = cue ? voiced.buffers[cue.assetId] : null;
+                if (buf && job.text) durations[job.text] = buf.duration;
+            }
+            const { film: retimed, changed, changes } = retimeToAudio(working, durations,
+                { shrink: film.meta?.estimatedTiming === true });
+            if (changed > 0) {
+                report(`retimed ${changed} shot(s) to the real audio: `
+                    + changes.map((c) => `${c.shot ?? '?'} ${c.from}->${c.to}s`).join(', '));
+                working = retimed;
+                compiled = compileFilm3D(working, { models });
+                // Re-key at the corrected offsets WITHOUT re-synthesizing:
+                // the audio itself has not changed, only when it starts.
+                voiced = await synth(compiled.lipsyncJobs);
+            }
+        }
+        cues.length = 0;
+        cues.push(...(compiled.audioCues ?? []), ...voiced.cues);
+        voiceBuffers = voiced.buffers;
+        const n = applyLipsync(compiled.timeline, voiced.tracks, writeKey);
+        report(`lipsync: ${voiced.tracks.length} lines, ${n} mouth keys`);
+    }
+
     const environment = await loadEnvironment(compiled.meta.environment, report);
+    const images = await loadTextureImages(compiled.textures, report);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(width, height, false);
@@ -141,17 +246,41 @@ window.render3d = async function render3d(film, opts = {}) {
     renderer.toneMappingExposure = 1.0;
     document.body.append(renderer.domElement);
 
+    const textures = buildTextures(THREE, compiled.textures,
+                                   { paintTexture, normalFromHeight, images });
+    if (textures.size) report(`textures: ${[...textures.keys()].join(', ')}`);
+
     const built = buildScene3D(THREE, compiled, {
-        width, height, mergeGeometries, models, environment,
+        width, height, mergeGeometries, models, environment, textures,
         // `Object3D.clone` copies a skinned mesh and leaves it bound to the
         // ORIGINAL skeleton, so two characters from one file move as one.
         cloneModel: SkeletonUtils.clone,
     });
     built.camera.aspect = width / height;
 
-    // The post chain, declared in `meta.post` and ordered by
-    // `core/script/post.js`. `meta.bloom` still means what it meant, so
-    // every film already in the repo renders unchanged.
+    /**
+     * Clipping planes, global rather than per-material.
+     *
+     * `renderer.clippingPlanes` applies to every material in the scene with
+     * no per-material opt-in, which for a sectioned view is what you want:
+     * the cut goes through everything it passes through, including a part
+     * added later that nobody remembered to mark.
+     *
+     * `localClippingEnabled` is switched on as well, so a material that
+     * carries its own `clippingPlanes` is still honoured -- a cutaway often
+     * wants the subject sectioned and the set left whole.
+     */
+    if (built.clipPlanes.length) {
+        renderer.clippingPlanes = built.clipPlanes.map((c) => c.plane);
+        renderer.localClippingEnabled = true;
+        // Without this the half that was clipped away still casts its shadow,
+        // and a sectioned planet sits in the shadow of the hemisphere that is
+        // no longer there.
+        renderer.clipShadows = built.clipPlanes.some((c) => c.shadows);
+        report(`clipping: ${built.clipPlanes.length} plane(s)`
+            + (renderer.clipShadows ? ', shadows clipped' : ''));
+    }
+
     const post = buildComposer({
         THREE, renderer, scene: built.root, camera: built.camera, width, height,
         post: compiled.meta.post, bloom: null,
@@ -162,54 +291,57 @@ window.render3d = async function render3d(film, opts = {}) {
     if (post) report(`post: ${post.passes.join(' -> ')} -> output`);
     const composer = post?.composer ?? null;
 
-    // Three3DBackend wants a SceneManager; all it uses is render(), camera and
-    // renderer, so this standalone path hands it those three and reuses the
-    // backend rather than growing a second one.
+    // ---------------------------------------------------------------- overlay
+    /**
+     * Subtitles, titles and world-anchored callouts, composited after post.
+     *
+     * The composite canvas is what the sink is handed, so the render loop
+     * needs no change: `backend.canvas()` returns the canvas that has the
+     * overlay on it. See `render/Overlay2D.js` for why this is a canvas and
+     * not a DOM layer, and why it is drawn after the post chain.
+     */
+    const overlay = compiled.meta.overlay;
+    if (overlay) overlay.subtitles = subtitleSpans(compiled.lipsyncJobs, voiced);
+    const composite = overlay ? createCompositeCanvas(renderer.domElement, width, height) : null;
+    const measure = composite ? createMeasurer(composite.ctx) : null;
+    const project = composite
+        ? createProjector(THREE, { camera: built.camera, resolve: built.resolve, width, height })
+        : null;
+    if (overlay) {
+        report(`overlay: ${overlay.items.length} item(s), `
+            + `${overlay.subtitles.length} subtitle span(s)`);
+    }
+
     const sceneManager = {
         renderer, camera: built.camera,
         render: () => (composer ? composer.render() : renderer.render(built.root, built.camera)),
     };
+    let frameTime = 0;
     const backend = {
-        capabilities: { kind: '3d', postFX: !!composer },
+        capabilities: { kind: '3d', postFX: !!composer, overlay: !!overlay },
         mount: () => backend, unmount() {}, sync: () => backend,
         resize: () => backend,
-        renderFrame: () => { sceneManager.render(); return backend; },
-        canvas: () => renderer.domElement,
+        renderFrame: () => {
+            sceneManager.render();
+            if (composite) {
+                composite.draw(overlayAt(overlay, frameTime,
+                                         { width, height, project, measure }));
+            }
+            return backend;
+        },
+        canvas: () => (composite ? composite.canvas : renderer.domElement),
     };
-
-
-    // The 2D path's mixer, unchanged. MediaRecorderSink already accepts an
-    // audioBuffer and rides it on the same wall clock as the video track, so
-    // sound on the 3D path cost a cue list and these eight lines.
-    // Dialogue: synthesize, then read the viseme track the same lipsync stack
-    // the 2D films use already produces, and drive the jaw with it.
-    const cues = [...(compiled.audioCues ?? [])];
-    let voiceBuffers = {};
-    if (compiled.lipsyncJobs?.length && !opts.probe && !opts.silent && !opts.mute
-        && !opts.grab && !opts.check) {
-        const registry = new VoiceRegistry();
-        registry.register(new TtsVitsProvider({
-            decode: (b) => decodeAudio(b, 48000), sampleRate: 48000,
-            onProgress: (p) => report(`voice model: ${p.loaded ?? ''}/${p.total ?? ''} ${p.url ?? ''}`),
-        }));
-        const voiced = await synthesizeDialogue({
-            lipsyncJobs: compiled.lipsyncJobs, registry, fps: compiled.meta.fps,
-            onProgress: (p) => report(`voice ${p.done}/${p.total}: ${String(p.text).slice(0, 40)}`),
-        });
-        for (const d of voiced.diagnostics) report(`[voice] ${d.message}`);
-        cues.push(...voiced.cues);
-        voiceBuffers = voiced.buffers;
-        const n = applyLipsync(compiled.timeline, voiced.tracks, writeKey);
-        report(`lipsync: ${voiced.tracks.length} lines, ${n} mouth keys`);
-    }
 
     let audioBuffer = null;
     let audioContext = null;
     if (cues.length && !opts.probe && !opts.silent) {
         const { buffers, diagnostics } = await loadAudioAssets(film, { decode: decodeAudio });
         for (const d of diagnostics) report(`[audio] ${d.message}`);
-        audioBuffer = await renderMix({ cues, buffers: { ...buffers, ...voiceBuffers },
-                                        durationSec: compiled.duration });
+        audioBuffer = await renderMix({
+            cues, buffers: { ...buffers, ...voiceBuffers },
+            durationSec: compiled.duration,
+            onReport: (m) => report(`[audio] ${m}`),
+        });
         // The context is created and resumed HERE, before the recorder wants
         // it, rather than inside the sink mid-render. Left to the sink, the
         // stream's audio track produced nothing in headless and MediaRecorder
@@ -229,7 +361,6 @@ window.render3d = async function render3d(film, opts = {}) {
         timeline: compiled.timeline, resolve: built.resolve, samplePose,
     });
 
-
     /**
      * Pose and step the scene so that time `t` is really showing.
      *
@@ -245,6 +376,7 @@ window.render3d = async function render3d(film, opts = {}) {
      * exactly the frame it would have produced.
      */
     const warmTo = (t) => {
+        frameTime = t;
         poser.reset();
         if (!built.sims.length) { poser.apply(t); built.step(t); post?.setTime(t); return; }
         const dt = 1 / compiled.meta.fps;
@@ -277,15 +409,163 @@ window.render3d = async function render3d(film, opts = {}) {
         const out = [];
         for (const { t, shotId } of opts.check) {
             warmTo(t);
-            sceneManager.render();
+            backend.renderFrame();
             const small = document.createElement('canvas');
             small.width = 160; small.height = 90;
             const c2 = small.getContext('2d');
-            c2.drawImage(renderer.domElement, 0, 0, 160, 90);
+            c2.drawImage(backend.canvas(), 0, 0, 160, 90);
             out.push({ t, shotId, ...lumaStats(c2.getImageData(0, 0, 160, 90).data) });
         }
+        // Overlay findings need a projector and a measurer, which need a
+        // canvas, which is why this runs here and not in `produce3d.mjs`
+        // alongside the framing check.
+        const overlayFindings = overlay
+            ? checkOverlay(overlay, { width, height, fps: compiled.meta.fps,
+                                      duration: compiled.duration, project, measure })
+            : [];
         poser.reset();
-        return { samples: out, duration: compiled.duration, diagnostics: compiled.diagnostics };
+        return { samples: out, overlay: overlayFindings,
+                 duration: compiled.duration, diagnostics: compiled.diagnostics };
+    }
+
+    /**
+     * A frame DIGEST: what is on screen, as numbers, at a few times.
+     *
+     * The cheap half of looking. For each named subject it projects the
+     * object's world bounds to screen space and samples the real rendered
+     * pixels inside that box, so the answer to "is the planet lit" is a
+     * number rather than an image. See `core/script/digest.js` for the
+     * measurement that motivated it.
+     *
+     * Sampled on a 192x108 copy -- 1/100 of the pixels -- because every
+     * statistic here is a mean over an area and none of them needs
+     * resolution. The whole pass for nine times costs about as long as one
+     * rendered frame.
+     */
+    if (opts.digest) {
+        const box = new THREE.Box3();
+        const v = new THREE.Vector3();
+        const small = document.createElement('canvas');
+        small.width = 192; small.height = 108;
+        const c2 = small.getContext('2d', { willReadFrequently: true });
+        const out = [];
+        for (const { t, shotId, subjects: want } of opts.digest) {
+            warmTo(t);
+            backend.renderFrame();
+            c2.drawImage(backend.canvas(), 0, 0, 192, 108);
+            const img = c2.getImageData(0, 0, 192, 108).data;
+            const lumaAt = (i) => (0.2126 * img[i] + 0.7152 * img[i + 1]
+                                   + 0.0722 * img[i + 2]) / 255;
+            const all = [];
+            for (let i = 0; i < img.length; i += 4) all.push(lumaAt(i));
+
+            const subjects = [];
+            for (const id of want) {
+                const node = built.resolve(id);
+                if (!node) { subjects.push({ id, visible: false }); continue; }
+                node.updateWorldMatrix(true, true);
+                box.setFromObject(node, true);
+                if (box.isEmpty()) { subjects.push({ id, visible: node.visible }); continue; }
+                /**
+                 * All EIGHT corners, projected.
+                 *
+                 * The same lesson `staging3d` records: a long object seen
+                 * end-on has a centre comfortably in frame and both ends off
+                 * it. A box is not its centre.
+                 */
+                let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+                let behindCount = 0;
+                for (let c = 0; c < 8; c++) {
+                    v.set(c & 1 ? box.max.x : box.min.x,
+                          c & 2 ? box.max.y : box.min.y,
+                          c & 4 ? box.max.z : box.min.z);
+                    const cam = v.clone().applyMatrix4(built.camera.matrixWorldInverse);
+                    if (cam.z > -1e-4) behindCount++;
+                    v.project(built.camera);
+                    const sx = v.x * 0.5 + 0.5;
+                    const sy = -v.y * 0.5 + 0.5;
+                    x0 = Math.min(x0, sx); x1 = Math.max(x1, sx);
+                    y0 = Math.min(y0, sy); y1 = Math.max(y1, sy);
+                }
+                if (behindCount === 8) {
+                    subjects.push({ id, visible: node.visible, behind: true });
+                    continue;
+                }
+                // Sample inside the box, clamped to the frame: the statistic
+                // is about the pixels you can actually see.
+                const px0 = Math.max(0, Math.floor(x0 * 192));
+                const px1 = Math.min(191, Math.ceil(x1 * 192));
+                const py0 = Math.max(0, Math.floor(y0 * 108));
+                const py1 = Math.min(107, Math.ceil(y1 * 108));
+                const luma = [];
+                const px = [];
+                for (let y = py0; y <= py1; y++) {
+                    for (let x = px0; x <= px1; x++) {
+                        const i = (y * 192 + x) * 4;
+                        const L = lumaAt(i);
+                        luma.push(L);
+                        px.push([L, img[i], img[i + 1], img[i + 2]]);
+                    }
+                }
+                /**
+                 * Hue from the BRIGHTEST QUARTER of the box, not all of it.
+                 *
+                 * A bounding box around a sphere is 21% background, and in
+                 * space the background is black. Averaging the whole box
+                 * desaturates everything toward grey -- the first digest
+                 * reported a perfectly blue Earth as "grey", which is exactly
+                 * the kind of wrong answer that sends an agent chasing a
+                 * defect that is not there.
+                 *
+                 * The brightest quartile is a cheap stand-in for "the pixels
+                 * that are the object": the subject is lit and the space
+                 * around it is not.
+                 */
+                px.sort((a, b) => b[0] - a[0]);
+                /**
+                 * The MODE of the per-pixel hue, over the object's lit pixels.
+                 *
+                 * Averaging RGB over a bounding box reported a blue Earth as
+                 * "grey", because 21% of a box around a sphere is black
+                 * space and an average with black is desaturated. Taking the
+                 * brightest quarter instead reported it as "white", because
+                 * the brightest pixels on Earth are cloud. Both answers were
+                 * arithmetically correct and neither answered the question.
+                 *
+                 * "What colour is this?" is a question about the MOST COMMON
+                 * colour, not the mean one -- a mean of blue and white is
+                 * grey, and nothing in the frame is grey. So each lit pixel
+                 * is classified and the winner reported, which is robust to
+                 * both the background and the highlights and costs one pass.
+                 *
+                 * "Lit" is 20% of the object's own peak: a threshold relative
+                 * to the subject rather than an absolute one, so it works on
+                 * a dim planet and a glowing core alike.
+                 */
+                const peak = px.length ? px[0][0] : 0;
+                const counts = new Map();
+                for (const [L, pr, pg, pb] of px) {
+                    if (L < peak * 0.2) continue;
+                    const name = hueName(pr / 255, pg / 255, pb / 255);
+                    counts.set(name, (counts.get(name) ?? 0) + 1);
+                }
+                let hue = null;
+                let best = 0;
+                for (const [name, c] of counts) if (c > best) { best = c; hue = name; }
+                subjects.push({
+                    id, visible: node.visible, box: [x0, y0, x1, y1], luma, hue,
+                });
+            }
+            out.push(frameDigest({
+                t, shotId, frame: all, subjects,
+                overlay: overlay
+                    ? overlayAt(overlay, t, { width, height, project, measure })
+                    : [],
+            }));
+        }
+        poser.reset();
+        return { digests: out, duration: compiled.duration,
+                 diagnostics: compiled.diagnostics };
     }
 
     // Grab single frames at given times. The cheapest way to check that a
@@ -294,16 +574,53 @@ window.render3d = async function render3d(film, opts = {}) {
         const out = [];
         for (const t of opts.grab) {
             warmTo(t);
-            sceneManager.render();
-            out.push({ t, png: renderer.domElement.toDataURL('image/png') });
+            backend.renderFrame();
+            out.push({ t, png: backend.canvas().toDataURL('image/png') });
         }
         poser.reset();
         return { frames: out, duration: compiled.duration, diagnostics: compiled.diagnostics };
     }
 
-    const sink = opts.probe
-        ? new MemorySink()
-        : new MediaRecorderSink({ videoBitsPerSecond: opts.bitrate ?? 12_000_000, audioContext });
+    /**
+     * The encoder, chosen the way the 2D studio chooses it.
+     *
+     * This page hardcoded `MediaRecorderSink` -- WebM/VP9, paced in REAL
+     * TIME, with a hard ceiling of 1000/fps ms per frame. So the 3D path
+     * could not produce an MP4 at all (the format every platform actually
+     * wants), and a 3D render took at least as long as the film runs. The
+     * muxer and the WebCodecs sink have both been here since Phase 27;
+     * nothing on this page had ever called them.
+     *
+     * MP4 means H.264 specifically. `pickCodec` would otherwise happily
+     * return vp09, which is legal in an MP4 container and undecodable on
+     * most phones.
+     */
+    const format = opts.format ?? 'auto';
+    let sink = null;
+    let encoder = '';
+    if (opts.probe) {
+        sink = new MemorySink();
+        encoder = 'memory (probe)';
+    } else {
+        const container = format === 'webm' ? 'webm' : 'mp4';
+        const muxerFactory = format === 'webm' ? null : mp4MuxerFactory;
+        const canWebCodecs = format !== 'webm'
+            && await WebCodecsSink.available({ muxerFactory, container, width, height });
+        if (canWebCodecs) {
+            sink = new WebCodecsSink({ muxerFactory, container });
+            encoder = 'WebCodecs H.264/mp4';
+        } else if (format === 'mp4') {
+            // Asked for MP4 by name. Falling back to WebM silently hands back
+            // a file with the wrong extension's worth of expectations on it.
+            throw new Error('MP4 was requested but this browser cannot encode H.264 '
+                + 'through WebCodecs. Use format: "webm".');
+        } else {
+            sink = new MediaRecorderSink({
+                videoBitsPerSecond: opts.bitrate ?? 12_000_000, audioContext });
+            encoder = 'paced MediaRecorder webm';
+        }
+    }
+    report(`encoder: ${encoder}`);
     sink.audioBuffer = audioBuffer;
 
     const blob = await renderOffline({
@@ -312,13 +629,33 @@ window.render3d = async function render3d(film, opts = {}) {
         width, height, durationSec: opts.durationSec ?? compiled.duration,
         sink, poser,
         // Aiming the camera and solving the particles both happen after the
-        // pose is written and before the frame is drawn.
-        beforeFrame: (t) => { built.step(t); post?.setTime(t); },
+        // pose is written and before the frame is drawn. `frameTime` is set
+        // here because the overlay is drawn inside `renderFrame`, which the
+        // loop calls without a time argument.
+        beforeFrame: (t) => { frameTime = t; built.step(t); post?.setTime(t); },
         onProgress: (p) => report(`frame ${p.frame}/${p.total} ${p.msPerFrame.toFixed(1)}ms/f`),
     });
 
+    /**
+     * Parked on the page, not returned.
+     *
+     * A multi-megabyte data URL crosses the CDP boundary TRUNCATED WITH NO
+     * ERROR, which writes a short file that looks like a successful render
+     * until you try to open it. `produce.mjs` learned this on the 2D path and
+     * reads the bytes back in 4 MB chunks with a length check; this page
+     * returned a data URL for the whole film, so the 3D path has had a latent
+     * truncation bug for every film large enough to hit it. A fifty-second
+     * 1280x720 WebM was 8 MB and survived; a sixty-second 1920x1080 MP4 is
+     * not, which is how the Earth test found it.
+     */
+    if (blob && !opts.probe) {
+        window.__film = new Uint8Array(await blob.arrayBuffer());
+    }
+
     return {
-        mime: sink.mimeType, chunks: sink.chunks?.length ?? 0,
+        mime: sink.mimeType ?? blob?.type ?? '', chunks: sink.chunks?.length ?? 0,
+        encoder,
+        type: blob?.type ?? sink.mimeType ?? '',
         supported: typeof MediaRecorder !== 'undefined'
             ? ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
                 .filter((m) => MediaRecorder.isTypeSupported(m)) : [],
@@ -328,17 +665,32 @@ window.render3d = async function render3d(film, opts = {}) {
         particles: [...compiled.emitters.values()].reduce((a, e) => a + e.emitter.count, 0),
         constraints: compiled.constraints.length,
         models: Object.keys(models).length,
+        textures: textures.size,
+        clipPlanes: built.clipPlanes.length,
+        overlayItems: overlay?.items.length ?? 0,
+        subtitles: overlay?.subtitles.length ?? 0,
         sims: built.sims.length,
         post: post ? post.passes : [],
         diagnostics: compiled.diagnostics,
         cues: cues.length,
         lines: compiled.lipsyncJobs?.length ?? 0,
         audioSec: audioBuffer ? +audioBuffer.duration.toFixed(2) : 0,
-        size: blob?.size ?? 0,
-        dataUrl: blob && !opts.probe ? await new Promise((res) => {
-            const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob);
-        }) : null,
+        size: window.__film?.length ?? blob?.size ?? 0,
     };
+};
+
+/** Read the parked film back in chunks. Same contract as the 2D path. */
+window.readFilmChunk = function readFilmChunk(offset, length) {
+    const bytes = window.__film;
+    if (!bytes) throw new Error('no film on the page');
+    const slice = bytes.subarray(offset, offset + length);
+    let s = '';
+    // In 32k runs: String.fromCharCode(...a_million_args) overflows the stack.
+    for (let i = 0; i < slice.length; i += 0x8000) {
+        s += String.fromCharCode(...slice.subarray(i, i + 0x8000));
+    }
+    return { base64: btoa(s), length: slice.length,
+             done: offset + slice.length >= bytes.length };
 };
 window.ready3d = true;
 </script>

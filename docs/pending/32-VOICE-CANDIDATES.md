@@ -19,7 +19,7 @@ headless Chrome and `TtsVitsProvider` runs Piper's VITS models through
 
 Anything that only runs as a Python process with a GPU is option 2, and
 option 2 means the user has to be running something. That is exactly the
-failure `30-STRUCTURE-SERIES.md` records — twelve films rendered in a
+failure `../completed_phases/30-STRUCTURE-SERIES.md` records — twelve films rendered in a
 stand-in voice because nothing was listening on 3900.
 
 So **browser-runnable is worth a lot** here, more than a point or two of
@@ -72,7 +72,7 @@ treat the speed claims as marketing until measured here.
   less total disk than the three English Piper models it replaces.
 
 Against it: Kokoro's 8 languages **almost certainly do not include
-Swahili**, so `30-STRUCTURE-SERIES.md`'s one-Swahili-voice problem is not
+Swahili**, so `../completed_phases/30-STRUCTURE-SERIES.md`'s one-Swahili-voice problem is not
 solved by this. That needs either VoiceStudio cloning or a Swahili-specific
 model, and it should be checked explicitly rather than assumed.
 

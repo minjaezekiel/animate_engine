@@ -9,6 +9,7 @@ import { EXPRESSIONS } from '../art/face3d.js';
 import { normalizeConstraints, humanoidCorrectives } from '../rig/constraints.js';
 import { gripAngles, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
 import { normalizePost } from './post.js';
+import { normalizeOverlay } from '../art/overlay.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
 
 /**
@@ -58,6 +59,93 @@ function normalizeEnvironment(spec) {
 }
 
 /**
+ * Clipping planes, as plane equations.
+ *
+ * Accepts the long form `{ normal: [x,y,z], at: d, name }` and the bare
+ * `[x,y,z,d]`. A plane is animatable through `set` on `clip.<name>.at`,
+ * which is what makes a cutaway *open* rather than simply be open -- the
+ * section sweeps through the body on a timeline like any other channel.
+ */
+function normalizeClip(spec, warn) {
+    if (!spec) return [];
+    const list = Array.isArray(spec) ? spec : [spec];
+    const out = [];
+    for (const [i, p] of list.entries()) {
+        const where = `meta.clip[${i}]`;
+        const normal = Array.isArray(p) ? p.slice(0, 3) : p.normal;
+        const at = Array.isArray(p) ? p[3] ?? 0 : p.at ?? 0;
+        if (!Array.isArray(normal) || normal.length < 3) {
+            warn('a clip plane needs a 3-component `normal`', where);
+            continue;
+        }
+        const len = Math.hypot(...normal);
+        if (len < 1e-6) {
+            // A zero normal is a plane with no orientation: THREE keeps it,
+            // and every fragment tests against a degenerate half-space, so
+            // the mesh either vanishes entirely or is untouched depending on
+            // the sign of a float that is meant to be zero.
+            warn('a clip plane\'s `normal` has zero length', where);
+            continue;
+        }
+        out.push({
+            name: (Array.isArray(p) ? null : p.name) ?? `clip${i}`,
+            // Normalised here, not in the backend, so `at` is a distance in
+            // metres whatever scale the normal was typed at.
+            normal: normal.map((n) => n / len),
+            at,
+            // A clipped shadow is the other half of a cutaway reading
+            // correctly: without it the removed half still casts.
+            shadows: (Array.isArray(p) ? true : p.shadows) !== false,
+        });
+    }
+    return out;
+}
+
+/**
+ * The `textures` block: generated or fetched, declared once and referenced by
+ * name from any number of material slots.
+ *
+ * Validated here and BUILT in the backend, the same division `models` and
+ * `environment` already use: the compiler owns what is legal, the page owns
+ * the network and the GPU.
+ */
+function normalizeTextures(spec, warn) {
+    const out = {};
+    for (const [id, t] of Object.entries(spec ?? {})) {
+        if (!t || typeof t !== 'object') { warn(`texture '${id}' is not an object`, `textures.${id}`); continue; }
+        if (!t.src && !t.layers && !t.normalFrom && !t.text) {
+            warn(`texture '${id}' has no \`src\`, \`layers\`, \`text\` or \`normalFrom\``,
+                 `textures.${id}`);
+            continue;
+        }
+        if (t.normalFrom && !spec[t.normalFrom]) {
+            warn(`texture '${id}' derives from '${t.normalFrom}', which is not declared`,
+                 `textures.${id}`);
+            continue;
+        }
+        out[id] = { id, ...t };
+    }
+    return out;
+}
+
+/**
+ * Material slots that take a texture rather than a number or a colour.
+ *
+ * This list exists because of the shape of the bug it prevents. `makeMaterial`
+ * spreads every unrecognised key straight into the THREE constructor, which
+ * is what makes new PBR properties free -- and it means `map: "albedo"` sets
+ * `material.map` to the STRING "albedo". THREE then calls `.map.isTexture` on
+ * it, gets undefined, and renders the surface untextured with no error
+ * anywhere. Exactly the failure `COLOR_PROPS` exists to prevent one type
+ * earlier, so it is fixed the same way: by naming the slots.
+ */
+export const TEXTURE_SLOTS = [
+    'map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap',
+    'bumpMap', 'alphaMap', 'aoMap', 'displacementMap', 'clearcoatMap',
+    'sheenColorMap', 'specularMap', 'iridescenceMap', 'lightMap',
+];
+
+/**
  * `models` is what the PAGE already loaded, keyed by the id the film used:
  * `{ nodes: ['Seat', ...], clips: [coreClip, ...] }`. Passing it in rather
  * than loading here keeps this module pure and Node-testable, the same
@@ -87,18 +175,54 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         bloom: film.meta?.bloom ?? null,
         step: film.meta?.step ?? 0,
         post: null,         // filled below, once `warn` can be used
+        overlay: null,      // ditto
+        /**
+         * Global clipping planes: the engine's answer to having no CSG.
+         *
+         * [13-3D-FILM.md §8](../../../docs/13-3D-FILM.md) lists "nothing cuts
+         * a hole in a solid" as an open gap, and for a cutaway -- a planet
+         * opened to its core, an engine sectioned, a building in half -- that
+         * gap is the whole film. A clipping plane is not CSG: it does not
+         * produce new geometry and it leaves the cut hollow. But it is a
+         * *half-space test in the fragment shader*, which costs one dot
+         * product per fragment, needs no new dependency, no mesh boolean and
+         * no correctness surface of its own -- and for a sectioned view it
+         * shows exactly what a section drawing shows.
+         *
+         * `[nx, ny, nz, d]` is the plane equation: geometry on the NEGATIVE
+         * side is discarded, which matches `THREE.Plane`'s own convention so
+         * a film's numbers mean what the renderer's docs say they mean.
+         */
+        clip: normalizeClip(film.meta?.clip, warn),
     };
     meta.post = normalizePost(film.meta?.post, { bloom: meta.bloom, warn });
+    meta.overlay = normalizeOverlay(film.overlay, warn, { designHeight: meta.height });
 
     const scene = new Scene();
     const timeline = createTimeline({ fps: meta.fps });
     if (meta.step) timeline.step = meta.step;
 
     const materials = film.materials ?? {};
+    const textures = normalizeTextures(film.textures, warn);
+    /**
+     * A material's texture slots name declared textures. An undeclared name
+     * is a warning HERE rather than a silently untextured surface at render
+     * time -- see `TEXTURE_SLOTS`.
+     */
+    const checkTextureRefs = (spec, path) => {
+        for (const slot of TEXTURE_SLOTS) {
+            const ref = spec[slot];
+            if (ref == null || typeof ref !== 'string') continue;
+            if (!textures[ref]) {
+                warn(`${slot} names texture '${ref}', which is not declared under \`textures\``, path);
+            }
+        }
+        return spec;
+    };
     const resolveMaterial = (ref, path) => {
         if (!ref) return { color: '#9aa0a6' };
-        if (typeof ref === 'object') return { ...ref };
-        if (materials[ref]) return { ...materials[ref] };
+        if (typeof ref === 'object') return checkTextureRefs({ ...ref }, path);
+        if (materials[ref]) return checkTextureRefs({ ...materials[ref] }, `materials.${ref}`);
         warn(`unknown material '${ref}'`, path);
         return { color: '#ff00ff' };
     };
@@ -147,6 +271,21 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         if (scene.get(id)) { warn(`target '${id}' collides with an existing node`, `targets.${id}`); continue; }
         scene.add({ id, kind: 'target',
                     props: { at: vec3(Array.isArray(spec) ? spec : spec?.at ?? [0, 0, 0]) } });
+    }
+
+    /**
+     * A clipping plane is a node too, for exactly the reason a target is one:
+     * a node can be animated, and the whole animation stack already knows
+     * how. `cut` writes `at` on it; the backend reads `at` each frame and
+     * pushes it into the plane's `constant`.
+     */
+    for (const plane of meta.clip) {
+        scene.add({ id: `__clip:${plane.name}`, kind: 'clipPlane',
+                    // `at` is a vec3 because every other node's `at` is, and
+                    // `restVec` reads it. Only x is meaningful: it is the
+                    // plane's distance along its own normal.
+                    props: { at: [plane.at, 0, 0], normal: plane.normal,
+                             shadows: plane.shadows } });
     }
 
     // ----------------------------------------------------------------- cast
@@ -319,16 +458,44 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
                 warn(`part '${part.id}' names parent '${part.parent}' before it is declared`,
                      `${rootId}/${part.id}`);
             }
+            /**
+             * A part with no geometry is a PIVOT, not a cube.
+             *
+             * It used to default to `{ kind: 'cube' }`, so the only way to
+             * get an empty transform node inside an assembly was an invisible
+             * mesh -- and an unknown geometry kind makes the backend skip the
+             * node entirely, which silently orphans everything parented to
+             * it.
+             *
+             * A pivot is not a nicety. "Tilt the planet 23.4 degrees, and
+             * spin the globe inside that tilt" is two nested rotations about
+             * two different axes, and a single node has one rotation. Without
+             * a pivot the spin has to be composed into the tilt by hand, per
+             * frame, which is precisely the arithmetic this compiler exists
+             * to remove -- and getting it wrong makes the pole trace a cone
+             * instead of holding still.
+             */
+            const isPivot = !part.geometry || part.geometry.kind === 'group';
             scene.add({
-                id: nodeId, kind: 'mesh', parentId,
+                id: nodeId, kind: isPivot ? 'group' : 'mesh', parentId,
                 props: {
-                    geometry: { ...(part.geometry ?? { kind: 'cube' }) },
-                    material: resolveMaterial(part.material, nodeId),
+                    geometry: { ...(part.geometry ?? { kind: 'group' }) },
+                    material: isPivot ? null : resolveMaterial(part.material, nodeId),
                     at: vec3(part.at ?? [0, 0, 0]),
                     rot: vec3(part.rot ?? [0, 0, 0]).map((d) => d * DEG),
                     scale: vec3(part.scale ?? 1, 1),
                     blending: part.blending ?? null,
+                    // A cut face, a cloud shell and an atmosphere are all
+                    // surfaces you see from both sides at some point in a
+                    // move, and a part that is not meant to cast (a glow, a
+                    // cloud deck) would otherwise print its own silhouette
+                    // onto the thing it surrounds.
+                    castShadow: part.castShadow,
+                    receiveShadow: part.receiveShadow,
                 },
+                // `visible` lives on the node, not in props, because that is
+                // where `set visible` reads and writes it.
+                visible: part.visible !== false,
             }, parentId);
             parts.set(part.id, nodeId);
         }
@@ -530,7 +697,7 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     }
 
     return { scene, timeline, emitters, meta, cameraId, lookId, shots, constraints,
-             duration, audioCues, lipsyncJobs, characters, diagnostics };
+             duration, audioCues, lipsyncJobs, characters, textures, diagnostics };
 }
 
 /**
@@ -790,6 +957,107 @@ function buildAction3D({ scene, timeline, action, castMap, emitters, shot, camer
                         { type: 'number', ease: 'smooth' });
                 }
             }
+            return;
+        }
+
+        /**
+         * `spin` -- continuous rotation in whole TURNS about one axis.
+         *
+         * 2D has had this since Phase 34 and `compile3d` has its own action
+         * switch, so [STATUS](../../../docs/STATUS.md) has carried
+         * "`squash`/`spin` in 3D -- 2D only" as an open row ever since. It is
+         * the verb a rotating planet, a flywheel or a drill wants, and
+         * writing it as two `turn` keys needs the author to convert turns to
+         * radians AND to remember that the easing must be `linear` -- a
+         * `smooth` ramp puts a hesitation at each end, which on a continuous
+         * rotation reads as a stutter rather than as motion.
+         *
+         * It is also the verb that cannot be faked by looping a clip: a
+         * rotation of 2.5 turns over eleven seconds is not a cycle.
+         */
+        case 'spin': {
+            const id = resolve(action.target);
+            if (!id) return warn(`unknown target '${action.target}'`, location);
+            const axis = (action.axis ?? 'y').toLowerCase();
+            if (!AXES.includes(axis)) {
+                return warn(`spin wants axis x, y or z; got '${action.axis}'`, location);
+            }
+            const dur = span || 1;
+            const channel = `rotation.${axis}`;
+            const from = restVec(scene.get(id), 'rotation')?.[AXES.indexOf(axis)] ?? 0;
+            // Both ends keyed explicitly and linearly. Only the start key
+            // being seeded would leave the track reading its first key at
+            // every earlier time, which for a spin starting at second 30 is
+            // a planet already turned a quarter way round in shot one.
+            key(timeline, id, channel, at, from, { type: 'number', ease: 'linear' });
+            key(timeline, id, channel, at + dur, from + (action.turns ?? 1) * Math.PI * 2,
+                { type: 'number', ease: 'linear' });
+            return;
+        }
+
+        /**
+         * `squash` -- volume-preserving deformation and recovery, in one verb.
+         *
+         * Wide by `amount`, flat by the same factor, back to rest. The
+         * reciprocal is the point: scaling one axis up and the other down by
+         * the SAME number changes the volume, and a ball that gains mass on
+         * impact is the single clearest tell of hand-typed squash.
+         *
+         * `axis` is the axis of compression, so an impact on the floor is
+         * `axis: 'y'` and the other two widen.
+         */
+        case 'squash': {
+            const id = resolve(action.target);
+            if (!id) return warn(`unknown target '${action.target}'`, location);
+            const axis = (action.axis ?? 'y').toLowerCase();
+            if (!AXES.includes(axis)) {
+                return warn(`squash wants axis x, y or z; got '${action.axis}'`, location);
+            }
+            const amount = action.amount ?? 0.2;
+            const hit = span || 0.1;
+            const back = action.back ?? hit * 2.2;
+            const rest = restVec(scene.get(id), 'scale') ?? [1, 1, 1];
+            // sqrt on the two widening axes, so the product of the three
+            // scales is unchanged: (1+a) along one and 1/sqrt(1+a) along the
+            // other two multiply back to 1.
+            const flat = 1 / (1 + amount);
+            const wide = Math.sqrt(1 + amount);
+            for (const [i, ax] of AXES.entries()) {
+                const f = ax === axis ? flat : wide;
+                const ch = `scale.${ax}`;
+                key(timeline, id, ch, at, rest[i], { type: 'number', ease: 'smooth' });
+                key(timeline, id, ch, at + hit, rest[i] * f, { type: 'number', ease: 'smooth' });
+                key(timeline, id, ch, at + hit + back, rest[i], { type: 'number', ease: 'smooth' });
+            }
+            return;
+        }
+
+        /**
+         * `cut` -- animate a named clipping plane's distance.
+         *
+         * The verb that makes a cutaway a *shot* rather than a state. A
+         * section that is simply open shows you the inside; a section that
+         * sweeps in shows you the relationship between the inside and the
+         * outside, which is the entire pedagogical content of a cutaway.
+         *
+         * The plane is a scene node (`__clip:<name>`) with one scalar
+         * channel, so it eases, anticipates and overshoots like anything
+         * else rather than needing its own interpolation.
+         */
+        case 'cut': {
+            const id = `__clip:${action.plane ?? 'clip0'}`;
+            if (!scene.get(id)) {
+                return warn(`unknown clip plane '${action.plane}'; `
+                    + 'declare it under `meta.clip` with a `name`', location);
+            }
+            // `position.x`, not a channel of its own: `PoseApplier` already
+            // understands scalar transform channels, and a plane's distance
+            // is one number. A new target type would mean teaching the poser,
+            // the evaluator and the budget estimator about clip planes to
+            // animate a float they can all already animate.
+            writeScalar(timeline, id, 'position.x', action.to ?? 0, at, span, ease,
+                        { ...opts, from: action.from
+                            ?? restVec(scene.get(id), 'position')?.[0] });
             return;
         }
 

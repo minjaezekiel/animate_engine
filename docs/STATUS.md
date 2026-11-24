@@ -2,9 +2,389 @@
 
 **Rule: a phase is not done until this file is updated in the same commit.**
 
-Last updated: 2026-11-07 (Phase 36: **three flagged problems, fixed** -- `test:av` has been failing since voice loudness matching landed, because the sync probe hunted its click above an absolute 0.9 and the chain legitimately brings dialogue down 10.3 dB; the probe now measures the click against its own window's peak, which survives any gain, and asserts the separation so it cannot start passing by luck. A shared headless-Chrome lock, taken by `produce`, `grab2d` and `narration-pacing`, so a second job waits instead of getting one of them OOM-killed with a message that says nothing. And `bounceParts` now squares the restitution, because height goes as e-squared -- the figure was teaching in the margin the mistake the narration corrects in the middle. Phase 35: **"Game Physics", all seven parts** -- the series finished end to end, 2:48 to 2:57 each, and three more engine gaps the back half found: `count`, a numeric readout that ramps and costs one key per *visible* value rather than one per frame; `shift`, which moves a board part BY an offset instead of teleporting it to the frame's left edge; and a validator that no longer calls a part's own `rot`/`sx`/`sy` unrecognized. Also two layout traps written down rather than re-learned: nothing may sit below y=1430 because that is the subtitle band, and a multi-line text part anchors on its LAST line, which is how four captions in a row printed over their own headings. Phase 34: **"Game Physics"** -- part one of a seven-part series on collision maths, and the first speaking cast in this repo that is NOT a generated humanoid: two billiard balls and a floating robot, authored as explicit `parts` + `mouth` characters. A ball has no arms, so all of its acting is brows, squash and spin -- and three of those four things the engine could not say. Added `squash` and `spin` as verbs, and fixed `pose`/`reach`/`grip` ramping a part from channel 0 rather than from where the rig authored it. Also the three defects that only a rendered FRAME could catch, all of which passed `check-film` clean: a spotlight revealed to alpha 1 covered the table in solid white, two scenes played a four-second line over an empty frame, and the end card ran its kicker through its own title. Phase 33: **"Reading the Rock" / "Kusoma Mwamba"** -- a six-part structural-geology series on joints, folds, faults and shear zones, built TWICE from one authored staging, in English and Swahili, and the three defects that only a second language could expose: a film voiced by anything but Piper was silently measured at the English word rate, the opening shot's tail pad was a hole in the hook (74% against an 80% floor in Swahili where its English twin passed at 85%), and a 3.5s minimum shot length manufactured its own gap under a two-word line. Also: voice substitution is no longer silent -- a film cast against a VoiceStudio that is not running reported nothing and rendered in a Piper voice. Phase 32: **voices and delivery** -- Swahili confirmed working, voices level-matched after measuring a 6.6 dB gap between two of them, casting by role, and a narration pacing analyser that found our own films are 54% speech against the references' 73%. Phase 31: **drawn animation** -- exposure sheets, time-gated smears and boil, from measuring a hand-drawn reference the engine could not have produced. Phase 30: **"Finding Gold"**, a ten-part 1080x1920 series, and the three defects building it exposed -- `lineCap` never reaching the renderer, every transition in six finished films being a hard cut, and `transform.x` being absolute rather than a delta. Phase 29: the **walk cycle** rebuilt on the real key poses -- it had no `down`, no foot roll, and a hip rise that left every walking character hovering above the ground. Phase 28: a render at a non-authored size **cropped** the film instead of scaling it. Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
+**Layout.** This file is the register — one paragraph per phase, newest first,
+covering every phase including those with no document of their own. The
+documents themselves are split by state, so that "what is next" has one
+answer:
+
+- [pending/](pending/) — **open work only**, ordered. Start at
+  [pending/00-INDEX.md](pending/00-INDEX.md).
+- [completed_phases/](completed_phases/) — finished work, and the defects
+  building it exposed.
+- the rest of `docs/` — reference: how the engine works, not what was built
+  when.
+
+A document moves from `pending/` to `completed_phases/` when its acceptance
+test passes, not when its code lands.
+
+Last updated: 2026-11-24 (Phase 39: **"Inside the Earth"** -- a 65 s 3D film used as an instrument, and the phase in which the 3D path stopped being a smaller copy of the 2D one. Five capabilities it was missing were not missing machinery at all, only a call nobody had made: **MP4** (the WebCodecs sink and the ISO-BMFF muxer have been here since Phase 27 and `film3d.html` had never called them), chunked readback (a 50 MB data URL crosses the CDP boundary truncated with NO ERROR), `retimeToAudio` (shape-compatible with a 3D film the whole time, so a shot shorter than its line simply cut the line off), voice levelling, and vendored voice models. Genuinely new: **procedural textures** as layered specs painted to bytes in pure Node arithmetic, `normalFromHeight`, and `preview-texture.mjs` so a plate can be LOOKED at without a browser; the **screen overlay** -- subtitles, titles and world-anchored callouts as one draw list, composited after post, which is the first type the 3D path has ever drawn and closes a `subtitle` flag `compile3d` has carried unread since Phase 16; sphere **phi/theta sweeps** plus `circle`/`ring` caps, which is what makes a cutaway possible without CSG; **clipping planes** and the `cut` verb; a `glow` rim shader; `spin` and `squash` in 3D; pivots in assemblies; and a **master headroom stage** in the mixer, because `renderMix` had `master.gain.value = 1`, no limiter and no report, and the finished film clipped at +0.3 dBFS with every checker passing it. The defect worth keeping: `normalScale: [0.45, 0.45]` -- `Vector2.copy` reads `.x`/`.y`, which on an array are undefined, so the normal went NaN and **the entire sunlit face of the planet rendered BLACK**, which looks exactly like a lighting bug and took three wrong hypotheses. Third instance of the same class after `COLOR_PROPS`. Also **the token finding**: ~85% of the tokens spent building this film went on LOOKING at it, and continuous vision would be worse, not better -- a 1 fps stream of a 65 s film is 130,000 tokens to watch once. The answer is to make the engine answer in numbers, so `core/script/digest.js` reports per-subject box, coverage, luma and dominant hue at ~420 tokens for a whole film against ~2,000 for one screenshot, and would have caught the black planet instantly. Four voice engines behind one gateway now (**Kokoro 82M** and **OpenVoice V2** added), four new MCP tools because the 3D compiler had NO tool of any kind, and `workspace.html` plus a labelled, keyboard-reachable tool rail, because the editor's six nav items were `div`s whose names were `opacity: 0` tooltips. Phase 38: **"Reading the Market" / "Kusoma Soko"** -- a ten-part bilingual forex series, twenty films, ~90 s each, and the first series here staged on a LIGHT background: ink on sage paper, measured off the `anime8` reference (576x1024, 75.2 s, mean RGB 150,154,137, chroma spread 18 -- a real colour, not a grey, and not the monochrome `anime6` studied for Phase 33). The cast is line art authored as explicit `parts` + `mouth` characters rather than `generate`, which turns Phase 37's fourth correction on its head: the generated rig is a diagram of a person, and this style IS a diagram of a person on purpose. Also the series that argues with its own brief -- the ask was for a strategy working "95% of the time", no strategy does, and manufacturing one requires the tiny-target-huge-stop pattern that empties beginner accounts, so expectancy is the spine and part ten hands the 95 back as the REJECTION rate. Six defects that passed every checker and were visible only in a rendered frame, three of them in shared code: `cardRows` drew a dark navy card on paper, `statParts` ran a multi-line caption back up through its own number, and `dim` measured 2.8:1 against the paper. Phase 36: **three flagged problems, fixed** -- `test:av` has been failing since voice loudness matching landed, because the sync probe hunted its click above an absolute 0.9 and the chain legitimately brings dialogue down 10.3 dB; the probe now measures the click against its own window's peak, which survives any gain, and asserts the separation so it cannot start passing by luck. A shared headless-Chrome lock, taken by `produce`, `grab2d` and `narration-pacing`, so a second job waits instead of getting one of them OOM-killed with a message that says nothing. And `bounceParts` now squares the restitution, because height goes as e-squared -- the figure was teaching in the margin the mistake the narration corrects in the middle. Phase 35: **"Game Physics", all seven parts** -- the series finished end to end, 2:48 to 2:57 each, and three more engine gaps the back half found: `count`, a numeric readout that ramps and costs one key per *visible* value rather than one per frame; `shift`, which moves a board part BY an offset instead of teleporting it to the frame's left edge; and a validator that no longer calls a part's own `rot`/`sx`/`sy` unrecognized. Also two layout traps written down rather than re-learned: nothing may sit below y=1430 because that is the subtitle band, and a multi-line text part anchors on its LAST line, which is how four captions in a row printed over their own headings. Phase 34: **"Game Physics"** -- part one of a seven-part series on collision maths, and the first speaking cast in this repo that is NOT a generated humanoid: two billiard balls and a floating robot, authored as explicit `parts` + `mouth` characters. A ball has no arms, so all of its acting is brows, squash and spin -- and three of those four things the engine could not say. Added `squash` and `spin` as verbs, and fixed `pose`/`reach`/`grip` ramping a part from channel 0 rather than from where the rig authored it. Also the three defects that only a rendered FRAME could catch, all of which passed `check-film` clean: a spotlight revealed to alpha 1 covered the table in solid white, two scenes played a four-second line over an empty frame, and the end card ran its kicker through its own title. Phase 33: **"Reading the Rock" / "Kusoma Mwamba"** -- a six-part structural-geology series on joints, folds, faults and shear zones, built TWICE from one authored staging, in English and Swahili, and the three defects that only a second language could expose: a film voiced by anything but Piper was silently measured at the English word rate, the opening shot's tail pad was a hole in the hook (74% against an 80% floor in Swahili where its English twin passed at 85%), and a 3.5s minimum shot length manufactured its own gap under a two-word line. Also: voice substitution is no longer silent -- a film cast against a VoiceStudio that is not running reported nothing and rendered in a Piper voice. Phase 32: **voices and delivery** -- Swahili confirmed working, voices level-matched after measuring a 6.6 dB gap between two of them, casting by role, and a narration pacing analyser that found our own films are 54% speech against the references' 73%. Phase 31: **drawn animation** -- exposure sheets, time-gated smears and boil, from measuring a hand-drawn reference the engine could not have produced. Phase 30: **"Finding Gold"**, a ten-part 1080x1920 series, and the three defects building it exposed -- `lineCap` never reaching the renderer, every transition in six finished films being a hard cut, and `transform.x` being absolute rather than a delta. Phase 29: the **walk cycle** rebuilt on the real key poses -- it had no `down`, no foot roll, and a hip rise that left every walking character hovering above the ground. Phase 28: a render at a non-authored size **cropped** the film instead of scaling it. Phase 27: **MP4 export** — an ISO-BMFF muxer behind the `WebCodecsSink` seam that nothing had ever filled, so H.264/AAC is now the default container and renders run faster than real time. Phase 26: bring your own assets — trace a 2D character out of an uploaded image, import 3D models and HDR environments; both reachable headless by an agent. Phase 25: hands and fingers on both paths — twenty bones per hand in 3D, three detail levels of cutout hand in 2D, and one `grip` pose table shared by both. Phase 24: bone constraints, 3D IK, correctives, teeth, hair, cloth and fluid simulation, and the full post chain).
 
 Legend: **done** · *partial* · — not started
+
+---
+
+## Phase 39 — "Inside the Earth": the 3D path, tested against a minute of film — **done**
+
+A one-minute 3D explainer used as an instrument: a presenter says what the
+engine can do, and then the engine has to do it. 65.4 s, 1920x1080, H.264/AAC,
+a sectioned planet at true layer scale, nine spoken lines, callouts that track
+the geometry, a synthesized score. `scripts/make-earth.mjs`,
+`scripts/lib/earth.mjs`, `scripts/make-earth-audio.mjs`, `films/earth3d.json`.
+Full findings: [completed_phases/34-EARTH-3D.md](completed_phases/34-EARTH-3D.md).
+
+### The five that were a call nobody had made
+
+| Item | State |
+|---|---|
+| **MP4 on the 3D path** | **done** — `film3d.html` chooses its encoder the way `studio.js` does. 1570 frames at 1080p in 214 s wall: **3.3x faster than real time**, where the old paced `MediaRecorder` path could not beat real time at all. `avc1` Main@L4.0, `stts` one run of 1570x1000 at timescale 24000 (constant 41.67 ms, no drift), AAC averaging 286 B/frame |
+| Chunked readback with a length check | **done** — the page parked a 50 MB data URL and returned it whole. That crosses the CDP boundary **truncated with no error**; the 2D path learned this in Phase 27 and this one never did |
+| `retimeToAudio` on 3D | **done** — it walks `scenes[].shots[].dialogue[]` and has been shape-compatible with a 3D film since it was written. A shot shorter than its line cut the line off at the cut |
+| Voice levelling | **done** — 0.14 target, not the 0.06 engine default, so 3D dialogue is no longer ~7 dB under its 2D siblings |
+| Vendored voice models + the render lock | **done** — a fresh headless profile has an empty OPFS, so every 3D render re-downloaded from a CDN. That is what cost Phase 30 a series |
+
+### Genuinely new
+
+| Item | State |
+|---|---|
+| `core/art/textures.js` — layered procedural textures | **done** — `solid`/`gradient`/`noise`/`polygons`/`latitudeBand`, blend modes, and masks that **multiply** (a desert is "on land AND away from the poles AND not on the equator" — a single mask slot put sand in Siberia). Returns BYTES, so it is pure Node arithmetic and unit-tested like the rest of `core/` |
+| `normalFromHeight` | **done** — central differences, wraps in x and clamps in y, so a ridge in the shading is a ridge in the colour |
+| `scripts/preview-texture.mjs` | **done** — paints a spec to PNG in Node with `zlib.deflateSync` and four chunk headers. Three texture defects were found with it in seconds each and would not have been found otherwise |
+| The screen overlay | **done** — `core/art/overlay.js` + `render/Overlay2D.js`. Subtitles, titles and world-anchored callouts as ONE draw list. The first type the 3D path has ever drawn, and it closes a `subtitle` flag `compile3d` has carried **unread since Phase 16** |
+| Sphere `phiStart`/`phiLength`/`thetaStart`/`thetaLength`, `circle`/`ring` | **done** — four parameters THREE always had and the adapter never passed. Their absence is why a cutaway was impossible |
+| Clipping planes + the `cut` verb | **done** — `meta.clip`, per-material `clip`, and `clipIntersection`, whose default is the opposite of what a cutaway wants: false clips the UNION (three quarters of a sphere), true clips the INTERSECTION (the wedge) |
+| `glow` — a view-dependent rim | **done** — the one effect no PBR parameter exposes, with the clipping chunks included by hand because a raw `ShaderMaterial` does not get them free |
+| `spin` and `squash` in 3D | **done** — closes the row this file has carried since Phase 35. `squash` preserves volume: the widening axes go as the square root |
+| Pivots in assemblies | **done** — a part with no geometry is an empty transform, not a cube. "Tilt the planet, spin the globe inside the tilt" is two rotations and a node has one |
+| Authored `visible: false` | **done** — the channel existed since Phase 14 and nothing applied the authored value |
+| A `macro` framing band | **done** — the three existing bands top out at 240% of frame height, so a correctly framed macro of a layer reported 4300% and read as an error |
+| Master headroom in `renderMix` | **done** — `master.gain.value = 1`, no limiter, no ceiling and **no report**. The finished film clipped at +0.3 dBFS and every checker passed it. A measured true peak and one flat gain, not a compressor, because the output must stay a pure function of the input |
+| Music bed on the 3D path | **done** — synthesized at full length (68 s, 6.5 MB). There is still no looping cue, which is the honest cost |
+
+### The defect worth keeping
+
+> **`normalScale: [0.45, 0.45]` rendered the entire planet BLACK.**
+> `Material.setValues` copies into the existing Vector2 with
+> `currentValue.copy(newValue)`, and `Vector2.copy` reads `.x` and `.y` —
+> which on an array are `undefined`. NaN in the normal makes every lighting
+> dot product NaN. Not magenta, not missing: black, which looks exactly like
+> a lighting bug, and shadow acne, light direction and colour space were all
+> checked before the actual cause. Third instance of the same class after
+> `COLOR_PROPS`, now guarded by `VECTOR2_PROPS`. **Spreading unrecognised keys
+> into a THREE constructor is free until it is silent.**
+
+### Token expenditure, measured
+
+| Item | State |
+|---|---|
+| The measurement | **done** — ~85% of the tokens spent building this film went on LOOKING at it: 14 screenshots at ~2,000 each against 8 structured checks at ~300 |
+| Continuous vision, analysed | **rejected, with numbers** — a video stream IS N screenshots. At 1 fps a 65 s film is **130,000 tokens to watch once**, five times what the whole build cost. It pays for reacting to someone else's UI, not for inspecting output you generated deterministically |
+| `core/script/digest.js` | **done** — per subject: screen box, frame coverage, mean luma, dominant hue; plus a frame histogram and every string of overlay text. **~420 tokens for a whole film against ~2,000 for one screenshot.** Would have caught the black planet instantly |
+| Four 3D MCP tools | **done** — `check_film_3d`, `digest_film_3d`, `grab_frames_3d`, `render_film_3d`. The 3D compiler had **no tool of any kind** |
+| Compact serialisation on the bridge | **done** — `JSON.stringify(x, null, 2)` cost ~40% more tokens for nothing |
+
+### Voices: four engines, one gateway
+
+| Item | State |
+|---|---|
+| `core/voice/gateway.js` | **done** — registration order was written by hand at four call sites and had drifted: a film cast on a cloned voice rendered in that voice in 2D and in a Piper preset in 3D |
+| **Kokoro 82M** (Apache-2.0) | **done** — browser ONNX, best phrasing of the preset engines. Registers only when asked for: always-available and always 86 MB does not belong silently in a fallback ladder |
+| **OpenVoice V2** (MIT) | **done** — reference cloning over HTTP, through the `TtsHttpProvider` seam built for exactly this in the first voice phase |
+| `SPEC_PREFIX` | **done** — Piper's provider id is `tts`, not `piper`. Renaming it would silently re-cast eight series |
+| `npm run voices` | **done** — what exists, what it costs, what it needs, from a table, touching no network |
+
+### UI and navigation
+
+| Item | State |
+|---|---|
+| `scripts/shot-ui.mjs` | **done** — there was a frame grab for 2D films, one for 3D films, a contact sheet and a texture previewer, and **nothing for the editors**. It corrected its author on the first run: 120 controls in the document, 17 visible at rest |
+| The tool rail is keyboard-reachable | **done** — six `div`s with click handlers, no `tabindex`, no `role`. The entire rail was unusable without a mouse |
+| The rail is labelled | **done** — the names were `:hover` tooltips at `opacity: 0`. A tooltip is not a label |
+| Export consolidated | **done** — twelve controls across two panels and three headings, now one panel grouped by what you GET: Video, Project file, Animation data, Share |
+| `workspace.html` | **done** — five surfaces had no link between them. Grouped by task, with a persistent way back on every page |
+
+### Still open after this phase
+
+| Gap | Note |
+|---|---|
+| **No transitions on the 3D path** | `compile.js` references transitions in 22 places, `compile3d.js` in zero. Every cut in every 3D film here is a hard cut — the same finding Phase 30 recorded for 2D, arriving on the other path |
+| **Post is not keyframeable** | One focal plane for a film that moves from 5 m off a planet to 0.85 m off a cut face, so its aperture is nearly closed and rack focus is a gap rather than a shot |
+| **No modelling tool** | Unchanged since Phase 16 and still the largest gap |
+| **No day/night mask** | An emissive map glows on the lit side too |
+| **No UVs on the body** | The texture system exists now and the humanoid has nothing to put a texture on. The next obvious work |
+| **Rigid assemblies gap at hinges** | The humanoid is skinned and pinches rather than gapping; an unskinned hinged `parts` assembly opens 2·r·tan(θ/2) and nothing checks it |
+| **WebGPU** | Measured as the wrong move for now: three.js still calls it experimental, it trails WebGL 2 on many-mesh scenes, and the one thing it clearly wins — compute — is the one thing this engine's closed-form particles deliberately do not need |
+
+Every row above is now carried in [pending/](pending/) rather than only here,
+with a design behind the first three:
+[pending/35-3D-TRANSITIONS.md](pending/35-3D-TRANSITIONS.md),
+[pending/36-VOICE-RUNTIME.md](pending/36-VOICE-RUNTIME.md) (Kokoro and
+OpenVoice are selectable and no film has yet been rendered through either),
+and [pending/37-MISSING-TOOLS.md](pending/37-MISSING-TOOLS.md), the audit that
+adds the gaps nothing had written down: no motion blur on either path, no
+rigid-body dynamics at all, music that is never ducked under dialogue, and
+`digest` existing only on the 3D path where fifty of the fifty-one finished
+films are 2D.
+
+---
+
+## Phase 38 — "Reading the Market" / "Kusoma Soko", ten parts in two languages — **done**
+
+A ten-part bilingual series on foreign exchange trading, for an audience that
+has mostly met forex through somebody trying to sell them something.
+1080x1920, ~90 s a part, English 15:10 and Swahili 13:36 from ten builders.
+`scripts/make-forex.mjs`, `scripts/lib/forex.mjs`, `scripts/forex/`.
+Full notes: `completed_phases/33-FOREX-SERIES.md`.
+
+| Item | State |
+|---|---|
+| Ten parts, built twice from one staging | **done** — 20 films, 0 fatal / 0 error / 0 warning |
+| Hook coverage against the 80% floor | **done** — 94% EN, 85–94% SW |
+| Ink-on-paper look, from `anime8` | **done** — first light-background series here |
+| Line-art cast: `parts` + `mouth`, three builds | **done** — Amara, Juma, Mr Ninety-Five |
+| `stand()` — soles on the ground line at any scale | **done** — height carries the character difference |
+| Risk disclaimer on all twenty end cards | **done** — no broker named or recommended |
+| `VOICE_LEVEL` — dialogue loudness, finally reachable | **done** — series renders at 0.15, −18.5 dBFS |
+| `measure-audio` / `extract-audio` | **done** — a rendered film's loudness can now be measured at all |
+| `verify-renders` — proves an MP4 has audio | **done** — caught 14 of 20 silent on the first batch |
+
+### The series that argues with its own brief
+
+The ask was for a beginner strategy that works "95% of the time". No strategy
+does, and the only way to manufacture a 95% win rate is a tiny target against
+a huge stop — exactly the pattern that empties beginner accounts and earns
+forex the reputation the series exists to answer. Building it as asked would
+have made these films the same kind of thing as the signal sellers.
+
+So expectancy is the spine, the claim is demolished by name in part one, and
+part ten returns the number with its meaning repaired: of a hundred charts the
+routine looks at, it says *no* to about ninety-five. **The 95 was never the
+win rate.** The arithmetic agrees across parts one and nine to the last
+decimal, so a viewer who checks it by hand gets the same answer twice.
+
+### Three defects in SHARED code, found by one contact sheet
+
+All three had been correct for four series and were wrong the moment a series
+stopped staging on near-black. None is reportable: a colour is never out of
+bounds, and a text anchor is never out of range.
+
+- **`cardRows` hardcoded `#131c2b` on `#223148`.** On sage paper, a black slab
+  carrying near-black title text. Now options, defaulted to the old values so
+  none of the existing films move.
+- **`statParts` ran a multi-line caption back up through its own number.** A
+  text part anchors on its LAST line, so a two-line caption at `size * 0.62`
+  below a value puts its first line in the value's descenders. Now offset one
+  line-height per extra line.
+- **`dim` measured ~2.8:1 against the paper**, under the 3:1 floor for large
+  text. Every board heading came back half-erased.
+
+### Three in the rig, and the rule they share
+
+- **Two parallel verticals 44 apart read as ONE trouser leg.** The gap was
+  there and the eye refused to see it, because nothing about the shape said
+  "two of these". Hips widened, legs leaned out, shoes mirrored — both offset
+  the same way had put one squarely on top of the other.
+- **The arms ran down inside the coat contour** and read as a seam in the
+  clothing. The coat flares 10 past the shoulder constant, so a
+  narrow-shouldered figure had 5 units of clearance.
+- **Braids at x = ±78–90 on a 134-wide head read as headphones.** A hair
+  stroke that leaves the silhouette stops being hair and becomes whatever
+  object it most resembles.
+
+The rule all three share: **a drawing is checked by looking at it.** Six of
+the eight defects this series found came from `contact-sheet.mjs`, which puts
+the midpoint of every shot in one image, and every one of them had passed
+`check-film` clean. It is also five times cheaper to read than per-shot grabs,
+which is the other reason to reach for it first.
+
+### The dialogue was 8 dB too quiet, and nothing could have noticed
+
+A "there is no voice" report turned out to be a muted machine. The half hour
+spent on it was not wasted, because ruling out every structural cause is what
+exposed the real defect underneath: `normalizeGain` levels every line to an
+RMS of **0.06 on voiced frames** — about −24 dBFS — and `voiceLevel` was not
+plumbed through `produce.mjs`, so there was no way to change it and no way to
+measure it. Against the ~−14 LUFS a phone feed is mastered to, every film this
+repo has ever rendered plays noticeably softer than the post above it.
+
+`VOICE_LEVEL` now threads through `studio.js` into both `synthesizeDialogue`
+calls, default unchanged at 0.06 so nothing existing moves. The forex series
+renders at 0.15: −18.5 dBFS RMS against the default's −26.3. `normalizeGain`
+still caps gain against each take's own peak, so raising the target cannot
+clip.
+
+Two diagnostics now exist that did not: `scripts/measure-audio.mjs` (peak and
+RMS, overall and per 5 s window) and `scripts/extract-audio.mjs` (decoded
+audio out as a plain WAV, which removes the container, the codec and the edit
+list from the argument). Ruled out along the way, in order: a missing track;
+6-byte silent AAC frames, which is Phase 37's exact bug; a disabled `tkhd`
+flag; a malformed `esds`; a bad edit list; stereo phase cancellation on mono
+downmix; and the possibility that the measurement was itself a browser
+artefact, settled by reading the PCM off disk in pure Node.
+
+**Phase 37 is why "it is probably fine" was not an acceptable answer.** That
+advert shipped with 25 of 26 lines silent and every checker reporting success.
+
+### Fourteen of twenty rendered silent, and every one reported success
+
+The first batch run of this series produced twenty valid MP4s of the right
+duration, exited 0 on all of them, and **fourteen had no audio track at all**.
+This is Phase 37's defect returning in a new costume: that time a film kept
+its track and filled it with 6-byte silent frames; this time the track was
+simply absent. Both times `produce.mjs` said "wrote ... (6.1 MB)".
+
+The only signal in the log was **wall time**. TTS is what takes the minutes,
+so the healthy films came back in about two minutes and the broken ones in
+fifteen seconds. Nothing else distinguished them, and a human skimming a
+column of "ok" would never have looked.
+
+Three things came out of it:
+
+- **`scripts/verify-renders.mjs`.** Reads `stsz` off the container and reports
+  each track's sample count and mean frame size. A real speech frame is a
+  couple of hundred bytes; a silent one is six; a missing track is zero. No
+  browser, milliseconds per file. `npm run verify:renders out/**/*.mp4`.
+- **The batch script verifies and retries.** Every film is checked the moment
+  it is written and re-rendered if it comes back without audio. Each part
+  renders fine in isolation, so this is batch degradation rather than a
+  per-film fault — and a retry is the honest fix for that until the cause is
+  found.
+- **Never redirect a render to `/dev/null`.** The first version of
+  `render-forex.sh` did, and threw away the only evidence of what went wrong.
+  Per-film logs now go to `out/forex/logs/`.
+
+**The rule this repo keeps re-learning: a render that exits 0 has not proved
+it has a voice.** It has proved it wrote a file.
+
+### Two things about the 90-second format
+
+- **Write in lines, not paragraphs.** `estimateLine` works at 150 wpm, so a
+  25-word sentence is a ten-second shot. Part one's first cut ran 2:03 against
+  a 1:30 brief for that reason alone; the fix was 17 lines averaging 12 words
+  instead of 18 averaging 25, which also sounds far more like the reference.
+- **A four-word hook is a worse opening than a twelve-word one.** "Forex is a
+  scam." is the better line and measured 76% hook coverage, because at 1.6 s
+  the 2.2 s shot floor padded it into a hole. Adding the viewer's own evidence
+  took it to 94%.
+
+The pad is 0.55 s against the earlier series' 0.85: at 0.85 a sixteen-line
+part spends a sixth of its runtime on silence after somebody stops talking.
+
+---
+
+## Phase 37 — the XMS commercial, and what a client brief teaches — **done**
+
+A two-minute advert for XMS, an Android SMS messenger, in English and Swahili.
+`scripts/make-xms.mjs`, `scripts/lib/xms.mjs`, `scripts/xms/`. The first film
+here made for a *product* rather than to teach something, and the first whose
+content was corrected five times by the person who owns the product. Every one
+of those corrections is a lesson this repo had not written down.
+
+| Item | State |
+|---|---|
+| `ad(lang)`, built twice from one staging | **done** — 13 scenes, 26 shots; EN renders 120.0 s (2,880 frames), SW 107.9 s |
+| A UI kit drawn from the app's real layouts | **done** — `scripts/xms/common.mjs` |
+| `roundRectC` — a radius per corner | **done** — an XMS bubble is 18dp on three corners and 4dp on the sender's own |
+| `qrParts`, `contactCardParts`, `convRowParts` | **done** — the QR scan, the scanned card, a conversation row |
+| `lockParts` scales off its own width | **done** — see the defects below |
+| Both cuts compile clean | **done** — no fatal, error or warning; EN 84% line coverage, hook 93% from 0.2 s |
+
+### Five corrections from the product owner, and what each one cost
+
+**1. "Marketing, not stuff from my README."** The first cut was written off
+`README.md`, which is a *developer* document and leads with the wire format's
+limits. The app's real feature surface lives in
+`app/src/main/res/values/strings.xml` and its layouts — starred messages, an
+app lock, a per-chat send mode, QR contact cards, dual-SIM selection — none of
+which the README mentions. **Read the UI strings, not the README.** A
+product's user-facing vocabulary lives in its strings file and nowhere else.
+
+**2. "In future the app will have internet features."** The strongest scene in
+the second cut showed the app's permission list and said XMS cannot go online.
+Verifiable today; a lie after the first media release. Cut. The durable claim
+is that a message does not *need* data, which survives that release. **An
+advert outlives the build it was written against — write every claim to
+survive the roadmap.**
+
+**3. "The characters are all the same."** True, and it was authoring, not the
+engine. `generate` carries three independent dials — `heads` (height in
+head-heights: the stylisation, 6.2 adult, 4.8 child), `height` (scene units)
+and `build` (five named shoulder/hip/limb sets, each overridable) — plus a
+six-slot face kit in which the jaw carries most of the identity. The first
+cast was 520 and 510 units at the default 6.2 heads sharing four face slots,
+so of course they read as twins. Fixed to 6.5/548 against 5.8/492 with no
+shared slot.
+
+**4. The figures came out anyway.** Even differentiated, and framed to band by
+`framing: 'medium'` + `on:` — which priced the zoom exactly, 1.92 to 2.90 —
+the generated rigs did not hold up in a commercial. Close framing makes a
+cutout rig *worse*: a flat neck, a seam at every joint, no deformation. The
+voices stayed and the bodies went; the lines now play over the product.
+**The generated humanoid is a diagram of a person. For anything judged on its
+weakest frame, use `part.strokes` or supply drawn views as assets** —
+08-ART-VOCABULARY.md already says so, and this is the film that paid for it.
+
+**5. "The mock-ups do not look like my app."** The first kit was a generic
+blue chat: centred toolbar title, uniform bubble corners, no input bar, and a
+`#4a8ff0` blue. All four wrong. Rebuilt from `activity_chat.xml` top to bottom
+— back arrow at the left, left-aligned title, the send-mode chip with its lock
+icon, the SIM chip, the attach/hint/send row — and recoloured from
+`values-night/colors.xml`. The invented blue was the exact mistake the app's
+own palette file records fixing: *"kept muted in direct response to the old
+app's 'colors way too bright' problem."* **A mock-up in colours the product
+does not use teaches the viewer the wrong product.**
+
+### The defect that had no symptom at all
+
+**The first English cut rendered with no narration, and everything passed.**
+
+It was cast on `bright-f-en` and `young-f-en`, whose models
+(`en_GB-cori-high`, `en_GB-jenny_dioco-medium`) are **not in
+`vendor/piper-voices/`**. A headless render launches a fresh Chrome profile,
+so vits-web had nothing cached, the fetch did not land, and 25 of 26 lines
+came out silent. The only audio in two minutes was Juma's single line, the one
+role cast on a vendored model.
+
+Nothing anywhere said so:
+
+| what was checked | what it said |
+|---|---|
+| `validateFilm` + `compileFilm` | clean |
+| `analysePacing` | 84% line coverage -- computed from the SCRIPT, not the audio |
+| `npm run produce` | "wrote out/xms/xms-en.mp4 (9.72 MB)", exit 0 |
+| the MP4 | a valid AAC track -- of 6-byte silent frames |
+
+The one visible tell, in hindsight, was that the film rendered at **exactly**
+its authored 120.00 s while the Swahili cut re-fit from 97 s to 108 s.
+`estimatedTiming` re-times shots to the real audio, so a film that does not
+move has no audio to move to. That is a diagnostic nobody would think to read.
+
+**Fixed in `scripts/check-film.mjs`**: `checkVoiceModels` resolves every cast
+voice through `VOICE_PRESETS`, maps the `tts:` id onto its
+`vendor/piper-voices/<lang>/<locale>/<name>/<quality>/<id>.onnx` path, and
+raises an **error** -- not a warning -- naming the model and the
+`VOICE=<id> npm run vendor-voice` that fixes it. A missing model is the one
+voice failure with no symptom, so it is the one that must be caught before the
+render rather than after. Sixteen presets exist; five models are vendored.
+
+### Two defects the frames found, which no check reported
+
+- **`lockParts` hardcoded an 11 px shackle and a 10x22 keyhole.** Right for
+  the 150 px padlock it was written for; at the 18 px `ic_lock` inside a chip
+  the stroke was two thirds of the glyph and it rendered as a blob. Everything
+  now scales off `w`. A fixed stroke on a scalable glyph is the bug.
+- **`qrParts` drew its modules in `ink`** — the poster's near-white — on a
+  white quiet zone, so the QR code was white on white and all but invisible.
+
+Both compiled clean and were visible only in a grab. `grab2d` earns its keep
+again: measurements pass while the frame is wrong.
+
+### What the advert does NOT contain, on purpose
+
+No cipher, key handling, segment header, reassembly or storage design: a
+competitor watching it learns what the app is for and nothing about how to
+rebuild it. The garbled text in the `plain` scene is drawn from the wire
+alphabet but carries no real frame header. No absolutes either — `ROADMAP.md`
+commits the product against "unhackable"/"military-grade" language.
 
 ---
 
@@ -22,7 +402,7 @@ Legend: **done** · *partial* · — not started
 
 ## Phase 35 — "Game Physics", parts two to seven — **done**
 
-Full detail in [31-GAME-PHYSICS-SERIES.md](31-GAME-PHYSICS-SERIES.md).
+Full detail in [completed_phases/31-GAME-PHYSICS-SERIES.md](completed_phases/31-GAME-PHYSICS-SERIES.md).
 
 | Area | State | Notes |
 |---|---|---|
@@ -42,7 +422,7 @@ Full detail in [31-GAME-PHYSICS-SERIES.md](31-GAME-PHYSICS-SERIES.md).
 
 ## Phase 34 — "Game Physics", and a cast with no arms — **done**
 
-Full detail in [31-GAME-PHYSICS-SERIES.md](31-GAME-PHYSICS-SERIES.md).
+Full detail in [completed_phases/31-GAME-PHYSICS-SERIES.md](completed_phases/31-GAME-PHYSICS-SERIES.md).
 
 | Area | State | Notes |
 |---|---|---|
@@ -68,7 +448,7 @@ Full detail in [31-GAME-PHYSICS-SERIES.md](31-GAME-PHYSICS-SERIES.md).
 
 ## Phase 33 — "Reading the Rock" / "Kusoma Mwamba", bilingual — **done**
 
-Full detail in [30-STRUCTURE-SERIES.md](30-STRUCTURE-SERIES.md).
+Full detail in [completed_phases/30-STRUCTURE-SERIES.md](completed_phases/30-STRUCTURE-SERIES.md).
 
 | Area | State | Notes |
 |---|---|---|
@@ -395,7 +775,7 @@ its spelling is not phonetic and no measurement justifies a syllable figure.
 all six. The hook plays before the title, because a card in the first two
 seconds spends the window. `fitShots` derives every shot's duration from the
 line it carries — the direct fix for the defect that left the geology series a
-fifth silent. See `28-MADINI-YA-VITO.md`.
+fifth silent. See `completed_phases/28-MADINI-YA-VITO.md`.
 
 ### Found by looking at a frame, not by a test
 
@@ -1013,7 +1393,7 @@ harness ships, and the two hand a film back and forth through `sessionStorage`.
 ### Three defects found by asserting rather than assuming
 
 Each was silent — nothing in the page reported them. See
-[DEFECTS.md](DEFECTS.md#defects-in-the-new-code).
+[pending/DEFECTS.md](pending/DEFECTS.md#defects-in-the-new-code).
 
 - **cannon.js has never loaded.** `index.html` asked cdnjs for version 1.6.0,
   which does not exist. Every physics feature died on `CANNON is not defined`
@@ -1414,7 +1794,7 @@ down — both the arithmetic the ground declaration exists to remove.
 
 Built from the fight live test's findings. Design and measurements:
 [11-MOTION-SYSTEM.md](11-MOTION-SYSTEM.md); the gaps that prompted it:
-[10-ACTION-GAPS.md](10-ACTION-GAPS.md).
+[pending/10-ACTION-GAPS.md](pending/10-ACTION-GAPS.md).
 
 | Item | State |
 |---|---|
@@ -1456,7 +1836,7 @@ correctives.
 
 ## Live test: action — **the engine is not ready for it**
 
-Full findings and the plan: [10-ACTION-GAPS.md](10-ACTION-GAPS.md).
+Full findings and the plan: [pending/10-ACTION-GAPS.md](pending/10-ACTION-GAPS.md).
 
 A sixty-second fight (`demo/fight.json`, script in `demo/fight-script.md`)
 rendered to `demo/out/sun-and-sky.webm`. Everything structural passed —
@@ -1502,7 +1882,7 @@ cycles.
 ## Phase 7 — PWA and CDN hardening — *partial, pulled forward*
 
 Phase 2's e2e test asserted PWA installability and found that **it had never
-worked** — see [DEFECTS.md](DEFECTS.md). Both causes are fixed.
+worked** — see [pending/DEFECTS.md](pending/DEFECTS.md). Both causes are fixed.
 
 | Item | State |
 |---|---|

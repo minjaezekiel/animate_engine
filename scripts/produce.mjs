@@ -34,6 +34,14 @@ const VOICE_STUDIO = process.env.VOICE_STUDIO ?? null;
  * stand-in is one you ship twelve times.
  */
 const STRICT_VOICE = process.env.STRICT_VOICE === '1';
+/**
+ * The RMS synthesized dialogue is levelled to, on its voiced frames.
+ * The engine default is 0.06 (~-24 dBFS), which is quiet next to anything
+ * else in a phone feed. 0.14 is about -17 dBFS and sits closer to what the
+ * platforms normalise to. Peaks are still protected: `normalizeGain` caps the
+ * gain against the take's own peak, so raising this cannot clip.
+ */
+const VOICE_LEVEL = Number(process.env.VOICE_LEVEL ?? 0.06);
 const TTS_MODULE_URL = process.env.TTS_MODULE_URL
     ?? (existsSync(new URL('../vendor/vits-web.js', import.meta.url))
         ? '/vendor/vits-web.js' : null);
@@ -143,6 +151,7 @@ const result = await page.evaluate(async (origin, cfg) => {
         onLog: (m) => window.report(m),
         ...(cfg.ttsModuleUrl ? { ttsModuleUrl: cfg.ttsModuleUrl } : {}),
         ...(cfg.voiceStudioUrl ? { voiceStudioUrl: cfg.voiceStudioUrl } : {}),
+        ...(cfg.voiceLevel ? { voiceLevel: cfg.voiceLevel } : {}),
     });
     const film = await (await fetch(`${origin}/${cfg.film}`)).json();
 
@@ -241,7 +250,8 @@ const result = await page.evaluate(async (origin, cfg) => {
     };
 }, base, { film: FILM, width: WIDTH, height: HEIGHT, fps: FPS, useTts: USE_TTS,
            format: FORMAT, ttsModuleUrl: TTS_MODULE_URL,
-           voiceStudioUrl: VOICE_STUDIO, strictVoice: STRICT_VOICE });
+           voiceStudioUrl: VOICE_STUDIO, strictVoice: STRICT_VOICE,
+           voiceLevel: VOICE_LEVEL });
 
 // The extension follows what was actually encoded, not what was asked for.
 const ext = result.type.includes('mp4') ? '.mp4' : '.webm';

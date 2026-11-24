@@ -157,6 +157,23 @@ export const FRAMINGS3D = {
     wide: [0.18, 0.62, 'the subject small in its surroundings'],
     medium: [0.45, 0.92, 'the subject filling most of the frame'],
     close: [0.8, 2.4, 'a detail, deliberately cropped'],
+    /**
+     * `macro` -- a magnified detail of a much larger body.
+     *
+     * The three bands above top out at 240% of frame height, which assumes
+     * the subject is a thing you could step back from. A cutaway explainer is
+     * the case they do not cover: a shot of the crust layer measures the
+     * whole crust SHELL, because there is no node whose bounds are "the thin
+     * part", so a correctly framed macro reports 4300% and reads as an error.
+     *
+     * Without this band the only options were to declare the shot `close`
+     * and get a warning on every build, or to drop `on` and switch the check
+     * off entirely for the four shots that are the body of the film. A band
+     * that admits the case keeps the check running on them -- it still fails
+     * a macro that has drifted off its subject, which is the failure that
+     * actually happens.
+     */
+    macro: [2.0, 80, 'a magnified detail of a much larger body'],
 };
 
 /**
@@ -249,7 +266,16 @@ export function checkFraming3D(compiled, film, options = {}) {
             continue;
         }
 
-        const straddling = visible.find((r) => r.behind > 0);
+        /**
+         * A macro is INSIDE its subject's bounds, by definition.
+         *
+         * "Straddles the camera plane" is a real and useful finding for every
+         * other framing: it means the subject will clip. For a magnified
+         * detail of a large body the camera is necessarily within the body's
+         * bounding box, so the warning fires on every correctly staged macro
+         * shot and says nothing.
+         */
+        const straddling = r0.wanted === 'macro' ? null : visible.find((r) => r.behind > 0);
         if (straddling) {
             warn(r0.shotId, `Framing: ${where} straddles the camera plane at `
                 + `t=${straddling.t}s (${straddling.behind}/8 corners behind it), so it will clip.`);

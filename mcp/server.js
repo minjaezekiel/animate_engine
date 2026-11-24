@@ -12,6 +12,11 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import { writeFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const WS_PORT = Number(process.env.ANIMATE_ENGINE_WS_PORT || 8787);
 
@@ -54,7 +59,62 @@ function runCommands(commands, timeoutMs = 60000) {
   });
 }
 
-const asText = (value) => ({ content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] });
+/**
+ * A tool result, as compactly as it can be said.
+ *
+ * `JSON.stringify(value, null, 2)` was costing roughly 40% more tokens than
+ * the same data compact, for nothing: two spaces of indentation per level and
+ * a newline per field, on documents that are nested four deep. Nobody reads
+ * these by eye, and the model does not parse indented JSON any better than
+ * compact JSON.
+ *
+ * Plain text wins where it is available -- `formatDigest` output is about a
+ * fifth of the same data as JSON -- so a caller may pass a string and it is
+ * returned as-is.
+ */
+const asText = (value) => ({
+    content: [{ type: 'text',
+                text: typeof value === 'string' ? value : JSON.stringify(value) }],
+});
+
+/**
+ * Run one of the repo's own scripts and return what it printed.
+ *
+ * The 3D pipeline is a headless-Chrome job behind a render lock, not a
+ * command the editor session can run -- so unlike every tool above it, these
+ * do not go through the WebSocket bridge to a live browser. They start the
+ * same script a person would, which also means they take the same lock and
+ * cannot collide with a render already in flight.
+ */
+function runScript(script, env = {}, { timeoutMs = 2_400_000 } = {}) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(process.execPath, [join(REPO, 'scripts', script)], {
+            cwd: REPO,
+            env: { ...process.env, ...Object.fromEntries(
+                Object.entries(env).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])) },
+        });
+        let out = '';
+        let err = '';
+        const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('timed out')); },
+                                 timeoutMs);
+        child.stdout.on('data', (d) => { out += d; });
+        child.stderr.on('data', (d) => { err += d; });
+        child.on('close', (code) => {
+            clearTimeout(timer);
+            // A non-zero exit from `check` means FINDINGS, not a crash, and
+            // the findings are the answer -- so stdout is returned either
+            // way and the code is reported rather than thrown.
+            resolve({ code, out: out.replace(/\r/g, '\n'), err: err.slice(0, 2000) });
+        });
+        child.on('error', reject);
+    });
+}
+
+/** Strip the per-frame progress spam a script writes for a human watching. */
+const quietLines = (text) => text.split('\n')
+    .filter((l) => l.trim() && !/^\s*(voice model:|frame \d+\/)/.test(l))
+    .map((l) => l.trimEnd())
+    .join('\n');
 const runOne = (op, args) => runCommands([{ op, args }]);
 
 // ---- MCP server + tools ----
@@ -165,6 +225,119 @@ server.tool(
     const out = path.replace(/\.(mp4|webm)$/i, '') + ext;
     writeFileSync(out, file);
     return asText({ savedTo: out, bytesWritten: file.length, ...summary });
+  }
+);
+
+// ---------------------------------------------------------------- 3D film
+/**
+ * The 3D pipeline, which until now no agent could reach at all.
+ *
+ * `load_film` / `check_film` / `render_film` above drive the 2D compiler
+ * through the browser bridge. `compile3d` -- shots, cameras, characters,
+ * cutaways, textures, overlays -- had no tool of any kind, so an agent could
+ * author a 3D film and had no way to compile, check, look at or render one.
+ */
+
+server.tool(
+  'check_film_3d',
+  'Compile a 3D film and report every problem without encoding anything: compiler '
+  + 'diagnostics, framing measured analytically by projecting each subject\'s bounds '
+  + 'through the camera, exposure measured on real pixels sampled at 160x90, and the '
+  + 'overlay checked over its own draw list. Seconds, not minutes, and the way to '
+  + 'catch a bad shot before spending a render on it.',
+  { film: z.string().describe('path to the film JSON, relative to the repo root') },
+  async ({ film }) => {
+    const r = await runScript('produce3d.mjs', { FILM: film, CHECK: '1' },
+                              { timeoutMs: 600_000 });
+    return asText(quietLines(r.out) + (r.code ? '\n(findings present)' : '\n(clean)'));
+  }
+);
+
+server.tool(
+  'digest_film_3d',
+  'What is on screen, as NUMBERS, at one time per shot (or at the times you give). '
+  + 'For each named subject: its screen-space box, the fraction of frame it covers, '
+  + 'its mean luma and its dominant hue, plus a frame-wide luma histogram and every '
+  + 'string of overlay text. About 400 tokens for a whole film against roughly 2,000 '
+  + 'for ONE screenshot. Use this first and reach for `grab_frames_3d` only when a '
+  + 'number is surprising or the question is genuinely "does this look right".',
+  {
+    film: z.string(),
+    at: z.array(z.number()).optional().describe('times in seconds; default is one per shot'),
+    subjects: z.array(z.string()).optional()
+      .describe('node ids, e.g. ["earth/crust", "host"]; default is every cast root'),
+  },
+  async ({ film, at, subjects }) => {
+    const r = await runScript('produce3d.mjs', {
+      FILM: film,
+      DIGEST: at?.length ? at.join(',') : '1',
+      SUBJECTS: subjects?.length ? subjects.join(',') : null,
+    }, { timeoutMs: 600_000 });
+    return asText(quietLines(r.out));
+  }
+);
+
+server.tool(
+  'grab_frames_3d',
+  'Render single frames of a 3D film to PNG files on this machine and return their '
+  + 'paths. The ONLY check that catches a model not looking like the thing it is '
+  + 'meant to be, and the most expensive one you have: read a returned image only '
+  + 'when `digest_film_3d` cannot answer the question.',
+  {
+    film: z.string(),
+    at: z.array(z.number()).min(1).describe('times in seconds'),
+    out: z.string().optional().describe('directory for the PNGs'),
+    width: z.number().optional(),
+    height: z.number().optional(),
+  },
+  async ({ film, at, out, width, height }) => {
+    const r = await runScript('produce3d.mjs', {
+      FILM: film, GRAB: at.join(','),
+      OUT: `${out ?? 'out/grabs'}/g.png`,
+      WIDTH: width ?? 1280, HEIGHT: height ?? 720,
+    }, { timeoutMs: 900_000 });
+    if (r.code) throw new Error(quietLines(r.out) + r.err);
+    return asText(quietLines(r.out).split('\n').filter((l) => l.endsWith('.png')).join('\n'));
+  }
+);
+
+server.tool(
+  'render_film_3d',
+  'Render a 3D film to a video file on this machine, with voice, music, lipsync, '
+  + 'subtitles and the post chain. `format` picks the container: "mp4" is H.264/AAC '
+  + 'through WebCodecs and renders FASTER than real time; "webm" is the paced '
+  + 'MediaRecorder path and takes at least as long as the film runs. Returns the '
+  + 'summary, not the bytes.',
+  {
+    film: z.string(),
+    out: z.string().describe('output path, relative to the repo root'),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    format: z.enum(['auto', 'mp4', 'webm']).optional(),
+    voiceBackend: z.enum(['piper', 'kokoro', 'openvoice', 'voicestudio']).optional(),
+  },
+  async ({ film, out, width, height, format, voiceBackend }) => {
+    const r = await runScript('produce3d.mjs', {
+      FILM: film, OUT: out, WIDTH: width ?? 1920, HEIGHT: height ?? 1080,
+      FORMAT: format ?? 'auto', VOICE_BACKEND: voiceBackend,
+    });
+    if (r.code) throw new Error(quietLines(r.out) + r.err);
+    return asText(quietLines(r.out));
+  }
+);
+
+// ----------------------------------------------------------------- voices
+server.tool(
+  'list_voices',
+  'Every voice engine this build can cast against, what each one costs and needs, '
+  + 'and the ROLE names a film should use instead of model ids. Answers from a table '
+  + 'and touches no network unless `probe` is true -- so choosing a voice costs about '
+  + '200 tokens rather than an 86 MB model download to find out it was not available.',
+  { probe: z.boolean().optional().describe('also ask each engine what it actually has') },
+  async ({ probe }) => {
+    const r = await runScript('list-voices.mjs', { PROBE: probe ? '1' : null },
+                              { timeoutMs: 60_000 });
+    return asText(quietLines(r.out));
   }
 );
 

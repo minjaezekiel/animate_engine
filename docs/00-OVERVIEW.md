@@ -118,7 +118,7 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [07-ART-SYSTEM.md](07-ART-SYSTEM.md) | how flat shapes become cel-shaded limited animation |
 | [08-ART-VOCABULARY.md](08-ART-VOCABULARY.md) | **every enumerated name**, with a complete worked scene |
 | [09-PRINCIPLES.md](09-PRINCIPLES.md) | the twelve principles of animation mapped to engine features |
-| [10-ACTION-GAPS.md](10-ACTION-GAPS.md) | **measured limits on action**, and the phases that address them |
+| [pending/10-ACTION-GAPS.md](pending/10-ACTION-GAPS.md) | **measured limits on action**, and the phases that address them |
 | [11-MOTION-SYSTEM.md](11-MOTION-SYSTEM.md) | layering, timing texture, smears, motion graphics |
 | [12-MOCAP.md](12-MOCAP.md) | *assessment, unbuilt* — webcam motion capture, scoped and costed |
 | [13-3D-FILM.md](13-3D-FILM.md) | declarative 3D films, analytic particles, the 3D live test |
@@ -129,5 +129,5 @@ npm run produce                  # -> demo/out/the-keeper.webm
 | [18-EDITOR-ARCHITECTURE.md](18-EDITOR-ARCHITECTURE.md) | **undo/redo, hotkeys, docking, onion skin, image-sequence export** |
 | [19-CONTRACTS-AND-BUDGET.md](19-CONTRACTS-AND-BUDGET.md) | **silent defaults**: the scene-graph contract, cast roles, and the frame budget — and why none of it is Rust |
 | [STATUS.md](STATUS.md) | **what is implemented and what is not** |
-| [DEFECTS.md](DEFECTS.md) | the defect register for the legacy 3D engine |
+| [pending/DEFECTS.md](pending/DEFECTS.md) | the defect register for the legacy 3D engine |
 | [CDN-AND-PWA.md](CDN-AND-PWA.md) | loading from a CDN, installing, offline |

@@ -1,0 +1,253 @@
+# What this engine is missing — an audit, and how to add it safely
+
+**Status: open.** Written against the code, not against an old plan. Every
+claim here was checked by grep or by running something; where a claim is a
+judgement rather than a measurement it says so. Items graduate out of this
+doc into their own `pending/` doc when they come up the queue.
+
+Role taken deliberately: hybrid 2D/3D animator **and** tools engineer. The
+first half of each section is what an animator would miss; the second is where
+it goes in this tree and what it costs.
+
+---
+
+## 1. The one structural finding
+
+There are two compilers, `compile.js` (2D) and `compile3d.js` (3D), and the
+3D one is a **smaller, younger copy** of the 2D one. Phase 39 found five
+capabilities that were not missing machinery at all, only a call nobody had
+made — MP4, chunked readback, `retimeToAudio`, voice levelling and vendored
+voice models all existed and had never been wired to the 3D path.
+
+That is not a bug to fix once. It is a shape that will keep producing bugs
+while the two compilers share a vocabulary but not a table. The verbs each one
+actually recognizes today:
+
+| verb | 2D | 3D | note |
+|---|---|---|---|
+| `move`, `set`, `play`, `spin`, `squash`, `grip` | yes | yes | the shared spine |
+| `hide` / `show` | yes | **no** | 3D has a `visible` passthrough on a node, not a verb. A 3D film cannot reveal a prop mid-shot without authoring the flag. **A real gap.** |
+| `count` | yes | **no** | the ramping numeric readout from Phase 35. Any 3D film with a figure on screen needs it. |
+| `shift` | yes | **no** | move *by* an offset instead of to a position. Phase 35. |
+| `pose`, `reach` | yes | **no** | 3D has IK constraints and target nodes, which is arguably the better form — but the 2D vocabulary is what a writer knows. |
+| `turn`, `fly`, `grow`, `nudge`, `burst`, `cut`, `sound`, `express` | **no** | yes | several are legitimately 3D-only. `sound` and `express` are not, and are worth checking against how 2D spells the same intent. |
+
+**The fix is not to copy verbs across.** It is to make the verb table *data*
+shared by both compilers, with a per-path capability flag, so that adding a
+verb is one row and a compiler that cannot honour it says so at compile time
+instead of ignoring it. `src/core/script/ops.js` already proves the pattern —
+the MCP surface is 28 tools generated from one op table — and this is the same
+idea one layer up.
+
+Until that exists, every new verb is two implementations and one silent
+divergence.
+
+---
+
+## 2. Missing, by what an animator would reach for
+
+Each row: what it is, where it would live, and the honest cost.
+
+### Timing and curves
+
+- **No curve editor, and no dope sheet.** Easing is chosen by name from a
+  table. For dialogue and mechanical motion that is often enough; for weight
+  it is not — an animator fixes overshoot by dragging a handle, and there is
+  nowhere to drag. `src/core/anim/easing.js` + a canvas panel; the tracks are
+  already data, so this is a **UI** job, not an engine one, which makes it one
+  of the cheapest large wins here.
+- **No stepped / hold interpolation as a first-class mode.** Blocking a
+  performance in steps before splining it is how 3D character work is
+  actually done.
+- **No time remap.** No way to retime a finished span — slow a beat down, hold
+  a frame — without re-authoring its keys.
+- **No motion blur on either path.** Confirmed: the only mentions in the tree
+  are comments. For a 24 fps film with fast mechanical motion this is the
+  single most visible difference from "most 3D animations", which was the
+  original brief for Phase 39. Cheap approximation: accumulate 2–4 subframes
+  per output frame in `OfflineRenderer` behind a `shutter` meta key. Costs
+  exactly what it accumulates, is deterministic, and needs no new pass.
+- **No onion skin in 3D.** `src/render/onionSkin.js` is 2D only.
+
+### Camera
+
+- **No lens model.** The camera has a `fov`; it has no focal length in mm, no
+  sensor size and no aperture, so "shoot this on an 85" is not expressible and
+  depth of field is not physically linked to anything.
+- **Post is not keyframeable**, so there is **no rack focus** — the one camera
+  move that most reads as photography. `src/render/post3d.js` builds the chain
+  from a declaration once; the chain's parameters need to be timeline channels
+  like everything else. This is the highest-value item in this whole section
+  and is mostly plumbing.
+- **No two-node camera rig** (aim/boom), which is how a real crane shot is
+  parameterised. `mocap` and target nodes get part of the way.
+
+### Light and material
+
+- **No light rigs or presets.** Every film lights itself from scratch, and
+  Phase 39 spent three wrong hypotheses on a 26° spot at intensity 52 — in
+  candela, because lights are physically correct since r155. A `keyFillRim`
+  preset with a declared intensity model would have made that one line.
+- **No shadow catcher**, so a subject cannot be grounded on an invisible
+  floor.
+- **No node-graph materials.** Procedural *textures* landed in Phase 39 as
+  layered specs painted to bytes, which is the right shape and Node-testable;
+  materials themselves are still a flat property bag.
+- **No UVs on the procedural humanoid**, so a character cannot be textured at
+  all. Named in [../14-CHARACTER-3D.md](../14-CHARACTER-3D.md) §7 as the
+  largest single gap and still true.
+- **No decals, no triplanar projection.**
+
+### Physics and simulation
+
+This is where the engine is thinnest relative to what the word "physics"
+promises. `src/core/sim/` contains exactly two files: `cloth.js` and
+`fluid.js`.
+
+- **No rigid-body dynamics.** Nothing falls, stacks, topples or collides. A
+  seven-part series *about collision maths* (Phase 34–35) animated its
+  collisions with authored keyframes, which was the right call for teaching
+  and is not a substitute. This is the largest genuinely-missing subsystem.
+  It is also the one with a clean seam: a solver that runs on a fixed substep
+  and **bakes to keyframes** keeps frame N a pure function of N, which a live
+  solver would not. Bake, do not simulate at render time.
+- **No particle collision**, inherent to the closed-form solver and a
+  deliberate trade (debris passes through the floor).
+- **No volumetrics.** The fluid solver is a 2D grid on a card.
+- **No soft body, no constraints between bodies** (hinges, ropes, springs).
+
+### Sound
+
+- **Music is not ducked under dialogue.** `src/audio/OfflineMixer.js:40`
+  carries the comment *"so a music bed can be ducked as a group later"* — and
+  `later` has not happened. Every film in this repo has had its bed gains
+  hand-lowered in the film script instead, which means the mix is re-tuned by
+  hand per film and silently wrong the moment a line moves. A sidechain
+  envelope derived from the dialogue bus, computed offline from the already-
+  known take boundaries, is deterministic and roughly thirty lines.
+- **No per-cue EQ or compression**, no reverb send, so a voice indoors and a
+  voice outdoors are the same voice.
+- Phase 39 added the master headroom stage, so clipping at least cannot ship
+  silently any more.
+
+### Pipeline and scale
+
+- **No resume.** A render that dies at frame 1,400 of 1,570 starts again.
+- **No batch queue.** `scripts/render-forex.sh` is a shell loop, which is the
+  honest admission that there is no queue.
+- **No proxy or draft quality.** There is no "render this at quarter res with
+  post off" switch, which is what makes iteration on a 3D shot tolerable.
+- **No LOD, no occlusion culling.**
+- **No distributed or tiled render**, which for a browser engine is a real
+  option: frames are independent and `renderOffline` is already frame-indexed,
+  so N tabs could each take every Nth frame.
+
+### Review and the agent surface
+
+- **`digest` exists only on the 3D path.** The cheapest token win in the repo
+  (~420 tokens for a whole film against ~2,000 for one screenshot) is not
+  available for 2D films, and 2D is where fifty of the fifty-one finished
+  films live. **Port it. This is the single best ratio of value to work in
+  this document.**
+- **No A/B compare, no frame annotation.** An agent can grab frames; it cannot
+  diff two renders and be told what changed.
+- **No `apply_patch` on a film.** An agent rewrites whole documents, which is
+  what makes an edit expensive.
+
+### Editor and UI
+
+- **The dockable workspace is a model with no page.** `src/editor/dock.js` is
+  tested and `mountDock` is called from nowhere.
+- **No timeline UI on the 3D path at all.** `film3d.html` is a renderer with a
+  form, not an editor.
+- **No asset browser**, so an imported model's node names are discovered by
+  running a script.
+- **No render queue panel**, which is the UI half of the pipeline gap above.
+- **No hotkey rebinding UI**, although the keymap is already data that
+  describes itself.
+
+---
+
+## 3. How to add any of it without breaking what works
+
+The repo already has the seams. The rule is to use them rather than reach past
+them, and the four that matter:
+
+1. **Pure core, adapted backend.** Anything that can be arithmetic goes in
+   `src/core/` with no THREE and no DOM, so it is testable in Node in
+   milliseconds. `src/core/art/textures.js` is the model: layered specs in,
+   RGBA bytes out, 22 tests, no browser. The backend adapter
+   (`src/backends/three3d/SceneAdapter.js`) is the only place allowed to know
+   about THREE.
+2. **A feature is a normalized spec, a pure function, a checker and a test —
+   four things, every time.** The spec is normalized at compile time with
+   warnings for anything unread; the function is pure; the checker answers in
+   numbers; the test asserts the numbers. Phase 39's overlay shipped that way
+   and its 28 false findings were caught by its own checker before any render.
+3. **Nothing new may read a key that nothing validates.** The repeated,
+   expensive defect in this codebase is a declared key that nothing reads:
+   `lineCap` never reaching the renderer, a `subtitle` flag unread since Phase
+   16, `subtitleStyle` advertised and ignored, transitions on 3D scenes today.
+   See [../19-CONTRACTS-AND-BUDGET.md](../19-CONTRACTS-AND-BUDGET.md). The
+   discipline is cheap: normalize every spec and warn on every leftover key.
+4. **Guard lists, not special cases.** `COLOR_PROPS` and then `VECTOR2_PROPS`
+   in `SceneAdapter.js` exist because THREE's `setValues` copies into a live
+   object and an array silently became NaN — which rendered an entire planet
+   black. Third instance of that class. A new property type goes on a list,
+   and the list is the documentation.
+
+And one process rule that has earned its place: **an animation that hits a
+limit ships the engine feature that removes it.** Nothing in this document
+should be built because it is on this document. It should be built because a
+film could not be made without it — which also guarantees it ships with a
+real test instead of a synthetic one.
+
+---
+
+## 4. Priority, with the reasoning
+
+Ordered by value over cost, not by size.
+
+| | Item | Why here |
+|---|---|---|
+| 1 | **3D transitions** ([35](35-3D-TRANSITIONS.md)) | Every 3D cut is hard. Tier 1 costs one `fillRect`. |
+| 2 | **Port `digest` to 2D** | Best ratio in the document; fifty films cannot use the cheapest check in the repo. |
+| 3 | **Voice runtime** ([36](36-VOICE-RUNTIME.md)) | Two engines shipped that nothing can render through. |
+| 4 | **Keyframeable post → rack focus** | The most cinematic missing move, and mostly plumbing. |
+| 5 | **Music ducking** | ~30 lines; currently hand-tuned per film and silently wrong when a line moves. |
+| 6 | **Motion blur via subframe accumulation** | The clearest visual gap against reference 3D work; deterministic. |
+| 7 | **Shared verb table** | Stops the 2D/3D divergence at the source. |
+| 8 | **Curve editor + dope sheet UI** | Large, but no engine change: the tracks are already data. |
+| 9 | **Rigid-body dynamics, baked to keys** | Largest missing subsystem; needs its own doc before any code. |
+| 10 | **Proxy render + resume + queue** | Iteration cost, not capability. |
+
+---
+
+## 5. What the UI has to become
+
+Phase 39 fixed the immediate sin — six nav items that were `div`s with
+`opacity: 0` tooltips for names, unreachable by keyboard — and added
+`workspace.html` as a front door. Measured, not assumed: the editor shows 17
+controls at rest out of 120 in the document.
+
+What the items above need from the interface, in the order they would arrive:
+
+1. **A timeline panel shared by both paths**, showing shots, dialogue spans
+   and transitions on one ruler. The compiler already produces exactly this
+   data (`shots[]` with `start`/`duration`, and the retimed dialogue), and
+   nothing displays it. It is also where a transition would be *authored*,
+   which is the argument for building it alongside item 1.
+2. **A curve editor** in the same panel, because a dope sheet without one
+   only moves time.
+3. **A voice picker** populated from `listVoices`, writing a *role* rather
+   than a model id so a click cannot weld a film to one engine.
+4. **A render panel with a queue and a draft toggle**, replacing the shell
+   loop.
+5. **Mount `dock.js`**, which is tested and unused, rather than adding a
+   fourth fixed layout.
+
+The constraint that holds all of this together, and must not be given up:
+**there is no editor-only state.** The edit *is* the script. Every panel above
+reads and writes the same document an agent reads and writes, which is why a
+pose dragged by hand can be diffed, and why none of this needs a second data
+model.

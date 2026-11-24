@@ -2,7 +2,7 @@
 
 What was built after the fight live test measured **77% of its frames exactly
 frozen** while every other check reported clean. Findings and the original
-plan: [10-ACTION-GAPS.md](10-ACTION-GAPS.md).
+plan: [pending/10-ACTION-GAPS.md](pending/10-ACTION-GAPS.md).
 
 Researched against how production systems solve the same problems, then built
 to the same shapes.

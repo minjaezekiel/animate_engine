@@ -313,7 +313,7 @@ export const rest = (target, at = 0) => ({ target, do: 'pose', pose: 'rest', at:
  * Hold an expression, then come back to rest.
  *
  * `for` on a pose is the TRANSITION span, not a hold -- the trap
- * `30-STRUCTURE-SERIES.md` records, where a character ends a scene still
+ * `../../docs/completed_phases/30-STRUCTURE-SERIES.md` records, where a character ends a scene still
  * holding a gesture. This poses in, holds, and poses back.
  */
 export const express = (target, pose, at, { hold = 1.2, span = 0.3 } = {}) => [
@@ -1124,7 +1124,7 @@ export function fitShots(film, { pad = 0.46, min = 2.4, hookPad = 0.2 } = {}) {
             for (const line of shot.dialogue ?? []) {
                 // The SPEAKER's rate: Bolt is cast at 1.06, so a flat
                 // estimate OVER-sizes every shot he is in. Same mechanism as
-                // the Rajabu defect in `30-STRUCTURE-SERIES.md`, opposite sign.
+                // the Rajabu defect in `../../docs/completed_phases/30-STRUCTURE-SERIES.md`, opposite sign.
                 needed = Math.max(needed,
                     (line.at ?? 0)
                         + estimateLine(line.text, { lang: 'en', rate: rateOf(line.speaker) })

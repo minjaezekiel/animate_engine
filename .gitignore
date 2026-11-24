@@ -18,3 +18,6 @@ vendor/
 # both are build output, and the generators beside them are the source.
 # The rendered MP4s are already covered by `out/` and `*.mp4` above.
 films/
+
+# A scratchpad path created here by mistake; never project content.
+private/

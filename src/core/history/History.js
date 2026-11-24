@@ -22,7 +22,7 @@
  *   - **Cost is the document, not the edit.** Dragging a joint for two
  *     seconds at 60 Hz is 120 edits. Against a 500 KB film that is 60 MB
  *     of garbage and 120 full serialisations, for 120 changed numbers.
- *     `docs/DEFECTS.md` already lists the legacy editor's version of this
+ *     `../../../docs/pending/../../../docs/pending/DEFECTS.md` already lists the legacy editor's version of this
  *     -- `markChanged` -> `serializeProject()` -> `localStorage.setItem`
  *     on *every mutation* -- as a performance defect.
  *   - **It cannot say what it is undoing.** A snapshot has no label, so

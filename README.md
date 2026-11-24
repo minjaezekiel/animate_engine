@@ -13,6 +13,54 @@ MIT licensed — see [LICENSE](LICENSE).
 
 ---
 
+## Current status
+
+**Phase 39 · 2026-11-24.** 947 unit tests pass in Node, plus browser-driven
+end-to-end suites that render real video and then probe the file that comes
+out rather than trusting the renderer's own report — `test:av` and
+`test:av:mp4` hunt a 1 kHz click in the muxed audio to prove picture and sound
+are *aligned*, not merely both present. The per-phase register of what was
+found and fixed is [docs/STATUS.md](docs/STATUS.md), and it is the document to
+trust over this one.
+
+Where the two rendering paths actually stand:
+
+| | 2D (`compile.js`) | 3D (`compile3d.js`) |
+|---|---|---|
+| Finished films | ~50, across five series and one advert | one, 65 s |
+| MP4 (H.264/AAC), faster than real time | yes | yes |
+| Voice, lipsync, shots retimed to real audio | yes | yes |
+| Music and sound cues, levelled and limited | yes | yes |
+| Subtitles, titles, screen callouts | yes | yes |
+| Framing, exposure and pacing checks | yes | yes |
+| **Transitions between shots** | yes — fade, crossfade, dip | **none; every cut is hard** |
+| Keyframeable post (rack focus) | partial | no |
+| Procedural textures | n/a | yes |
+| Cutaways — sectioned geometry, clip planes | n/a | yes |
+
+The short version: **the 2D path is production-proven and the 3D path is
+newly capable.** 2D has been driven through five series and about fifty
+finished films, and most of what is still wrong with it is known and written
+down. 3D rendered its first complete voiced film in Phase 39 —
+`out/earth/inside-the-earth.mp4`, 65.4 s at 1920×1080, 24 fps with no drift,
+verified structurally rather than by eye — and the gap analysis that film was
+built to produce is [docs/completed_phases/34-EARTH-3D.md](docs/completed_phases/34-EARTH-3D.md).
+
+Built but **not yet exercised**, stated here rather than left to be
+discovered:
+
+- **Kokoro 82M** and **OpenVoice V2** are registered in the voice gateway and
+  selectable with `VOICE_BACKEND=kokoro|openvoice`, with unit tests — but no
+  film has been rendered through either. Kokoro is an ~86 MB first fetch;
+  OpenVoice needs a server you start. Every film in the repo is cast on
+  vendored Piper so that it renders offline.
+- **The dockable workspace** (`src/editor/dock.js`) is tested and mounted on
+  no page.
+
+The largest single gap is 3D transitions: `compile.js` references them in
+twenty-two places and `compile3d.js` in none, which is why every cut in every
+3D film here is a hard cut.
+
 ## What it does today
 
 - **Author a film** as `jirex.film/1` JSON, or paste a screenplay and have it
@@ -107,6 +155,16 @@ shots and ten voiced lines, running exactly 120.0 seconds.
 ```bash
 npm install          # only dev dependencies (terser, puppeteer-core, omggif)
 npm run serve        # ES modules need an http:// origin
+open http://localhost:8080/workspace.html   # start here: every surface, by task
+```
+
+`workspace.html` is the map. There are five separate programs here with
+similar names — a film studio, a pose editor, a drawing surface, a 3D editor
+and a headless 3D renderer — and it says in a sentence each what they are for,
+alongside the terminal commands that do the rest. Every surface carries a link
+back to it.
+
+```bash
 open http://localhost:8080/film.html     # author, voice, render, export
 open http://localhost:8080/studio.html   # pose characters by dragging them
 ```
@@ -122,6 +180,38 @@ To render the demo to a file from the command line:
 npm run produce                                   # -> demo/out/the-keeper.mp4
 FORMAT=webm npm run produce                       # the zero-dependency path
 FORMAT=mp4 WIDTH=1080 HEIGHT=1920 FILM=my.json OUT=out/my.mp4 npm run produce
+```
+
+### 3D films
+
+A 3D film is one declarative document — shots, cameras, characters, textures,
+cutaways, overlays — compiled by `compile3d` and rendered headless. It encodes
+H.264/AAC through WebCodecs, faster than real time, like the 2D path.
+
+```bash
+npm run make:earth-audio && npm run make:earth   # the worked example
+npm run check:earth          # compile, framing, exposure, overlay. Seconds.
+npm run digest:earth         # what is on screen, as NUMBERS, not pixels
+npm run render:earth         # -> out/earth/inside-the-earth.mp4
+```
+
+`check` and `digest` are the point. Between them they catch most of what a
+finished render would have shown you ten minutes later, and `digest` reports a
+whole film's worth of screen state — per-subject bounds, coverage, luma,
+dominant hue and every string of on-screen text — for about a fiftieth of what
+one screenshot costs an agent. Full notes: [docs/completed_phases/34-EARTH-3D.md](docs/completed_phases/34-EARTH-3D.md).
+
+### Voices
+
+Four engines behind one gateway: **Piper** (vendored, always available),
+**Kokoro 82M**, **OpenVoice V2** (cloning, over HTTP) and **VoiceStudio**. A
+film casts by *role* — `narrator-m-en` — never by model id, so the same
+document renders offline on Piper and on a cloned voice when one is running.
+
+```bash
+npm run voices               # what exists, what it costs, what it needs
+npm run voices -- --probe    # and what each live engine actually has
+VOICE_BACKEND=kokoro npm run render:earth
 ```
 
 Before spending a render on a film, compile it and read what it says:
@@ -195,6 +285,21 @@ recovers both from the encoded file.
 
 ## Documentation
 
+`docs/` is laid out so that the question "what am I supposed to do next?" has
+one answer:
+
+- **[docs/pending/](docs/pending/)** — the work queue. Open work only.
+  [docs/pending/00-INDEX.md](docs/pending/00-INDEX.md) is the ordered list.
+- **[docs/completed_phases/](docs/completed_phases/)** — what was finished, and
+  the engine defects building it exposed.
+- **[docs/STATUS.md](docs/STATUS.md)** — the register, one paragraph per phase,
+  newest first. A phase is not done until this file is updated in the same
+  commit.
+- **docs/** itself — reference: how the engine works, rather than what was
+  built when.
+
+### Reference
+
 | Document | For |
 |---|---|
 | [docs/00-OVERVIEW.md](docs/00-OVERVIEW.md) | architecture and why the core exists |
@@ -206,7 +311,6 @@ recovers both from the encoded file.
 | [docs/07-ART-SYSTEM.md](docs/07-ART-SYSTEM.md) | the art system's design, and the corrections measurement forced on it |
 | [docs/08-ART-VOCABULARY.md](docs/08-ART-VOCABULARY.md) | **every name the procedural art accepts** — read this to author cheaply |
 | [docs/09-PRINCIPLES.md](docs/09-PRINCIPLES.md) | the twelve principles of animation, and the feature carrying each |
-| [docs/10-ACTION-GAPS.md](docs/10-ACTION-GAPS.md) | **what the engine could not do**, measured against a fight brief |
 | [docs/11-MOTION-SYSTEM.md](docs/11-MOTION-SYSTEM.md) | layering, on-twos, smears and the motion-graphics draw layer |
 | [docs/12-MOCAP.md](docs/12-MOCAP.md) | *assessment, unbuilt* — rigging a character from a webcam, and what it would cost |
 | [docs/13-3D-FILM.md](docs/13-3D-FILM.md) | the 3D film script, particles, and what an AK-47 ad found |
@@ -215,15 +319,58 @@ recovers both from the encoded file.
 | [docs/16-PAINT.md](docs/16-PAINT.md) | **the drawing tools** — SVG paths, 15 brushes, layers, grain, wet media |
 | [docs/17-MOTION-AND-MCP.md](docs/17-MOTION-AND-MCP.md) | **picture into video** — tearing, inpainting, depth — and the agent surface |
 | [docs/18-EDITOR-ARCHITECTURE.md](docs/18-EDITOR-ARCHITECTURE.md) | **undo/redo, hotkeys, docking, onion skin, image-sequence export** |
-| [docs/19-CONTRACTS-AND-BUDGET.md](docs/19-CONTRACTS-AND-BUDGET.md) | the contracts the renderer keeps, and the frame budget |
+| [docs/19-CONTRACTS-AND-BUDGET.md](docs/19-CONTRACTS-AND-BUDGET.md) | the contracts the renderer keeps, the frame budget, and the silent-default defect shape |
 | [docs/20-IMPORT.md](docs/20-IMPORT.md) | **bring your own assets** — trace a 2D character from a picture, import 3D models and HDR environments |
-| [docs/STATUS.md](docs/STATUS.md) | **implemented vs not** |
-| [docs/DEFECTS.md](docs/DEFECTS.md) | defect register — the legacy 3D engine, and what tests found in the new code |
+| [docs/21-DRAWN-ANIMATION.md](docs/21-DRAWN-ANIMATION.md) | roughs, exposure sheets, boil and smear |
+| [docs/22-WORKSPACE.md](docs/22-WORKSPACE.md) | making the tools findable |
+| [docs/23-QUADRUPED.md](docs/23-QUADRUPED.md) | a four-legged rig that is not a biped with extra legs |
+| [docs/24-VOICE-AND-DELIVERY.md](docs/24-VOICE-AND-DELIVERY.md) | how narration is delivered, and the pacing analyser |
+| [docs/25-FLOW.md](docs/25-FLOW.md) | travelling dashes, and flow as a motion-graphics primitive |
+| [docs/26-DELIVERY.md](docs/26-DELIVERY.md) | five characters on one voice model |
+| [docs/27-RETENTION.md](docs/27-RETENTION.md) | hooks and pacing, checked before the render |
+| [docs/29-VOICE-STUDIO.md](docs/29-VOICE-STUDIO.md) | cloned and designed voices |
 | [docs/CDN-AND-PWA.md](docs/CDN-AND-PWA.md) | library use, installing, offline |
+
+### Open work
+
+| Document | For |
+|---|---|
+| [docs/pending/00-INDEX.md](docs/pending/00-INDEX.md) | **the queue** — read this first |
+| [docs/pending/35-3D-TRANSITIONS.md](docs/pending/35-3D-TRANSITIONS.md) | the design for transitions on the 3D path, which has none |
+| [docs/pending/36-VOICE-RUNTIME.md](docs/pending/36-VOICE-RUNTIME.md) | making Kokoro and OpenVoice renderable, offline and cached |
+| [docs/pending/37-MISSING-TOOLS.md](docs/pending/37-MISSING-TOOLS.md) | **the audit** — what this engine is missing, 2D and 3D, and how to add it safely |
+| [docs/pending/10-ACTION-GAPS.md](docs/pending/10-ACTION-GAPS.md) | what the engine could not do, measured against a fight brief |
+| [docs/pending/32-VOICE-CANDIDATES.md](docs/pending/32-VOICE-CANDIDATES.md) | voice engines shortlisted and not yet plugged in |
+| [docs/pending/DEFECTS.md](docs/pending/DEFECTS.md) | the standing defect register |
+
+### Finished
+
+| Document | For |
+|---|---|
+| [docs/completed_phases/00-INDEX.md](docs/completed_phases/00-INDEX.md) | index of finished phases |
+| [docs/completed_phases/28-MADINI-YA-VITO.md](docs/completed_phases/28-MADINI-YA-VITO.md) | a Swahili gemstone series |
+| [docs/completed_phases/30-STRUCTURE-SERIES.md](docs/completed_phases/30-STRUCTURE-SERIES.md) | "Reading the Rock" — one staging, two languages |
+| [docs/completed_phases/31-GAME-PHYSICS-SERIES.md](docs/completed_phases/31-GAME-PHYSICS-SERIES.md) | "Game Physics" — seven parts, and a cast with no arms |
+| [docs/completed_phases/33-FOREX-SERIES.md](docs/completed_phases/33-FOREX-SERIES.md) | "Reading the Market" — ten parts, two languages, light paper |
+| [docs/completed_phases/34-EARTH-3D.md](docs/completed_phases/34-EARTH-3D.md) | **the 3D engine tested against a minute of film** — 24 defects, and the token measurement |
 
 ## Known limits
 
-Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
+Honest list. The fuller version is in [docs/STATUS.md](docs/STATUS.md), and
+everything open is queued in [docs/pending/](docs/pending/).
+
+- **The 3D path has no transitions.** Every cut in every 3D film here is a hard
+  cut. Designed but not built — [docs/pending/35-3D-TRANSITIONS.md](docs/pending/35-3D-TRANSITIONS.md).
+- **No motion blur on either path**, which is the clearest visual difference
+  from reference 3D work at 24 fps.
+- **Music is not ducked under dialogue.** Bed gains are hand-tuned per film,
+  so the mix is silently wrong the moment a line moves.
+- **No rigid-body dynamics.** `src/core/sim/` is cloth and fluid; nothing
+  falls, stacks or collides. The collision-maths series animated its
+  collisions with keyframes.
+- **Post is not keyframeable**, so there is no rack focus.
+- **`digest` is 3D only**, so the cheapest check in the repo is unavailable to
+  the fifty 2D films.
 
 - **2D IK is solved against the rest pose**, so a character whose torso is
   leaning or breathing has moved the shoulder out from under the solve.
@@ -250,14 +397,16 @@ Honest list; the fuller version is in [docs/STATUS.md](docs/STATUS.md).
   browser and Node, and no model url is bundled.
 - Pixel output is not bit-reproducible between runs (scene state is).
 - The 3D engine's remaining defects are mostly performance — see
-  [docs/DEFECTS.md](docs/DEFECTS.md) before relying on it.
+  [docs/pending/DEFECTS.md](docs/pending/DEFECTS.md) before relying on it.
 
 ---
 
 ## Not implemented
 
 What is genuinely absent, checked against the code rather than carried over
-from an old plan. Everything the earlier "planned features" list named that
+from an old plan. The full audit — what a hybrid 2D/3D engine is expected to
+have and this one does not, each item with a home in the tree, a cost and a
+risk — is [docs/pending/37-MISSING-TOOLS.md](docs/pending/37-MISSING-TOOLS.md). Everything the earlier "planned features" list named that
 has since shipped — IK, skinning and blendshapes, animation blending and
 layering, PBR materials, parametric primitives, particles, WebAssembly
 kernels, video export with encoding, and an external API — has been removed
@@ -373,7 +522,7 @@ painting, declarative bone constraints (the 3D *film* path has them;
 Parametric primitives and full PBR material properties
 *were* added — colour had been the only reachable one.
 
-**Before relying on it, read [docs/DEFECTS.md](docs/DEFECTS.md).** Most
+**Before relying on it, read [docs/pending/DEFECTS.md](docs/pending/DEFECTS.md).** Most
 pressing: autosave replays a lossy snapshot on every boot, so sculpted and
 imported geometry can be silently replaced with a cube.
 
@@ -646,5 +795,5 @@ loop testable in Node, and a second backend a backend rather than a rewrite.
 The lists above are meant to stay honest in both directions: nothing is
 claimed that is not wired up, and nothing that shipped is left looking
 pending. [docs/STATUS.md](docs/STATUS.md) is the per-phase register and
-[docs/DEFECTS.md](docs/DEFECTS.md) the defect one. Contributions welcome —
+[docs/pending/DEFECTS.md](docs/pending/DEFECTS.md) the defect one. Contributions welcome —
 start from [Not implemented](#not-implemented).

@@ -855,7 +855,8 @@
             position: absolute;
             left: 0;
             top: 0;
-            width: 50px;
+            /* 68, not 50: the rail now carries permanent captions. */
+            width: 68px;
             height: 100%;
             background-color: #1a1a1a;
             border-right: 1px solid #444;
@@ -866,14 +867,41 @@
             padding-top: 60px;
         }
 
+        /*
+         * The tool rail.
+         *
+         * Three things changed here, and the first one is not cosmetic.
+         *
+         * 1. The items were `div`s with a click handler: not focusable, not
+         *    announced, and unreachable by keyboard. They are `button`s with
+         *    `role="tab"` now, so the rail is operable without a mouse --
+         *    which it simply was not before.
+         *
+         * 2. The names were tooltips on `:hover` at `opacity: 0`. A tooltip
+         *    is not a label: it cannot be read before you point at it, it
+         *    never appears for a keyboard or touch user, and six unlabelled
+         *    glyphs is the single reason this editor reads as cluttered.
+         *    They are permanent 10px captions now, which costs 12px of rail
+         *    width and removes the guessing.
+         *
+         * 3. A visible focus ring, because a focusable control that shows no
+         *    focus is worse than one that cannot be focused at all.
+         */
         .nav-item {
-            width: 40px;
-            height: 40px;
-            margin-bottom: 10px;
-            border-radius: 5px;
+            width: 52px;
+            min-height: 48px;
+            margin-bottom: 6px;
+            padding: 5px 2px 4px;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            border-radius: 6px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 3px;
             cursor: pointer;
             position: relative;
         }
@@ -882,13 +910,18 @@
             background-color: #333;
         }
 
+        .nav-item:focus-visible {
+            outline: 2px solid #4fc3f7;
+            outline-offset: 2px;
+        }
+
         .nav-item.active {
             background-color: #4fc3f7;
         }
 
         .nav-item svg {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             fill: #e0e0e0;
         }
 
@@ -896,27 +929,21 @@
             fill: #1e1e1e;
         }
 
-        .nav-tooltip {
-            position: absolute;
-            left: 55px;
-            background-color: #333;
-            color: #e0e0e0;
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 12px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
+        .nav-label {
+            font-size: 10px;
+            line-height: 1;
+            letter-spacing: 0.01em;
+            color: #c7ccd4;
         }
 
-        .nav-item:hover .nav-tooltip {
-            opacity: 1;
+        .nav-item.active .nav-label {
+            color: #10232c;
+            font-weight: 600;
         }
 
         .tool-panel {
             position: absolute;
-            left: 60px;
+            left: 78px;
             top: 60px;
             width: 250px;
             background-color: #252525;
@@ -1140,3 +1167,29 @@
     gap: 8px;
     margin-top: 10px;
 }
+
+        /*
+         * A hint under a group of controls.
+         *
+         * Added with the Export panel's reorganisation. The editor's
+         * "Export as Video" records the viewport in real time, and the thing
+         * most people actually want -- a finished film with voice,
+         * subtitles and a post chain -- is a terminal command. Nothing in
+         * the UI had ever said so, which is the kind of gap that reads as
+         * "the export is broken".
+         */
+        .tool-hint {
+            margin: 8px 0 0;
+            font-size: 11px;
+            line-height: 1.45;
+            color: #9aa3ad;
+        }
+
+        .tool-hint code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 10.5px;
+            color: #cfd6de;
+            background: #2a2f36;
+            border-radius: 3px;
+            padding: 1px 4px;
+        }

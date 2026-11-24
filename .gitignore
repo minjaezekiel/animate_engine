@@ -21,3 +21,7 @@ films/
 
 # A scratchpad path created here by mistake; never project content.
 private/
+
+# Baked voice takes: content-addressed, derived from the film text, and
+# rebuilt by deleting this and rendering again. See src/core/voice/takeCache.js.
+cache/

@@ -10,15 +10,19 @@ acceptance test passes, not when its code lands.
 
 | # | Item | Why it is next | Risk |
 |---|---|---|---|
-| 1 | [36-VOICE-RUNTIME.md](36-VOICE-RUNTIME.md) | Kokoro 82M and OpenVoice V2 are registered, selectable and tested, and **no film has ever been rendered through either**, because the weights are not vendored and nothing caches a take. | Low |
-| 2 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: port `digest` to the 2D path. | Varies |
-| 3 | [38-3D-CROSSFADE.md](38-3D-CROSSFADE.md) | Tier 2 of the transition work. `kind: 'crossfade'` compiles, warns by name and renders as a dip; a true dissolve needs two cameras and two render targets. | Medium |
+| 1 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: port `digest` to the 2D path, where fifty of the fifty-one finished films live. | Varies |
+| 2 | [38-3D-CROSSFADE.md](38-3D-CROSSFADE.md) | Tier 2 of the transition work. `kind: 'crossfade'` compiles, warns by name and renders as a dip; a true dissolve needs two cameras and two render targets. | Medium |
+| 3 | [39-OFFLINE-VOICE-WEIGHTS.md](39-OFFLINE-VOICE-WEIGHTS.md) | The take cache made Kokoro's download a one-off rather than per-render, which was the real problem. An air-gapped checkout still cannot make that first bake. | Low |
 | 4 | [10-ACTION-GAPS.md](10-ACTION-GAPS.md) | The older gap list, measured against a fight brief. Still partly open; superseded in places by 37. | — |
 | 5 | [32-VOICE-CANDIDATES.md](32-VOICE-CANDIDATES.md) | Voice engines shortlisted and not plugged in. Kokoro and OpenVoice came off this list; the rest are still on it. | Low |
 | — | [DEFECTS.md](DEFECTS.md) | The standing defect register, not a phase. It is never finished and never moves. | — |
 
-**Done and moved out:** 3D transitions, tiers 1 and 3 — Phase 40,
-[../completed_phases/35-3D-TRANSITIONS.md](../completed_phases/35-3D-TRANSITIONS.md).
+**Done and moved out:**
+
+- 3D transitions, tiers 1 and 3 — Phase 40,
+  [../completed_phases/35-3D-TRANSITIONS.md](../completed_phases/35-3D-TRANSITIONS.md).
+- Kokoro and OpenVoice made renderable — Phase 41,
+  [../completed_phases/36-VOICE-RUNTIME.md](../completed_phases/36-VOICE-RUNTIME.md).
 
 ## The three rules this queue runs on
 

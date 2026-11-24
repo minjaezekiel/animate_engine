@@ -341,6 +341,31 @@ server.tool(
   }
 );
 
+server.tool(
+  'bake_voices',
+  'Synthesize a film\'s dialogue ONCE into the on-disk take cache, or audition a '
+  + 'single line. A render reads baked takes and synthesizes only what is missing, so '
+  + 'this is how an 86 MB Kokoro model gets loaded once instead of once per render, '
+  + 'and how an OpenVoice server only has to be running while this runs. `spec` '
+  + 'recasts every voice in the film (e.g. "kokoro:bm_george") without editing it. '
+  + 'The takes are content-addressed, so re-baking after editing one line costs one '
+  + 'line.',
+  {
+    film: z.string().optional().describe('a film json to bake every line of'),
+    say: z.string().optional().describe('one line to audition instead'),
+    spec: z.string().optional()
+      .describe('<engine>:<voice>, e.g. kokoro:bm_george or tts:en_US-hfc_male-medium'),
+    out: z.string().optional().describe('where to write the audition wav'),
+  },
+  async ({ film, say, spec, out }) => {
+    if (!film && !say) throw new Error('bake_voices needs either `film` or `say`');
+    const r = await runScript('say.mjs', {
+      FILM: film ?? null, SAY: say ?? null, SPEC: spec ?? null, OUT: out ?? null,
+    }, { timeoutMs: 900_000 });
+    return asText(quietLines(r.out));
+  }
+);
+
 // Record/encode the selected animation and optionally save it to disk.
 async function exportMedia(op, path) {
   const result = (await runCommands([{ op }], 300000))[0];

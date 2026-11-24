@@ -12,18 +12,18 @@
  */
 import { compileFilm } from './core/script/compile.js';
 import { parseScreenplay, retimeToAudio } from './core/script/screenplay.js';
-import { VoiceRegistry } from './core/voice/VoiceRegistry.js';
 import { AssetRegistry, loadAssets, loadAudioAssets, pendingImageAssets } from './core/art/AssetRegistry.js';
 import { UrlProvider } from './core/art/providers/UrlProvider.js';
 import { FileProvider } from './core/art/providers/FileProvider.js';
 import { MicProvider } from './core/voice/providers/MicProvider.js';
 import { UploadProvider } from './core/voice/providers/UploadProvider.js';
-import { TtsVitsProvider } from './core/voice/providers/TtsVitsProvider.js';
-import { VoiceStudioProvider } from './core/voice/providers/VoiceStudioProvider.js';
 import { TtsHttpProvider } from './core/voice/providers/TtsHttpProvider.js';
 import { synthesizeDialogue } from './core/voice/synthesize.js';
 import { renderMix, decodeAudio } from './audio/OfflineMixer.js';
 import { audioBufferToWav } from './audio/wav.js';
+import { createHttpTakeCache, webDigest } from './core/voice/takeCache.js';
+import { createRegistry, createProvider, VOICE_ENGINES, SPEC_PREFIX }
+    from './core/voice/gateway.js';
 import { Canvas2DBackend } from './backends/canvas2d/Canvas2DBackend.js';
 import { attachPainters } from './backends/canvas2d/PaintPainter.js';
 import { preparePhotos } from './backends/canvas2d/PhotoPainter.js';
@@ -60,7 +60,20 @@ export class FilmStudio {
                   // plays noticeably softer than the post above it. Exposed
                   // rather than changed: the default stays 0.06 so no
                   // existing film moves.
-                  voiceLevel = 0.06 } = {}) {
+                  voiceLevel = 0.06,
+                  /**
+                   * `false` disables the baked-take cache; an object replaces
+                   * it, which is how a test asserts cache behaviour without a
+                   * server. Default is one over HTTP against this page's own
+                   * origin.
+                   */
+                  takeCache = null,
+                  /**
+                   * Which engine to prefer, and where the optional ones live.
+                   * Passed through to the gateway; everything is optional and
+                   * an engine that is not configured is simply not registered.
+                   */
+                  voiceBackend = null, kokoroUrl = null, openVoiceUrl = null } = {}) {
         this.voiceLevel = voiceLevel;
         /**
          * Whether to build a kernel worker pool for photo warps. `null`
@@ -80,28 +93,53 @@ export class FilmStudio {
         this.onLog = onLog;
         const decode = (input) => decodeAudio(input, sampleRate);
 
-        this.voices = new VoiceRegistry();
-        this.mic = new MicProvider({ decode, sampleRate });
-        this.upload = new UploadProvider({ decode });
-        this.tts = new TtsVitsProvider({
+        /**
+         * Baked voice takes, shared with the 3D path.
+         *
+         * One cache for the whole engine: the key is the content of the line
+         * and nothing about which compiler asked for it, so a line voiced
+         * while rendering a 2D film is already baked when a 3D film says it.
+         * Off where `crypto.subtle` is absent -- a page opened as `file://` --
+         * because a cache is an optimisation and must never be a requirement.
+         * See `core/voice/takeCache.js`.
+         */
+        const digest = webDigest();
+        this.takeCache = (takeCache === false || !digest) ? null
+            : (takeCache ?? createHttpTakeCache({
+                digest, decode, encodeWav: audioBufferToWav,
+                report: (m) => this.log(m),
+            }));
+
+        /**
+         * Engines from the gateway, then the two this page owns.
+         *
+         * `createRegistry` exists because registration order was written out
+         * by hand at four call sites and they had drifted -- and this was one
+         * of the four that had not been converted, so **the 2D path could not
+         * cast on Kokoro or OpenVoice at all**. The gateway listed them, the
+         * voice picker on this page could not show them, and a film cast on
+         * `kokoro:bm_george` rendered in a Piper preset by way of the ladder.
+         * Exactly the defect the gateway was written to remove, surviving in
+         * the file that predated it.
+         *
+         * `mic` and `upload` stay here: they are not engines, they are this
+         * page's two input devices, and nothing headless has either.
+         */
+        this.voices = createRegistry({
             decode, sampleRate,
-            ...(ttsModuleUrl ? { moduleUrl: ttsModuleUrl } : {}),
+            backend: voiceBackend ?? null,
+            ttsModuleUrl,
+            voiceStudioUrl, voiceStudioOptions,
+            kokoroUrl, openVoiceUrl,
             onProgress: (p) => this.log(`voice model: ${describeProgress(p)}`),
+            report: (m) => this.log(m),
         });
-        // A locally-running VoiceStudio, if one was configured. Registered
-        // FIRST so a cloned voice wins, and entirely optional so the render
-        // stays self-contained when it is absent -- `available()` returns
-        // false and the ladder falls through to Piper. See 29-VOICE-STUDIO.md.
-        if (voiceStudioUrl) {
-            this.voiceStudio = new VoiceStudioProvider({
-                baseUrl: voiceStudioUrl, decode, sampleRate,
-                ...(voiceStudioOptions ?? {}),
-            });
-            this.voices.register(this.voiceStudio);
-        }
-        // Order is the fallback order: a film authored for TTS still renders
-        // from uploaded or recorded takes if TTS cannot load.
-        this.voices.register(this.tts);
+        this.tts = this.voices.providers.get('tts') ?? null;
+        this.voiceStudio = this.voices.providers.get('voicestudio') ?? null;
+        // Last in the ladder: a film authored for TTS still renders from
+        // uploaded or recorded takes if no engine can load.
+        this.upload = new UploadProvider({ decode });
+        this.mic = new MicProvider({ decode, sampleRate });
         this.voices.register(this.upload);
         this.voices.register(this.mic);
         this.decode = decode;
@@ -114,6 +152,45 @@ export class FilmStudio {
     }
 
     log(msg) { this.onLog?.(msg); }
+
+    /**
+     * Turn on one of the optional engines, after construction.
+     *
+     * Kokoro and OpenVoice are not registered by default -- one is an 86 MB
+     * download and the other needs a server you start, and an engine that is
+     * always "available" and always expensive does not belong silently in a
+     * fallback ladder. In a headless render an environment variable asks for
+     * them. In a browser there is no environment variable, so this is the
+     * asking: a checkbox in the voice panel calls it.
+     *
+     * Returns the engine's row from `VOICE_ENGINES` so the caller can say
+     * what it just turned on, including what it will cost.
+     */
+    useEngine(name, { url = null, reference = null, model = null } = {}) {
+        const engine = VOICE_ENGINES[name];
+        if (!engine) {
+            this.log(`unknown voice engine '${name}'`);
+            return null;
+        }
+        if (this.voices.providers.has(SPEC_PREFIX[name])) return engine;
+        const provider = createProvider(name, {
+            decode: this.decode, sampleRate: this.sampleRate, url, reference, model,
+            onProgress: (p) => this.log(`voice model: ${describeProgress(p)}`),
+        });
+        if (!provider) {
+            this.log(`${engine.label} needs ${engine.needs}`);
+            return null;
+        }
+        /**
+         * Registered at the FRONT, because turning an engine on is a request
+         * to use it. Registration order is fallback order, and appending
+         * would have put a newly-enabled Kokoro behind Piper -- so the user
+         * ticks the box, nothing changes, and nothing says why.
+         */
+        this.voices.register(provider, { first: true });
+        this.log(`${engine.label}: ${engine.needs}`);
+        return engine;
+    }
 
     /** Register a remote/cloning TTS endpoint as an additional provider. */
     useRemoteTts({ endpoint, voices = [], headers, id = 'remote', label }) {
@@ -207,12 +284,18 @@ export class FilmStudio {
             sampleRate: this.sampleRate,
             voiceLevel: this.voiceLevel,
             allowVoiceFallback,
+            takeCache: this.takeCache,
             onProgress: (p) => {
                 this.log(`voicing ${p.done}/${p.total}: ${String(p.text ?? '').slice(0, 44)}`);
                 onProgress?.({ stage: 'voice', ...p });
             },
         });
         notes.push(...voiced.diagnostics);
+        if (this.takeCache && !skipVoices) {
+            const st = this.takeCache.stats();
+            this.log(`takes: ${st.hits} cached, ${st.misses} synthesized, `
+                + `${st.stored} written${st.failed ? `, ${st.failed} failed` : ''}`);
+        }
         // Why the ladder fell through, if it did. Without this a film cast
         // against a voice server that was not running renders in a different
         // voice and nothing says so -- which is the same silence the levels

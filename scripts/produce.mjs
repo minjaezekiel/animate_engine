@@ -11,6 +11,7 @@ import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
 import { acquireLock, releaseLock } from './lib/render-lock.mjs';
+import { handleTake } from './lib/take-cache-server.mjs';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -63,8 +64,17 @@ const TYPES = {
     '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg',
 };
 
+/**
+ * Baked voice takes, shared with the 3D path: one cache for the whole engine,
+ * because the key is the content of the line and nothing about which compiler
+ * asked for it. `VOICE_CACHE=0` turns it off.
+ */
+const TAKE_DIR = join(ROOT, process.env.VOICE_CACHE_DIR ?? 'cache/voice');
+const TAKE_CACHE = process.env.VOICE_CACHE !== '0';
+
 const server = createServer(async (req, res) => {
     try {
+        if (TAKE_CACHE && await handleTake(req, res, { dir: TAKE_DIR })) return;
         const p = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname));
         const f = join(ROOT, p === '/' ? 'film.html' : p);
         if (!f.startsWith(ROOT)) { res.writeHead(403).end(); return; }

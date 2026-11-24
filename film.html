@@ -175,6 +175,25 @@ BEN: Then sit down.
             <select id="providerSel" class="grow"></select>
             <button id="refreshVoicesBtn">Refresh</button>
         </div>
+        <!--
+          The optional engines, as a choice rather than an environment
+          variable. Off by default and labelled with what they cost, because
+          one is an 86 MB download and the other needs a server you start --
+          and until this existed a browser could reach neither, whatever the
+          gateway listed.
+        -->
+        <div class="row" style="margin-bottom:8px;flex-wrap:wrap;gap:10px">
+            <label class="sub" style="display:flex;align-items:center;gap:6px">
+                <input type="checkbox" id="useKokoro">
+                Kokoro 82M <span style="color:var(--ink-dim)">&middot; ~86 MB on first use</span>
+            </label>
+            <label class="sub" style="display:flex;align-items:center;gap:6px">
+                <input type="checkbox" id="useOpenVoice">
+                OpenVoice V2 <span style="color:var(--ink-dim)">&middot; cloning, needs a server</span>
+            </label>
+            <input id="openVoiceUrl" class="grow" placeholder="http://127.0.0.1:8080"
+                   style="display:none;min-width:180px">
+        </div>
         <div id="castList"><span class="sub" style="color:var(--ink-dim);font-size:13px">Load a film to cast its characters.</span></div>
         <div class="row" style="margin-top:10px">
             <button id="recordBtn">Record my voice</button>
@@ -404,7 +423,10 @@ async function renderCastList() {
             seen.add(spec);
             const o = document.createElement('option');
             o.value = spec;
-            o.textContent = `${v.name}`;
+            // Which engine, not just which name: with four engines
+            // registered, "George" alone does not say whether picking it
+            // commits the film to a download or to a server being up.
+            o.textContent = `${v.name} · ${ENGINE_LABEL[v.provider] ?? v.provider}`;
             if (spec === current) o.selected = true;
             sel.appendChild(o);
         }
@@ -417,7 +439,22 @@ async function renderCastList() {
             film.voices ??= {};
             const key = char.voice ?? `${name}_v`;
             char.voice = key;
-            film.voices[key] = { spec: sel.value };
+            /**
+             * Keep everything the entry already said.
+             *
+             * This used to assign `{ spec }` outright, which erased `lang`,
+             * `gain`, `rate` and `pitch` -- so changing the voice of a
+             * Swahili character dropped its language, and Phase 33's whole
+             * lesson is that a missing `lang` silently measures pacing at the
+             * English word rate and reports gaps that are not there. Those
+             * fields describe the PERFORMANCE; the picker only chooses the
+             * model.
+             */
+            const prev = film.voices[key];
+            film.voices[key] = {
+                ...(prev && typeof prev === 'object' ? prev : {}),
+                spec: sel.value,
+            };
             prepared = null;
             log(`${name} -> ${sel.value}`);
         };
@@ -427,6 +464,30 @@ async function renderCastList() {
 }
 
 $('refreshVoicesBtn').onclick = async () => { await refreshProviders(); await renderCastList(); };
+
+/** Spec prefix -> what a person calls the engine. */
+const ENGINE_LABEL = { tts: 'Piper', kokoro: 'Kokoro', openvoice: 'OpenVoice',
+                       voicestudio: 'VoiceStudio', upload: 'uploaded', mic: 'recorded' };
+
+$('useKokoro').onchange = async (e) => {
+    if (!e.target.checked) { log('Kokoro stays registered for this session'); return; }
+    const engine = studio.useEngine('kokoro');
+    if (engine) log(`${engine.label} on. ${engine.needs}`);
+    await refreshProviders();
+    await renderCastList();
+};
+
+$('useOpenVoice').onchange = async (e) => {
+    const field = $('openVoiceUrl');
+    field.style.display = e.target.checked ? '' : 'none';
+    if (!e.target.checked) return;
+    const url = field.value.trim() || field.placeholder;
+    field.value = url;
+    const engine = studio.useEngine('openvoice', { url });
+    if (engine) log(`${engine.label} on at ${url}. A cloned reference needs its owner's consent.`);
+    await refreshProviders();
+    await renderCastList();
+};
 
 $('recordBtn').onclick = async () => {
     if (!film) { log('load a film first', 'warn'); return; }

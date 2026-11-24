@@ -199,7 +199,35 @@ from a CDN today gets an engine with no rigging. Phase 1 adds
 ## Defects in the new code
 
 These are not legacy. Each was found by a test written to assert something
-nobody had checked, and each is **fixed**.
+nobody had checked, and each is **fixed** — except the first, which is open.
+
+### `npm run test:legacy` hangs indefinitely — **open (40)**
+
+`test/e2e/legacy-guards.mjs` ran for **2 h 31 m** without finishing and
+without failing, twice in one session, and had to be killed by pid both
+times. It does not time out, so a suite run that includes it never returns;
+`for t in test test:bundle test:rig test:legacy test:roundtrip` printed three
+`exit 0` lines and then stopped forever.
+
+The damage is not confined to the suite. It holds three headless Chrome
+processes while hung, and `scripts/lib/render-lock.mjs` is shared, so the next
+render either waits behind it or gets OOM-killed — which is exactly what
+happened: a 1920×1080 render of the Earth film died with *"the browser was
+killed before the film was written"* while eight stray Chrome processes from
+this hang were resident.
+
+Not reproduced under a debugger and not diagnosed. What is known:
+
+- It is the only suite in the repo with no timeout of its own, so a page that
+  never reaches its ready state waits forever rather than reporting.
+- It drives `index.html`, the legacy single-file editor, which is frozen code
+  that the 2D and 3D pipelines do not execute.
+- It passed earlier in the same session, so this is a hang rather than a
+  break.
+
+Two things to do, in order: give the suite a hard timeout so it **fails**
+rather than hanging, which is strictly better whatever the cause; then find
+out what it is waiting for. Until then, run the other suites by name.
 
 ### The PWA was never installable — **fixed (2)**
 

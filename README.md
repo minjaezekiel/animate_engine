@@ -15,7 +15,7 @@ MIT licensed — see [LICENSE](LICENSE).
 
 ## Current status
 
-**Phase 39 · 2026-11-24.** 947 unit tests pass in Node, plus browser-driven
+**Phase 41 · 2026-11-24.** 1,029 unit tests pass in Node, plus browser-driven
 end-to-end suites that render real video and then probe the file that comes
 out rather than trusting the renderer's own report — `test:av` and
 `test:av:mp4` hunt a 1 kHz click in the muxed audio to prove picture and sound
@@ -27,9 +27,10 @@ Where the two rendering paths actually stand:
 
 | | 2D (`compile.js`) | 3D (`compile3d.js`) |
 |---|---|---|
-| Finished films | ~50, across five series and one advert | one, 65 s |
+| Finished films | ~50, across five series and one advert | two, 65 s and 73 s |
 | MP4 (H.264/AAC), faster than real time | yes | yes |
 | Voice, lipsync, shots retimed to real audio | yes | yes |
+| Four voice engines, takes cached on disk | yes | yes |
 | Music and sound cues, levelled and limited | yes | yes |
 | Subtitles, titles, screen callouts | yes | yes |
 | Framing, exposure and pacing checks | yes | yes |
@@ -49,11 +50,10 @@ built to produce is [docs/completed_phases/34-EARTH-3D.md](docs/completed_phases
 Built but **not yet exercised**, stated here rather than left to be
 discovered:
 
-- **Kokoro 82M** and **OpenVoice V2** are registered in the voice gateway and
-  selectable with `VOICE_BACKEND=kokoro|openvoice`, with unit tests — but no
-  film has been rendered through either. Kokoro is an ~86 MB first fetch;
-  OpenVoice needs a server you start. Every film in the repo is cast on
-  vendored Piper so that it renders offline.
+- **OpenVoice V2** is wired, and its client is tested against a stub server
+  that speaks its protocol — but no real OpenVoice server has been run here.
+  Kokoro 82M **has** now rendered a film
+  (`out/earth/inside-the-earth-kokoro.mp4`).
 - **The dockable workspace** (`src/editor/dock.js`) is tested and mounted on
   no page.
 
@@ -221,8 +221,21 @@ document renders offline on Piper and on a cloned voice when one is running.
 ```bash
 npm run voices               # what exists, what it costs, what it needs
 npm run voices -- --probe    # and what each live engine actually has
-VOICE_BACKEND=kokoro npm run render:earth
+
+SAY="Hello." SPEC=kokoro:bm_george npm run say      # audition one line
+FILM=films/earth3d.json SPEC=kokoro:bm_george npm run say   # bake a film
+VOICE_CAST=kokoro:bm_george npm run render:earth    # and render it
 ```
+
+**A line is synthesized once, ever.** Takes are cached on disk, keyed by the
+voice, the text, the delivery and the language, so a second render touches no
+model and makes no network request — which is what makes an 86 MB engine and
+a cloning server you start usable at all. Bake with the server up, render
+offline for the rest of the week.
+
+`VOICE_CAST` recasts a film at render time without editing it. `VOICE_BACKEND`
+only reorders the *fallback* ladder, which is a different thing: a film cast
+as `tts:…` resolves to Piper whatever is promoted ahead of it.
 
 Before spending a render on a film, compile it and read what it says:
 
@@ -346,8 +359,9 @@ one answer:
 | Document | For |
 |---|---|
 | [docs/pending/00-INDEX.md](docs/pending/00-INDEX.md) | **the queue** — read this first |
-| [docs/pending/36-VOICE-RUNTIME.md](docs/pending/36-VOICE-RUNTIME.md) | making Kokoro and OpenVoice renderable, offline and cached |
+| [docs/completed_phases/36-VOICE-RUNTIME.md](docs/completed_phases/36-VOICE-RUNTIME.md) | making Kokoro and OpenVoice renderable, offline and cached |
 | [docs/pending/38-3D-CROSSFADE.md](docs/pending/38-3D-CROSSFADE.md) | the one transition tier still missing: a true dissolve from two cameras |
+| [docs/pending/39-OFFLINE-VOICE-WEIGHTS.md](docs/pending/39-OFFLINE-VOICE-WEIGHTS.md) | vendoring Kokoro's weights, so a first bake works with no network |
 | [docs/pending/37-MISSING-TOOLS.md](docs/pending/37-MISSING-TOOLS.md) | **the audit** — what this engine is missing, 2D and 3D, and how to add it safely |
 | [docs/pending/10-ACTION-GAPS.md](docs/pending/10-ACTION-GAPS.md) | what the engine could not do, measured against a fight brief |
 | [docs/pending/32-VOICE-CANDIDATES.md](docs/pending/32-VOICE-CANDIDATES.md) | voice engines shortlisted and not yet plugged in |
@@ -364,6 +378,7 @@ one answer:
 | [docs/completed_phases/33-FOREX-SERIES.md](docs/completed_phases/33-FOREX-SERIES.md) | "Reading the Market" — ten parts, two languages, light paper |
 | [docs/completed_phases/34-EARTH-3D.md](docs/completed_phases/34-EARTH-3D.md) | **the 3D engine tested against a minute of film** — 24 defects, and the token measurement |
 | [docs/completed_phases/35-3D-TRANSITIONS.md](docs/completed_phases/35-3D-TRANSITIONS.md) | fade, dip, wipe, iris and `continue` on a path that had none — and the camera that would not hold still |
+| [docs/completed_phases/36-VOICE-RUNTIME.md](docs/completed_phases/36-VOICE-RUNTIME.md) | **a line is synthesized once, ever** — the take cache, and the 2D path finally reaching the voice gateway |
 
 ## Known limits
 

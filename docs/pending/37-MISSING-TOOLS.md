@@ -1,6 +1,8 @@
 # What this engine is missing — an audit, and how to add it safely
 
-**Status: open.** Written against the code, not against an old plan. Every
+**Status: open**, and two items have graduated out of it: 3D transitions
+(Phase 40) and the voice runtime (Phase 41). Written against the code, not
+against an old plan. Every
 claim here was checked by grep or by running something; where a claim is a
 judgement rather than a measurement it says so. Items graduate out of this
 doc into their own `pending/` doc when they come up the queue.
@@ -210,16 +212,16 @@ Ordered by value over cost, not by size.
 
 | | Item | Why here |
 |---|---|---|
-| 1 | **3D transitions** ([35](35-3D-TRANSITIONS.md)) | Every 3D cut is hard. Tier 1 costs one `fillRect`. |
-| 2 | **Port `digest` to 2D** | Best ratio in the document; fifty films cannot use the cheapest check in the repo. |
-| 3 | **Voice runtime** ([36](36-VOICE-RUNTIME.md)) | Two engines shipped that nothing can render through. |
-| 4 | **Keyframeable post → rack focus** | The most cinematic missing move, and mostly plumbing. |
-| 5 | **Music ducking** | ~30 lines; currently hand-tuned per film and silently wrong when a line moves. |
-| 6 | **Motion blur via subframe accumulation** | The clearest visual gap against reference 3D work; deterministic. |
-| 7 | **Shared verb table** | Stops the 2D/3D divergence at the source. |
-| 8 | **Curve editor + dope sheet UI** | Large, but no engine change: the tracks are already data. |
-| 9 | **Rigid-body dynamics, baked to keys** | Largest missing subsystem; needs its own doc before any code. |
-| 10 | **Proxy render + resume + queue** | Iteration cost, not capability. |
+| ~~1~~ | ~~**3D transitions**~~ — **done**, Phase 40 ([35](../completed_phases/35-3D-TRANSITIONS.md)) | Every 3D cut was hard. Tier 1 cost one `fillRect`. `crossfade` remains: [38](38-3D-CROSSFADE.md) |
+| ~~2~~ | ~~**Voice runtime**~~ — **done**, Phase 41 ([36](../completed_phases/36-VOICE-RUNTIME.md)) | Two engines had shipped that nothing could render through. Offline weights remain: [39](39-OFFLINE-VOICE-WEIGHTS.md) |
+| 1 | **Port `digest` to 2D** | Best ratio in the document; fifty of the fifty-one finished films cannot use the cheapest check in the repo. |
+| 2 | **Keyframeable post → rack focus** | The most cinematic missing move, and mostly plumbing. |
+| 3 | **Music ducking** | ~30 lines; currently hand-tuned per film and silently wrong the moment a line moves. |
+| 4 | **Motion blur via subframe accumulation** | The clearest visual gap against reference 3D work; deterministic. |
+| 5 | **Shared verb table** | Stops the 2D/3D divergence at the source. |
+| 6 | **Curve editor + dope sheet UI** | Large, but no engine change: the tracks are already data. |
+| 7 | **Rigid-body dynamics, baked to keys** | Largest missing subsystem; needs its own doc before any code. |
+| 8 | **Proxy render + resume + queue** | Iteration cost, not capability. |
 
 ---
 

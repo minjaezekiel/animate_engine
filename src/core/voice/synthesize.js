@@ -4,14 +4,27 @@ import { createCue } from '../audio/cues.js';
 import { normalizeGain, speechRms, toDb } from '../audio/loudness.js';
 import { resolveVoices } from './catalog.js';
 import { clampDelivery, deliverBuffer, isPlainDelivery } from '../audio/delivery.js';
+import { takeKeyOf } from './takeCache.js';
 
 /**
  * Turns a compiled film's dialogue into audio cues plus viseme tracks.
  *
  * Runs after compilation and before rendering, because lipsync needs real
  * samples: the envelope decides when the mouth moves, and the text decides
- * what shape it makes. Synthesis is cached by (voice, text) so re-rendering a
- * film does not re-synthesize unchanged lines.
+ * what shape it makes.
+ *
+ * Synthesis is cached by (voice, text, delivery, language) at two levels: the
+ * `buffers` map for this run, and an optional `takeCache` that survives
+ * between runs. Both are keyed on `takeKeyOf`, so the identity of a take is
+ * decided in one place.
+ *
+ * This docstring used to claim the caching outright and it was not true. The
+ * asset id was computed AFTER synthesis and only ever used to label the
+ * buffer, so two identical lines in one film were synthesized twice and
+ * nothing at all was kept between runs. For Piper that cost seconds. For
+ * Kokoro it is an 86 MB model load per render, in a fresh headless profile
+ * with an empty cache, which is the whole reason neither of the two engines
+ * added in Phase 39 had ever rendered a film. See `takeCache.js`.
  */
 export async function synthesizeDialogue({
     lipsyncJobs, registry, buffers = {}, fps = 24,
@@ -24,6 +37,13 @@ export async function synthesizeDialogue({
     // cast against specific recorded people wants this: a silent line is a
     // bug you notice, a stand-in is one you ship. See VoiceRegistry.
     allowVoiceFallback = true,
+    /**
+     * An optional store that outlives the run: `{ get(key), put(key, entry) }`
+     * where an entry is `{ audioBuffer, phonemes }`. Injected rather than
+     * constructed, so this module stays pure and the transport -- HTTP to the
+     * dev server, in this engine -- lives outside it.
+     */
+    takeCache = null,
 }) {
     const cues = [];
     const tracks = [];
@@ -35,24 +55,58 @@ export async function synthesizeDialogue({
                 durationSec, delivery = null } = job;
         let buffer = null;
         let phonemes = null;
+        /**
+         * The identity of this take, decided before anything is synthesized.
+         *
+         * It used to be computed afterwards, which is why the caching this
+         * function advertised did not exist: you cannot look up a key you
+         * have not made yet.
+         */
+        const takeKey = takeKeyOf({ voiceSpec, text, delivery, lang: job.lang ?? null });
+        const takeId = audioAssetId ?? `vo_${hashString(takeKey)}`;
+
+        /** Synthesize this line and, if there is a cache, keep it. */
+        const speak = async () => {
+            const result = await registry.synthesize(voiceSpec, {
+                text, allowFallback: allowVoiceFallback });
+            if (!result?.audioBuffer) return null;
+            // Delivery BEFORE levelling. Resampling and the WSOLA crossfades
+            // both move the measured RMS, so normalising first and reshaping
+            // after would undo the levelling and reintroduce the 6.6 dB gap
+            // -- this time between two characters sharing one model.
+            const fresh = {
+                audioBuffer: delivery && !isPlainDelivery(delivery)
+                    ? deliverBuffer(result.audioBuffer, delivery)
+                    : result.audioBuffer,
+                phonemes: result.phonemes ?? null,
+            };
+            if (!takeCache) return fresh;
+            /**
+             * Store, then use what a later run would READ.
+             *
+             * The cache holds 16-bit PCM and a model emits float, so using
+             * the float here and the decoded WAV next time would make a cold
+             * render differ from a warm one at about -90 dBFS -- a difference
+             * nobody would ever be able to attribute to anything.
+             */
+            return (await takeCache.put(takeKey, fresh)) ?? fresh;
+        };
 
         try {
             if (audioAssetId && (buffers[audioAssetId] || existingAssets[audioAssetId])) {
                 // An explicit pre-recorded clip always wins over synthesis.
                 buffer = buffers[audioAssetId] ?? existingAssets[audioAssetId];
+            } else if (buffers[takeId] || existingAssets[takeId]) {
+                // Said already, in this run, by this voice, with this
+                // delivery. Two characters sharing a model and a line is the
+                // common case in a two-hander.
+                buffer = buffers[takeId] ?? existingAssets[takeId];
             } else if (text && registry) {
-                const result = await registry.synthesize(voiceSpec, {
-                    text, allowFallback: allowVoiceFallback });
-                if (result?.audioBuffer) {
-                    // Delivery BEFORE levelling. Resampling and the WSOLA
-                    // crossfades both move the measured RMS, so normalising
-                    // first and reshaping after would undo the levelling and
-                    // reintroduce the 6.6 dB gap -- this time between two
-                    // characters sharing one model.
-                    buffer = delivery && !isPlainDelivery(delivery)
-                        ? deliverBuffer(result.audioBuffer, delivery)
-                        : result.audioBuffer;
-                    phonemes = result.phonemes ?? null;
+                const entry = (takeCache ? await takeCache.get(takeKey) : null)
+                    ?? await speak();
+                if (entry?.audioBuffer) {
+                    buffer = entry.audioBuffer;
+                    phonemes = entry.phonemes ?? null;
                 } else {
                     diagnostics.push({
                         severity: 'warning',
@@ -71,10 +125,10 @@ export async function synthesizeDialogue({
         }
 
         if (buffer) {
-            // The delivery is part of the identity: two characters sharing one
-            // model and saying the same words are two different takes.
-            const assetId = audioAssetId ?? `vo_${hashString(
-                `${voiceSpec}|${text}|${delivery?.rate ?? 1}|${delivery?.pitch ?? 1}`)}`;
+            // `takeId` above: the delivery is part of the identity, because
+            // two characters sharing one model and saying the same words are
+            // two different takes.
+            const assetId = takeId;
             buffers[assetId] = buffer;
             // Normalise, then the voice's own trim, then the line's. The line
             // is last so an author's deliberate whisper survives the levelling.

@@ -161,12 +161,11 @@ export function createRegistry({
     const say = (m) => report?.(m);
 
     const make = {
-        voicestudio: () => (voiceStudioUrl ? new VoiceStudioProvider({
-            baseUrl: voiceStudioUrl, decode, sampleRate,
-            ...(voiceStudioOptions ?? {}),
+        voicestudio: () => (voiceStudioUrl ? createProvider('voicestudio', {
+            decode, sampleRate, url: voiceStudioUrl, options: voiceStudioOptions,
         }) : null),
-        openvoice: () => (openVoiceUrl ? new OpenVoiceProvider({
-            baseUrl: openVoiceUrl, decode, reference: openVoiceReference,
+        openvoice: () => (openVoiceUrl ? createProvider('openvoice', {
+            decode, sampleRate, url: openVoiceUrl, reference: openVoiceReference,
         }) : null),
         /**
          * Kokoro registers whenever it is ASKED for, not whenever it could
@@ -175,16 +174,12 @@ export function createRegistry({
          * silently in a fallback ladder. `kokoroUrl` (a vendored copy) or
          * `backend: 'kokoro'` is the asking.
          */
-        kokoro: () => ((kokoroUrl || backend === 'kokoro') ? new KokoroProvider({
-            decode, sampleRate, onProgress,
-            ...(kokoroUrl ? { moduleUrl: kokoroUrl } : {}),
-            ...(kokoroModel ? { model: kokoroModel } : {}),
-            dtype: kokoroDtype,
+        kokoro: () => ((kokoroUrl || backend === 'kokoro') ? createProvider('kokoro', {
+            decode, sampleRate, onProgress, url: kokoroUrl,
+            model: kokoroModel, dtype: kokoroDtype,
         }) : null),
-        piper: () => new TtsVitsProvider({
-            decode, sampleRate, onProgress,
-            ...(ttsModuleUrl ? { moduleUrl: ttsModuleUrl } : {}),
-        }),
+        piper: () => createProvider('piper', {
+            decode, sampleRate, onProgress, url: ttsModuleUrl }),
     };
 
     if (backend && !make[backend]) {
@@ -216,6 +211,42 @@ export function createRegistry({
     }
     say(`[voice] providers: ${[...reg.providers.keys()].join(' > ') || 'none'}`);
     return reg;
+}
+
+/**
+ * Build one provider by engine name.
+ *
+ * Split out of `createRegistry` so an engine can also be turned on LATER,
+ * from a page, after the registry exists -- which is what a voice picker
+ * offering "Kokoro 82M (86 MB on first use)" needs. Without this the only
+ * way to add an engine was to rebuild the whole studio, so the browser UI
+ * could reach exactly the engines an environment variable had chosen, which
+ * in a browser is none of the optional ones.
+ */
+export function createProvider(name, {
+    decode, sampleRate = 48000, url = null, options = null, reference = null,
+    model = null, dtype = 'q8', onProgress = null,
+} = {}) {
+    switch (name) {
+        case 'voicestudio':
+            return url ? new VoiceStudioProvider({
+                baseUrl: url, decode, sampleRate, ...(options ?? {}) }) : null;
+        case 'openvoice':
+            return url ? new OpenVoiceProvider({ baseUrl: url, decode, reference }) : null;
+        case 'kokoro':
+            return new KokoroProvider({
+                decode, sampleRate, onProgress, dtype,
+                ...(url ? { moduleUrl: url } : {}),
+                ...(model ? { model } : {}),
+            });
+        case 'piper':
+            return new TtsVitsProvider({
+                decode, sampleRate, onProgress,
+                ...(url ? { moduleUrl: url } : {}),
+            });
+        default:
+            return null;
+    }
 }
 
 /**

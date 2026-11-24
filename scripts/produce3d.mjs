@@ -35,6 +35,7 @@ import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { extname, join, normalize, dirname } from 'node:path';
 import { acquireLock, releaseLock } from './lib/render-lock.mjs';
+import { handleTake } from './lib/take-cache-server.mjs';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -53,6 +54,22 @@ const VOICE_STUDIO = process.env.VOICE_STUDIO ?? null;
 const OPENVOICE_URL = process.env.OPENVOICE_URL ?? null;
 const KOKORO_URL = process.env.KOKORO_URL ?? null;
 const VOICE_LEVEL = Number(process.env.VOICE_LEVEL ?? 0.14);
+/**
+ * Recast every voice in the film, at render time, without editing it.
+ *
+ *   VOICE_CAST=kokoro:bm_george npm run render:earth
+ *
+ * `VOICE_BACKEND` only reorders the fallback LADDER, which is a different
+ * thing and was the thing missing: a film cast as `tts:en_US-hfc_male-medium`
+ * resolves to Piper whatever is promoted ahead of it, so promoting Kokoro and
+ * expecting to hear it is the one mistake this flag removes. Hearing a new
+ * engine on a finished film should be one command, not an edit to the film.
+ *
+ * It rewrites `voices.<role>.spec` and leaves everything else -- `lang`,
+ * `gain`, `rate`, `pitch` -- exactly as authored, because those describe the
+ * PERFORMANCE and not the model.
+ */
+const VOICE_CAST = process.env.VOICE_CAST ?? null;
 const STRICT_VOICE = process.env.STRICT_VOICE === '1';
 const NO_RETIME = process.env.NO_RETIME === '1';
 /**
@@ -88,8 +105,17 @@ const TYPES = {
     '.hdr': 'application/octet-stream', '.glb': 'model/gltf-binary',
 };
 
+/**
+ * Where baked voice takes live. Gitignored, content-addressed, and the reason
+ * a second render of a film synthesizes nothing -- see
+ * `src/core/voice/takeCache.js`. `VOICE_CACHE=0` turns it off.
+ */
+const TAKE_DIR = join(ROOT, process.env.VOICE_CACHE_DIR ?? 'cache/voice');
+const TAKE_CACHE = process.env.VOICE_CACHE !== '0';
+
 const server = createServer(async (req, res) => {
     try {
+        if (TAKE_CACHE && await handleTake(req, res, { dir: TAKE_DIR })) return;
         const p = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname));
         const f = join(ROOT, p === '/' ? 'film3d.html' : p);
         if (!f.startsWith(ROOT)) { res.writeHead(403).end(); return; }
@@ -150,6 +176,21 @@ await page.goto(`${base}/film3d.html`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.ready3d === true, { timeout: 60_000 });
 
 const film = JSON.parse(await readFile(join(ROOT, FILM), 'utf8'));
+if (VOICE_CAST) {
+    const roles = Object.keys(film.voices ?? {});
+    if (!roles.length) {
+        console.log(`  [voice] VOICE_CAST=${VOICE_CAST} but this film casts no voices`);
+    } else {
+        for (const role of roles) {
+            const was = film.voices[role];
+            film.voices[role] = typeof was === 'string'
+                ? VOICE_CAST
+                : { ...was, spec: VOICE_CAST };
+            console.log(`  [voice] recast ${role}: `
+                + `${typeof was === 'string' ? was : was.spec} -> ${VOICE_CAST}`);
+        }
+    }
+}
 
 const voiceOpts = {
     voiceBackend: VOICE_BACKEND, ttsModuleUrl: TTS_MODULE_URL,

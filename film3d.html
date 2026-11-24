@@ -41,6 +41,8 @@ import { mp4MuxerFactory } from './src/render/mux/Mp4Muxer.js';
 import { loadAudioAssets } from './src/core/art/AssetRegistry.js';
 import { renderMix, decodeAudio } from './src/audio/OfflineMixer.js';
 import { createRegistry } from './src/core/voice/gateway.js';
+import { createHttpTakeCache, webDigest } from './src/core/voice/takeCache.js';
+import { audioBufferToWav } from './src/audio/wav.js';
 import { synthesizeDialogue } from './src/core/voice/synthesize.js';
 import { applyLipsync } from './src/core/art/humanoid3d.js';
 import { key as writeKey } from './src/core/anim/Timeline.js';
@@ -195,8 +197,24 @@ window.render3d = async function render3d(film, opts = {}) {
             onProgress: (p) => report(`voice model: ${p.loaded ?? ''}/${p.total ?? ''} ${p.url ?? ''}`),
             report,
         });
+        /**
+         * Baked takes, so a second render synthesizes nothing.
+         *
+         * `crypto.subtle` needs a secure context and `http://127.0.0.1` is
+         * one by specification, which is the origin every render here is
+         * served from. Where it is absent -- a page opened as `file://` --
+         * `webDigest()` returns null and the cache is simply off, because a
+         * cache is an optimisation and must never be a requirement.
+         */
+        const digest = webDigest();
+        const takeCache = (opts.takeCache === false || !digest) ? null
+            : createHttpTakeCache({
+                digest, decode: (b) => decodeAudio(b, 48000),
+                encodeWav: audioBufferToWav, report,
+            });
+        if (!takeCache) report('[take] cache off (no crypto.subtle, or disabled)');
         const synth = (jobs) => synthesizeDialogue({
-            lipsyncJobs: jobs, registry, fps: compiled.meta.fps,
+            lipsyncJobs: jobs, registry, fps: compiled.meta.fps, takeCache,
             // The engine default is 0.06 RMS, about -24 dBFS, which is quiet
             // next to anything else in a feed. The 2D harness has passed a
             // louder target since Phase 32 and this page never did, so every
@@ -208,6 +226,11 @@ window.render3d = async function render3d(film, opts = {}) {
         voiced = await synth(compiled.lipsyncJobs);
         for (const d of voiced.diagnostics) report(`[voice] ${d.message}`);
         for (const d of registry.diagnostics()) report(`[voice] ${d.message}`);
+        if (takeCache) {
+            const st = takeCache.stats();
+            report(`[take] ${st.hits} cached, ${st.misses} synthesized, `
+                + `${st.stored} written${st.failed ? `, ${st.failed} failed` : ''}`);
+        }
 
         if (opts.retime !== false) {
             const durations = {};

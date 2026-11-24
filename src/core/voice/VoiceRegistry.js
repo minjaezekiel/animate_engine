@@ -57,9 +57,25 @@ export class VoiceRegistry {
         this._notes = [];
     }
 
-    register(provider) {
+    /**
+     * Add a provider. Insertion order IS fallback order.
+     *
+     * `first: true` puts it at the front, which is what "the user just turned
+     * this engine on" means: appending would leave a newly-enabled engine
+     * behind the one that was already there, so the box gets ticked, nothing
+     * changes, and nothing says why. A `Map` has no insert-at-front, so the
+     * order is rebuilt -- which is cheap, because there are four of these.
+     */
+    register(provider, { first = false } = {}) {
         if (!provider?.id) throw new Error('VoiceRegistry: provider needs an id');
-        this.providers.set(provider.id, provider);
+        if (first && !this.providers.has(provider.id)) {
+            const rest = [...this.providers.entries()];
+            this.providers.clear();
+            this.providers.set(provider.id, provider);
+            for (const [k, v] of rest) this.providers.set(k, v);
+        } else {
+            this.providers.set(provider.id, provider);
+        }
         this.invalidate(provider.id);
         return this;
     }

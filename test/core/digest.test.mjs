@@ -118,6 +118,27 @@ test('checkDigest', async (t) => {
             box: [0.5, 0.5, 0.56, 0.56], luma: [0.01], hue: 'black' }])), []);
     });
 
+    await t.test('ignores a subject that is mostly OUTSIDE the frame', () => {
+        /**
+         * The macro shots of a cutaway leave the presenter as a sliver down
+         * one edge, in shadow. Reporting that is reporting what a close-up
+         * is, and three identical findings per film is how a checker stops
+         * being read.
+         */
+        assert.deepEqual(checkDigest(at([{ id: 'host', visible: true,
+            box: [0.94, 0.3, 1.6, 1.2], luma: [0.028], hue: 'blue' }])), []);
+    });
+
+    await t.test('but still reports a large subject that is merely cropped', () => {
+        // Clipped is not the test on its own: the Earth fills and overflows
+        // every macro frame in the film, and a black Earth is the defect
+        // this module was written for.
+        const found = checkDigest(at([{ id: 'earth', visible: true,
+            box: [-0.2, -0.2, 1.2, 1.2], luma: [0.02], hue: 'black' }]));
+        assert.equal(found.length, 1);
+        assert.match(found[0].message, /on screen and black/);
+    });
+
     await t.test('reports a blown-out subject', () => {
         const found = checkDigest(at([{ id: 'core', visible: true,
             box: [0.1, 0.1, 0.9, 0.9], luma: [0.97], hue: 'white' }]));

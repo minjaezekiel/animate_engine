@@ -10,12 +10,15 @@ acceptance test passes, not when its code lands.
 
 | # | Item | Why it is next | Risk |
 |---|---|---|---|
-| 1 | [35-3D-TRANSITIONS.md](35-3D-TRANSITIONS.md) | `compile3d` has no transitions at all. Every cut in every 3D film in this repo is a hard cut; the 2D compiler references transitions in 22 places and the 3D one in zero. | Low for tiers 1 and 3, medium for tier 2 |
-| 2 | [36-VOICE-RUNTIME.md](36-VOICE-RUNTIME.md) | Kokoro 82M and OpenVoice V2 are registered, selectable and tested, and **no film has ever been rendered through either**, because the weights are not vendored and nothing caches a take. | Low |
-| 3 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. | Varies |
+| 1 | [36-VOICE-RUNTIME.md](36-VOICE-RUNTIME.md) | Kokoro 82M and OpenVoice V2 are registered, selectable and tested, and **no film has ever been rendered through either**, because the weights are not vendored and nothing caches a take. | Low |
+| 2 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: port `digest` to the 2D path. | Varies |
+| 3 | [38-3D-CROSSFADE.md](38-3D-CROSSFADE.md) | Tier 2 of the transition work. `kind: 'crossfade'` compiles, warns by name and renders as a dip; a true dissolve needs two cameras and two render targets. | Medium |
 | 4 | [10-ACTION-GAPS.md](10-ACTION-GAPS.md) | The older gap list, measured against a fight brief. Still partly open; superseded in places by 37. | — |
 | 5 | [32-VOICE-CANDIDATES.md](32-VOICE-CANDIDATES.md) | Voice engines shortlisted and not plugged in. Kokoro and OpenVoice came off this list; the rest are still on it. | Low |
 | — | [DEFECTS.md](DEFECTS.md) | The standing defect register, not a phase. It is never finished and never moves. | — |
+
+**Done and moved out:** 3D transitions, tiers 1 and 3 — Phase 40,
+[../completed_phases/35-3D-TRANSITIONS.md](../completed_phases/35-3D-TRANSITIONS.md).
 
 ## The three rules this queue runs on
 

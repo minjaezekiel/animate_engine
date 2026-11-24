@@ -636,6 +636,12 @@ const M_OUTER = WORLD(mark((R_INNER + R_OUTER) / 2));
 const SHOTS = [
     {
         id: 'hello', duration: 5.2, line: 0, on: 'host', framing: 'close',
+        /**
+         * Up from black rather than straight in on a face. The film used to
+         * begin on frame one of a lit studio with no preparation at all,
+         * because the 3D path had no transitions of any kind.
+         */
+        transition: { kind: 'fade', duration: 0.9 },
         camera: { from: { at: [1.74, 1.62, 2.72], look: [1.5, 1.42, 0.55], fov: 38 },
                   to: { at: [1.80, 1.60, 2.48], look: [1.5, 1.43, 0.55], fov: 37 } },
         actions: [
@@ -672,6 +678,17 @@ const SHOTS = [
     },
     {
         id: 'open', duration: 5.6, line: 3, on: 'earth', framing: 'medium',
+        /**
+         * A dip to black across the swap.
+         *
+         * The whole planet is replaced by the sectioned one with a `set
+         * visible` on a single frame, and the comment on that action says
+         * "under a cut" -- which was the best available, because there was
+         * nothing to hide it with. A dip peaks exactly AT the boundary, so
+         * the substitution now happens at full black, which is how a
+         * cutaway reveal is actually cut.
+         */
+        transition: { kind: 'dip', duration: 0.7 },
         camera: { from: { at: orbit(-2, 8, standOff(1, 0.62, 34)), look: E, fov: 34 },
                   to: { at: orbit(-26, 15, standOff(1, 0.58, 34)), look: E, fov: 34 } },
         actions: [
@@ -743,8 +760,30 @@ const SHOTS = [
     },
     {
         id: 'close', duration: 6.4, line: 8, on: 'host', framing: 'medium',
+        // Back out of the core and into the room: the largest change of
+        // subject and scale in the film, and the one cut that reads as a
+        // mistake when it is hard.
+        transition: { kind: 'dip', duration: 0.6 },
+        /**
+         * `for: 2.4` of a 6.4s shot, so the pull-out LANDS and then holds.
+         *
+         * Spread over the whole shot, the camera was still inside the planet
+         * two-thirds of the way through: the digest reported the Earth at
+         * 100% cover and 0.108 luma with the host jammed against the right
+         * edge at 0.033, and the exposure check called the frame at 63.8s
+         * "effectively black" -- the film's closing line delivered over a
+         * dark frame, in a finished render, with the warning sitting in the
+         * check output.
+         *
+         * Holding after an early arrival is only possible because
+         * `buildCamera3D` now writes a key at the shot's end. Until the
+         * transition work went in, `for` shorter than the shot meant the
+         * camera drifted on into the NEXT shot's framing instead of holding,
+         * so the fix for this shot did not exist yet.
+         */
         camera: { from: { at: offFace(E, standOff(R_INNER, 0.5, 26)), look: E, fov: 26 },
-                  to: { at: [0.72, 1.92, 4.75], look: [0.3, 1.45, 0.05], fov: 46 } },
+                  to: { at: [0.88, 1.76, 3.78], look: [0.48, 1.32, 0.12], fov: 41 },
+                  for: 2.4, ease: 'smooth' },
         actions: [
             { do: 'move', target: 'gaze', to: [1.45, 1.62, 3.4], at: 1.8, for: 1.2 },
             { do: 'move', target: 'reach', to: [1.18, 1.2, 0.72], at: 1.4, for: 1.1 },
@@ -764,6 +803,7 @@ for (const s of SHOTS) {
         camera: s.camera,
         ...(s.on ? { on: s.on } : {}),
         ...(s.framing ? { framing: s.framing } : {}),
+        ...(s.transition ? { transition: s.transition } : {}),
         dialogue: s.line != null
             ? [{ speaker: 'host', text: LINES[s.line], at: 0.35 }]
             : [],
@@ -799,7 +839,12 @@ film.overlay.items.push({
     at: 0.6, for: 3.6, fade: 0.5, size: 26, align: 'center',
 });
 
-film.scenes = [{ id: 'main', shots }];
+/**
+ * `transitionOut` is the 2D path's own vocabulary, read by `compile3d` now so
+ * that one film document means the same thing on both. It fades the last shot
+ * to black rather than ending on a held frame and a cut to nothing.
+ */
+film.scenes = [{ id: 'main', shots, transitionOut: { kind: 'fade', duration: 1.1 } }];
 
 await mkdir(join(ROOT, dirname(OUT)), { recursive: true });
 await writeFile(join(ROOT, OUT), `${JSON.stringify(film, null, 2)}\n`);

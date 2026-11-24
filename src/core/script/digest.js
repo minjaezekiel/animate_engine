@@ -150,12 +150,22 @@ function subjectRow(s) {
 }
 
 /** Build a digest from one sampled frame. */
-export function frameDigest({ t, shotId, frame = [], subjects = [], overlay = [] }) {
+export function frameDigest({ t, shotId, frame = [], subjects = [], overlay = [],
+                              blend = null }) {
     return {
         t: +Number(t).toFixed(2),
         shot: shotId ?? null,
         frame: lumaStatsOf(frame),
         subjects: subjects.map(subjectRow),
+        /**
+         * The transition covering this frame, if any.
+         *
+         * Without it a frame mid-dip reports a dark subject and an agent has
+         * no way to tell a lighting fault from a fade that is working. That
+         * is a screenshot's worth of tokens to answer "is this meant to be
+         * dark", so it is worth the twenty characters.
+         */
+        blend: blend ?? null,
         // Overlay text is reported as the strings themselves. It is the one
         // thing on screen that is already language, so a hash or a box would
         // be throwing away the cheapest information in the frame.
@@ -187,6 +197,10 @@ export function formatDigest(digests) {
                 + `luma=${s.luma} ${s.hue ?? ''}${s.clipped ? ' CLIPPED' : ''}`);
         }
         if (d.text.length) out.push(`  text: ${d.text.map((x) => JSON.stringify(x)).join(' ')}`);
+        if (d.blend) {
+            out.push(`  blend: ${d.blend.kind} ${Math.round(d.blend.cover * 100)}% `
+                + `(${d.blend.from ?? 'start'} -> ${d.blend.to ?? 'end'})`);
+        }
     }
     return out.join('\n');
 }
@@ -204,8 +218,17 @@ export function checkDigest(digests, { expect = {} } = {}) {
     const say = (severity, message) => findings.push({ severity, message, location: 'digest' });
     for (const d of digests) {
         const where = `t=${d.t}${d.shot ? ` (${d.shot})` : ''}`;
+        /**
+         * A frame under a transition is MEANT to be dark or washed out, so
+         * the luma findings below do not apply to it. Reporting "on screen
+         * and black" for the middle of a dip to black is a false finding, and
+         * a checker that cries wolf stops being read -- the overlay checker
+         * produced 28 of those on its first run and the lesson is the same.
+         */
+        const dipped = d.blend ? d.blend.cover > 0.25 : false;
         for (const s of d.subjects) {
             if (!s.on || s.behind || !s.box) continue;
+            if (dipped) continue;
 
             /**
              * A lit subject measuring near zero.
@@ -216,12 +239,25 @@ export function checkDigest(digests, { expect = {} } = {}) {
              * the frame is mostly space and a black planet in black space has
              * an unremarkable mean. Only a per-SUBJECT number sees it.
              */
-            if (s.cover > 4 && s.luma < 0.035) {
+            /**
+             * A subject mostly OUTSIDE the frame was never this shot's
+             * subject, so its exposure says nothing about the shot.
+             *
+             * The macro shots of the cutaway leave the presenter as a
+             * six-percent-wide vertical sliver down the right edge, in
+             * shadow, at 0.028 luma -- and the rule above reported it by
+             * name on every one of them. Three identical findings that mean
+             * "a man is standing off to one side of a close-up", which is
+             * what a close-up IS. A checker that cries wolf stops being
+             * read, and this file exists to be read.
+             */
+            const sliver = s.clipped && s.cover < 12;
+            if (!sliver && s.cover > 4 && s.luma < 0.035) {
                 say('warning', `${where}: "${s.id}" covers ${s.cover}% of frame at luma `
                     + `${s.luma} -- it is on screen and black. Check its material and `
                     + 'whether any value reached THREE as the wrong type.');
             }
-            if (s.cover > 4 && s.luma > 0.9) {
+            if (!sliver && s.cover > 4 && s.luma > 0.9) {
                 say('warning', `${where}: "${s.id}" is blown out (luma ${s.luma}).`);
             }
             const want = expect[s.id];

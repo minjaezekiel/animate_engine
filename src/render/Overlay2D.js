@@ -55,8 +55,12 @@ export function createCompositeCanvas(source, width, height) {
 
 /**
  * Run the op list. Deliberately dumb: every decision was made in
- * `core/art/overlay.js`, so this file has no arithmetic worth testing and no
- * place for a layout bug to hide.
+ * `core/art/overlay.js` or `core/art/transitions.js`, so this file has no
+ * arithmetic worth testing and no place for a layout bug to hide.
+ *
+ * Ops: `rect`, `text`, `line`, `dot`, `grad`, `hole`. The last two exist for
+ * transitions; everything else is overlay type. An unknown op is skipped, so
+ * a newer film cannot crash an older renderer -- it just draws less.
  */
 export function drawOverlay(ctx, ops) {
     if (!ops?.length) return;
@@ -93,6 +97,37 @@ export function drawOverlay(ctx, ops) {
                 ctx.beginPath();
                 ctx.arc(op.x, op.y, op.r, 0, Math.PI * 2);
                 ctx.fill();
+                break;
+            /**
+             * A linear-gradient rect, which is a wipe's soft leading edge.
+             *
+             * `from` and `to` are full `#rrggbbaa` strings computed in
+             * `core/art/transitions.js`, not a colour plus an alpha: a
+             * gradient stop needs its own alpha, and `globalAlpha` scales the
+             * whole fill uniformly, which is exactly what a soft edge is not.
+             */
+            case 'grad': {
+                const g = ctx.createLinearGradient(op.x1, op.y1, op.x2, op.y2);
+                g.addColorStop(0, op.from);
+                g.addColorStop(1, op.to);
+                ctx.fillStyle = g;
+                ctx.fillRect(op.x, op.y, op.w, op.h);
+                break;
+            }
+            /**
+             * Colour everywhere except a circle: an iris.
+             *
+             * One path with two subpaths and an even-odd fill, rather than
+             * `save`/`clip`/`restore` per frame. The arc is wound the same way
+             * as the rect, so even-odd is what punches the hole -- `nonzero`
+             * would fill straight over it.
+             */
+            case 'hole':
+                ctx.fillStyle = op.fill;
+                ctx.beginPath();
+                ctx.rect(op.x, op.y, op.w, op.h);
+                if (op.r > 0) ctx.arc(op.cx, op.cy, op.r, 0, Math.PI * 2);
+                ctx.fill('evenodd');
                 break;
             default:
                 break;

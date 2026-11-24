@@ -10,6 +10,7 @@ import { normalizeConstraints, humanoidCorrectives } from '../rig/constraints.js
 import { gripAngles, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
 import { normalizePost } from './post.js';
 import { normalizeOverlay } from '../art/overlay.js';
+import { normalizeTransitions } from '../art/transitions.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
 
 /**
@@ -176,6 +177,16 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         step: film.meta?.step ?? 0,
         post: null,         // filled below, once `warn` can be used
         overlay: null,      // ditto
+        /**
+         * Transitions, filled once the shot spans exist -- a boundary is
+         * defined by the shots either side of it, so this cannot be done up
+         * here with the rest of `meta`.
+         *
+         * Until this phase the 3D path had none at all and did not reject a
+         * `transitionIn` either, so a film could declare one and cut hard
+         * with no diagnostic. See `core/art/transitions.js`.
+         */
+        transitions: [],
         /**
          * Global clipping planes: the engine's answer to having no CSG.
          *
@@ -616,6 +627,16 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
              + 'duration is derived, so the declaration was ignored', 'meta.duration');
     }
 
+    meta.transitions = normalizeTransitions(film, shots, warn, { duration });
+    /**
+     * `continue` is not drawn, so it is resolved here rather than in the
+     * overlay: it eases the camera into the incoming framing BEFORE the cut,
+     * so there is no join left to hide. Keyed by the boundary time.
+     */
+    const continueAt = new Map(meta.transitions
+        .filter((tr) => tr.kind === 'continue')
+        .map((tr) => [tr.at, tr]));
+
     // On twos per shot, same mechanism as 2D: the camera stays on ones.
     for (const s of shots) {
         if (s.shot.step != null) {
@@ -669,7 +690,8 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     for (const s of shots) {
         prevCamera = buildCamera3D({ timeline, cameraId, lookId, shot: s.shot,
                                      start: s.start, duration: s.duration, prevCamera, warn,
-                                     shotId: s.shotId });
+                                     shotId: s.shotId,
+                                     glide: continueAt.get(+s.start.toFixed(4)) ?? null });
         for (const [ai, spec] of (s.shot.audio ?? []).entries()) {
             addCue(spec, s.start, `${s.shotId}.audio[${ai}]`);
         }
@@ -708,16 +730,23 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
  * hand-matched endpoints -- and a mismatched pair cannot produce the silent
  * jump that used to show up only in the rendered file.
  */
-function buildCamera3D({ timeline, cameraId, lookId, shot, start, duration, prevCamera, warn, shotId }) {
+function buildCamera3D({ timeline, cameraId, lookId, shot, start, duration, prevCamera, warn,
+                        shotId, glide = null }) {
     const cam = shot.camera;
-    const rest = prevCamera ?? { at: [0, 1.2, 3.2], look: [0, 0, 0], fov: DEFAULTS.fov };
+    const rest = prevCamera ?? { at: [0, 1.2, 3.2], look: [0, 0, 0], fov: DEFAULTS.fov,
+                                 moveEnd: start };
     if (!cam) {
         // No camera on this shot: hold the previous framing, explicitly, so
         // the track has a key here rather than drifting on from a far earlier
         // one when a later shot interpolates back.
         writeVec(timeline, cameraId, 'position', rest.at, start, null, 'linear');
         writeVec(timeline, lookId, 'position', rest.look, start, null, 'linear');
-        return rest;
+        if (glide) {
+            warn('`continue` eases the camera into the INCOMING framing, and this shot '
+                 + 'declares no camera, so there is nothing to ease towards. It holds the '
+                 + 'previous framing, which is already continuous', `${shotId}.transition`);
+        }
+        return { ...rest, moveEnd: start };
     }
     const from = {
         at: vec3(cam.from?.at ?? rest.at), look: vec3(cam.from?.look ?? rest.look),
@@ -736,7 +765,52 @@ function buildCamera3D({ timeline, cameraId, lookId, shot, start, duration, prev
     // camera instead of holding its own. The framing check caught it: the
     // rifle ended up behind the camera during its own firing shot.
     const CUT = 1e-4;
-    const moveStart = start + (cam.at ?? 0) + (prevCamera && (cam.at ?? 0) === 0 ? CUT : 0);
+    /**
+     * `continue`: tier 3, and usually the right answer.
+     *
+     * A hard cut is two camera positions at one instant. Rather than
+     * dissolving over it, write a key holding the OUTGOING framing `d`
+     * seconds before the boundary and let the camera ease from there into
+     * this shot's `from`, which it reaches exactly at the cut. The join
+     * stops existing: one camera, ordinary keys, no second render, no pass.
+     *
+     * It needs `d` seconds in which the outgoing camera is at rest, so the
+     * glide cannot overwrite the tail of the previous shot's own move --
+     * which would snap the camera back to an earlier key and read as a
+     * glitch, not a move. `moveEnd` is threaded through `prevCamera` for
+     * exactly this, and the clamp is reported rather than silent.
+     */
+    let glideFrom = null;
+    if (glide && prevCamera) {
+        const room = start - (prevCamera.moveEnd ?? start);
+        const d = Math.min(glide.duration, Math.max(0, room));
+        if (d < 1 / 48) {
+            warn(`\`continue\` needs a moment in which the previous camera is still, and `
+                 + `the previous shot's own move runs to ${(prevCamera.moveEnd ?? start).toFixed(2)}s, `
+                 + `${(start).toFixed(2)}s being the cut. Rendered as a hard cut`,
+                 `${shotId}.transition`);
+        } else {
+            if (d < glide.duration) {
+                warn(`\`continue\` was ${glide.duration}s but only ${d.toFixed(2)}s of the `
+                     + 'previous shot is still; shortened', `${shotId}.transition`);
+            }
+            glideFrom = start - d;
+        }
+    } else if (glide && !prevCamera) {
+        warn('`continue` on the first shot has no previous framing to continue from; '
+             + 'rendered as a hard cut', `${shotId}.transition`);
+    }
+    if (glideFrom != null) {
+        // The hold key carries the ease, so the segment LEAVING it is the
+        // glide. Written before the `from` key below, which lands at `start`
+        // with no cut nudge -- there is no collision to nudge around, because
+        // the outgoing value now has a key of its own earlier in the shot.
+        writeVec(timeline, cameraId, 'position', rest.at, glideFrom, null, 'smooth');
+        writeVec(timeline, lookId, 'position', rest.look, glideFrom, null, 'smooth');
+        key(timeline, cameraId, 'fov', glideFrom, rest.fov, { type: 'number', ease: 'smooth' });
+    }
+    const moveStart = start + (cam.at ?? 0)
+        + (prevCamera && (cam.at ?? 0) === 0 && glideFrom == null ? CUT : 0);
     // The arrival key is measured from the shot's OWN start, not from the
     // nudged one. Carrying the nudge into the end key put it at
     // next_start + CUT -- exactly where the next shot's nudged `from` lands --
@@ -753,12 +827,39 @@ function buildCamera3D({ timeline, cameraId, lookId, shot, start, duration, prev
         writeVec(timeline, lookId, 'position', to.look, moveEnd, null, 'linear');
         key(timeline, cameraId, 'fov', moveEnd, to.fov, { type: 'number' });
     }
+    /**
+     * Hold the arrival framing to the end of the shot.
+     *
+     * Found while building `continue`, which needs the outgoing camera to be
+     * at rest before the cut -- and discovered that it never was. A shot with
+     * `for: 2` and a duration of 3 wrote its arrival key at t+2 and nothing
+     * after it, so the track interpolated from there straight to the NEXT
+     * shot's `from` key: the camera spent the shot's final second drifting
+     * into the next shot's framing, and the authored hold did not exist.
+     *
+     * Not the same defect as the `CUT` nudge above, which stops two keys
+     * colliding at one instant. This is the missing key at the shot's own
+     * end. Both have the same symptom -- a camera that will not stay put --
+     * which is presumably why fixing one looked like fixing both.
+     *
+     * No shipped 3D film in this repo declares `for` shorter than its shot,
+     * so nothing re-renders differently; the authored form simply starts
+     * meaning what it says.
+     */
+    const shotEnd = start + duration;
+    if (span > 0 && moveEnd < shotEnd - 1e-6) {
+        writeVec(timeline, cameraId, 'position', to.at, shotEnd, null, 'linear');
+        writeVec(timeline, lookId, 'position', to.look, shotEnd, null, 'linear');
+        key(timeline, cameraId, 'fov', shotEnd, to.fov, { type: 'number' });
+    }
     if (cam.shake) {
         buildShake3D({ timeline, cameraId, shake: cam.shake, start: moveStart,
                        duration, centre: to.at });
     }
     if (span < (cam.for ?? 0)) warn(`camera move is longer than the shot`, shotId);
-    return to;
+    // `moveEnd` is what the NEXT boundary needs to know before it can glide:
+    // the instant after which this camera is at rest.
+    return { ...to, moveEnd: span > 0 ? moveEnd : moveStart };
 }
 
 /**

@@ -33,7 +33,7 @@ Where the two rendering paths actually stand:
 | Music and sound cues, levelled and limited | yes | yes |
 | Subtitles, titles, screen callouts | yes | yes |
 | Framing, exposure and pacing checks | yes | yes |
-| **Transitions between shots** | yes — fade, crossfade, dip | **none; every cut is hard** |
+| Transitions between shots | yes — fade, crossfade, dip | yes — fade, dip, wipe, iris, `continue`; **no crossfade** |
 | Keyframeable post (rack focus) | partial | no |
 | Procedural textures | n/a | yes |
 | Cutaways — sectioned geometry, clip planes | n/a | yes |
@@ -57,9 +57,11 @@ discovered:
 - **The dockable workspace** (`src/editor/dock.js`) is tested and mounted on
   no page.
 
-The largest single gap is 3D transitions: `compile.js` references them in
-twenty-two places and `compile3d.js` in none, which is why every cut in every
-3D film here is a hard cut.
+The largest single gap is now the one the audit named rather than one path
+lagging the other: there is **no motion blur on either path**, **no
+rigid-body dynamics at all**, music is **never ducked under dialogue**, and
+`digest` — the cheapest check in the repo — exists only on the 3D path, where
+one of the fifty-one finished films lives.
 
 ## What it does today
 
@@ -190,10 +192,18 @@ H.264/AAC through WebCodecs, faster than real time, like the 2D path.
 
 ```bash
 npm run make:earth-audio && npm run make:earth   # the worked example
-npm run check:earth          # compile, framing, exposure, overlay. Seconds.
+npm run check:earth          # compile, framing, exposure, overlay, transitions
 npm run digest:earth         # what is on screen, as NUMBERS, not pixels
 npm run render:earth         # -> out/earth/inside-the-earth.mp4
 ```
+
+Transitions are authored per shot (`transition: { kind: 'dip' }` is the
+boundary where that shot begins) or per scene with the 2D path's own
+`transitionIn`/`transitionOut`, so one film document means the same thing on
+both. `fade`, `dip`, `wipe` and `iris` are drawn onto the finished frame, so
+they cost one `fillRect` and appear in every container; `continue` is not
+drawn at all — it eases the camera into the incoming framing before the cut,
+so there is no join to hide.
 
 `check` and `digest` are the point. Between them they catch most of what a
 finished render would have shown you ten minutes later, and `digest` reports a
@@ -336,8 +346,8 @@ one answer:
 | Document | For |
 |---|---|
 | [docs/pending/00-INDEX.md](docs/pending/00-INDEX.md) | **the queue** — read this first |
-| [docs/pending/35-3D-TRANSITIONS.md](docs/pending/35-3D-TRANSITIONS.md) | the design for transitions on the 3D path, which has none |
 | [docs/pending/36-VOICE-RUNTIME.md](docs/pending/36-VOICE-RUNTIME.md) | making Kokoro and OpenVoice renderable, offline and cached |
+| [docs/pending/38-3D-CROSSFADE.md](docs/pending/38-3D-CROSSFADE.md) | the one transition tier still missing: a true dissolve from two cameras |
 | [docs/pending/37-MISSING-TOOLS.md](docs/pending/37-MISSING-TOOLS.md) | **the audit** — what this engine is missing, 2D and 3D, and how to add it safely |
 | [docs/pending/10-ACTION-GAPS.md](docs/pending/10-ACTION-GAPS.md) | what the engine could not do, measured against a fight brief |
 | [docs/pending/32-VOICE-CANDIDATES.md](docs/pending/32-VOICE-CANDIDATES.md) | voice engines shortlisted and not yet plugged in |
@@ -353,14 +363,17 @@ one answer:
 | [docs/completed_phases/31-GAME-PHYSICS-SERIES.md](docs/completed_phases/31-GAME-PHYSICS-SERIES.md) | "Game Physics" — seven parts, and a cast with no arms |
 | [docs/completed_phases/33-FOREX-SERIES.md](docs/completed_phases/33-FOREX-SERIES.md) | "Reading the Market" — ten parts, two languages, light paper |
 | [docs/completed_phases/34-EARTH-3D.md](docs/completed_phases/34-EARTH-3D.md) | **the 3D engine tested against a minute of film** — 24 defects, and the token measurement |
+| [docs/completed_phases/35-3D-TRANSITIONS.md](docs/completed_phases/35-3D-TRANSITIONS.md) | fade, dip, wipe, iris and `continue` on a path that had none — and the camera that would not hold still |
 
 ## Known limits
 
 Honest list. The fuller version is in [docs/STATUS.md](docs/STATUS.md), and
 everything open is queued in [docs/pending/](docs/pending/).
 
-- **The 3D path has no transitions.** Every cut in every 3D film here is a hard
-  cut. Designed but not built — [docs/pending/35-3D-TRANSITIONS.md](docs/pending/35-3D-TRANSITIONS.md).
+- **No true crossfade in 3D.** `kind: 'crossfade'` compiles, warns by name and
+  renders as a dip to colour; a real dissolve needs two cameras and two render
+  targets — [docs/pending/38-3D-CROSSFADE.md](docs/pending/38-3D-CROSSFADE.md).
+  Fade, dip, wipe, iris and `continue` all work.
 - **No motion blur on either path**, which is the clearest visual difference
   from reference 3D work at 24 fps.
 - **Music is not ducked under dialogue.** Bed gains are hand-tuned per film,

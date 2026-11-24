@@ -46,6 +46,7 @@ import { applyLipsync } from './src/core/art/humanoid3d.js';
 import { key as writeKey } from './src/core/anim/Timeline.js';
 import { paintTexture, normalFromHeight } from './src/core/art/textures.js';
 import { overlayAt, subtitleSpans, checkOverlay } from './src/core/art/overlay.js';
+import { transitionOps, checkTransitions, blendAt } from './src/core/art/transitions.js';
 import { frameDigest, hueName } from './src/core/script/digest.js';
 import { createCompositeCanvas, createProjector, createMeasurer } from './src/render/Overlay2D.js';
 
@@ -302,7 +303,20 @@ window.render3d = async function render3d(film, opts = {}) {
      */
     const overlay = compiled.meta.overlay;
     if (overlay) overlay.subtitles = subtitleSpans(compiled.lipsyncJobs, voiced);
-    const composite = overlay ? createCompositeCanvas(renderer.domElement, width, height) : null;
+    /**
+     * Transitions share the composite, which is why they are drawn and not a
+     * pass: a dip to colour is one `fillRect` on a context we already have.
+     *
+     * `drawn` is what decides whether the composite exists at all. It used to
+     * be `overlay` alone, so a film with transitions and no captions would
+     * have been handed the raw WebGL canvas and every transition would have
+     * been missing from the file while looking fine in a preview -- the exact
+     * failure shape `Overlay2D.js` was written to avoid.
+     */
+    const transitions = compiled.meta.transitions ?? [];
+    const drawnTransitions = transitions.filter((t) => t.kind !== 'continue');
+    const drawn = !!overlay || drawnTransitions.length > 0;
+    const composite = drawn ? createCompositeCanvas(renderer.domElement, width, height) : null;
     const measure = composite ? createMeasurer(composite.ctx) : null;
     const project = composite
         ? createProjector(THREE, { camera: built.camera, resolve: built.resolve, width, height })
@@ -311,6 +325,13 @@ window.render3d = async function render3d(film, opts = {}) {
         report(`overlay: ${overlay.items.length} item(s), `
             + `${overlay.subtitles.length} subtitle span(s)`);
     }
+    if (transitions.length) {
+        report(`transitions: ${transitions.map((t) => `${t.kind}@${t.at}s`).join(', ')}`);
+        for (const f of checkTransitions(transitions, compiled.shots,
+                                         { duration: compiled.duration })) {
+            report(`[transition] ${f.severity}: ${f.message}`);
+        }
+    }
 
     const sceneManager = {
         renderer, camera: built.camera,
@@ -318,14 +339,20 @@ window.render3d = async function render3d(film, opts = {}) {
     };
     let frameTime = 0;
     const backend = {
-        capabilities: { kind: '3d', postFX: !!composer, overlay: !!overlay },
+        capabilities: { kind: '3d', postFX: !!composer, overlay: !!overlay,
+                        transitions: drawnTransitions.length },
         mount: () => backend, unmount() {}, sync: () => backend,
         resize: () => backend,
         renderFrame: () => {
             sceneManager.render();
             if (composite) {
-                composite.draw(overlayAt(overlay, frameTime,
-                                         { width, height, project, measure }));
+                // Transition ops LAST, so the colour is drawn over the type
+                // rather than under it: a subtitle that stays legible through
+                // a fade to black is the defect this ordering removes.
+                composite.draw([
+                    ...overlayAt(overlay, frameTime, { width, height, project, measure }),
+                    ...transitionOps(drawnTransitions, frameTime, { width, height }),
+                ]);
             }
             return backend;
         },
@@ -425,6 +452,8 @@ window.render3d = async function render3d(film, opts = {}) {
             : [];
         poser.reset();
         return { samples: out, overlay: overlayFindings,
+                 transitions: checkTransitions(transitions, compiled.shots,
+                                               { duration: compiled.duration }),
                  duration: compiled.duration, diagnostics: compiled.diagnostics };
     }
 
@@ -561,6 +590,7 @@ window.render3d = async function render3d(film, opts = {}) {
                 overlay: overlay
                     ? overlayAt(overlay, t, { width, height, project, measure })
                     : [],
+                blend: blendAt(drawnTransitions, t),
             }));
         }
         poser.reset();

@@ -105,7 +105,11 @@
     "test:clip": "node --test test/core/clip3d.test.mjs",
     "test:digest": "node --test test/core/digest.test.mjs",
     "digest:earth": "DIGEST=1 FILM=films/earth3d.json node scripts/produce3d.mjs",
-    "shot:ui": "node scripts/shot-ui.mjs"
+    "shot:ui": "node scripts/shot-ui.mjs",
+    "test:transitions": "node --test test/core/transitions.test.mjs",
+    "test:transitions:e2e": "node test/e2e/transitions-3d.mjs",
+    "frames": "node scripts/frame-luma.mjs",
+    "frames:earth": "node scripts/frame-luma.mjs out/earth/inside-the-earth.mp4 0,0.45,15.7,19,19.35,59,65.39"
   },
   "keywords": [
     "animation",

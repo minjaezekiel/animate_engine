@@ -169,13 +169,16 @@ if (CHECKING) {
     const framing = checkFraming3D(compiled, film);
     const times = compiled.shots.flatMap((s) => [0.25, 0.75].map(
         (u) => ({ t: +(s.start + s.duration * u).toFixed(2), shotId: s.shotId })));
-    const { samples, overlay = [] } = await page.evaluate((f, o) => window.render3d(f, o), film,
+    const { samples, overlay = [], transitions = [] } = await page.evaluate(
+        (f, o) => window.render3d(f, o), film,
         { width: 960, height: 540, check: times });
     const exposure = checkExposure(samples);
     console.log(`\n  compile: ${compiled.diagnostics.length} · framing: ${framing.length} `
                 + `· exposure: ${exposure.length} · overlay: ${overlay.length} `
+                + `· transitions: ${transitions.length} `
                 + `(over ${samples.length} samples)`);
-    for (const d of [...compiled.diagnostics, ...framing, ...exposure, ...overlay]) {
+    for (const d of [...compiled.diagnostics, ...framing, ...exposure, ...overlay,
+                     ...transitions]) {
         console.log(`  [${d.severity}] ${d.message}`);
     }
     const worst = samples.reduce((a, b) => (a.mean < b.mean ? a : b));
@@ -183,8 +186,12 @@ if (CHECKING) {
     console.log(`  luma: darkest ${worst.mean.toFixed(3)} (${worst.shotId}), `
                 + `brightest ${best.mean.toFixed(3)} (${best.shotId})`);
     await browser.close(); server.close();
+    // A transition `note` is a judgement, not a defect, so it prints without
+    // failing the check -- unlike a warning, which names something a finished
+    // film would show.
     const findings = compiled.diagnostics.length + framing.length
-        + exposure.length + overlay.length;
+        + exposure.length + overlay.length
+        + transitions.filter((t) => t.severity !== 'note').length;
     process.exit(findings ? 1 : 0);
 }
 
@@ -195,11 +202,25 @@ if (DIGEST) {
     const compiled = compileFilm3D(film);
     // One sample per shot by default, at 55% through it -- past the cut and
     // past any `set` that lands on the shot's first frame.
+    //
+    // Plus one AT each transition's peak. Mid-shot samples never land inside
+    // a transition window, so a film could have had its dips silently stop
+    // working and the digest would have reported nine perfectly good frames.
+    // A feature with no sample is a feature with no check.
+    const shotAt = (t) => compiled.shots.find((s) => t >= s.start && t < s.end)?.shotId ?? null;
     const times = DIGEST === '1'
-        ? compiled.shots.map((s) => ({ t: +(s.start + s.duration * 0.55).toFixed(2),
-                                       shotId: s.shotId }))
-        : DIGEST.split(',').map(Number).map((t) => ({
-            t, shotId: compiled.shots.find((s) => t >= s.start && t < s.end)?.shotId ?? null }));
+        ? [...compiled.shots.map((s) => ({ t: +(s.start + s.duration * 0.55).toFixed(2),
+                                           shotId: s.shotId })),
+           ...(compiled.meta.transitions ?? [])
+               .filter((tr) => tr.kind !== 'continue')
+               // An 'in' peaks at its own start; the others peak at the
+               // boundary, which for an 'out' is the film's last instant --
+               // nudged inside it so there is a frame to sample.
+               .map((tr) => +Math.min(tr.at, compiled.duration - 1 / compiled.meta.fps)
+                   .toFixed(2))
+               .map((t) => ({ t, shotId: shotAt(t) }))]
+            .sort((a, b) => a.t - b.t)
+        : DIGEST.split(',').map(Number).map((t) => ({ t, shotId: shotAt(t) }));
     // Default subjects: every cast root, which is what a film names.
     const subjects = SUBJECTS ?? (film.cast ?? [])
         .filter((c) => !c.set)

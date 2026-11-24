@@ -16,6 +16,7 @@ including the ones with no document of their own.
 | [31-GAME-PHYSICS-SERIES.md](31-GAME-PHYSICS-SERIES.md) | "Game Physics", seven parts on collision maths, and the verbs a cast with no arms needed |
 | [33-FOREX-SERIES.md](33-FOREX-SERIES.md) | "Reading the Market" / "Kusoma Soko" — ten parts in two languages, the first series on a light background, and the series that argues with its own brief |
 | [34-EARTH-3D.md](34-EARTH-3D.md) | "Inside the Earth" — the 3D path tested against a minute of film: 24 defects, the token measurement that produced `digest`, and the black planet |
+| [35-3D-TRANSITIONS.md](35-3D-TRANSITIONS.md) | The spaces at the joints — fade, dip, wipe, iris and `continue` on a path that had no transitions at all, and the camera that would not hold still |
 
 Reference documents that describe how the engine works — rather than what was
 built when — stay in [../](../): the film script, the core contracts, voices,

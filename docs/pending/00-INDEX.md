@@ -10,7 +10,7 @@ acceptance test passes, not when its code lands.
 
 | # | Item | Why it is next | Risk |
 |---|---|---|---|
-| 1 | [42-RENDER-QUALITY.md](42-RENDER-QUALITY.md) | **Tier 0 shipped in Phase 48** -- anti-aliasing is back on (1.2% -> 68.5% of edges resolved), bitrate follows pixels, and `QUALITY=720p` names a size on both paths. What is left is the realism gap itself, in order of look per unit of work: **a default environment** (no film declares one, so every metal renders as a black slab -- the AK-47's receiver gains 3.7x when one is added, against 1.6x for the wood beside it), **bevelled edges**, contact shadows, scene-fitted shadow bounds, a procedural material library, area lights, then light transport. Also holds the deferred motion-blur verdict, which cannot be judged until Tier 1 lands. | Low |
+| 1 | [42-RENDER-QUALITY.md](42-RENDER-QUALITY.md) | **Tier 0 shipped in Phase 48** -- anti-aliasing is back on (1.2% -> 68.5% of edges resolved), bitrate follows pixels, and `QUALITY=720p` names a size on both paths. Tier 1.1, **the default environment, shipped in Phase 49**: every film with a metal in it now gets three's `RoomEnvironment` prefiltered to a PMREM, and the AK-47's receiver measures x2.54 against the wood stock's x1.61 beside it. What is left, in order of look per unit of work: **bevelled edges** (nothing in the reference has a zero-radius edge and nothing of ours has anything else), contact shadows, scene-fitted shadow bounds, a procedural material library and sky, area lights, then light transport. Also holds the deferred motion-blur verdict, which cannot be judged until Tier 1 lands. | Low |
 | 2 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: a **shared verb table** (priority 4), then a **curve editor and dope sheet** (5), **rigid-body dynamics baked to keys** (6) — the collider half of which shipped in Phase 45 — and **proxy render, resume and queue** (7). Keyframeable post came off this list in Phase 44, music ducking in Phase 46 and motion blur in Phase 47. | Varies |
 | 3 | [38-3D-CROSSFADE.md](38-3D-CROSSFADE.md) | Tier 2 of the transition work. `kind: 'crossfade'` compiles, warns by name and renders as a dip; a true dissolve needs two cameras and two render targets. | Medium |
 | 4 | [39-OFFLINE-VOICE-WEIGHTS.md](39-OFFLINE-VOICE-WEIGHTS.md) | The take cache made Kokoro's download a one-off rather than per-render, which was the real problem. An air-gapped checkout still cannot make that first bake. | Low |
@@ -40,7 +40,8 @@ acceptance test passes, not when its code lands.
 - Motion blur by subframe accumulation — Phase 47,
   [../completed_phases/42-MOTION-BLUR.md](../completed_phases/42-MOTION-BLUR.md).
 - Tier 0 of the render-quality work -- anti-aliasing, bitrate and named
-  resolutions — Phase 48. The doc stays here, because Tiers 1 to 3 are the
+  resolutions — Phase 48, and Tier 1.1, the default environment — Phase 49.
+  The doc stays here, because the rest of Tier 1 and Tiers 2 to 3 are the
   realism gap and are still open.
 
 ## The three rules this queue runs on

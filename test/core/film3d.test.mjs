@@ -260,3 +260,79 @@ test('an unresolvable constraint warns and never reaches the backend', () => {
     assert.equal(c.constraints.filter((k) => k.type === 'copyRotation').length, 1);
     assert.ok(!c.constraints.some((k) => k.target === 'missing'));
 });
+
+/* ------------------------------------------------------------- environments
+ *
+ * A metal has no diffuse albedo: its colour IS its reflection, so with
+ * nothing to reflect it renders near-black whatever colour it was given. No
+ * film in this repository declared an environment, which is why the AK-47
+ * read as orange cardboard. Measured on its receiver when one is introduced:
+ * x2.54, against x1.61 for the wood stock beside it -- the differential is
+ * the proof, because the excess is specular finally having something to
+ * return.
+ */
+
+const metalFilm = (material, extra = {}) => ({
+    ...extra,
+    materials: { m: material },
+    assemblies: { a: { parts: [{ id: 'p', geometry: { kind: 'cube' }, material: 'm' }] } },
+    cast: [{ assembly: 'a', as: 'thing' }],
+    scenes: [{ id: 's', shots: [{ id: 'one', duration: 1 }] }],
+});
+
+test('a film with metal in it gets the built-in studio, undeclared', () => {
+    const env = compileFilm3D(metalFilm({ color: '#444', metalness: 0.9 })).meta.environment;
+    assert.ok(env, 'this is a default, not an option');
+    assert.equal(env.builtin, true, 'and it costs no download: three\'s RoomEnvironment');
+    assert.equal(env.src, 'studio');
+    assert.equal(env.background, false, 'lighting, not a visible sky');
+    assert.ok(env.intensity > 0 && env.intensity <= 1);
+});
+
+test('a film with no metal is left exactly as it was', () => {
+    // Every 2D-looking matte 3D film in the repo: an environment would change
+    // its exposure for nothing, because a dielectric's colour is its albedo.
+    assert.equal(compileFilm3D(metalFilm({ color: '#444', metalness: 0.1 })).meta.environment, null);
+    assert.equal(compileFilm3D(metalFilm({ color: '#444' })).meta.environment, null);
+});
+
+test('an inline material counts, because that is where metalness hides', () => {
+    // `resolveMaterial` is the one funnel every material passes through --
+    // named, inline, cast part, cloth, emitter -- which is why the count
+    // lives there rather than over `film.materials`.
+    const film = {
+        assemblies: { a: { parts: [{ id: 'p', geometry: { kind: 'cube' },
+                                     material: { color: '#888', metalness: 0.95 } }] } },
+        cast: [{ assembly: 'a', as: 'thing' }],
+        scenes: [{ id: 's', shots: [{ id: 'one', duration: 1 }] }],
+    };
+    assert.equal(compileFilm3D(film).meta.environment?.builtin, true);
+});
+
+test('an imported model counts without being inspected', () => {
+    // A glTF brings its own PBR materials, which the compiler never sees, and
+    // whoever exported it authored them against image-based lighting.
+    const film = {
+        models: { hero: { src: 'hero.glb' } },
+        assemblies: {}, cast: [{ model: 'hero', as: 'hero' }],
+        scenes: [{ id: 's', shots: [{ id: 'one', duration: 1 }] }],
+    };
+    assert.equal(compileFilm3D(film).meta.environment?.builtin, true);
+});
+
+test('`environment: false` opts out, and a declared one is untouched', () => {
+    assert.equal(compileFilm3D(metalFilm({ metalness: 0.9 }, { meta: { environment: false } }))
+        .meta.environment, null, 'a film in space can say no');
+    const hdr = compileFilm3D(metalFilm({ metalness: 0.9 }, { meta: { environment: 'sky.hdr' } }))
+        .meta.environment;
+    assert.equal(hdr.src, 'sky.hdr');
+    assert.equal(hdr.builtin, false, 'or the page would never load the file');
+});
+
+test('`environment: "studio"` names the built-in, so its intensity is tunable', () => {
+    const env = compileFilm3D(metalFilm({ metalness: 0 },
+        { meta: { environment: { src: 'studio', intensity: 1.4, background: true } } })).meta.environment;
+    assert.equal(env.builtin, true);
+    assert.equal(env.intensity, 1.4);
+    assert.equal(env.background, true, 'a studio can be the visible sky if asked');
+});

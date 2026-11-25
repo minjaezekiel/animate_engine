@@ -23,6 +23,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
 import { samplePostAt } from './src/core/script/post.js';
@@ -144,9 +145,25 @@ function findMorphMesh(models, node) {
     return named ?? (candidates.length === 1 ? candidates[0] : null);
 }
 
-/** An HDR or image panorama, for image-based lighting. */
-async function loadEnvironment(spec, report) {
+/**
+ * An HDR or image panorama, for image-based lighting -- or the built-in
+ * studio, which is the default whenever a film contains a metal.
+ *
+ * `RoomEnvironment` is a handful of emissive boxes, so there is nothing to
+ * download and nothing to go stale; `PMREMGenerator` prefilters it into the
+ * roughness mip chain a `MeshStandardMaterial` actually samples, which an
+ * equirectangular PNG would have had to be put through anyway.
+ */
+async function loadEnvironment(spec, report, renderer) {
     if (!spec) return null;
+    if (spec.builtin) {
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        const texture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+        pmrem.dispose();
+        report(`environment: built-in studio at ${spec.intensity}x`
+            + ` (no film declared one, and this one has metal in it)`);
+        return texture;
+    }
     try {
         const hdr = /\.hdr($|\?)/i.test(spec.src);
         const texture = await (hdr ? new RGBELoader() : new THREE.TextureLoader())
@@ -311,7 +328,6 @@ window.render3d = async function render3d(film, opts = {}) {
         report(`lipsync: ${voiced.tracks.length} lines, ${n} mouth keys`);
     }
 
-    const environment = await loadEnvironment(compiled.meta.environment, report);
     const images = await loadTextureImages(compiled.textures, report);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -322,6 +338,10 @@ window.render3d = async function render3d(film, opts = {}) {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     document.body.append(renderer.domElement);
+
+    // After the renderer, because the built-in studio is prefiltered ON the
+    // GPU rather than loaded from anywhere.
+    const environment = await loadEnvironment(compiled.meta.environment, report, renderer);
 
     const textures = buildTextures(THREE, compiled.textures,
                                    { paintTexture, normalFromHeight, images });

@@ -180,13 +180,21 @@ test('a model compiles without the loader having run, just without its names', (
 // ------------------------------------------------------------ environment
 
 test('an environment lights the scene, and is the sky only if asked', () => {
-    assert.equal(filmWith().meta.environment, null);
+    // A film that imports a model gets the built-in studio by default as of
+    // Phase 49: a glTF's materials are authored against image-based lighting
+    // by whoever exported them, and a metal with nothing to reflect is black.
+    assert.equal(filmWith().meta.environment.builtin, true);
     const short = filmWith({ environment: 'studio.hdr' }).meta.environment;
-    assert.deepEqual(short, { src: 'studio.hdr', background: false, intensity: 1, blur: 0 });
+    assert.deepEqual(short, { src: 'studio.hdr', builtin: false, background: false,
+                              intensity: 1, blur: 0 });
     const long = filmWith({ environment: { src: 'sky.hdr', background: true,
                                            intensity: 1.4, blur: 0.2 } }).meta.environment;
-    assert.deepEqual(long, { src: 'sky.hdr', background: true, intensity: 1.4, blur: 0.2 });
-    // Declared since Phase 14 and read by nothing until now, so a film could
-    // name one and render under its three point lights with no diagnostic.
-    assert.equal(filmWith({ environment: {} }).meta.environment, null);
+    assert.deepEqual(long, { src: 'sky.hdr', builtin: false, background: true,
+                             intensity: 1.4, blur: 0.2 });
+    // Declared since Phase 14 and read by nothing until Phase 39, so a film
+    // could name one and render under its three point lights with no
+    // diagnostic. An empty declaration is not a declaration -- it falls
+    // through to the default, which is now the studio.
+    assert.equal(filmWith({ environment: {} }).meta.environment.builtin, true);
+    assert.equal(filmWith({ environment: false }).meta.environment, null);
 });

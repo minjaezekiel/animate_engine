@@ -493,4 +493,44 @@ walked and measured. Its named nodes are still addressable as
 converted through `clipToTracks` before the film compiles, so the compiler can
 list the clips a file *does* have when you ask for one it does not.
 
+### There is always an environment now
+
+A metal has **no diffuse albedo**. Its colour *is* its reflection, so a
+`metalness: 0.9` surface with nothing to reflect renders near-black whatever
+colour it was given, and adding lights does not fix it: a light is a point and
+a reflection needs a surround. Not one film in this repository declared an
+environment, and six of the AK-47's materials are above 0.8 — which is why it
+read as orange cardboard rather than steel.
+
+So since [Phase 49](STATUS.md) an environment is a **default, not an option**.
+A film gets the built-in studio — three's own `RoomEnvironment`, a handful of
+emissive boxes prefiltered into a PMREM, nothing downloaded — whenever it
+declares a material above `metalness: 0.2`, or imports a model at all (a glTF
+brings its own PBR materials, authored against image-based lighting by
+whoever exported it; the compiler never sees them).
+
+Measured on frame 26 of the AK-47 film, at the default `intensity: 0.6`:
+
+| region | without | with | |
+|---|---|---|---|
+| receiver, `metalness: 0.88` | 0.073 | 0.185 | **x2.54** |
+| wood stock, `metalness: 0` | 0.240 | 0.387 | x1.61 |
+| fraction of the frame below 2% luma | 9.3% | **0.0%** | — |
+
+The **differential** is the result, not the brightening: an environment lights
+everything, but the metal gained 2.54x against the dielectric's 1.61x, and
+that excess is specular finally having something to return.
+
+```jsonc
+"meta": { "environment": false }                            // opt out
+"meta": { "environment": "studio" }                         // the built-in, by name
+"meta": { "environment": { "src": "studio", "intensity": 1 } }   // turned up
+"meta": { "environment": { "src": "sky.hdr", "background": true } }
+```
+
+`intensity: 0.6` rather than 1 is a deliberate compromise: at 1 the metal
+gains 3.38x but the whole frame lifts 1.88x, and every 3D film here was
+exposed without one. At 0.6 it is 2.54x for 1.58x. A film authored *against*
+the studio should turn it up.
+
 `meta.environment` had been parsed here since Phase 14 and read by nothing.

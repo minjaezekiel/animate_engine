@@ -46,6 +46,38 @@ const vec3 = (v, fallback = 0) => (Array.isArray(v)
     : [v ?? fallback, v ?? fallback, v ?? fallback]);
 
 /**
+ * A metal with no environment is a black slab.
+ *
+ * A metal has no diffuse albedo at all -- its colour IS its reflection -- so
+ * `metalness: 0.9` with nothing to reflect renders near-black whatever colour
+ * it was given, and no amount of extra lights fixes it, because a light is a
+ * point and a reflection needs a surround. Measured on the AK-47's receiver:
+ * **x3.7** when an environment is introduced, against **x1.6** for the wood
+ * stock beside it. The differential is the proof -- the excess is specular
+ * finally having something to return.
+ *
+ * Not one film in this repository declared an environment, and six of that
+ * one film's materials are above 0.8. So this is a DEFAULT, not an option:
+ * `environment: false` opts out, and anything else that is false-y gets the
+ * built-in studio.
+ */
+export const METAL_NEEDS_ENV = 0.2;
+
+/**
+ * The built-in studio: three's own `RoomEnvironment`, resolved to a PMREM.
+ *
+ * ponytail: a native feature, not a procedural dome of our own. It is a small
+ * scene of emissive boxes -- no texture, no network, no bytes -- which is
+ * exactly what a "procedural studio dome, generated at build time" would have
+ * been, and it is already in the addons this page imports from. `src` names
+ * it rather than pointing at a file, so a film can still be given a real
+ * panorama and `check:docs` has no URL to fail on.
+ */
+export const BUILTIN_ENVIRONMENT = Object.freeze({
+    src: 'studio', builtin: true, background: false, intensity: 0.6, blur: 0,
+});
+
+/**
  * `"environment": "sky.hdr"` and the long form both mean the same thing.
  */
 function normalizeEnvironment(spec) {
@@ -54,6 +86,10 @@ function normalizeEnvironment(spec) {
     if (!src) return null;
     return {
         src,
+        // `"environment": "studio"` asks for the built-in by name, which is
+        // how a film turns its intensity up or makes it the visible sky
+        // without finding a panorama to point at.
+        builtin: src === 'studio',
         // An environment lights the scene by default and is only the visible
         // sky if you ask: most shots want the lighting and their own backdrop.
         background: typeof spec === 'string' ? false : spec.background === true,
@@ -244,10 +280,23 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         }
         return spec;
     };
+    /**
+     * Does anything in this film need something to reflect?
+     *
+     * Counted here because `resolveMaterial` is the single funnel every
+     * material passes through -- named, inline, on a cast part, on cloth, on
+     * an emitter -- so a film that writes `material: { metalness: 0.9 }`
+     * inline is caught as surely as one that declares it under `materials`.
+     */
+    let metallic = false;
+    const noteMetal = (spec) => {
+        if (Number(spec?.metalness) > METAL_NEEDS_ENV) metallic = true;
+        return spec;
+    };
     const resolveMaterial = (ref, path) => {
         if (!ref) return { color: '#9aa0a6' };
-        if (typeof ref === 'object') return checkTextureRefs({ ...ref }, path);
-        if (materials[ref]) return checkTextureRefs({ ...materials[ref] }, `materials.${ref}`);
+        if (typeof ref === 'object') return noteMetal(checkTextureRefs({ ...ref }, path));
+        if (materials[ref]) return noteMetal(checkTextureRefs({ ...materials[ref] }, `materials.${ref}`));
         warn(`unknown material '${ref}'`, path);
         return { color: '#ff00ff' };
     };
@@ -764,6 +813,20 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
                             cameraId, warn, clipSeq, audioCues, expressionHold,
                             location: `${s.shotId}.actions[${ai}]` });
         }
+    }
+
+    /**
+     * The default environment, decided last because it depends on what the
+     * film turned out to contain.
+     *
+     * An imported model counts without being inspected: a glTF brings its own
+     * PBR materials, which `resolveMaterial` never sees, and whoever exported
+     * it authored them against image-based lighting. A black character is the
+     * same defect arriving through a different door.
+     */
+    if (!meta.environment && film.meta?.environment !== false
+        && (metallic || Object.keys(film.models ?? {}).length > 0)) {
+        meta.environment = { ...BUILTIN_ENVIRONMENT };
     }
 
     return { scene, timeline, emitters, meta, cameraId, lookId, shots, constraints,

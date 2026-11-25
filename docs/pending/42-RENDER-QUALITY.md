@@ -1,0 +1,277 @@
+# Render quality — why a 768x576 reference beats our 1280x720
+
+**Status: not started.** This doc is the comparison, the measurements, and the
+architecture that follows from them. Nothing here has been built.
+
+The prompt for it was a viewer's reaction to `ak47-blur.mp4`: *"the video is
+pixelated like it shows individual pixels instead of a high quality HD
+video"*, and *"the objects we create don't even appear as much realistic"*
+next to a production-grade reference.
+
+Both observations are correct. Neither has the cause one would guess.
+
+## The reference, measured
+
+`3d_anime1.mp4`, the sample offered for comparison:
+
+| | reference | the file that was watched |
+|---|---|---|
+| resolution | **768 x 576** | 480 x 270 |
+| frame rate | 30 | 24 |
+| video bitrate | 651 kbps | 524 kbps |
+| **bits per pixel per frame** | **0.049** | **0.168** |
+
+The reference is a *lower* resolution than our 720p default and spends **a
+third of our bits on each pixel**, and it still looks incomparably better. So
+whatever the gap is, it is not pixel count and it is not the encoder. Raising
+the resolution alone will produce a larger picture of the same problem.
+
+That is the single most useful thing this comparison establishes, because it
+rules out the two cheapest explanations before any work is planned.
+
+What the reference actually has, from its frames: textured surfaces with
+albedo and normal detail; soft contact shadows in every crevice; indirect
+light that fills shadows the key never reaches; **not one razor-sharp 90
+degree edge anywhere in the frame**; defocused backgrounds; and a filmic warm
+grade with highlight rolloff. It is an ordinary Blender/EEVEE-grade render.
+None of those are exotic.
+
+## Finding 1 — declaring any post pass silently turns anti-aliasing off
+
+This is a defect, it is in `src/render/post3d.js`, and it affects **every film
+in this repository that sets `meta.bloom`**, which is most of them, Earth
+included.
+
+`film3d.html:317` asks for `antialias: true`. That flag applies to the
+renderer's *default drawing buffer only*. `buildComposer` calls
+`new EffectComposer(renderer)` with no render target, and three r169 then
+makes one with `samples` unset, i.e. **zero**. The scene is therefore rendered
+into a non-multisampled target and the drawing buffer's MSAA is never used.
+
+Measured on the same frame of the same film at 1280x720, by counting high
+contrast edges that have at least one pixel resolved *between* the two
+plateaus -- the pixel a multisample resolve produces and a point sample
+cannot:
+
+| chain | edges found | with a resolved intermediate pixel |
+|---|---|---|
+| no post at all | 686 | **57.9%** |
+| `bloom` | 1440 | **1.2%** |
+| `bloom -> smaa` | 2079 | **1.1%** |
+
+Switching bloom on costs **a factor of fifty in edge resolution**. And `smaa`,
+the pass that exists to compensate, recovers nothing measurable -- it is an
+image-space filter that needs gradients to detect an edge, and a point-sampled
+staircase on flat-shaded box geometry gives it none.
+
+That is the "individual pixels" the viewer saw, and it is present at every
+resolution. It explains why the complaint arrived about a file that was
+already encoded at three times the reference's bit density.
+
+**Fix:** construct the composer's target explicitly with
+`samples: <from quality tier>`. One line, plus the tier plumbing below. The
+SSAO pass makes its own targets and is unaffected.
+
+## Finding 2 — a metal with no environment is a black slab
+
+Not one film in this repository declares `meta.environment`. The AK-47 film
+declares eleven materials, of which six have `metalness` between 0.82 and
+0.95.
+
+A metal has no diffuse albedo. Its colour *is* its reflection. With no
+environment to reflect, 88% of the receiver's response has nothing to return
+and what reaches the frame is a dark slab, which is exactly what the viewer
+described as "doesn't appear realistic". This is the classic PBR authoring
+mistake and the engine already has everything needed to avoid it:
+`loadEnvironment` has been in `film3d.html` since the 3D path existed.
+
+Proved by rendering the same frame twice, the second with nothing changed but
+a synthesised 1024x512 studio dome added as `meta.environment`:
+
+| region | without env | with env | change |
+|---|---|---|---|
+| receiver (`metalness: 0.88`) | 0.0730 | 0.2715 | **x3.7** |
+| wood stock (`metalness: 0`) | 0.2403 | 0.3769 | x1.6 |
+| fraction of the frame below 2% luma | 9.4% | **0.0%** | — |
+
+The differential is the proof. Both regions got brighter because an
+environment lights everything, but the *metal gained 3.7x against the
+dielectric's 1.6x* -- that excess is specular reflection finally having
+something to reflect. The receiver, barrel, bipod and magazine stop reading as
+black cardboard and start reading as steel.
+
+A caveat the experiment also exposed: the environment lit the backdrop too and
+washed it from near-black to mid-grey. Scene exposure has to be re-tuned when
+one is introduced, which is an argument for the environment being a *default*
+rather than an opt-in, so films are authored against it from the start.
+
+## Finding 3 — the encoder spends 6 Mbps whatever the picture is
+
+`WebCodecsSink.js:24` and `Mp4Muxer.js:95` both default to a flat
+`bitrate = 6_000_000`. That is wasteful at 480x270 and visibly thin at
+1920x1080 for animation, which is full of the large flat gradients that band
+first. Bitrate should be a function of `width * height * fps`.
+
+## Finding 4 — there is no quality dial, only two numbers
+
+`WIDTH` and `HEIGHT` environment variables, defaulting to 1280x720, on both
+`produce.mjs` and `produce3d.mjs`. Nothing names a quality level, so every
+other sampling decision in the pipeline is a constant chosen once and never
+revisited: shadow maps are **fixed at 1024x1024** with a fixed bias
+(`SceneAdapter.js:1189`), there is no supersampling, no MSAA sample count, and
+no relationship between any of them and the output size.
+
+The viewer asked to be able to choose 360 / 480 / 720 / 1024. That request is
+right but it is narrower than what is needed: resolution is one of six things
+that should move together.
+
+## What is actually missing, in order of look per unit of work
+
+### Tier 0 — defects, near-zero cost
+
+| # | Item | Where | Why it is first |
+|---|---|---|---|
+| 0.1 | Multisampled composer target | `src/render/post3d.js:37` | 50x edge resolution, one line |
+| 0.2 | Bitrate from pixels x fps | `src/render/sinks/WebCodecsSink.js` | banding at 1080p, waste below |
+| 0.3 | Named quality tiers | `scripts/produce*.mjs`, `meta.quality` | nothing else can be tuned coherently without it |
+
+### Tier 1 — shading, the largest return
+
+| # | Item | Why |
+|---|---|---|
+| 1.1 | **A default environment.** A procedural studio dome and a procedural sky, generated at build time so no network is involved, applied whenever any material has `metalness > 0.2` and no environment is declared. | Finding 2. Turns every metal in the repo from black to metal. |
+| 1.2 | **Bevelled edges.** A `bevel` on `cube` and `extrude`, as a geometry generator -- three has no modifier stack. | Nothing in the physical world has a zero-radius edge. A bevel one or two pixels wide catches a highlight along every silhouette, and it is the single clearest difference between the reference frames and ours. |
+| 1.3 | **Contact shadows on by default.** SSAO exists and is used by no film. | A film with no AO has objects floating above the floor. It is what the eye reads as "placed in the scene". |
+| 1.4 | **Shadow quality tied to the tier,** with bounds fitted to the scene rather than fixed, and the bias derived from the texel size rather than hardcoded. | 1024x1024 stretched over a whole set is a few texels per object. |
+| 1.5 | **A procedural material library** -- brushed metal, wood grain, concrete, fabric -- synthesised into albedo/normal/roughness maps at build time. | Finding 2 fixes the specular; this fixes the fact that every surface is one flat colour. The AK-47 film uses zero textures. |
+| 1.6 | **Area lights.** `RectAreaLight` with real extent. | Soft shadows come from a light having size. PCF blur is a blur, not a penumbra, and the difference is legible. |
+
+### Tier 2 — light transport
+
+Three.js has no global illumination, and that is the honest remainder of the
+gap to Blender. The reference's shadows are filled by light that bounced off a
+wall; ours are filled by a constant ambient term, which flattens everything it
+touches.
+
+This is where an **offline renderer should not pretend to be a real-time
+one**. We already render headless, frame by frame, with no interactivity
+budget. Options, in increasing cost and fidelity:
+
+- **Irradiance from the environment only** (spherical harmonics). Nearly free,
+  already implied by 1.1, and it is most of what "ambient" should have been.
+- **Baked irradiance probes** over the set, sampled per object. Minutes once
+  per film, then free per frame. The right answer for a static set with moving
+  characters, which describes almost every film here.
+- **A path-traced tier** (`three-gpu-pathtracer` or equivalent) for a `master`
+  quality level. Minutes per frame, not milliseconds -- but this engine
+  renders offline and already has a take cache, a render lock and a resumable
+  queue in the plan. This is the only route to parity and it should be left
+  architecturally possible even if it is never the default.
+
+### Tier 3 — content, not engine
+
+The AK-47 is built from cubes, cylinders and a torus. No amount of shading
+rescues geometry that has no curvature or wear. Phase 45's asset pipeline is
+the answer and it already works; what is missing is using it. **This is not an
+engine defect and should not be fixed in the engine.**
+
+## The architecture
+
+One principle, because it is what keeps this from becoming a pile of flags:
+
+> **Quality changes how finely the frame is sampled. It never changes what is
+> in the frame.**
+
+Timing, layout, camera, composition and colour are identical at every tier.
+A draft render and a master render differ in sample counts and resolution and
+in nothing else, so a draft is a trustworthy preview and the existing
+determinism guarantee -- frame N is a pure function of N -- survives intact.
+This is also what makes a proxy render, already item 7 of the audit, actually
+usable.
+
+### `meta.quality`, one word that moves six dials
+
+```
+   tier       scale   msaa   shadow   AO    env      bitrate      use
+   draft      0.5x      0     512    off   sh only   0.5x      iteration
+   preview    1.0x      4    1024    on    dome      1.0x      review
+   final      1.0x      8    2048    on    dome      1.5x      delivery
+   master     2.0x      8    4096    on    probes    2.5x      the one that ships
+```
+
+`scale` is a **supersample factor**, not an output size: the frame is rendered
+at `scale x` the output and resolved down. It is listed first because it is
+the one dial that fixes aliasing regardless of what the post chain does, which
+Finding 1 shows SMAA does not. It costs fill rate, which is cheap, and -- 
+unlike motion blur's accumulator, which pays `getImageData` per subframe -- 
+the downsample stays on the GPU as a single blit. Motion blur cost 19.8x for
+8 subframes because of readback; supersampling at 2x should cost close to its
+4x fill and no more.
+
+Output size stays `WIDTH`/`HEIGHT`, with named shorthands (`360p`, `480p`,
+`720p`, `1080p`) resolved against the film's aspect so that `meta` never has to
+restate it. Both the 2D and 3D scripts read the same resolver, because the
+drift between the two paths is itself a standing problem in this repo.
+
+### Where each piece lives
+
+```
+  src/core/render/quality.js      pure: tier -> every number above. unit-testable
+                                  with no browser, like post.js and motionBlur.js
+  src/core/art/environments.js    pure: procedural studio dome and sky as pixel data
+  src/core/art/materials.js       pure: procedural albedo/normal/roughness synthesis
+  src/core/geom/bevel.js          pure: bevelled box and extrude generators
+  src/render/post3d.js            reads samples from the tier; multisampled target
+  src/render/supersample.js       render-scale resolve, GPU side
+  src/backends/three3d/           consumes the tier for shadows, AO, env
+  scripts/lib/resolution.mjs      shared by produce.mjs and produce3d.mjs
+```
+
+The split follows the rule the rest of the engine already follows: **anything
+that is numbers stays in `core/` and is tested without a browser**;
+`src/render/` and `src/backends/` are the only places that touch THREE. That
+is why `motionBlur.js` exists twice and it has paid for itself.
+
+### How each is checked without a screenshot
+
+Rule 3 of the queue. Every item above has a number attached:
+
+- **Anti-aliasing**: the intermediate-pixel fraction used in Finding 1. A
+  threshold of 40% passes a resolved frame and fails a point-sampled one, with
+  the three measurements above as the calibration.
+- **Environment**: the metal-to-dielectric luma ratio from Finding 2. A metal
+  region must gain materially more than a dielectric one.
+- **Bevel**: the count of distinct specular maxima along a silhouette; a hard
+  edge has none.
+- **Shadows**: penumbra width in pixels against the light's declared extent.
+- **Bitrate**: bits per pixel per frame against the tier's target.
+- **The determinism rule**: the same film at `draft` and at `master` must agree
+  on every compiled timing and layout value. That is a unit test, not a render.
+
+### Phasing
+
+Tier 0 is one evening and is worth more than everything after it, because
+Finding 1 is currently degrading every film in the repository. It should jump
+the queue. Tier 1 is the bulk of the look and is roughly one phase per row.
+Tier 2 is a research phase and should not be started until Tier 1 is proved on
+a real film.
+
+## Deferred: the motion blur verdict
+
+Phase 47 shipped motion blur proved against its own physics -- a bar travelling
+11.7 px/frame smeared 5.8 px at 180 degrees and 11.7 px at 360, both within a
+pixel of prediction. What was *not* established is whether it reads as blur to
+a viewer, and the first attempt to judge that by eye was inconclusive.
+
+The reason is now clear and it is Finding 1 and Finding 2, not the blur: a
+flat-shaded box with a point-sampled staircase edge has almost no
+high-frequency detail for a shutter to smear in the first place. **The blur
+has little to destroy.** Re-judging it before Tier 0 and Tier 1 land would
+measure the wrong thing.
+
+The validation to run afterwards is a subject with dense high-frequency detail
+moving fast across frame, and the honest test is numerical rather than
+perceptual: a fine stripe or resolution chart loses contrast at a rate the
+shutter angle predicts exactly, so "did the detail survive" becomes a measured
+modulation-transfer figure instead of an opinion. That is the same move as
+Phase 46's ducking proof -- derive the expected number, then measure it.

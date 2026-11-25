@@ -199,7 +199,43 @@ from a CDN today gets an engine with no rigging. Phase 1 adds
 ## Defects in the new code
 
 These are not legacy. Each was found by a test written to assert something
-nobody had checked, and each is **fixed**.
+nobody had checked. All but the first below are **fixed**.
+
+### Post-processing silently disables anti-aliasing — **fix (next)**
+
+`film3d.html:317` constructs the renderer with `antialias: true`. That flag
+governs the **default drawing buffer only**. `buildComposer`
+(`src/render/post3d.js:37`) calls `new EffectComposer(renderer)` with no
+render target, so three r169 allocates one with `samples` unset — zero — and
+the scene is rendered into a target that cannot multisample. The drawing
+buffer's MSAA is never reached.
+
+Every film that sets `meta.bloom` or `meta.post` therefore renders with **no
+anti-aliasing of any kind**, at any resolution. That is most of the films
+here, Earth included.
+
+Measured on one frame of the AK-47 film at 1280x720, by counting high-contrast
+edges that carry at least one pixel resolved *between* the two plateaus — the
+pixel a multisample resolve produces and a point sample cannot:
+
+| chain | edges | with a resolved intermediate pixel |
+|---|---|---|
+| no post at all | 686 | **57.9%** |
+| `bloom` | 1440 | **1.2%** |
+| `bloom -> smaa` | 2079 | **1.1%** |
+
+A factor of fifty, paid for switching on a glow. `smaa` recovers none of it:
+it is an image-space filter that needs a gradient to find an edge, and a
+point-sampled staircase on flat-shaded geometry gives it none.
+
+Found by rendering the same frame three ways while investigating a viewer's
+report that the output looked "pixelated". It had been shipping since the post
+chain was introduced, invisible to every structured check, because no check
+looked at an edge.
+
+*Fix:* pass an explicitly multisampled target to the composer. Tier 0.1 of
+[42-RENDER-QUALITY.md](42-RENDER-QUALITY.md), which also carries the
+acceptance test — the intermediate-pixel fraction above, thresholded at 40%.
 
 ### `npm run test:legacy` hung indefinitely — **fixed (43)**
 

@@ -7,6 +7,7 @@
  * without waiting for a two-minute encode.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser } from './lib/guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -56,6 +57,14 @@ const browser = await puppeteer.launch({
     // over lands at 130-150s and was intermittently exceeding it.
     protocolTimeout: 600_000,
 });
+/**
+ * A ceiling on the outcome, not a performance budget. Before this existed an
+ * e2e script had a third outcome besides pass and fail -- "never" -- and
+ * `test:legacy` took it for 2h31m. See test/e2e/lib/guard.mjs.
+ */
+const guard = startGuard({ ms: 900_000, name: 'test:e2e' });
+guard.onCleanup(() => closeBrowser(browser));
+guard.onCleanup(() => server.close());
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
@@ -203,8 +212,7 @@ const result = await page.evaluate(async (origin) => {
 console.log(JSON.stringify(result, null, 2));
 console.log('\npage errors:', errors.length ? errors.slice(0, 6) : 'none');
 
-await browser.close();
-server.close();
+await guard.done();
 
 // --- assertions
 const fail = [];

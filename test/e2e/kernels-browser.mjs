@@ -20,6 +20,7 @@
  * pool *and* the dependencies in each.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser } from './lib/guard.mjs';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 
@@ -54,10 +55,25 @@ const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--enable-unsafe-webgpu', '--use-angle=metal', '--enable-gpu'],
 });
+/**
+ * Named `clock` rather than `guard`, because this file already has a `guard`
+ * of its own -- the isolation probe's result. A ceiling on the outcome, not a
+ * performance budget; see test/e2e/lib/guard.mjs.
+ *
+ * The dev server here is a spawned CHILD, one per COEP mode, so the live one
+ * is tracked in a binding the cleanup can reach: a timeout in the middle of
+ * the second pass must not leave a server holding the port.
+ */
+const clock = startGuard({ ms: 600_000, name: 'test:kernels:browser' });
+let liveServer = null;
+clock.onCleanup(() => closeBrowser(browser));
+clock.onCleanup(() => { try { liveServer?.kill(); } catch { /* already gone */ } });
 
 for (const coep of ['credentialless', 'require-corp']) {
     console.log(`\n=== COEP: ${coep} ===`);
     const server = await serve(coep);
+    liveServer = server;
+    clock.stage(`COEP ${coep}`);
     const page = await browser.newPage();
     const consoleErrors = [];
     page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -170,6 +186,7 @@ for (const coep of ['credentialless', 'require-corp']) {
     } finally {
         await page.close();
         server.kill();
+        liveServer = null;
         await once(server, 'exit').catch(() => {});
     }
 }
@@ -257,7 +274,7 @@ console.log('\n=== COEP: off (static host, rescued by the service worker) ===');
     }
 }
 
-await browser.close();
+await clock.done();
 
 console.log('');
 if (failures) {

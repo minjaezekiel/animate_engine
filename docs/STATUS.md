@@ -71,6 +71,43 @@ Full notes: `completed_phases/37-DIGEST-2D.md`.
 
 ---
 
+## Phase 43 — a hang becomes a failure
+
+`npm run test:legacy` had run for 2h31m, twice, without passing or failing.
+Fixed; it now runs in 12s, and `npm run test:all` is runnable for the first
+time in a month.
+
+It was not slow. All forty of its assertions completed, correctly, in under
+three seconds; the script then sat in `await br.close()` forever at 0% CPU.
+Both export assertions click an `<a download>`, which in headless Chrome is a
+real download, and Chrome will not shut down once its download manager has
+seen one. Deferring `revokeObjectURL` by 30s still hung past 90s, which ruled
+out the plausible suspect and pinned it on the download; suppressing the click
+took the script to 2.9s. `downloadBlob` is correct in production.
+
+A second defect came out of the same line: the test's comment claimed it kept
+the blobs "instead of downloading them" and it did not, so every run since
+October wrote a GIF and a zip into the machine's real Downloads folder — 33
+files were found there.
+
+The fix is general, because the specific bug was the smaller half: nothing was
+watching, and that was true of all ten e2e scripts. `test/e2e/lib/guard.mjs`
+gives every one of them a deadline that names the stage it died in, a
+`closeBrowser` that kills a browser which refuses to exit, and teardown on the
+failure path — nine of the ten had no `finally`, so a failing assertion leaked
+a browser too. Two bugs in the guard itself were found by writing its tests:
+`Promise.allSettled(cleanups.map((f) => f()))` calls each cleanup eagerly, so
+a synchronous throw skipped every later cleanup; and `closeBrowser`'s grace
+timer was unref'd, which would have let Node exit and orphan Chrome. 1,050
+unit tests, up 10. See `docs/completed_phases/38-E2E-GUARD.md`.
+
+Two items were added to the queue from direct requests, both documented rather
+than built this phase: `docs/pending/40-ASSET-IMPORT.md` and
+`docs/pending/41-AUDIO-WINDOWING.md`. The second is mostly already
+implemented and undocumented, which is worth knowing before anyone rebuilds
+it: per-cue `offset`, `duration`, `fadeIn` and `fadeOut` already trim a music
+bed to a window inside one scene.
+
 ## Phase 41 — Kokoro and OpenVoice, actually renderable — **done**
 
 Both had been registered, selectable and unit-tested since Phase 39 and

@@ -296,9 +296,10 @@ other host page must supply it or films render silent with subtitles. See
 npm test             # 60 Node unit tests, no browser
 npm run test:e2e     # headless Chrome: 2,880 frames, timestamps, determinism
 npm run test:av      # audio muxing + the A/V sync probe
-npm run test:legacy  # the two 3D-editor data-loss guards
+npm run test:legacy  # the 3D editor: scrubbing, exports, interaction costs
 npm run test:bundle  # dist/ bundles load and render as a CDN consumer gets them
 npm run test:all     # all of the above
+npm run check:docs   # every relative link in docs/ and README resolves
 ```
 
 Determinism is asserted on the **draw-call stream**, not on pixels: encoders
@@ -393,7 +394,18 @@ everything open is queued in [docs/pending/](docs/pending/).
 - **No motion blur on either path**, which is the clearest visual difference
   from reference 3D work at 24 fps.
 - **Music is not ducked under dialogue.** Bed gains are hand-tuned per film,
-  so the mix is silently wrong the moment a line moves.
+  so the mix is silently wrong the moment a line moves —
+  [docs/pending/41-AUDIO-WINDOWING.md](docs/pending/41-AUDIO-WINDOWING.md).
+  Trimming a bed to a window *does* work: a cue takes `offset`, `duration`,
+  `fadeIn` and `fadeOut`, per scene, on both paths.
+- **Importing an asset is a bare path, and nothing helps you after that.**
+  glTF, GLB, FBX, HDR panoramas and 2D images all import today, but there is
+  no asset library, no way to inspect a file before loading it, no scale or
+  up-axis normalisation (a 100×-wrong import is taken literally), no collider
+  generation, and **no morph-target visemes** — so the viseme track the voice
+  pipeline computes for every line has no consumer in 3D. No online sources
+  and no MCP tools either —
+  [docs/pending/40-ASSET-IMPORT.md](docs/pending/40-ASSET-IMPORT.md).
 - **No rigid-body dynamics.** `src/core/sim/` is cloth and fluid; nothing
   falls, stacks or collides. The collision-maths series animated its
   collisions with keyframes.

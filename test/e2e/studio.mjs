@@ -8,6 +8,7 @@
  * dragging, compiling and drawing agree with each other on screen.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser } from './lib/guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -44,6 +45,14 @@ const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true,
     args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
 });
+/**
+ * A ceiling on the outcome, not a performance budget. Before this existed an
+ * e2e script had a third outcome besides pass and fail -- "never" -- and
+ * `test:legacy` took it for 2h31m. See test/e2e/lib/guard.mjs.
+ */
+const guard = startGuard({ ms: 600_000, name: 'test:studio' });
+guard.onCleanup(() => closeBrowser(browser));
+guard.onCleanup(() => server.close());
 const page = await browser.newPage();
 await page.setViewport({ width: 1400, height: 900 });
 const errors = [];
@@ -253,8 +262,7 @@ if (!pwa.scopeCoversStart) fail('manifest scope does not contain its own start_u
 if (!pwa.scopeCoversPage) fail('manifest scope does not cover the editor page');
 if (!pwa.swControlsPage) fail(`service worker scope ${pwa.swScope} does not cover the app`);
 
-await browser.close();
-server.close();
+await guard.done();
 
 if (errors.length) { console.error('page errors:\n - ' + errors.join('\n - ')); failures.push('page errors'); }
 if (failures.length) { console.error(`\nFAILED (${failures.length})`); process.exit(1); }

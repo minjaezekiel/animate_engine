@@ -4,6 +4,7 @@
  * frame of the demo film, which is the only proof that counts.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser } from './lib/guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -37,6 +38,14 @@ const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true,
     args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
 });
+/**
+ * A ceiling on the outcome, not a performance budget. Before this existed an
+ * e2e script had a third outcome besides pass and fail -- "never" -- and
+ * `test:legacy` took it for 2h31m. See test/e2e/lib/guard.mjs.
+ */
+const guard = startGuard({ ms: 120_000, name: 'test:bundle' });
+guard.onCleanup(() => closeBrowser(browser));
+guard.onCleanup(() => server.close());
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
@@ -88,8 +97,7 @@ const result = await page.evaluate(async (origin) => {
 
 console.log(JSON.stringify(result, null, 2));
 console.log('page errors:', errors.length ? errors.slice(0, 3) : 'none');
-await browser.close();
-server.close();
+await guard.done();
 
 const fail = [];
 if (!result.hasStudio) fail.push('script tag did not expose window.jireX.FilmStudio');

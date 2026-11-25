@@ -9,6 +9,7 @@
  * pose every time.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser, suppressDownloads } from './lib/guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -20,10 +21,24 @@ const srv=createServer(async(q,r)=>{try{
 }catch{if(!r.headersSent)r.writeHead(404);r.end();}});
 await new Promise(r=>srv.listen(0,r));
 const base=`http://127.0.0.1:${srv.address().port}`;
+/**
+ * 180s is roughly sixty times what this script needs. It is a ceiling on the
+ * outcome, not a performance budget: before it existed this file ran for
+ * 2h31m without producing one. See test/e2e/lib/guard.mjs.
+ */
+const guard=startGuard({ms:180_000,name:'test:legacy'});
 const br=await puppeteer.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader'],protocolTimeout:600000});
+guard.onCleanup(()=>closeBrowser(br));
+guard.onCleanup(()=>srv.close());
 const pg=await br.newPage(); pg.on('pageerror',e=>console.error('[page]',String(e).slice(0,160)));
+// BEFORE the page loads, and before anything touches an export path: an
+// `<a download>` click here is a real download into the real Downloads
+// folder, and headless Chrome then never exits. This is what hung the script.
+const downloads=await suppressDownloads(pg);
+guard.stage('load the editor');
 await pg.goto(`${base}/index.html`,{waitUntil:'load'});
 await pg.waitForFunction(()=>window.AnimationEngine?.animationEngine?.animationManager?.core,{timeout:20000});
+guard.stage('scrub after a load');
 const out=await pg.evaluate(()=>{
   const e=window.AnimationEngine.animationEngine;
   const sm=e.sceneManager, am=e.animationManager;
@@ -70,6 +85,7 @@ const out=await pg.evaluate(()=>{
 
 // The 3D editor's scene rendered through the SAME offline loop the 2D films
 // use: frame-stepped, deterministic, with physics advanced in fixed substeps.
+guard.stage('offline render');
 const render=await pg.evaluate(async()=>{
   const e=window.AnimationEngine.animationEngine;
   const am=e.animationManager, sm=e.sceneManager;
@@ -136,14 +152,17 @@ console.log(JSON.stringify(render));
 
 // GIF and PNG-sequence export must stream: the old path held raw RGBA AND
 // PNG bytes for every frame, so a long sequence could not finish at all.
+guard.stage('GIF and PNG-sequence export');
 const exports_=await pg.evaluate(async()=>{
   const e=window.AnimationEngine.animationEngine;
   const rm=e.recordingManager;
-  // Keep the files instead of downloading them.
+  // Count the blobs offered for saving. This used to also claim to stop the
+  // save and did not -- it recorded the blob and handed back a live object
+  // URL, so the file downloaded anyway. The anchor click is suppressed by
+  // `suppressDownloads` above, which is the part that actually matters.
   const saved=[];
   const originalCreate=URL.createObjectURL;
   URL.createObjectURL=(b)=>{ saved.push(b); return originalCreate.call(URL,b); };
-  const peak={bytes:0};
   const gif=await rm.exportAsGIF({fps:8,maxWidth:160});
   const zip=await rm.exportAsImageSequence({fps:8,maxWidth:160});
   URL.createObjectURL=originalCreate;
@@ -161,6 +180,7 @@ const exports_=await pg.evaluate(async()=>{
 console.log(JSON.stringify(exports_));
 
 // Phase 5: the editor's interaction costs, asserted rather than assumed.
+guard.stage('editor interaction costs');
 const perf=await pg.evaluate(()=>{
   const e=window.AnimationEngine.animationEngine;
   const sm=e.sceneManager, em=e.editManager, h=e.history;
@@ -291,7 +311,9 @@ const perf=await pg.evaluate(()=>{
 });
 console.log(JSON.stringify(perf));
 console.log(JSON.stringify(out));
-await br.close(); srv.close();
+const offered=await downloads.offered();
+guard.stage('teardown');
+await guard.done();
 const fails=[];
 if(!out.noMixers) fails.push('mixers/tweens still present');
 if(render.frames!==48) fails.push(`offline render produced ${render.frames} frames, want 48`);
@@ -306,6 +328,10 @@ if(!(exports_.gifBytes>500)) fails.push(`GIF is ${exports_.gifBytes} bytes; it h
 if(JSON.stringify(exports_.zipMagic)!=='[80,75,3,4]') fails.push('PNG sequence is not a zip');
 if(!(exports_.zipBytes>1000)) fails.push(`zip is ${exports_.zipBytes} bytes; it has no frames`);
 if(!exports_.captureFramesGone) fails.push('captureFrames is still there, still holding every frame');
+// Both exports must still OFFER a file -- suppressing the save must not have
+// quietly disabled the thing under test -- and no save may reach the disk.
+if(JSON.stringify(offered)!=='["animation.gif","frames.zip"]')
+  fails.push(`exports offered ${JSON.stringify(offered)}, want animation.gif and frames.zip`);
 if(Number(perf.three)<150) fails.push(`still on Three r${perf.three}`);
 // Against the background, not an absolute number: this guards "the scene is
 // lit", which a Three upgrade can silently break, without pretending to judge

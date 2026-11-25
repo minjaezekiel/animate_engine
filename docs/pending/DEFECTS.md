@@ -199,35 +199,79 @@ from a CDN today gets an engine with no rigging. Phase 1 adds
 ## Defects in the new code
 
 These are not legacy. Each was found by a test written to assert something
-nobody had checked, and each is **fixed** — except the first, which is open.
+nobody had checked, and each is **fixed**.
 
-### `npm run test:legacy` hangs indefinitely — **open (40)**
+### `npm run test:legacy` hung indefinitely — **fixed (43)**
 
 `test/e2e/legacy-guards.mjs` ran for **2 h 31 m** without finishing and
 without failing, twice in one session, and had to be killed by pid both
-times. It does not time out, so a suite run that includes it never returns;
+times. It did not time out, so a suite run that included it never returned;
 `for t in test test:bundle test:rig test:legacy test:roundtrip` printed three
-`exit 0` lines and then stopped forever.
+`exit 0` lines and then stopped forever. `npm run test:all` lists
+`test:legacy` sixth of eleven, so **the full suite could not be run at all.**
 
-The damage is not confined to the suite. It holds three headless Chrome
-processes while hung, and `scripts/lib/render-lock.mjs` is shared, so the next
-render either waits behind it or gets OOM-killed — which is exactly what
-happened: a 1920×1080 render of the Earth film died with *"the browser was
-killed before the film was written"* while eight stray Chrome processes from
-this hang were resident.
+The damage was not confined to the suite. It held headless Chrome processes
+while hung, and `scripts/lib/render-lock.mjs` is shared, so the next render
+either waited behind it or was OOM-killed — which is exactly what happened: a
+1920×1080 render of the Earth film died with *"the browser was killed before
+the film was written"* while eight stray Chrome processes from this hang were
+resident.
 
-Not reproduced under a debugger and not diagnosed. What is known:
+**It was not slow.** Instrumenting the four stages showed every one of its
+forty assertions completing, correctly, in **under three seconds**. The script
+then reached `await br.close()` and stopped there forever, at 0% CPU, holding
+two Chrome processes. The hang was entirely in teardown, after the last
+assertion had been computed and printed.
 
-- It is the only suite in the repo with no timeout of its own, so a page that
-  never reaches its ready state waits forever rather than reporting.
-- It drives `index.html`, the legacy single-file editor, which is frozen code
-  that the 2D and 3D pipelines do not execute.
-- It passed earlier in the same session, so this is a hang rather than a
-  break.
+The cause: both export assertions call an export that ends in `downloadBlob`,
+which clicks an `<a download>`. In headless Chrome that is a **real
+download**, and once its download manager has seen one, Chrome does not shut
+down on `Browser.close` — there is no one in headless to answer the prompt it
+wants to raise. Puppeteer then waits on a browser that will never exit.
 
-Two things to do, in order: give the suite a hard timeout so it **fails**
-rather than hanging, which is strictly better whatever the cause; then find
-out what it is waiting for. Until then, run the other suites by name.
+Two measurements settled it. Suppressing the anchor click took the script to
+**2.9 s and `exit 0`**. Letting the click happen but deferring
+`revokeObjectURL` by 30 s still hung past 90 s, which rules out the revoke and
+pins it on the download itself. `downloadBlob` is therefore fine in
+production, and a person clicking *Export GIF* in a real browser gets their
+file.
+
+A second defect fell out of the same line. The test's own comment said *"Keep
+the files instead of downloading them"*, and it did not: it recorded the Blob
+and handed back a live object URL, so the file downloaded anyway. Every run
+since October had been writing `animation (N).gif` and `frames (N).zip` into
+the machine's real Downloads folder — **33 files** were found there, one pair
+per run, sizes matching the test's own `gifBytes` exactly.
+
+The fix is in [test/e2e/lib/guard.mjs](../../test/e2e/lib/guard.mjs) and is
+deliberately general, because the specific bug was the smaller half of the
+problem:
+
+- **A deadline.** None of the ten e2e scripts had a wall clock, so each had a
+  third outcome besides pass and fail — *never* — which is the worst one,
+  because it stalls a queue and reports nothing. The message names the stage
+  it died in.
+- **`closeBrowser`.** `browser.close()` is a request, not a guarantee. It now
+  gets eight seconds and then the process is killed.
+- **Teardown on every path.** Nine of the ten scripts had no `finally`, so a
+  *failing* assertion — the ordinary outcome a test is written for — leaked a
+  browser too.
+- **`suppressDownloads`.** What the test meant to do, done where it works.
+  The test now also asserts that both exports still *offer* a file, so
+  suppressing the save cannot quietly disable the thing under test.
+
+All ten scripts are wired to it. `test:legacy` now runs in **12 s**, and
+`test:all` is runnable for the first time in a month.
+
+Two of the guard's own bugs were found by writing its tests rather than by
+reading it, which is the argument for having written them:
+`Promise.allSettled(cleanups.map((f) => f()))` calls each cleanup eagerly
+inside the `map`, so the first one to throw *synchronously* escaped before
+`allSettled` existed and every later cleanup was skipped — a failed
+`browser.close()` would have leaked the server. And `closeBrowser`'s grace
+timer was `unref`'d, which would have let Node exit during a wedged close and
+**orphan Chrome**, the precise leak the function exists to prevent.
+
 
 ### The PWA was never installable — **fixed (2)**
 

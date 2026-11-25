@@ -8,6 +8,7 @@
  * asserts the round trip is now real, vertex by vertex.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser } from './lib/guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -34,6 +35,14 @@ const br = await puppeteer.launch({
     args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
     protocolTimeout: 600_000,
 });
+/**
+ * A ceiling on the outcome, not a performance budget. Before this existed an
+ * e2e script had a third outcome besides pass and fail -- "never" -- and
+ * `test:legacy` took it for 2h31m. See test/e2e/lib/guard.mjs.
+ */
+const guard = startGuard({ ms: 240_000, name: 'test:roundtrip' });
+guard.onCleanup(() => closeBrowser(br));
+guard.onCleanup(() => srv.close());
 const pg = await br.newPage();
 const pageErrors = [];
 pg.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 200)));
@@ -142,8 +151,7 @@ const out = await pg.evaluate(() => {
     return r;
 });
 
-await br.close();
-srv.close();
+await guard.done();
 console.log(JSON.stringify(out, null, 1));
 
 const failures = [];

@@ -8,6 +8,7 @@
  * pointer events, the paint kernels and the canvas agree with each other.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser } from './lib/guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -46,6 +47,14 @@ const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true, protocolTimeout: 120_000,
     args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
 });
+/**
+ * A ceiling on the outcome, not a performance budget. Before this existed an
+ * e2e script had a third outcome besides pass and fail -- "never" -- and
+ * `test:legacy` took it for 2h31m. See test/e2e/lib/guard.mjs.
+ */
+const guard = startGuard({ ms: 300_000, name: 'test:draw:e2e' });
+guard.onCleanup(() => closeBrowser(browser));
+guard.onCleanup(() => server.close());
 const page = await browser.newPage();
 await page.setViewport({ width: 1500, height: 950 });
 const errors = [];
@@ -134,6 +143,5 @@ if (errors.length) {
     console.log('ok   no page errors');
 }
 
-await browser.close();
-server.close();
+await guard.done();
 console.log(process.exitCode ? '\ndraw surface: FAILED' : '\ndraw surface: all checks passed');

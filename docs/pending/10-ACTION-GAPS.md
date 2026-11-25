@@ -1,7 +1,7 @@
 # What the engine cannot do: action
 
 Findings from a live test. The brief was a sixty-second full-power fight; the
-film is [`demo/fight.json`](../demo/fight.json), the script is
+film is [`demo/fight.json`](../../demo/fight.json), the script is
 [`demo/fight-script.md`](../../demo/fight-script.md), and the render is
 `demo/out/sun-and-sky.webm`.
 

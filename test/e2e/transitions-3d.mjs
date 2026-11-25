@@ -18,6 +18,7 @@
  * is 1.0 and nothing else is.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser } from './lib/guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -96,6 +97,14 @@ const br = await puppeteer.launch({
     args: ['--no-sandbox', '--enable-unsafe-swiftshader', '--use-angle=metal'],
     protocolTimeout: 600_000,
 });
+/**
+ * A ceiling on the outcome, not a performance budget. Before this existed an
+ * e2e script had a third outcome besides pass and fail -- "never" -- and
+ * `test:legacy` took it for 2h31m. See test/e2e/lib/guard.mjs.
+ */
+const guard = startGuard({ ms: 900_000, name: 'test:transitions:e2e' });
+guard.onCleanup(() => closeBrowser(br));
+guard.onCleanup(() => srv.close());
 const pg = await br.newPage();
 const pageErrors = [];
 pg.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 300)));
@@ -106,8 +115,7 @@ const res = await pg.evaluate((f, times) => window.render3d(f, {
     width: 320, height: 180, silent: true, check: times,
 }), film, AT.map(({ t, shotId }) => ({ t, shotId })));
 
-await br.close();
-srv.close();
+await guard.done();
 
 const fails = [];
 if (pageErrors.length) fails.push(`page errors: ${pageErrors.join(' | ')}`);

@@ -28,6 +28,7 @@
  * instead of making this test pass by luck.
  */
 import puppeteer from 'puppeteer-core';
+import { startGuard, closeBrowser } from './lib/guard.mjs';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
@@ -76,6 +77,14 @@ const browser = await puppeteer.launch({
            '--enable-unsafe-swiftshader', '--use-fake-ui-for-media-stream'],
     protocolTimeout: 600_000,
 });
+/**
+ * A ceiling on the outcome, not a performance budget. Before this existed an
+ * e2e script had a third outcome besides pass and fail -- "never" -- and
+ * `test:legacy` took it for 2h31m. See test/e2e/lib/guard.mjs.
+ */
+const guard = startGuard({ ms: 900_000, name: 'test:av' });
+guard.onCleanup(() => closeBrowser(browser));
+guard.onCleanup(() => server.close());
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
@@ -304,8 +313,7 @@ console.log('\nstudio log:');
 for (const l of result.log) console.log('  ' + l);
 console.log('\npage errors:', errors.length ? errors : 'none');
 
-await browser.close();
-server.close();
+await guard.done();
 
 const fail = [];
 const want = DURATION;

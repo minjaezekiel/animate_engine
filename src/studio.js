@@ -349,6 +349,7 @@ export class FilmStudio {
                 cues, buffers: voiced.buffers,
                 sampleRate: this.sampleRate,
                 durationSec: first.meta.duration,
+                duck: first.meta.duck ?? null,
                 // The master stage reports its headroom on both paths: a mix
                 // that had to be pulled back is a cue to fix the gains, and
                 // silence about it is how a film ships distorted.

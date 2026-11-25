@@ -1,4 +1,5 @@
 import { Scene } from '../scene/Scene.js';
+import { normalizeDuck } from '../audio/ducking.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
 import { createClip } from '../anim/Clip.js';
 import { easeProgress } from '../anim/easing.js';
@@ -67,6 +68,13 @@ export function compileFilm(film, { assets = {} } = {}) {
     timeline.steps = [];
     timeline.sheets = [];
     timeline.step = meta.step ?? 0;
+    /**
+     * Ducking the bed under the dialogue. Opt-in: switching it on for every
+     * existing film would change fifty-one finished mixes.
+     */
+    meta.duck = normalizeDuck(film.meta?.audio?.duck ?? film.meta?.duck, {
+        warn: (m, where) => diagnostics.push({ severity: 'warning', message: m,
+                                               path: where ?? 'meta.audio.duck' }) });
     const audioCues = [];
     const lipsyncJobs = [];
 

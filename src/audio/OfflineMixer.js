@@ -1,4 +1,5 @@
 import { cueSampleWindow, mixDuration } from '../core/audio/cues.js';
+import { duckAutomation, duckReport } from '../core/audio/ducking.js';
 
 /**
  * Renders the whole audio mix non-realtime with OfflineAudioContext.
@@ -20,6 +21,13 @@ export async function renderMix({
      * audible.
      */
     ceiling = 0.891,
+    /**
+     * Duck the music bus under the voice bus. `null` leaves it alone.
+     *
+     * Normalised by `normalizeDuck` before it gets here, so this is a plain
+     * options object and the mixer makes no decisions about depth or timing.
+     */
+    duck = null,
     /** Called with a line about what the master stage did, if anything. */
     onReport = null,
 } = {}) {
@@ -37,7 +45,11 @@ export async function renderMix({
     master.gain.value = 1;
     master.connect(ctx.destination);
 
-    // One gain node per bus, so a music bed can be ducked as a group later.
+    /**
+     * One gain node per bus -- which is what makes ducking a group possible,
+     * and is what the comment here promised for several phases before
+     * `duckAutomation` turned up to use it.
+     */
     const buses = new Map();
     const busFor = (name) => {
         let g = buses.get(name);
@@ -54,7 +66,15 @@ export async function renderMix({
         const buf = buffers[cue.assetId];
         if (!buf) continue;
         const w = cueSampleWindow(cue, sampleRate, buf.duration);
-        if (w.lengthSamples <= 0) continue;
+        if (w.lengthSamples <= 0) {
+            // This used to be a bare `continue`. An `offset` past the end of
+            // a file therefore rendered SILENT with no diagnostic anywhere:
+            // the author heard nothing and every check in the repo passed it.
+            onReport?.(`cue '${cue.id ?? cue.assetId}' resolves to zero length `
+                + `(offset ${cue.offset ?? 0}s into a ${buf.duration.toFixed(2)}s asset) `
+                + 'and renders silent');
+            continue;
+        }
 
         const src = ctx.createBufferSource();
         src.buffer = buf;
@@ -76,6 +96,35 @@ export async function renderMix({
         src.connect(gain);
         gain.connect(busFor(cue.bus ?? 'sfx'));
         src.start(at, w.srcOffset / sampleRate, len);
+    }
+
+    /**
+     * The duck, applied to the target bus as one automation curve.
+     *
+     * After every cue, because the bus node for `music` only exists once
+     * something has been routed to it -- and if nothing was, there is no bed
+     * to duck and the automation is skipped rather than creating an empty
+     * bus.
+     */
+    if (duck) {
+        const points = duckAutomation(cues, assetDurations, duck);
+        const bed = buses.get(duck.target);
+        if (!points.length) {
+            onReport?.(duckReport(points, duck));
+        } else if (!bed) {
+            onReport?.(`duck: nothing is routed to the '${duck.target}' bus, so there is `
+                + 'no bed to duck');
+        } else {
+            // An anchor at zero, because the first ramp needs a value to ramp
+            // FROM: `linearRampToValueAtTime` interpolates from the previous
+            // scheduled event, and with none it jumps instead.
+            bed.gain.setValueAtTime(points[0].t > 0 ? 1 : points[0].gain, 0);
+            for (const pt of points) {
+                if (pt.t <= 0) bed.gain.setValueAtTime(pt.gain, 0);
+                else bed.gain.linearRampToValueAtTime(pt.gain, pt.t);
+            }
+            onReport?.(duckReport(points, duck));
+        }
     }
 
     const rendered = await ctx.startRendering();

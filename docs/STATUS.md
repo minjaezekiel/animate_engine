@@ -209,6 +209,52 @@ or clear one. 1,165 unit tests, up 94. See
 `docs/completed_phases/40-ASSET-PIPELINE.md`. Source catalogues, SVG import
 and retarget diagnostics stay in `docs/pending/40-ASSET-IMPORT.md`.
 
+## Phase 46 — music ducking, and the audio defects nobody could hear
+
+`OfflineMixer.js` has carried the comment "One gain node per bus, so a music
+bed can be ducked as a group later" since the mix was first bussed, and later
+did not happen. So a bed sat at whatever flat gain the author guessed and the
+guess had to be re-made per film, which means the mix was silently wrong the
+moment a line moved -- and nothing reported it, because a flat bed is a
+correct render of exactly what was asked for.
+
+Computed from the CUE LIST rather than from an envelope follower, and both
+reasons matter. Musically, a follower ducks on every syllable and lifts in
+every gap, which pumps; a line is a continuous thing even though its waveform
+is not, so gaps shorter than a breath are bridged. Practically, the cue list
+is a handful of numbers available before any audio exists, so the module is
+pure and runs in Node.
+
+-9 dB by default, attack faster than release as on every compressor, opt-in
+via `meta.audio.duck` on both paths because switching it on would change
+fifty-one finished mixes. A depth is accepted signed or unsigned, since "duck
+by 9 dB" and "duck to -9 dB" are the same intent.
+
+Measured rather than asserted to be quieter: the same film is rendered twice
+in a real OfflineAudioContext, with and without, and the expected level is
+DERIVED in the test -- two incoherent tones sum in RMS, not in amplitude --
+because asserting "it got quieter" would pass a duck of any depth. Measured
+-14.54 dB against a predicted -14.54 dB, with 0.00 dB difference either side
+of the line, which is the proof that the automation neither leaks nor fails to
+return. The mix drops 2.50 dB rather than 9 because the line itself is not
+ducked, and checking against the derived figure is what makes that a test
+instead of a surprise.
+
+One bug found by the tests: `normalizeDuck` returned out of its numeric branch
+early, so `duck: 0.5` silently accepted an inaudible half-decibel while
+`duck: { depth: 0.5 }` warned -- the same mistake reported in one spelling and
+not the other.
+
+And four audio defects that could only ever have been found by listening, now
+caught by `checkCues`: a cue whose offset is past the end of its asset
+rendered silent with NO diagnostic (the mixer skipped a zero-length window
+with a bare `continue`); an out-point past the end was clamped silently; a
+fade longer than its own cue never reaches its level; and two overlapping
+music beds went unreported, which survives review because the result is merely
+denser rather than obviously wrong.
+
+1,194 unit tests, up 29. See `docs/completed_phases/41-DUCKING.md`.
+
 ## Phase 41 — Kokoro and OpenVoice, actually renderable — **done**
 
 Both had been registered, selectable and unit-tested since Phase 39 and

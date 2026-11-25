@@ -55,20 +55,18 @@ knowing it exists is indistinguishable from it not existing.
 
 ## What is genuinely missing
 
-### 1. Ducking — the one that is actually felt
+### 1. Ducking — **DONE in Phase 46**
 
-[`OfflineMixer.js:40`](../../src/audio/OfflineMixer.js#L40) has said *"so a
-music bed can be ducked as a group later"* for several phases, and later has
-not happened. Music under dialogue sits at whatever flat `gain` the author
-guessed, so either the voice is buried or the music is inaudible, and the
-guess has to be re-made per film.
+See [../completed_phases/41-DUCKING.md](../completed_phases/41-DUCKING.md).
+`meta.audio.duck` on either path, −9 dB by default, computed from the cue
+list rather than from an envelope follower (which pumps), and measured on a
+rendered mix at −14.54 dB against a predicted −14.54 dB.
 
-This is also **priority 2 in the audit**
-([37-MISSING-TOOLS.md](37-MISSING-TOOLS.md)) at an estimated ~30 lines. The
-buses already exist, which is the whole reason it is cheap: compute an
-envelope over the `voice` bus, invert it, apply it to the `music` bus with an
-attack and a release. Pure arithmetic over sample arrays, testable in Node,
-and no new concept in the film format beyond `duck: true` or a depth in dB.
+Phase 46 also closed four audio defects that could only ever have been found
+by listening: a cue whose `offset` is past the end of its asset rendered
+silent with no diagnostic, an out-point past the end was clamped silently, a
+fade longer than its own cue never reached its level, and two overlapping
+music beds went unreported.
 
 ### 2. Music gain is a constant, not a channel
 
@@ -108,25 +106,27 @@ could ask for bar 17 and land on it. Low priority, high polish: it is the
 difference between music that happens to be under a cut and music the cut was
 made to.
 
-### 6. `check` says nothing about audio
+### 6. `check` says nothing about audio — **mostly DONE in Phase 46**
 
-The checkers catch geometric, temporal and typographic defects. Nothing
-catches: a cue whose window is entirely past the end of its asset (clamped to
-zero length — **silence, no warning**), a music bed louder than the dialogue
-over it, a fade longer than its own cue, or two cues on the `music` bus
-overlapping unintentionally. Each is a few lines next to the existing checks,
-and each is a defect that currently ships.
+`checkCues` in [`cues.js`](../../src/core/audio/cues.js) now catches a window
+past the end of its asset, a clamped out-point, a fade longer than its own
+cue, an unloaded asset, and two overlapping music beds.
+
+What remains: **a music bed louder than the dialogue over it.** That one needs
+the rendered samples rather than the cue list, so it belongs beside the
+master-peak measurement rather than in the pure checker.
 
 ## Order of work
 
-1. Document the audio block. It already works; nobody can tell.
-2. The `check` rules — they are cheap and they catch shipping defects, in
-   particular the silently-clamped window.
-3. Ducking. Audit priority 2, ~30 lines, the one a viewer hears.
-4. An audio-asset report, so an `offset` is chosen rather than guessed.
-5. Keyframeable cue gain.
-6. Loop-to-fill.
-7. The tempo grid.
+1. Document the audio block. It already works; nobody can tell. **Still the
+   cheapest remaining item in this doc.**
+2. An audio-asset report, so an `offset` is chosen rather than guessed.
+3. Keyframeable cue gain.
+4. Loop-to-fill.
+5. A bed-louder-than-the-dialogue check, from the rendered samples.
+6. The tempo grid.
+
+~~Ducking~~ and ~~the pure `check` rules~~ shipped in Phase 46.
 
 ## Acceptance
 

@@ -32,6 +32,8 @@ Where the two rendering paths actually stand:
 | Voice, lipsync, shots retimed to real audio | yes | yes |
 | Four voice engines, takes cached on disk | yes | yes |
 | Music and sound cues, levelled and limited | yes | yes |
+| Music ducked under dialogue | yes | yes |
+| Audio cue validation | yes (shared) | yes (shared) |
 | Subtitles, titles, screen callouts | yes | yes |
 | Framing, exposure and pacing checks | yes | yes |
 | `digest` — what is on screen, as numbers | yes | yes |
@@ -65,9 +67,9 @@ discovered:
 The largest single gaps are now the ones the audit named rather than one path
 lagging the other: there is **no motion blur on either path**, **no
 rigid-body solver** (colliders can be generated from any imported mesh, but
-nothing integrates them yet), and music is **never ducked under dialogue** —
-so a bed's level is hand-tuned per film and silently wrong the moment a line
-moves.
+nothing integrates them yet), and **no curve editor or dope sheet** — easing
+is chosen by name from a table, so weight is changed by editing a word rather
+than dragging a handle.
 
 ## What it does today
 
@@ -310,6 +312,7 @@ npm run test:all     # all of the above
 npm run check:docs   # every relative link in docs/ and README resolves
 npm run asset inspect <file|url>   # what is in a model, without a browser
 npm run asset credits <film.json>  # is this clear for release?
+npm run test:duck:e2e # ducking measured on a rendered mix, against derived figures
 ```
 
 Determinism is asserted on the **draw-call stream**, not on pixels: encoders
@@ -403,11 +406,11 @@ everything open is queued in [docs/pending/](docs/pending/).
   Fade, dip, wipe, iris and `continue` all work.
 - **No motion blur on either path**, which is now the clearest visual
   difference from reference 3D work at 24 fps.
-- **Music is not ducked under dialogue.** Bed gains are hand-tuned per film,
-  so the mix is silently wrong the moment a line moves —
+- **Cue gain is a constant, not a timeline channel**, so a music swell means
+  splitting one cue into several abutting ones and hoping the seams are
+  inaudible. Nothing reports an audio file's duration either, so an in-point
+  is guessed and re-rendered —
   [docs/pending/41-AUDIO-WINDOWING.md](docs/pending/41-AUDIO-WINDOWING.md).
-  Trimming a bed to a window *does* work: a cue takes `offset`, `duration`,
-  `fadeIn` and `fadeOut`, per scene, on both paths.
 - **2D import is raster-only.** Both image providers end in
   `createImageBitmap`, so there is no SVG-to-path, sprite-sheet or Lottie
   import — and the 2D side draws primitives that could consume paths

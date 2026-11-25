@@ -11,6 +11,7 @@ import { gripAngles, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
 import { normalizePost, normalizePostRamp, isPostKeyable, postChannel,
          POST_KEYABLE, POST_NODE } from './post.js';
 import { normalizeOverlay } from '../art/overlay.js';
+import { normalizeDuck } from '../audio/ducking.js';
 import { normalizeTransitions } from '../art/transitions.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
 
@@ -208,6 +209,11 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         clip: normalizeClip(film.meta?.clip, warn),
     };
     meta.post = normalizePost(film.meta?.post, { bloom: meta.bloom, warn });
+    /**
+     * Ducking the bed under the dialogue. Opt-in, because turning it on for
+     * every existing film would change fifty-one finished mixes.
+     */
+    meta.duck = normalizeDuck(film.meta?.audio?.duck ?? film.meta?.duck, { warn });
     meta.overlay = normalizeOverlay(film.overlay, warn, { designHeight: meta.height });
 
     const scene = new Scene();

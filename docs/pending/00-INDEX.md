@@ -10,11 +10,11 @@ acceptance test passes, not when its code lands.
 
 | # | Item | Why it is next | Risk |
 |---|---|---|---|
-| 1 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: **music ducking** (~30 lines; `OfflineMixer.js:40` has promised it for several phases), then **motion blur by subframe accumulation**. Keyframeable post came off this list in Phase 44. | Varies |
+| 1 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: **motion blur by subframe accumulation**, which is now the clearest visual difference from reference 3D work. Keyframeable post came off this list in Phase 44 and music ducking in Phase 46. | Varies |
 | 2 | [38-3D-CROSSFADE.md](38-3D-CROSSFADE.md) | Tier 2 of the transition work. `kind: 'crossfade'` compiles, warns by name and renders as a dip; a true dissolve needs two cameras and two render targets. | Medium |
 | 3 | [39-OFFLINE-VOICE-WEIGHTS.md](39-OFFLINE-VOICE-WEIGHTS.md) | The take cache made Kokoro's download a one-off rather than per-render, which was the real problem. An air-gapped checkout still cannot make that first bake. | Low |
 | 4 | [40-ASSET-IMPORT.md](40-ASSET-IMPORT.md) | Mostly shipped in Phase 45. What is left: **source catalogues** to search (importing from a URL already works, and the licence plumbing that makes it safe is done), **SVG and sprite-sheet import** for the 2D side, which is still raster-only, and **retarget diagnostics** for non-Mixamo skeletons. | Low |
-| 5 | [41-AUDIO-WINDOWING.md](41-AUDIO-WINDOWING.md) | Asked for directly, and mostly already done: `offset`/`duration`/`fadeIn`/`fadeOut` per cue, per scene, work today and are undocumented. The real gaps are **ducking** (audit priority 2, ~30 lines, the one a viewer hears), keyable gain, loop-to-fill, and that nothing reports an audio file's duration so an in-point is guessed. | Low |
+| 5 | [41-AUDIO-WINDOWING.md](41-AUDIO-WINDOWING.md) | Ducking and the cue checks shipped in Phase 46. What is left: **documenting the audio block**, which already works and is the cheapest item in the queue; a duration-and-envelope report so an `offset` is chosen rather than guessed; keyable cue gain; loop-to-fill. | Low |
 | 6 | [10-ACTION-GAPS.md](10-ACTION-GAPS.md) | The older gap list, measured against a fight brief. Still partly open; superseded in places by 37. | — |
 | 7 | [32-VOICE-CANDIDATES.md](32-VOICE-CANDIDATES.md) | Voice engines shortlisted and not plugged in. Kokoro and OpenVoice came off this list; the rest are still on it. | Low |
 | — | [DEFECTS.md](DEFECTS.md) | The standing defect register, not a phase. It is never finished and never moves. **No open entries.** | — |
@@ -34,6 +34,8 @@ acceptance test passes, not when its code lands.
 - Colliders, scale normalisation, lipsync on imported heads, and the asset
   library — Phase 45,
   [../completed_phases/40-ASSET-PIPELINE.md](../completed_phases/40-ASSET-PIPELINE.md).
+- Music ducking, and four audio defects that shipped silently — Phase 46,
+  [../completed_phases/41-DUCKING.md](../completed_phases/41-DUCKING.md).
 
 ## The three rules this queue runs on
 

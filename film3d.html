@@ -465,6 +465,7 @@ window.render3d = async function render3d(film, opts = {}) {
         audioBuffer = await renderMix({
             cues, buffers: { ...buffers, ...voiceBuffers },
             durationSec: compiled.duration,
+            duck: compiled.meta.duck,
             onReport: (m) => report(`[audio] ${m}`),
         });
         // The context is created and resumed HERE, before the recorder wants

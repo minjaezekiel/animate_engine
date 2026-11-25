@@ -36,7 +36,7 @@ Where the two rendering paths actually stand:
 | Framing, exposure and pacing checks | yes | yes |
 | `digest` — what is on screen, as numbers | yes | yes |
 | Transitions between shots | yes — fade, crossfade, dip | yes — fade, dip, wipe, iris, `continue`; **no crossfade** |
-| Keyframeable post (rack focus) | partial | no |
+| Keyframeable post (rack focus) | partial | **yes** — 18 parameters, 4 passes |
 | Procedural textures | n/a | yes |
 | Cutaways — sectioned geometry, clip planes | n/a | yes |
 
@@ -60,8 +60,12 @@ discovered:
 
 The largest single gaps are now the ones the audit named rather than one path
 lagging the other: there is **no motion blur on either path**, **no
-rigid-body dynamics at all**, music is **never ducked under dialogue**, and
-post is not keyframeable, so there is no rack focus.
+rigid-body dynamics at all**, and music is **never ducked under dialogue** —
+so a bed's level is hand-tuned per film and silently wrong the moment a line
+moves. Adjacent to those, an imported asset arrives as geometry and nothing
+else: no colliders, no scale normalisation, and no morph-target visemes, so
+the viseme track the voice pipeline computes for every line has no consumer in
+3D.
 
 ## What it does today
 
@@ -298,6 +302,8 @@ npm run test:e2e     # headless Chrome: 2,880 frames, timestamps, determinism
 npm run test:av      # audio muxing + the A/V sync probe
 npm run test:legacy  # the 3D editor: scrubbing, exports, interaction costs
 npm run test:bundle  # dist/ bundles load and render as a CDN consumer gets them
+npm run test:transitions:e2e  # 3D transitions cover every pixel they claim to
+npm run test:rack:e2e # a focus pull actually reaches the lens, measured on pixels
 npm run test:all     # all of the above
 npm run check:docs   # every relative link in docs/ and README resolves
 ```
@@ -391,8 +397,8 @@ everything open is queued in [docs/pending/](docs/pending/).
   renders as a dip to colour; a real dissolve needs two cameras and two render
   targets — [docs/pending/38-3D-CROSSFADE.md](docs/pending/38-3D-CROSSFADE.md).
   Fade, dip, wipe, iris and `continue` all work.
-- **No motion blur on either path**, which is the clearest visual difference
-  from reference 3D work at 24 fps.
+- **No motion blur on either path**, which is now the clearest visual
+  difference from reference 3D work at 24 fps.
 - **Music is not ducked under dialogue.** Bed gains are hand-tuned per film,
   so the mix is silently wrong the moment a line moves —
   [docs/pending/41-AUDIO-WINDOWING.md](docs/pending/41-AUDIO-WINDOWING.md).
@@ -409,7 +415,6 @@ everything open is queued in [docs/pending/](docs/pending/).
 - **No rigid-body dynamics.** `src/core/sim/` is cloth and fluid; nothing
   falls, stacks or collides. The collision-maths series animated its
   collisions with keyframes.
-- **Post is not keyframeable**, so there is no rack focus.
 - **No curve editor and no dope sheet.** Easing is chosen by name from a
   table, so weight is fixed by changing a word rather than dragging a handle.
 

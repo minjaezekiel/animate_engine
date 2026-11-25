@@ -108,7 +108,7 @@ guard.onCleanup(() => srv.close());
 const pg = await br.newPage();
 const pageErrors = [];
 pg.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 300)));
-await pg.goto(`${base}/film3d.html`, { waitUntil: 'load' });
+await pg.goto(`${base}/film3d.html`, { waitUntil: 'load', timeout: 120_000 });
 await pg.waitForFunction(() => typeof window.render3d === 'function', { timeout: 30000 });
 
 const res = await pg.evaluate((f, times) => window.render3d(f, {

@@ -10,7 +10,7 @@ acceptance test passes, not when its code lands.
 
 | # | Item | Why it is next | Risk |
 |---|---|---|---|
-| 1 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: **keyframeable post**, which is what a rack focus is. | Varies |
+| 1 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: **music ducking** (~30 lines; `OfflineMixer.js:40` has promised it for several phases), then **motion blur by subframe accumulation**. Keyframeable post came off this list in Phase 44. | Varies |
 | 2 | [38-3D-CROSSFADE.md](38-3D-CROSSFADE.md) | Tier 2 of the transition work. `kind: 'crossfade'` compiles, warns by name and renders as a dip; a true dissolve needs two cameras and two render targets. | Medium |
 | 3 | [39-OFFLINE-VOICE-WEIGHTS.md](39-OFFLINE-VOICE-WEIGHTS.md) | The take cache made Kokoro's download a one-off rather than per-render, which was the real problem. An air-gapped checkout still cannot make that first bake. | Low |
 | 4 | [40-ASSET-IMPORT.md](40-ASSET-IMPORT.md) | Asked for directly. Importing a model or an image already works; what is missing is the library around it, inspection before loading, scale and up-axis normalisation, colliders, **morph-target visemes**, licence tracking, online sources and an MCP surface. The lipsync gap is the largest single capability hole in the engine: the viseme track is computed per line and has no 3D consumer. | Medium |
@@ -29,6 +29,8 @@ acceptance test passes, not when its code lands.
   [../completed_phases/37-DIGEST-2D.md](../completed_phases/37-DIGEST-2D.md).
 - The `test:legacy` hang, and a deadline for every e2e script — Phase 43,
   [../completed_phases/38-E2E-GUARD.md](../completed_phases/38-E2E-GUARD.md).
+- Keyframeable post, and the rack focus it makes possible — Phase 44,
+  [../completed_phases/39-KEYFRAMEABLE-POST.md](../completed_phases/39-KEYFRAMEABLE-POST.md).
 
 ## The three rules this queue runs on
 

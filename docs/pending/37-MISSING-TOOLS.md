@@ -77,13 +77,13 @@ Each row: what it is, where it would live, and the honest cost.
 - **No lens model.** The camera has a `fov`; it has no focal length in mm, no
   sensor size and no aperture, so "shoot this on an 85" is not expressible and
   depth of field is not physically linked to anything.
-- **Post is not keyframeable**, so there is **no rack focus** — the one camera
+- **DONE in Phase 44 — see [../completed_phases/39-KEYFRAMEABLE-POST.md](../completed_phases/39-KEYFRAMEABLE-POST.md).** ~~**Post is not keyframeable**, so there is **no rack focus** — the one camera
   move that most reads as photography. `src/render/post3d.js` builds the chain
   from a declaration once; the chain's parameters need to be timeline channels
   like everything else. This is the highest-value item in this whole section
   and is mostly plumbing.
 - **No two-node camera rig** (aim/boom), which is how a real crane shot is
-  parameterised. `mocap` and target nodes get part of the way.
+  parameterised. `mocap` and target nodes get part of the way.~~
 
 ### Light and material
 

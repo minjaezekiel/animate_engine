@@ -108,6 +108,55 @@ implemented and undocumented, which is worth knowing before anyone rebuilds
 it: per-cue `offset`, `duration`, `fadeIn` and `fadeOut` already trim a music
 bed to a window inside one scene.
 
+## Phase 44 — post is keyframeable, so there is a rack focus
+
+The top item of the audit, and its estimate was right: mostly plumbing.
+
+`buildComposer` built the post chain from a declaration once, so every post
+number was a constant for the life of a film and a rack focus could not be
+expressed. The Earth film states the consequence in its own source: *"A very
+small aperture, because focus CANNOT be racked... any aperture wide enough to
+be visible at one end defocuses the other end completely."* An aperture of
+0.00012, chosen for what the worst shot could tolerate.
+
+Post now has what everything else that varies over time already had: a
+synthetic node (`__post`, the third after `__camera` and `__subtitle`) and a
+guard list of keyable scalars, following `COLOR_PROPS`/`VECTOR2_PROPS` so a
+typo is a diagnostic rather than a channel nothing reads. Ramps are authored
+in the camera's own vocabulary -- `from`, `to`, `for`, `ease` -- because a
+shot that pulls focus while pushing in is one move. 18 parameters across 4
+passes; `ssao.radius`, the grade triples and the shape parameters are
+deliberately excluded, each for a stated reason.
+
+Having just done the camera paid for itself three times: the shot-end hold
+bug (a ramp with `for` shorter than its shot used to creep for the remainder)
+was written correctly the first time rather than found in a file; `__post`
+needed adding to `SMOOTH_TARGETS`, or a film held on twos would stair-step its
+focus pull; and keying a pass that `meta.post` does not contain is a
+diagnostic rather than silence.
+
+The Earth film's focal planes are now derived from its own cameras --
+lens-to-subject distance per shot, which is what a focus puller measures --
+so each shot's `from` equals the previous shot's `to` and focus is continuous
+across all nine cuts. The aperture is five times wider. `check:earth` stays
+clean on all five categories.
+
+Proven on pixels by `test/e2e/rack-focus.mjs`: a film whose camera never moves
+and whose only animated value is the focus, with striped targets at 2.5m and
+8m. The near/far sharpness ratio crosses, 8.25 to 0.58. The first version of
+that probe measured mean |dLuma/dx| and would have passed on a 4% margin --
+mean absolute gradient is total variation, which blur preserves, because
+spreading an edge over k pixels makes each step one kth as large and there are
+k of them. Gradient energy falls as the blur widens; it is the standard focus
+measure for that reason.
+
+Two findings recorded: `BokehPass` is strongly asymmetric (13.6x defocus
+behind the focal plane against 5% in front), and `film3d.html` fetches ten
+`three` modules from a CDN into a fresh profile every headless run, which puts
+a cold load within reach of puppeteer's 30s navigation timeout. Raised to 120s
+in the four scripts that load it; the real fix joins the offline-weights item.
+1,071 unit tests, up 21. See `docs/completed_phases/39-KEYFRAMEABLE-POST.md`.
+
 ## Phase 41 — Kokoro and OpenVoice, actually renderable — **done**
 
 Both had been registered, selectable and unit-tested since Phase 39 and

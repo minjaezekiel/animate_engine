@@ -25,6 +25,9 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
+import { samplePostAt } from './src/core/script/post.js';
+import { getTrack } from './src/core/anim/Timeline.js';
+import { trackValueAt } from './src/core/anim/Track.js';
 import { clipToTracks } from './src/backends/three3d/clipToTracks.js';
 import { createClip } from './src/core/anim/Clip.js';
 import { createTrack, setKey } from './src/core/anim/Track.js';
@@ -315,6 +318,28 @@ window.render3d = async function render3d(film, opts = {}) {
     if (post) report(`post: ${post.passes.join(' -> ')} -> output`);
     const composer = post?.composer ?? null;
 
+    /**
+     * Advance the lens for this frame: the grain seed, and any keyed post.
+     *
+     * One function used by all three render paths -- the sim path, the plain
+     * path and the offline `beforeFrame` -- rather than three copies, because
+     * a lens that moves in the preview and not in the file (or the reverse)
+     * is a defect nobody would think to look for.
+     */
+    const keyedPost = post
+        ? samplePostAt(compiled.timeline, 0, { getTrack, trackValueAt, chain: post.chain })
+        : null;
+    if (keyedPost) report(`post keyed: ${Object.keys(keyedPost).join(', ')}`);
+    const postAt = (t) => {
+        if (!post) return;
+        post.setTime(t);
+        // Only films that key post pay for the sample.
+        if (keyedPost) {
+            post.setParams(samplePostAt(compiled.timeline, t,
+                { getTrack, trackValueAt, chain: post.chain }));
+        }
+    };
+
     // ---------------------------------------------------------------- overlay
     /**
      * Subtitles, titles and world-anchored callouts, composited after post.
@@ -428,10 +453,10 @@ window.render3d = async function render3d(film, opts = {}) {
     const warmTo = (t) => {
         frameTime = t;
         poser.reset();
-        if (!built.sims.length) { poser.apply(t); built.step(t); post?.setTime(t); return; }
+        if (!built.sims.length) { poser.apply(t); built.step(t); postAt(t); return; }
         const dt = 1 / compiled.meta.fps;
         for (let s = 0; s < t - 1e-9; s += dt) { poser.apply(s); built.step(s); }
-        poser.apply(t); built.step(t); post?.setTime(t);
+        poser.apply(t); built.step(t); postAt(t);
     };
 
     // Where the backend actually put things, for when the analytic checks and
@@ -657,7 +682,7 @@ window.render3d = async function render3d(film, opts = {}) {
         // pose is written and before the frame is drawn. `frameTime` is set
         // here because the overlay is drawn inside `renderFrame`, which the
         // loop calls without a time argument.
-        beforeFrame: (t) => { frameTime = t; built.step(t); post?.setTime(t); },
+        beforeFrame: (t) => { frameTime = t; built.step(t); postAt(t); },
         onProgress: (p) => report(`frame ${p.frame}/${p.total} ${p.msPerFrame.toFixed(1)}ms/f`),
     });
 

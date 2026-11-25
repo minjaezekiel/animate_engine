@@ -42,7 +42,15 @@ const RATIO_CHANNELS = new Set(['transform.sx', 'transform.sy']);
  * which is exactly why a real production shoots the artwork on twos and moves
  * the camera on ones.
  */
-const SMOOTH_TARGETS = new Set(['__camera', '__subtitle']);
+/**
+ * Synthetic targets that sample at the exact time rather than the held time.
+ *
+ * `__post` joins them for the same reason the camera is here: a film shot on
+ * twos holds its DRAWING on twos, not its lens. A focus pull quantised to the
+ * hold would travel in 2-frame jumps, which reads as a fault in the render
+ * rather than as a camera operator.
+ */
+const SMOOTH_TARGETS = new Set(['__camera', '__subtitle', '__post']);
 
 function stepAt(timeline, tSec) {
     for (const span of timeline.steps ?? []) {

@@ -8,7 +8,8 @@ import { HUMANOID_BONES } from '../art/humanoid3d.js';
 import { EXPRESSIONS } from '../art/face3d.js';
 import { normalizeConstraints, humanoidCorrectives } from '../rig/constraints.js';
 import { gripAngles, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
-import { normalizePost } from './post.js';
+import { normalizePost, normalizePostRamp, isPostKeyable, postChannel,
+         POST_KEYABLE, POST_NODE } from './post.js';
 import { normalizeOverlay } from '../art/overlay.js';
 import { normalizeTransitions } from '../art/transitions.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
@@ -683,6 +684,9 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     for (const [i, spec] of (film.audio ?? []).entries()) addCue(spec, 0, `audio[${i}]`);
 
     let prevCamera = null;
+    // What each keyable post channel ends the previous shot on, so the next
+    // shot's `from` defaults to it. Same bargain as `prevCamera`.
+    let prevPost = null;
     const clipSeq = { n: 0 };
     // What each face is currently holding, so the next expression knows which
     // shapes to release rather than leaving a brow raised for the whole film.
@@ -692,6 +696,9 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
                                      start: s.start, duration: s.duration, prevCamera, warn,
                                      shotId: s.shotId,
                                      glide: continueAt.get(+s.start.toFixed(4)) ?? null });
+        prevPost = buildPost3D({ timeline, shot: s.shot, start: s.start,
+                                 duration: s.duration, prevPost, chain: meta.post,
+                                 warn, shotId: s.shotId });
         for (const [ai, spec] of (s.shot.audio ?? []).entries()) {
             addCue(spec, s.start, `${s.shotId}.audio[${ai}]`);
         }
@@ -730,6 +737,103 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
  * hand-matched endpoints -- and a mismatched pair cannot produce the silent
  * jump that used to show up only in the rendered file.
  */
+/**
+ * Write a shot's post ramps as timeline channels.
+ *
+ * This is what makes a **rack focus** expressible. `buildComposer` builds the
+ * chain once from `meta.post`, so before this every post number was a
+ * constant for the life of the film, and pulling focus from one subject to
+ * another -- the one camera move that most reads as photography -- could not
+ * be said at all.
+ *
+ * Authored like the camera, because it is the same idea and a shot that pulls
+ * focus while pushing in is describing one move:
+ *
+ *   { "shot": "s", "duration": 4,
+ *     "focus": { "to": 6.1, "for": 1.6, "ease": "smooth" } }
+ *
+ * `focus` is sugar for `post.dof.focus`, since it is the overwhelmingly
+ * common case. The general form reaches any keyable parameter:
+ *
+ *   "post": { "grade": { "exposure": { "to": 0.4, "for": 2 } },
+ *             "bloom": { "strength": 1.4 } }
+ *
+ * Returns the values this shot ENDS on, so the next shot's `from` defaults to
+ * them -- which is what makes a cut between two focus depths a cut, rather
+ * than a ramp from a number nobody wrote.
+ */
+function buildPost3D({ timeline, shot, start, duration, prevPost, chain, warn, shotId }) {
+    const rest = { ...(prevPost ?? {}) };
+    // `focus` is sugar, and it loses to an explicit `post.dof.focus` rather
+    // than silently fighting it.
+    const authored = {};
+    for (const [kind, spec] of Object.entries(shot.post ?? {})) {
+        if (!POST_KEYABLE[kind]) { warn(`unknown post pass '${kind}'`, `${shotId}.post`); continue; }
+        for (const [param, ramp] of Object.entries(spec ?? {})) {
+            if (!isPostKeyable(kind, param)) {
+                warn(`\`${kind}.${param}\` is not a keyable post parameter`
+                     + ` (keyable: ${(POST_KEYABLE[kind] ?? []).join(', ') || 'none'})`,
+                     `${shotId}.post.${kind}`);
+                continue;
+            }
+            authored[postChannel(kind, param)] = ramp;
+        }
+    }
+    if (shot.focus != null && authored['dof.focus'] == null) authored['dof.focus'] = shot.focus;
+
+    const ended = { ...rest };
+    for (const [channel, ramp] of Object.entries(authored)) {
+        const [kind] = channel.split('.');
+        // A pass that is not in the chain was never built, so a ramp on it
+        // would be an author watching a number change and nothing happen.
+        const pass = (chain ?? []).find((p) => p.kind === kind);
+        if (!pass) {
+            warn(`\`${channel}\` is keyed but there is no \`${kind}\` pass in`
+                 + ' `meta.post`, so nothing would read it',
+                 `${shotId}.post.${kind}`);
+            continue;
+        }
+        const param = channel.slice(kind.length + 1);
+        const base = rest[channel] ?? pass[param];
+        const r = normalizePostRamp(ramp, {
+            duration, base, path: `${shotId}.post.${channel}`, warn });
+        if (!r) continue;
+
+        key(timeline, POST_NODE, channel, start, r.from, { type: 'number', ease: r.ease });
+        const moveEnd = start + r.span;
+        if (r.span > 0) key(timeline, POST_NODE, channel, moveEnd, r.to, { type: 'number' });
+        /**
+         * Hold the arrival value to the end of the shot.
+         *
+         * The same defect the camera had and which `continue` exposed: a ramp
+         * with `for: 1.6` in a 4s shot wrote its arrival key at t+1.6 and
+         * nothing after it, so the track interpolated from there straight to
+         * the next shot's key and the focus crept for the shot's remaining
+         * 2.4 seconds. Written once there, deliberately, rather than
+         * discovered again in a rendered file.
+         */
+        const shotEnd = start + duration;
+        if (r.span > 0 && moveEnd < shotEnd - 1e-6) {
+            key(timeline, POST_NODE, channel, shotEnd, r.to, { type: 'number' });
+        }
+        ended[channel] = r.to;
+    }
+
+    /**
+     * A channel this shot does not mention holds, explicitly.
+     *
+     * Without a key here the track interpolates on from the last shot that
+     * did mention it straight to the next one that does -- so a focus pull in
+     * shot 2 and another in shot 5 would have shots 3 and 4 drifting between
+     * them, which is the camera's old bug in a new channel.
+     */
+    for (const channel of Object.keys(rest)) {
+        if (authored[channel] != null) continue;
+        key(timeline, POST_NODE, channel, start, rest[channel], { type: 'number', ease: 'linear' });
+    }
+    return ended;
+}
+
 function buildCamera3D({ timeline, cameraId, lookId, shot, start, duration, prevCamera, warn,
                         shotId, glide = null }) {
     const cam = shot.camera;

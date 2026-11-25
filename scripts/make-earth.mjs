@@ -158,17 +158,27 @@ const film = {
         post: {
             bloom: { strength: 0.42, radius: 0.62, threshold: 0.72 },
             /**
-             * A very small aperture, because focus CANNOT be racked.
+             * The aperture a film with a focus PULLER can afford.
              *
-             * `meta.post` is read once at build time and no post parameter is
-             * keyframeable, so a film has exactly one focal plane for its
-             * whole length. This film moves the camera from 5 metres off the
-             * planet to 0.85 metres off a cut face, and any aperture wide
+             * This read, until post became keyframeable: *"A very small
+             * aperture, because focus CANNOT be racked. `meta.post` is read
+             * once at build time... so a film has exactly one focal plane for
+             * its whole length. This film moves the camera from 5 metres off
+             * the planet to 0.85 metres off a cut face, and any aperture wide
              * enough to be visible at one end defocuses the other end
-             * completely. So the depth of field here is almost nothing, and
-             * "rack focus" is in the gap list rather than in the film.
+             * completely."* That was true and it is why the number was
+             * 0.00012 -- a depth of field of almost nothing, bought to stop
+             * the far end of the film going to mush.
+             *
+             * `focus` is now a timeline channel, and every shot's focal plane
+             * is derived from its own camera below, so the aperture can be
+             * what the shot wants rather than what the worst shot can
+             * tolerate. 0.0006 is five times wider: visible separation
+             * between a labelled cut face and the black behind it, and still
+             * well short of the smeared-foreground look that reads as a
+             * mistake rather than as a lens.
              */
-            dof: { focus: 2.4, aperture: 0.00012, maxblur: 0.004 },
+            dof: { focus: 2.4, aperture: 0.0006, maxblur: 0.009 },
             grade: {
                 exposure: 1.09, contrast: 1.06, saturation: 1.2,
                 temperature: 0.06, vignette: 0.3, vignetteSoftness: 0.55,
@@ -794,13 +804,38 @@ const SHOTS = [
     },
 ];
 
+/**
+ * The focal plane a shot's own camera asks for.
+ *
+ * A focus puller does not invent a number; they measure the distance from the
+ * lens to the subject and follow it. Every shot here declares `from.at` and
+ * `to.look`, so that distance is already written down twice and the pull is
+ * derivable rather than hand-tuned -- which also means a shot whose framing
+ * is edited later cannot silently keep the old focal plane.
+ *
+ * Matched to the camera's own `for` and `ease`, because the pull and the move
+ * are one gesture: the focus arrives when the framing does.
+ */
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+function focusFor(cam) {
+    if (!cam?.from?.at || !cam?.to?.at) return null;
+    const from = +dist(cam.from.at, cam.from.look ?? cam.to.look).toFixed(3);
+    const to = +dist(cam.to.at, cam.to.look ?? cam.from.look).toFixed(3);
+    // A move that does not change the subject distance is not a rack; a flat
+    // hold keeps the channel explicit without pretending to a pull.
+    if (Math.abs(to - from) < 0.02) return to;
+    return { from, to, ...(cam.for ? { for: cam.for } : {}), ease: cam.ease ?? 'smooth' };
+}
+
 let t = 0;
 const shots = [];
 for (const s of SHOTS) {
+    const focus = s.focus ?? focusFor(s.camera);
     shots.push({
         id: s.id,
         duration: s.duration,
         camera: s.camera,
+        ...(focus != null ? { focus } : {}),
         ...(s.on ? { on: s.on } : {}),
         ...(s.framing ? { framing: s.framing } : {}),
         ...(s.transition ? { transition: s.transition } : {}),

@@ -112,3 +112,186 @@ export function gradeIsIdentity(g) {
         ? d[k].every((v, i) => g[k][i] === v)
         : g[k] === d[k]));
 }
+
+/* ---------------------------------------------------------------- keyframing
+
+ * Post as timeline channels, which is what a rack focus is.
+ *
+ * `buildComposer` builds the chain from a declaration ONCE, and the only
+ * thing that then varies with time is the grain seed. So every number above
+ * is a constant for the life of a film, and a **rack focus** -- the one
+ * camera move that most reads as photography, pulling focus from one subject
+ * to another within a held frame -- was impossible to express.
+ *
+ * Everything else in this engine that varies over time is a timeline channel.
+ * Post was the exception, and it had no reason to be: the passes already
+ * exist, the interpolator already exists, and `samplePose` already walks
+ * every target. What was missing was a NODE to key against and a guard list
+ * saying which numbers may be keyed.
+ *
+ * The guard list is the pattern `SceneAdapter.js` already uses for
+ * `COLOR_PROPS` and `VECTOR2_PROPS`, and it exists for the same reason: a
+ * typo must be a diagnostic, not a channel nothing reads. `set
+ * props.trim.offset` once wrote a property literally named "trim.offset" that
+ * nothing read, silently, and that is the failure this prevents.
+ */
+
+/**
+ * The synthetic target post channels are keyed against.
+ *
+ * `__camera` and `__subtitle` are the existing synthetic nodes; this is the
+ * third. It must also be listed in `SMOOTH_TARGETS` in
+ * [Evaluator.js](../anim/Evaluator.js): a film held on twos would otherwise
+ * stair-step its focus pull in 2-frame jumps, which is the same reason the
+ * camera is exempt from the hold.
+ */
+export const POST_NODE = '__post';
+
+/**
+ * Which post parameters may be keyed, per pass.
+ *
+ * Scalars only, and deliberately not everything:
+ *
+ * - `ssao.radius`/`bias` are **excluded**. They are sampling parameters, not
+ *   look parameters; animating them makes the ambient term swim between
+ *   frames rather than change in any way an audience reads as intent.
+ * - `grade`'s triples (`lift`, `gamma`, `gain`) are excluded for now because
+ *   a channel holds one scalar and three channels per triple is a wider
+ *   change than this needs. `exposure`, `contrast` and `saturation` cover
+ *   what a shot actually asks for.
+ * - `grainSize` and `vignetteSoftness` are excluded: they are the shape of an
+ *   effect, not its amount, and animating shape reads as a mistake.
+ * - `smaa` has no parameters at all.
+ *
+ * `dof.focus` is the one this whole section exists for.
+ */
+export const POST_KEYABLE = {
+    ssao: ['intensity'],
+    bloom: ['strength', 'radius', 'threshold'],
+    dof: ['focus', 'aperture', 'maxblur'],
+    grade: ['exposure', 'contrast', 'saturation', 'temperature', 'tint',
+            'vignette', 'grain', 'chromatic'],
+    smaa: [],
+};
+
+/** The channel path for one parameter: `dof.focus`. */
+export function postChannel(kind, param) { return `${kind}.${param}`; }
+
+/** Is this a parameter that may be keyed? */
+export function isPostKeyable(kind, param) {
+    return (POST_KEYABLE[kind] ?? []).includes(param);
+}
+
+/**
+ * Every keyable channel, in pass order, for a chain.
+ *
+ * Only passes the chain actually HAS: keying `dof.focus` on a film with no
+ * `dof` pass is a diagnostic, because the alternative is an author ramping a
+ * number for a pass that was never built and seeing nothing happen.
+ */
+export function postChannels(chain) {
+    const out = [];
+    for (const p of chain ?? []) {
+        for (const param of POST_KEYABLE[p.kind] ?? []) out.push(postChannel(p.kind, param));
+    }
+    return out;
+}
+
+/**
+ * Read a ramp declaration into `{ from, to, span, ease }`, or a bare number
+ * into a hold.
+ *
+ * Mirrors `shot.camera` -- `from`, `to`, `for`, `ease` -- rather than
+ * inventing a second vocabulary for the same idea, because a shot that pulls
+ * focus and pushes in is describing one move and should read like one. `from`
+ * defaults to whatever the previous shot left, which is what makes a cut
+ * between two focus depths a cut rather than a ramp from nowhere.
+ */
+export function normalizePostRamp(spec, { duration, base = null, path = 'post', warn = () => {} } = {}) {
+    if (typeof spec === 'number') {
+        if (!Number.isFinite(spec)) { warn(`${path} is not a finite number`, path); return null; }
+        return { from: spec, to: spec, span: 0, ease: 'linear', held: true };
+    }
+    if (!spec || typeof spec !== 'object') {
+        warn(`${path} must be a number or { from, to, for, ease }`, path);
+        return null;
+    }
+    const from = num(spec.from, base);
+    const to = num(spec.to, from);
+    if (from == null || to == null) {
+        warn(`${path} needs a \`to\`, or a \`from\` to hold`, path);
+        return null;
+    }
+    // Clamped to the shot, exactly as the camera's `for` is: a focus pull
+    // longer than the shot it is in would otherwise be cut off mid-ramp and
+    // land on a value the author never asked to see.
+    const want = num(spec.for, duration);
+    const span = Math.max(0, Math.min(want, duration));
+    if (want > duration + 1e-6) {
+        warn(`${path}.for is ${want}s in a ${duration}s shot; clamped`, path);
+    }
+    return { from, to, span, ease: spec.ease ?? 'smooth', held: from === to };
+}
+
+/**
+ * Apply sampled channel values onto a chain, returning a new chain.
+ *
+ * Pure, and the reason the runtime stays simple: `post3d.js` asks for the
+ * chain it should be showing at time t and writes the differences into the
+ * passes, rather than each pass type knowing how to sample a timeline.
+ *
+ * Unknown channels are ignored rather than thrown on, because a film may be
+ * rendered after its `meta.post` was edited to drop a pass, and losing a
+ * frame to that is worse than ignoring a number nothing can use.
+ */
+export function applyPostSample(chain, sampled) {
+    if (!sampled) return chain;
+    const read = sampled instanceof Map
+        ? (k) => sampled.get(k)
+        : (k) => sampled[k];
+    let changed = false;
+    const out = (chain ?? []).map((p) => {
+        let next = p;
+        for (const param of POST_KEYABLE[p.kind] ?? []) {
+            const v = read(postChannel(p.kind, param));
+            if (typeof v !== 'number' || !Number.isFinite(v) || v === p[param]) continue;
+            if (next === p) next = { ...p };
+            next[param] = v;
+            changed = true;
+        }
+        return next;
+    });
+    return changed ? out : chain;
+}
+
+/**
+ * Sample the keyed post channels at one time.
+ *
+ * A focused sampler rather than reading `samplePose`'s result, for two
+ * reasons. A full pose sample walks every target in the film to collect four
+ * or five numbers, and the renderer already pays for one of those per frame
+ * -- paying twice to read the lens is the kind of cost that only shows up at
+ * 1080p. And it keeps the post path independent of whether the caller
+ * happens to have a pose in hand: `film3d.html` does, the probe scripts do
+ * not.
+ *
+ * Returns `null` when the film keys no post at all, which is the common case
+ * and lets the caller skip the write entirely.
+ */
+export function samplePostAt(timeline, t, { getTrack, trackValueAt, chain = null } = {}) {
+    if (!timeline || !getTrack || !trackValueAt) return null;
+    const channels = chain ? postChannels(chain) : null;
+    let out = null;
+    for (const [kind, params] of Object.entries(POST_KEYABLE)) {
+        for (const param of params) {
+            const channel = postChannel(kind, param);
+            if (channels && !channels.includes(channel)) continue;
+            const track = getTrack(timeline, POST_NODE, channel);
+            if (!track?.keys?.length) continue;
+            const v = trackValueAt(track, t);
+            if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+            (out ??= {})[channel] = v;
+        }
+    }
+    return out;
+}

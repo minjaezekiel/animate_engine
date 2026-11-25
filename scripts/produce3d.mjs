@@ -172,7 +172,18 @@ page.on('pageerror', (e) => console.error('  [page error]', String(e).slice(0, 3
 page.on('console', (m) => { if (m.type() === 'error') console.error('  [console]', m.text().slice(0, 300)); });
 await page.exposeFunction('report', (m) => process.stdout.write(`\r  ${m}          `));
 
-await page.goto(`${base}/film3d.html`, { waitUntil: 'load' });
+/**
+ * 120s, not puppeteer's default 30s.
+ *
+ * Every headless run launches a FRESH Chrome profile, so the browser cache is
+ * empty and `film3d.html`'s ten `three` modules are fetched from a CDN from
+ * scratch every single time. Measured at 7.8s for `three.module.js` alone on
+ * an ordinary connection, which puts a cold load within reach of 30s and
+ * occasionally past it -- an intermittent "Navigation timeout" that looks
+ * like a broken page and is a slow network. The same reason the voice take
+ * cache exists; see src/core/voice/takeCache.js.
+ */
+await page.goto(`${base}/film3d.html`, { waitUntil: 'load', timeout: 120_000 });
 await page.waitForFunction(() => window.ready3d === true, { timeout: 60_000 });
 
 const film = JSON.parse(await readFile(join(ROOT, FILM), 'utf8'));

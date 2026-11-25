@@ -1,4 +1,5 @@
-import { normalizePost, postIsIdentity } from '../core/script/post.js';
+import { normalizePost, postIsIdentity, applyPostSample,
+         POST_KEYABLE } from '../core/script/post.js';
 import { GradeShader, applyGrade } from './gradeShader.js';
 
 /**
@@ -39,6 +40,16 @@ export function buildComposer({
 
     const built = [];
     let gradePass = null;
+    /**
+     * The live pass object per kind, so a keyed parameter can be written into
+     * it each frame.
+     *
+     * Held here rather than looked up off `composer.passes` because the
+     * composer's array also holds `RenderPass` and `OutputPass`, and matching
+     * a pass by constructor name across a minified build is the kind of thing
+     * that works until someone bundles it.
+     */
+    const live = new Map();
 
     for (const p of chain) {
         if (p.kind === 'ssao') {
@@ -55,21 +66,26 @@ export function buildComposer({
                 pass.output = SSAOPass.OUTPUT[p.output];
             }
             composer.addPass(pass);
+            live.set('ssao', pass);
             built.push('ssao');
             continue;
         }
         if (p.kind === 'bloom') {
             if (!UnrealBloomPass) { warn('UnrealBloomPass was not supplied', 'meta.post.bloom'); continue; }
-            composer.addPass(new UnrealBloomPass(new THREE.Vector2(width, height),
-                                                 p.strength, p.radius, p.threshold));
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height),
+                                                 p.strength, p.radius, p.threshold);
+            composer.addPass(bloomPass);
+            live.set('bloom', bloomPass);
             built.push('bloom');
             continue;
         }
         if (p.kind === 'dof') {
             if (!BokehPass) { warn('BokehPass was not supplied', 'meta.post.dof'); continue; }
-            composer.addPass(new BokehPass(scene, camera, {
+            const bokeh = new BokehPass(scene, camera, {
                 focus: p.focus, aperture: p.aperture, maxblur: p.maxblur,
-            }));
+            });
+            composer.addPass(bokeh);
+            live.set('dof', bokeh);
             built.push('dof');
             continue;
         }
@@ -88,6 +104,7 @@ export function buildComposer({
             });
             applyGrade(gradePass.uniforms, p, { width, height });
             composer.addPass(gradePass);
+            live.set('grade', gradePass);
             built.push('grade');
             continue;
         }
@@ -104,11 +121,66 @@ export function buildComposer({
     // gamma of the whole frame.
     composer.addPass(new OutputPass());
 
+    /**
+     * Write a keyed post value into the pass that owns it.
+     *
+     * Each pass type keeps its parameters somewhere different, which is the
+     * whole reason this is a table rather than `pass[param] = v`:
+     * `BokehPass` holds them in `uniforms`, `UnrealBloomPass` as plain
+     * fields, and the grade is a `ShaderPass` whose uniforms this module
+     * built itself. Getting that wrong is silent -- the number lands on an
+     * object nobody reads and the image does not change -- so each one is
+     * named here rather than guessed.
+     */
+    const WRITERS = {
+        dof: (pass, param, v) => {
+            // `maxblur`'s uniform is spelled without the camel case the
+            // constructor option uses.
+            const u = pass.uniforms ?? pass.materialBokeh?.uniforms;
+            const name = param === 'maxblur' ? 'maxblur' : param;
+            if (u?.[name]) u[name].value = v;
+        },
+        bloom: (pass, param, v) => { pass[param] = v; },
+        ssao: (pass, param, v) => { pass.kernelRadius = chain.find(
+            (p) => p.kind === 'ssao').radius * v; },
+        grade: (pass, param, v) => { if (pass.uniforms?.[param]) pass.uniforms[param].value = v; },
+    };
+
+    /** What each live pass is currently showing, so a frame writes only changes. */
+    const shown = new Map();
+
     return {
         composer,
         passes: built,
         chain,
         render: () => composer.render(),
+        /**
+         * Push this frame's sampled post channels into the passes.
+         *
+         * `sampled` is whatever `samplePose` produced for the `__post`
+         * target: `{ 'dof.focus': 4.2, ... }`. Absent, nothing moves, which
+         * is what every film without keyed post gets -- so this costs those
+         * films one map lookup per frame and no writes.
+         */
+        setParams(sampled) {
+            if (!sampled) return null;
+            const next = applyPostSample(chain, sampled);
+            if (next === chain) return null;
+            for (const [i, p] of next.entries()) {
+                const pass = live.get(p.kind);
+                const writer = WRITERS[p.kind];
+                if (!pass || !writer) continue;
+                for (const param of POST_KEYABLE[p.kind] ?? []) {
+                    const v = p[param];
+                    const k = `${p.kind}.${param}`;
+                    if (typeof v !== 'number' || shown.get(k) === v) continue;
+                    if (v === chain[i][param] && !shown.has(k)) continue;
+                    writer(pass, param, v);
+                    shown.set(k, v);
+                }
+            }
+            return next;
+        },
         setTime(t) { if (gradePass) gradePass.uniforms.time.value = t; },
         setSize(w, h) {
             composer.setSize(w, h);

@@ -204,3 +204,51 @@ test('normalFromHeight', async (t) => {
         assert.notEqual(n.data[0], 128);
     });
 });
+
+/* ------------------------------------------------- anisotropy and periodicity
+ *
+ * Two gaps the material library found. `fbm`'s lattice was hardcoded to an
+ * aspect of 2 because the first caller was an equirectangular planet, and a
+ * surface is not a planet: brushed metal, wood grain and a woven thread are
+ * all anisotropic. And noise is aperiodic by construction, so nothing woven,
+ * machined or extruded could be expressed at all.
+ */
+
+test('aspect stretches the noise lattice, which is what makes a streak', () => {
+    // Along the grain the value barely changes; across it, it does.
+    const grainy = { seed: 3, octaves: 1, scale: 2, aspect: 1 / 64 };
+    const along = [0.10, 0.12, 0.14, 0.16].map((u) => fbm(u, 0.5, grainy));
+    const across = [0.10, 0.12, 0.14, 0.16].map((v) => fbm(0.5, v, grainy));
+    const spread = (a) => Math.max(...a) - Math.min(...a);
+    assert.ok(spread(across) > spread(along) * 2,
+        `across ${spread(across)} should move far more than along ${spread(along)}`);
+    // And the default is still the planet's, so every texture that predates
+    // this paints identically.
+    assert.equal(fbm(0.3, 0.7, { seed: 1, scale: 8 }),
+                 fbm(0.3, 0.7, { seed: 1, scale: 8, aspect: 2 }));
+});
+
+test('a stripes layer is periodic, and tiles', () => {
+    const spec = { width: 32, height: 4,
+                   layers: [{ kind: 'stripes', axis: 'x', count: 4, softness: 1 }] };
+    const { data, width } = paintTexture(spec);
+    const row = [];
+    for (let x = 0; x < width; x++) row.push(data[x * 4] / 255);
+    // Four bands across 32 px: peaks every 8 px, troughs between them.
+    assert.ok(row[4] > 0.8, `band centre was ${row[4]}`);
+    assert.ok(row[0] < 0.1, `band edge was ${row[0]}`);
+    assert.ok(Math.abs(row[4] - row[12]) < 0.02, 'every band is the same band');
+    // Tiling: the value at u=1 is the value at u=0, or the repeat seams.
+    assert.ok(Math.abs(row[0] - row[row.length - 1]) < 0.1);
+});
+
+test('softness 0 is a hard edge and 1 is a ridge', () => {
+    const at = (softness, x) => {
+        const { data } = paintTexture({ width: 16, height: 1,
+            layers: [{ kind: 'stripes', axis: 'x', count: 1, softness }] });
+        return data[x * 4] / 255;
+    };
+    assert.ok(at(1, 4) > 0.3 && at(1, 4) < 0.7, 'a ridge ramps through the middle');
+    assert.ok(at(0.01, 3) < 0.05, 'a hard edge is off below the half-way point');
+    assert.ok(at(0.01, 4) > 0.95, 'and fully on above it: a square wave, even duty');
+});

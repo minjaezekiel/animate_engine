@@ -8,6 +8,7 @@ import { HUMANOID_BONES } from '../art/humanoid3d.js';
 import { EXPRESSIONS } from '../art/face3d.js';
 import { normalizeConstraints, humanoidCorrectives } from '../rig/constraints.js';
 import { gripAngles, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
+import { expandPreset, PRESET_NAMES } from '../art/materials.js';
 import { normalizePost, normalizePostRamp, isPostKeyable, postChannel,
          POST_KEYABLE, POST_NODE } from './post.js';
 import { normalizeOverlay } from '../art/overlay.js';
@@ -294,10 +295,41 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         if (Number(spec?.metalness) > METAL_NEEDS_ENV) metallic = true;
         return spec;
     };
+    /**
+     * `{ preset: 'wood' }` -> a material plus the textures it needs.
+     *
+     * Expanded once per material NAME and cached, because `resolveMaterial`
+     * runs per part and a rifle has forty of them; painting one wood grain
+     * forty times would be the kind of cost that only shows up at 1080p.
+     * The textures land in the film's own `textures` block, so everything
+     * downstream -- `buildTextures`, the slot checker, the digest -- sees
+     * them as though the film had written them out by hand.
+     */
+    const presets = new Map();
+    const usePreset = (spec, id, path) => {
+        if (!spec?.preset) return null;
+        if (presets.has(id)) return presets.get(id);
+        const out = expandPreset(spec, { id });
+        if (!out) {
+            warn(`unknown material preset '${spec.preset}'; try ${PRESET_NAMES.join(', ')}`, path);
+            presets.set(id, null);
+            return null;
+        }
+        Object.assign(textures, out.textures);
+        presets.set(id, out.material);
+        return out.material;
+    };
     const resolveMaterial = (ref, path) => {
         if (!ref) return { color: '#9aa0a6' };
-        if (typeof ref === 'object') return noteMetal(checkTextureRefs({ ...ref }, path));
-        if (materials[ref]) return noteMetal(checkTextureRefs({ ...materials[ref] }, `materials.${ref}`));
+        if (typeof ref === 'object') {
+            const expanded = ref.preset ? usePreset(ref, path.replace(/[^\w]+/g, '_'), path) : null;
+            return noteMetal(checkTextureRefs({ ...(expanded ?? ref) }, path));
+        }
+        if (materials[ref]) {
+            const spec = materials[ref];
+            const expanded = spec.preset ? usePreset(spec, ref, `materials.${ref}`) : null;
+            return noteMetal(checkTextureRefs({ ...(expanded ?? spec) }, `materials.${ref}`));
+        }
         warn(`unknown material '${ref}'`, path);
         return { color: '#ff00ff' };
     };

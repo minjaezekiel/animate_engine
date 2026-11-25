@@ -46,34 +46,64 @@
  ],
  "materials": {
   "steel": {
+   "preset": "brushed-metal",
    "color": "#4b5058",
    "metalness": 0.88,
-   "roughness": 0.38
+   "roughness": 0.38,
+   "repeat": [
+    1,
+    1
+   ]
   },
   "bright": {
+   "preset": "brushed-metal",
    "color": "#7d848e",
    "metalness": 0.94,
-   "roughness": 0.22
+   "roughness": 0.22,
+   "repeat": [
+    1,
+    1
+   ]
   },
   "wood": {
+   "preset": "wood",
    "color": "#5e3a1d",
    "metalness": 0,
-   "roughness": 0.68
+   "roughness": 0.68,
+   "repeat": [
+    1,
+    1
+   ]
   },
   "mag": {
+   "preset": "brushed-metal",
    "color": "#3a3d43",
    "metalness": 0.82,
-   "roughness": 0.45
+   "roughness": 0.45,
+   "repeat": [
+    1,
+    1
+   ]
   },
   "concrete": {
+   "preset": "concrete",
    "color": "#6a6660",
    "metalness": 0,
-   "roughness": 0.94
+   "roughness": 0.94,
+   "repeat": [
+    6,
+    6
+   ]
   },
   "floor": {
+   "preset": "concrete",
    "color": "#121316",
    "metalness": 0.3,
-   "roughness": 0.8
+   "roughness": 0.8,
+   "repeat": [
+    12,
+    12
+   ]
   },
   "crater": {
    "color": "#17161a",

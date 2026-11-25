@@ -148,14 +148,25 @@ export function valueNoise(seed, u, v, gx, gy) {
 }
 
 /** Fractal sum of value noise. `ridged` folds it about 0.5 for crust and veins. */
+/**
+ * Fractal sum of value noise.
+ *
+ * `aspect` is the lattice's width-to-height ratio, and it is 2 by default
+ * because the first caller was an equirectangular planet, where 2 is the
+ * shape of the image. A surface is not a planet: **brushed metal, wood grain
+ * and a woven thread are all anisotropic**, and an aspect of 100 is what
+ * turns isotropic mottling into streaks running one way. That one number is
+ * the difference between "noisy" and "machined".
+ */
 export function fbm(u, v, {
     seed = 1, octaves = 4, scale = 4, lacunarity = 2, gain = 0.5, ridged = false,
+    aspect = 2,
 } = {}) {
     let sum = 0;
     let norm = 0;
     let amp = 1;
     let gx = Math.max(1, Math.round(scale));
-    let gy = Math.max(1, Math.round(scale / 2));
+    let gy = Math.max(1, Math.round(scale / (aspect || 1)));
     for (let o = 0; o < octaves; o++) {
         let n = valueNoise(seed + o * 7919, u, v, gx, gy);
         if (ridged) n = 1 - Math.abs(n * 2 - 1);
@@ -269,6 +280,27 @@ function layerAt(layer, u, v, ctx) {
             if (cov <= 0) return [0, 0, 0, 0];
             const c = parseColor(layer.color);
             return [c[0], c[1], c[2], c[3] * cov];
+        }
+        case 'stripes': {
+            /**
+             * A periodic band across one axis: a weave, a ridge, a thread.
+             *
+             * `fbm` cannot make one -- noise is aperiodic by construction --
+             * and everything woven, machined or extruded in the physical
+             * world is periodic. `count` bands across the texture, `softness`
+             * 1 for a sine-like ridge and 0 for a hard edge.
+             */
+            const axis = layer.axis === 'y' ? v : u;
+            const phase = (((axis * (layer.count ?? 8) + (layer.phase ?? 0)) % 1) + 1) % 1;
+            const tri = 1 - Math.abs(phase * 2 - 1);
+            // `softness` is the WIDTH of the transition, centred on the
+            // band's half-way point: 1 is a smooth ridge, 0 is a square
+            // wave with an even duty cycle. Anything else moves the edge
+            // rather than softening it, which reads as a thinner stripe.
+            const soft = layer.softness ?? 1;
+            const n = smoothstep(clamp01((tri - 0.5 + soft / 2) / (soft || 1e-6)));
+            const c = layer.stops ? sampleRamp(layer.stops, n) : [n, n, n, 1];
+            return [c[0], c[1], c[2], c[3]];
         }
         case 'mask': {
             // Draws nothing; exists so a later layer can reference a shape

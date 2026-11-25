@@ -191,12 +191,21 @@ const film = {
     },
     audio: [{ asset: 'bed', at: 0, gain: 0.55, fadeIn: 2.5, fadeOut: 3.5, bus: 'music' }],
     materials: {
-        steel: { color: '#4b5058', metalness: 0.88, roughness: 0.38 },
-        bright: { color: '#7d848e', metalness: 0.94, roughness: 0.22 },
-        wood: { color: '#5e3a1d', metalness: 0.0, roughness: 0.68 },
-        mag: { color: '#3a3d43', metalness: 0.82, roughness: 0.45 },
-        concrete: { color: '#6a6660', metalness: 0.0, roughness: 0.94 },
-        floor: { color: '#121316', metalness: 0.3, roughness: 0.8 },
+        // `preset` paints the variation; the colour and the PBR numbers stay
+        // this film's. `repeat` is how much surface one tile covers: these
+        // parts are centimetres across, so a tile has to be too.
+        steel: { preset: 'brushed-metal', color: '#4b5058', metalness: 0.88,
+                 roughness: 0.38, repeat: [1, 1] },
+        bright: { preset: 'brushed-metal', color: '#7d848e', metalness: 0.94,
+                  roughness: 0.22, repeat: [1, 1] },
+        wood: { preset: 'wood', color: '#5e3a1d', metalness: 0.0, roughness: 0.68,
+                repeat: [1, 1] },
+        mag: { preset: 'brushed-metal', color: '#3a3d43', metalness: 0.82,
+               roughness: 0.45, repeat: [1, 1] },
+        concrete: { preset: 'concrete', color: '#6a6660', metalness: 0.0,
+                    roughness: 0.94, repeat: [6, 6] },
+        floor: { preset: 'concrete', color: '#121316', metalness: 0.3,
+                 roughness: 0.8, repeat: [12, 12] },
         crater: { color: '#17161a', metalness: 0.1, roughness: 1.0 },
         flash: { color: '#ffd9a0', emissive: '#ffb347', emissiveIntensity: 3.2, roughness: 1 },
         spark: { color: '#ffd27a', emissive: '#ff9b2e', emissiveIntensity: 5, roughness: 1 },

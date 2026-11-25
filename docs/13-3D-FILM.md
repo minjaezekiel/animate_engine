@@ -232,6 +232,79 @@ The magazine is now **one swept profile** instead of four rotated slabs, and
 the seams are gone. A lathe covers every turned part — a muzzle nut, a gas
 piston, a case — where stacked cylinders are what make a model read as blocks.
 
+### `preset` — surfaces, from a library
+
+Every material in every 3D film here was **one flat colour** with a roughness
+number. That is the largest remaining reason a frame reads as a diagram rather
+than a photograph: a real surface varies, and the variation is what the eye
+uses to decide what a thing is made of.
+
+The machinery to fix it has existed since Phase 39 —
+[textures.js](../src/core/art/textures.js) is layered procedural synthesis in
+pure arithmetic — and exactly one film used it, for a planet. The AK-47 film
+used **zero** textures. The reason is not that nobody wanted texture: it is
+that a brushed steel receiver is twenty lines of layer spec that have to be
+got right before you can see whether they were worth it, per material, per
+film. So [Phase 53](STATUS.md) does that work once, as data.
+
+```jsonc
+"materials": {
+  "steel": { "preset": "brushed-metal", "color": "#4b5058", "roughness": 0.38 },
+  "stock": { "preset": "wood", "color": "#5e3a1d", "repeat": [1, 1] },
+  "wall":  { "preset": "concrete", "color": "#6a6660", "repeat": [6, 6] }
+}
+```
+
+`brushed-metal` · `wood` · `concrete` · `fabric`. Each fills `map`,
+`roughnessMap` and `normalMap`, and the normal map is **derived from the same
+height field as the albedo** rather than drawn twice, so the bumps and the
+pattern agree.
+
+**A preset paints variation, never colour.** `material.color` multiplies
+`map`, so a preset's albedo is a pattern around white and the film keeps
+saying what colour its wood is: `{ preset: "wood", color: "#5e3a1d" }` and
+`{ preset: "wood", color: "#c9a227" }` are oak and pine, not two copies of one
+texture. Roughness works the same way — `roughnessMap` says where a surface is
+rougher than its average, and `roughness` says what that average is. Every
+number the film writes wins over the preset's.
+
+`repeat` is how much surface one tile covers, and it is the one thing the
+engine cannot guess: these presets are authored so that one tile is roughly a
+metre of surface, so a 9 m wall wants `[6, 6]` and a 25 cm receiver wants
+`[1, 1]`. Get it wrong by 10x and a brushed finish averages out to flat grey.
+
+Measured on four cubes, lit identically, as the mean deviation of each pixel
+from its 5x5 neighbourhood — which is what "surface detail" is, and what a
+flat-shaded face has none of:
+
+| surface | flat | preset | |
+|---|---|---|---|
+| wood | 0.00008 | 0.01069 | **x141** |
+| fabric | 0.00085 | 0.02138 | **x25** |
+| brushed metal | 0.00227 | 0.00677 | x3.0 |
+| concrete | 0.00215 | 0.00523 | x2.4 |
+
+One 8-bit level is 0.0039, so the metal and concrete baselines are mostly the
+quantisation of a smooth gradient rather than real detail. On the AK-47 film,
+which adopted the presets in the same phase: receiver **x5.0**, stock
+**x13.9**, the concrete wall behind it **x20.5**.
+
+Unlike the default environment and the default bevel, this is **opt-in**, and
+deliberately: a material cannot be guessed from a film. `metalness: 0.88`
+could be a milled receiver, a cast housing or a chromed trim strip, and they
+look nothing alike.
+
+Two gaps it opened in the texture engine, both now closed: `fbm`'s lattice was
+hardcoded to an aspect of 2 because the first caller was an equirectangular
+planet, and **brushed metal, wood grain and a woven thread are all
+anisotropic** — one `aspect` number is the difference between "noisy" and
+"machined". And noise is aperiodic by construction, so a weave was
+inexpressible until a `stripes` layer existed.
+
+Still missing: the grain runs along the texture's own axis, so it follows
+whatever UVs the geometry has. On a box that means along the face, which is
+right for a stock and arbitrary for a part that was modelled sideways.
+
 ### Every box is bevelled
 
 Nothing in the physical world has a zero-radius edge. A real one is a chamfer
@@ -341,7 +414,7 @@ Measured against Blender, this is still a small toolset. The honest list:
 | Gap | Note |
 |---|---|
 | **No CSG, loop cut or subdivision** | `lathe` and `extrude` cover swept and turned shapes, which is most of a mechanical model, but nothing cuts a hole in a solid. A magwell is a gap between parts, not an opening. Bevel is no longer on this list: a `cube` is bevelled by default and `extrude` takes one, but a **cylinder's rim is still sharp** — a chamfered rim needs a `lathe`, by hand |
-| **No UV mapping or texturing on the 3D film path** | Materials are untextured PBR. No wood grain, no stamped markings, no wear |
+| **No UV control on the 3D film path** | Closed in part: `preset` gives a material a synthesised albedo, roughness and normal map as of Phase 53, and the AK-47 uses them. But the UVs are whatever the primitive generates, so a grain direction cannot be chosen per part, and there are still no stamped markings and no wear |
 | **No "spawn"** | Scaling from zero is the only way to bring geometry into existence; the bullet craters use it |
 | **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |
 | **No per-object motion blur** | Particles stretch by velocity; meshes do not. A fast-moving bolt carrier is sharp when it should smear |

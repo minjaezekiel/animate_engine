@@ -261,6 +261,55 @@ dimension, which is what keeps a part thinner than its own edge from
 degenerating, and a box that asks for explicit `widthSegments` is left alone
 because it wanted a subdivided box for a reason.
 
+### Shadows are fitted to the scene, not to a fixed box
+
+Two absolute numbers in an engine that has no units, both of them wrong in
+ways no render reports.
+
+`DirectionalLight`'s shadow camera defaults to **+/-5 units**. A set larger
+than ten units across has no shadow outside that box — the shadow is cut off
+mid-floor, in a straight line, and reads as a rendering error nobody can name
+— and a miniature spends its whole map on empty space.
+
+And `shadow.bias` is **normalised depth over the shadow camera's
+`[near, far]`**, not a distance. This adapter hardcoded `-0.0008` against the
+default `0.5..500` frustum: **0.4 metres** of depth offset, in films whose
+subjects are under a metre. That is peter-panning — the shadow detaches from
+the thing casting it and sits on the floor nearby, which is exactly what makes
+an object look pasted on rather than placed.
+
+Since [Phase 52](STATUS.md) every shadow-casting light is fitted once, after
+the scene exists: the ortho box to the bounding sphere of what casts, near and
+far to that sphere as seen from the light, and **everything else derived from
+the size of one texel** — `normalBias` at 1.5 texels, `bias` at half a texel
+of world depth expressed as the ratio the comparison actually uses. The map is
+2048² rather than 1024², because this renderer is offline and a megabyte of
+depth buffer costs it nothing.
+
+Measured on a cube resting on a plane, lit by one directional light:
+
+| | before | after |
+|---|---|---|
+| gap between the block and its own shadow | **53 px** | **1 px** |
+| the same scene authored 10x larger: shadow edge deviation from straight | **15.12 px** | **0.45 px** |
+| the 1x and 10x frames differing by more than 2% luma | 2.35% | **0.27%** |
+
+The last row is the real result: **the same scene at ten times the size now
+renders the same picture.** It did not before, and nothing in the film said
+what size a scene was supposed to be.
+
+The render log says what was chosen, because a fit that silently picks a bad
+box is the failure mode this replaces:
+
+```
+shadows: 2048^2 over 15.13 units (7.4 mm per texel), bias -4.1e-4
+```
+
+Still fixed: the fit covers the whole **set**, so a 1 m subject on a 9 m floor
+gets 7 mm texels rather than the 1 mm a close-up deserves. Fitting to the
+camera's view instead — one cascade, snapped to texel increments so the edges
+do not swim between frames — is the next step and is not built.
+
 ### The bullet
 
 A round at 715 m/s crosses the 2.4 m to the wall in 3.4 ms, an eighth of one
@@ -297,7 +346,7 @@ Measured against Blender, this is still a small toolset. The honest list:
 | **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |
 | **No per-object motion blur** | Particles stretch by velocity; meshes do not. A fast-moving bolt carrier is sharp when it should smear |
 | **No dependency between actions** | A crater cannot say "open when this round lands"; both are timed independently against the same clock, and nothing checks they agree |
-| **Shadow and contact quality** | *Half closed:* `ssao` is a working GTAO pass as of Phase 51 (it was arithmetically impossible before). Still one shadow-casting light with a fixed 1024 map and no area lights |
+| **Shadow and contact quality** | *Half closed:* `ssao` is a working GTAO pass as of Phase 51, and shadow cameras are fitted to the scene at 2048² as of Phase 52. Still no area lights, and the fit covers the set rather than the view |
 | **Exposure is sampled, not continuous** | Two frames per shot. A one-second blown highlight between samples is invisible to the check |
 | **Framing ignores rotation** | Bounds are axis-aligned and can only overstate, which is the safe direction — it will not pass a clipped shot, but it will occasionally complain about a tight one |
 

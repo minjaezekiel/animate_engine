@@ -11,7 +11,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { QUALITIES, resolveSize, bitrateFor } from '../../src/core/render/quality.js';
 import { buildComposer, ssaoDepthWindow } from '../../src/render/post3d.js';
-import { bevelRadius, DEFAULT_BEVEL } from '../../src/backends/three3d/SceneAdapter.js';
+import { bevelRadius, DEFAULT_BEVEL,
+         fitShadowCamera } from '../../src/backends/three3d/SceneAdapter.js';
 
 // ------------------------------------------------------------------- the size
 
@@ -203,4 +204,56 @@ test('ambient occlusion is GTAO when it can be, and composites on what it is han
     assert.ok(pass, 'GTAO was supplied, so GTAO is what gets built');
     assert.equal(seen[0].radius, 0.3, "GTAO's radius is world units, which is what a film means");
     assert.equal(pass.blendIntensity, 0.8, 'and it has a real intensity, unlike SSAO');
+});
+
+// ----------------------------------------------------------------- shadows
+
+/**
+ * Two absolute numbers in an engine with no units. `shadow.bias` is
+ * normalised over the shadow camera's `[near, far]`, and a hardcoded -0.0008
+ * against the default 0.5..500 frustum is **0.4 metres** of depth offset --
+ * measured, it detached a 0.5 m cube's shadow by 53 pixels. The frustum
+ * itself defaulted to +/-5 units, so a set larger than that had no shadow
+ * outside the box and a miniature spent its whole map on empty space.
+ */
+const WORLD = (f) => -f.bias * (f.far - f.near);   // the bias, back in world units
+
+test('the shadow bias is normalised depth, so it is sub-millimetre, not 0.4 m', () => {
+    const f = fitShadowCamera({ radius: 8.5, distance: 3.9, mapSize: 2048 });
+    assert.ok(WORLD(f) < 0.01, `the bias is ${WORLD(f)} m of depth offset`);
+    assert.ok(WORLD(f) > 0, 'and still offset the right way');
+    // What it replaced, at the frustum it was written against.
+    assert.ok(0.0008 * (500 - 0.5) > 0.39, 'the old one was 0.4 m');
+});
+
+test('a shadow fit is scale-invariant: the same scene ten times bigger renders the same', () => {
+    const small = fitShadowCamera({ radius: 8.5, distance: 3.9, mapSize: 2048 });
+    const big = fitShadowCamera({ radius: 85, distance: 39, mapSize: 2048 });
+    assert.ok(Math.abs(big.extent / small.extent - 10) < 1e-9);
+    assert.ok(Math.abs(big.texel / small.texel - 10) < 1e-9, 'the same texels per object');
+    assert.ok(Math.abs(big.normalBias / small.normalBias - 10) < 1e-9);
+    // The bias is a RATIO of the depth range, so it barely moves at all --
+    // only by the near-plane clamp, which is absolute.
+    assert.ok(Math.abs(big.bias / small.bias - 1) < 1e-3, `${big.bias} vs ${small.bias}`);
+});
+
+test('the near plane survives a light standing inside its own scene', () => {
+    // A key light 3.9 units from the centre of a 8.5-unit sphere is inside
+    // it, so `distance - radius` is negative and a camera cannot have that.
+    const f = fitShadowCamera({ radius: 8.5, distance: 3.9 });
+    assert.ok(f.near > 0, `near was ${f.near}`);
+    assert.ok(f.far > f.near);
+    assert.ok(f.far >= 3.9 + 8.5 - 1e-9, 'and still reaches the far side of the scene');
+    const degenerate = fitShadowCamera({ radius: 0, distance: 0 });
+    assert.ok(degenerate.extent > 0 && degenerate.far > degenerate.near, 'an empty scene is survivable');
+});
+
+test('everything else is derived from the size of one texel', () => {
+    const f = fitShadowCamera({ radius: 5, distance: 10, mapSize: 1024 });
+    assert.equal(f.texel, 10 / 1024);
+    assert.equal(f.normalBias, f.texel * 1.5);
+    // Twice the map is half the texel is half the offsets.
+    const sharp = fitShadowCamera({ radius: 5, distance: 10, mapSize: 2048 });
+    assert.ok(Math.abs(sharp.texel * 2 - f.texel) < 1e-12);
+    assert.ok(Math.abs(sharp.normalBias * 2 - f.normalBias) < 1e-12);
 });

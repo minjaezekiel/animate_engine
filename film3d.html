@@ -388,6 +388,11 @@ window.render3d = async function render3d(film, opts = {}) {
         UnrealBloomPass, SSAOPass, BokehPass, SMAAPass, GTAOPass,
         warn: (m, where) => report(`[post] ${m} @ ${where ?? '-'}`),
     });
+    if (built.shadowFit) {
+        const f = built.shadowFit;
+        report(`shadows: ${f.mapSize}^2 over ${(f.extent * 2).toFixed(2)} units`
+            + ` (${(f.texel * 1000).toFixed(1)} mm per texel), bias ${f.bias.toExponential(1)}`);
+    }
     if (post) report(`post: ${post.passes.join(' -> ')} -> output`);
     const composer = post?.composer ?? null;
 

@@ -189,6 +189,14 @@ introduced" -- turned out to be avoidable rather than unavoidable, and a
 declared environment still lights everything, because declaring one is asking
 for that.
 
+**Three of the four Tier 1 items shipped so far were a wrong number, not a
+missing feature.** The environment did not exist; but ambient occlusion
+(1.3) was wired and arithmetically impossible, and the shadows (1.4) were
+fitted to an absolute 10-unit box with 0.4 m of bias. In both cases the
+parameter was in NORMALISED DEPTH and the code passed metres. That is now the
+first thing to check in any THREE pass this engine wires: *what are these
+units*. See [DEFECTS.md](DEFECTS.md).
+
 **1.2 shipped in Phase 50, and also not as planned.** `src/core/geom/bevel.js`
 was to be a pure bevelled-box generator. Three ships `RoundedBoxGeometry` in
 the same addons this page already imports from, so the item is one geometry
@@ -202,7 +210,7 @@ unnecessary, which is worth noticing before writing the third.
 | 1.1 | ~~**A default environment.**~~ **done, Phase 49.** Applied whenever any material has `metalness > 0.2`, or the film imports a model at all -- and attached to the METALS alone, so no dielectric moves. | Finding 2. Receiver **x3.14**, wood stock beside it **x1.00**, backdrop saturation 0.440 -> 0.427; nothing in the frame is below 2% luma any more. |
 | 1.2 | ~~**Bevelled edges.**~~ **done, Phase 50.** `cube` is a `RoundedBoxGeometry` at a 4 mm radius by default, clamped to a quarter of the thinnest dimension; `bevel: 0` opts out. `extrude` already took one. | Specular ridges on frame 26 of the AK-47: **89 -> 730**. A cylinder's rim is still sharp -- that needs a `lathe` and is authoring, not engine. |
 | 1.3 | ~~**Contact shadows**~~ **done, Phase 51 -- but NOT by default.** `ssao` builds a GTAO pass; the old one's occlusion window was in metres where the shader wanted normalised depth, so it was arithmetically impossible and that is why no film used it. | **x0.893** where a cube meets a floor, x1.000 on the open floor. Not defaulted because any post pass also moves the background colour -- a new entry in DEFECTS.md, and the thing to settle before post can be on for everything. |
-| 1.4 | **Shadow quality tied to the tier,** with bounds fitted to the scene rather than fixed, and the bias derived from the texel size rather than hardcoded. | 1024x1024 stretched over a whole set is a few texels per object. |
+| 1.4 | ~~**Shadow quality**~~ **done, Phase 52.** Ortho box fitted to the casters' bounding sphere, near/far from the light, `bias` and `normalBias` derived from the texel, map 2048². Not tied to a tier, because there are no tiers. | The bias was **0.4 m** of depth offset (it is normalised depth, and -0.0008 was written against a 0.5..500 frustum): a 0.5 m cube's shadow sat **53 px** from the cube, now 1 px. The same scene at 10x used to render differently; now it does not. |
 | 1.5 | **A procedural material library** -- brushed metal, wood grain, concrete, fabric -- synthesised into albedo/normal/roughness maps at build time. | Finding 2 fixes the specular; this fixes the fact that every surface is one flat colour. The AK-47 film uses zero textures. |
 | 1.6 | **Area lights.** `RectAreaLight` with real extent. | Soft shadows come from a light having size. PCF blur is a blur, not a penumbra, and the difference is legible. |
 

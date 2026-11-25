@@ -516,6 +516,83 @@ function* materialsIn(root) {
     }
 }
 
+/**
+ * Every number a shadow camera needs, from the scene it has to cover.
+ *
+ * Pure, because two of the three numbers it replaces were wrong in a way no
+ * render would report: THREE's `shadow.bias` is in **normalised depth over
+ * the shadow camera's `[near, far]`**, and this adapter hardcoded `-0.0008`
+ * against a default frustum of `0.5..500` -- **0.4 metres** of depth offset,
+ * in films whose subjects are under a metre. That is why a shadow here
+ * detaches from the thing casting it. And a `DirectionalLight`'s shadow
+ * camera defaults to +/-5 units, an absolute size in an engine with no units,
+ * so a set larger than 10 units across simply has no shadow outside that box
+ * and a miniature wastes its whole map on empty space.
+ *
+ * `radius` is the bounding sphere of what casts, `distance` is from the light
+ * to its centre.
+ */
+export function fitShadowCamera({ radius, distance = 0, mapSize = 2048 }) {
+    const extent = Math.max(1e-4, radius);
+    const near = Math.max(1e-3, distance - extent);
+    const far = Math.max(near + 1e-3, distance + extent);
+    /** How much world a single shadow texel covers. Everything else is this. */
+    const texel = (2 * extent) / mapSize;
+    return {
+        extent,
+        near,
+        far,
+        mapSize,
+        texel,
+        // Half a texel of world depth, expressed in the units the comparison
+        // is actually made in.
+        bias: -(texel * 0.5) / (far - near),
+        // The real acne cure: step along the surface normal rather than into
+        // the light, so a steep surface gets the offset it needs and a flat
+        // one does not get an offset it will peter-pan on.
+        normalBias: texel * 1.5,
+    };
+}
+
+/**
+ * Point every shadow-casting light at the scene it is actually lighting.
+ *
+ * Runs once, after the walk, because it needs the geometry to exist. A film
+ * that animates a light's position keeps the fit it was built with: the
+ * extent is a property of the SET, and a key light swinging through a scene
+ * does not change how big that scene is.
+ */
+function fitShadows(T, root) {
+    const box = new T.Box3();
+    root.traverse((o) => { if (o.isMesh && o.castShadow) box.expandByObject(o); });
+    if (box.isEmpty()) return null;
+    const sphere = box.getBoundingSphere(new T.Sphere());
+    let fitted = null;
+    root.traverse((light) => {
+        const shadow = light.isLight && light.castShadow ? light.shadow : null;
+        if (!shadow) return;
+        const distance = light.position.distanceTo(sphere.center);
+        const f = fitShadowCamera({ radius: sphere.radius, distance,
+                                    mapSize: shadow.mapSize.x || 2048 });
+        const cam = shadow.camera;
+        if (cam.isOrthographicCamera) {
+            cam.left = -f.extent; cam.right = f.extent;
+            cam.top = f.extent; cam.bottom = -f.extent;
+        } else if (cam.isPerspectiveCamera && f.distance !== 0) {
+            // A spot light's shadow camera is its own cone; only the depth
+            // range is ours to fit.
+            cam.fov = light.angle ? (light.angle * 2 * 180) / Math.PI : cam.fov;
+        }
+        cam.near = f.near;
+        cam.far = f.far;
+        cam.updateProjectionMatrix();
+        shadow.bias = f.bias;
+        shadow.normalBias = f.normalBias;
+        fitted = f;
+    });
+    return fitted;
+}
+
 function makeLight(T, p) {
     switch (p.lightType) {
         case 'ambient': return new T.AmbientLight(new T.Color(p.color), p.intensity);
@@ -1255,10 +1332,11 @@ export function buildScene3D(T, compiled, {
             object = makeLight(T, p);
             if (object.castShadow !== undefined && p.castShadow) {
                 object.castShadow = true;
-                if (object.shadow) {
-                    object.shadow.mapSize.set(1024, 1024);
-                    object.shadow.bias = -0.0008;
-                }
+                // The map size only; every other number comes from
+                // `fitShadows` below, once the scene exists to be measured.
+                // 2048 rather than 1024 because this renderer is offline and
+                // one more megabyte of depth buffer costs nothing it has.
+                if (object.shadow) object.shadow.mapSize.set(2048, 2048);
             }
             if (p.target && object.target) {
                 object.target.position.set(...p.target);
@@ -1400,8 +1478,10 @@ export function buildScene3D(T, compiled, {
         }
     }
 
+    const shadowFit = fitShadows(T, root);
+
     return { root, camera, lookTarget, registry, resolve, step, pools, sims,
-             clipPlanes, textures,
+             clipPlanes, textures, shadowFit,
              constraints: compiled.constraints ?? [],
              dispose() {
                  root.traverse((o) => { o.geometry?.dispose?.(); o.material?.dispose?.(); });

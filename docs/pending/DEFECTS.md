@@ -199,9 +199,9 @@ from a CDN today gets an engine with no rigging. Phase 1 adds
 ## Defects in the new code
 
 These are not legacy. Each was found by a test written to assert something
-nobody had checked. All but the first below are **fixed**.
+nobody had checked. Each is **fixed**.
 
-### Post-processing silently disables anti-aliasing — **fix (next)**
+### Post-processing silently disables anti-aliasing — **fixed (48)**
 
 `film3d.html:317` constructs the renderer with `antialias: true`. That flag
 governs the **default drawing buffer only**. `buildComposer`
@@ -233,9 +233,19 @@ report that the output looked "pixelated". It had been shipping since the post
 chain was introduced, invisible to every structured check, because no check
 looked at an edge.
 
-*Fix:* pass an explicitly multisampled target to the composer. Tier 0.1 of
-[42-RENDER-QUALITY.md](42-RENDER-QUALITY.md), which also carries the
-acceptance test — the intermediate-pixel fraction above, thresholded at 40%.
+*Fixed:* `buildComposer` now constructs its own `WebGLRenderTarget` with
+`samples` (4 by default, an argument so a slow machine can turn it down) and
+`HalfFloatType`, which is what the composer's own default used — keeping it is
+what leaves bloom's luminance threshold meaning the same thing. The same frame
+re-rendered with the same `bloom` chain: **68.5%**, from 1.2%. Above the
+no-post figure, because the only anti-aliasing there was the drawing buffer's.
+
+*Guard:* `test/core/quality.test.mjs` builds a composer against a stubbed
+`THREE` and fails if the target it was given is missing, has fewer than four
+samples, or is not half-float. The measurement that found this needs a GPU;
+the mistake that caused it is a missing constructor argument, which a stub can
+see — and `buildComposer` takes its classes as arguments precisely so this is
+testable in Node.
 
 ### `npm run test:legacy` hung indefinitely — **fixed (43)**
 

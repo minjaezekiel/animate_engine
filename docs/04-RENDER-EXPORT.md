@@ -132,6 +132,35 @@ p95** — far inside budget, because vector 2D is cheap.
 720p24 is the default. 1080p roughly doubles fill and encode cost; vector art
 is resolution-independent, so raising it is a config change, not a rebuild.
 
+### Asking for a size by name
+
+```sh
+QUALITY=1080p npm run produce          # 2D
+QUALITY=360p  npm run produce:3d       # 3D, and a fast look
+```
+
+`360p` `480p` `720p` `1024p` `1080p` `1440p` `2160p`, or a bare number. The
+name sets the **short side**, resolved against the film's authored aspect, so
+`QUALITY=720p` on a 9:16 film is 720 **across** and 1280 tall -- which is what
+anyone asking for it means. Both dimensions come back even, because H.264
+cannot encode an odd one. `WIDTH=`/`HEIGHT=` still win when given, so every
+existing script renders exactly the size it always did.
+
+One table, in `src/core/render/quality.js`, read by both `produce.mjs` and
+`produce3d.mjs`: the drift between the 2D and 3D scripts is a standing problem
+here and a second copy of a resolution ladder is how it starts.
+
+### The bitrate follows the picture
+
+`WebCodecsSink` with no `bitrate` derives one: **0.2 bits per pixel per
+frame**, clamped to 1-40 Mbit/s. The measured reference this engine was
+compared against in Phase 48 spends 0.049 bpp and looks better than our output
+did, so 0.2 is four times the floor that demonstrably works -- headroom for
+grain, motion blur and fast cuts. It also happens to be what the old flat
+6 Mbit/s came to at 720p24, so nothing in the repo loses bits by this landing;
+what changes is that 360p stops being handed four times what it can use and
+1080p stops getting less than a 720p frame deserved.
+
 **That claim was false until Phase 28.** The camera re-centred on the output
 size without scaling to the authored frame, so every render at a
 non-authored size was a centre *crop* rather than a resize -- including the
@@ -162,6 +191,7 @@ only.
 **Lipsync:** phoneme-exact → text + envelope → three-shape amplitude → static.
 
 **Resolution:** 1280×720@24 → 960×540@24 → 1280×720@15 → 640×360@24.
+`QUALITY=` names the rungs; the bitrate follows the size on its own.
 
 Each rung still yields a watchable film. `audioAsWav(prepared)` exists
 precisely for the rung where muxing is unavailable.

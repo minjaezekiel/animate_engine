@@ -1,5 +1,6 @@
 import { FrameSink } from './FrameSink.js';
 import { measureAudioPriming } from '../mux/aacPriming.js';
+import { bitrateFor } from '../../core/render/quality.js';
 
 /**
  * WebCodecs encoder: exact timestamps, faster than real time.
@@ -20,8 +21,14 @@ const CODECS = {
 };
 
 export class WebCodecsSink extends FrameSink {
+    /**
+     * `bitrate` left unset means "derive it from the picture", which is the
+     * only answer that is right at more than one size: a flat 6 Mbit/s is
+     * four times what a 360p frame can use and less than a 1080p frame
+     * deserves. See `bitrateFor`.
+     */
     constructor({ muxerFactory = null, codec = null, container = 'mp4',
-                  bitrate = 6_000_000, keyFrameEvery = 48 } = {}) {
+                  bitrate = null, keyFrameEvery = 48 } = {}) {
         super();
         this.muxerFactory = muxerFactory;
         this.codec = codec;
@@ -66,6 +73,7 @@ export class WebCodecsSink extends FrameSink {
         this.totalFrames = totalFrames;
         this.width = width;
         this.height = height;
+        this.bitrate ??= bitrateFor(width, height, fps);
 
         const codec = await WebCodecsSink.pickCodec(width, height, this.codec, this.container);
         if (!codec) {

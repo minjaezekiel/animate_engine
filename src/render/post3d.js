@@ -19,7 +19,7 @@ import { GradeShader, applyGrade } from './gradeShader.js';
  */
 export function buildComposer({
     THREE, renderer, scene, camera, width, height,
-    post = null, bloom = null,
+    post = null, bloom = null, samples = 4,
     EffectComposer, RenderPass, ShaderPass, OutputPass,
     UnrealBloomPass = null, SSAOPass = null, BokehPass = null, SMAAPass = null,
     warn = () => {},
@@ -34,7 +34,25 @@ export function buildComposer({
         return null;
     }
 
-    const composer = new EffectComposer(renderer);
+    /**
+     * An EXPLICIT multisampled target, which is most of why this whole phase
+     * exists.
+     *
+     * `new EffectComposer(renderer)` allocates its own target with `samples`
+     * unset, and `antialias: true` on the renderer governs only the default
+     * drawing buffer -- which a composer never draws to. So declaring any
+     * pass at all silently turned anti-aliasing off. Measured on one frame of
+     * the AK-47 film, as the fraction of high-contrast edges carrying a pixel
+     * resolved BETWEEN the two plateaus (a multisample resolve produces one; a
+     * point sample cannot): 57.9% with no post, 1.2% with bloom, 1.1% with
+     * bloom -> smaa. A factor of fifty, paid for switching on a glow, and
+     * `smaa` -- the pass that exists to compensate -- recovered none of it.
+     *
+     * `HalfFloatType` is what the composer's own default uses; keeping it is
+     * what leaves bloom's luminance threshold meaning the same thing.
+     */
+    const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(
+        width, height, { type: THREE.HalfFloatType, samples }));
     composer.setSize(width, height);
     composer.addPass(new RenderPass(scene, camera));
 

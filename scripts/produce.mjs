@@ -12,6 +12,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, extname, join, normalize } from 'node:path';
 import { acquireLock, releaseLock } from './lib/render-lock.mjs';
 import { handleTake } from './lib/take-cache-server.mjs';
+import { resolveSize, QUALITIES } from '../src/core/render/quality.js';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -47,8 +48,24 @@ const TTS_MODULE_URL = process.env.TTS_MODULE_URL
     ?? (existsSync(new URL('../vendor/vits-web.js', import.meta.url))
         ? '/vendor/vits-web.js' : null);
 const OUT = process.env.OUT ?? 'demo/out/the-keeper.webm';
-const WIDTH = Number(process.env.WIDTH ?? 1280);
-const HEIGHT = Number(process.env.HEIGHT ?? 720);
+/**
+ * `QUALITY=720p` -- the resolution ladder, by name.
+ *
+ * 360p | 480p | 720p | 1024p | 1080p | 1440p | 2160p, resolved against the
+ * film's own aspect so a vertical film gets 720 ACROSS. `WIDTH`/`HEIGHT`
+ * still win if given, which is what keeps every existing npm script
+ * rendering exactly the size it did before.
+ */
+const QUALITY = process.env.QUALITY ?? null;
+const META = QUALITY
+    ? await readFile(join(ROOT, FILM), 'utf8').then((t) => JSON.parse(t).meta ?? {},
+                                                    () => ({}))
+    : null;
+const QSIZE = QUALITY ? resolveSize(QUALITY, META) : null;
+if (QUALITY && !QSIZE) throw new Error(`QUALITY=${QUALITY} is not a size; `
+    + `try ${Object.keys(QUALITIES).join(', ')}`);
+const WIDTH = Number(process.env.WIDTH ?? QSIZE?.[0] ?? 1280);
+const HEIGHT = Number(process.env.HEIGHT ?? QSIZE?.[1] ?? 720);
 const FPS = Number(process.env.FPS ?? 24);
 const USE_TTS = process.env.NO_TTS !== '1';
 /** 'mp4' | 'webm' | 'auto'. 'auto' prefers MP4 and says which it got. */

@@ -92,7 +92,7 @@ class Track {
 
 export class Mp4Muxer {
     constructor({ width, height, fps = 24, codec = 'avc1.42001f',
-                  audio = null, bitrate = 6_000_000 } = {}) {
+                  audio = null, bitrate = 128_000 } = {}) {
         if (!width || !height) throw new Error('Mp4Muxer: width and height are required');
         if (!/^avc1\./.test(codec)) {
             // vp9 and av1 are legal in MP4 but phones and social platforms do
@@ -104,6 +104,13 @@ export class Mp4Muxer {
         this.height = height;
         this.fps = fps;
         this.codec = codec;
+        /**
+         * Read in exactly one place: the AUDIO `esds` descriptor's declared
+         * max/avg bitrate. Video declares nothing of the kind -- `avcC`
+         * carries the parameter sets and no rate -- so the 6 Mbit/s this
+         * defaulted to was a video figure sitting in an audio box, declaring
+         * a 128 kbit/s AAC stream as fifty times its size.
+         */
         this.bitrate = bitrate;
         this.audioSpec = audio;
 

@@ -105,14 +105,18 @@ washed it from near-black to mid-grey. Scene exposure has to be re-tuned when
 one is introduced, which is an argument for the environment being a *default*
 rather than an opt-in, so films are authored against it from the start.
 
-## Finding 3 — the encoder spends 6 Mbps whatever the picture is
+## Finding 3 — the encoder spends 6 Mbps whatever the picture is — **fixed**
 
 `WebCodecsSink.js:24` and `Mp4Muxer.js:95` both default to a flat
-`bitrate = 6_000_000`. That is wasteful at 480x270 and visibly thin at
+`bitrate = 6_000_000`. Only one of those two was ever a video
+bitrate: the muxer's is read in exactly one place, the **audio** `esds`
+descriptor, so it was declaring a 128 kbit/s AAC stream as fifty times its
+size. Video declares no rate at all -- `avcC` carries the parameter sets and
+nothing else -- so there was one dial here, not two. That is wasteful at 480x270 and visibly thin at
 1920x1080 for animation, which is full of the large flat gradients that band
 first. Bitrate should be a function of `width * height * fps`.
 
-## Finding 4 — there is no quality dial, only two numbers
+## Finding 4 — there is no quality dial, only two numbers — **partly fixed**
 
 `WIDTH` and `HEIGHT` environment variables, defaulting to 1280x720, on both
 `produce.mjs` and `produce3d.mjs`. Nothing names a quality level, so every
@@ -127,13 +131,39 @@ that should move together.
 
 ## What is actually missing, in order of look per unit of work
 
-### Tier 0 — defects, near-zero cost
+### Tier 0 — defects, near-zero cost — **shipped, Phase 48**
 
-| # | Item | Where | Why it is first |
+| # | Item | Where | Result |
 |---|---|---|---|
-| 0.1 | Multisampled composer target | `src/render/post3d.js:37` | 50x edge resolution, one line |
-| 0.2 | Bitrate from pixels x fps | `src/render/sinks/WebCodecsSink.js` | banding at 1080p, waste below |
-| 0.3 | Named quality tiers | `scripts/produce*.mjs`, `meta.quality` | nothing else can be tuned coherently without it |
+| 0.1 | Multisampled composer target | `src/render/post3d.js` | **done.** 1.2% -> **68.5%** of edges resolved, same frame, same film |
+| 0.2 | Bitrate from pixels x fps | `src/core/render/quality.js`, `WebCodecsSink` | **done.** 0.2 bits per pixel per frame, clamped |
+| 0.3 | Named resolutions, 2D and 3D | `src/core/render/quality.js`, `scripts/produce*.mjs` | **done.** `QUALITY=360p|480p|720p|1024p|1080p|1440p|2160p` |
+
+Measured after the fix, by re-rendering frame 26 of the AK-47 film with the
+same `bloom` chain and nothing else changed:
+
+| chain | edges found | with a resolved intermediate pixel |
+|---|---|---|
+| no post at all | 686 | 57.9% |
+| bloom, before | 1440 | 1.2% |
+| bloom -> smaa, before | 2079 | 1.1% |
+| **bloom, after** | **923** | **68.5%** |
+
+The edge count falling from 1440 to 923 is the same result stated twice: a
+staircase registers as several separate steps, and a resolved edge registers
+as one. 68.5% is *above* the no-post figure because the only anti-aliasing
+there was the default drawing buffer's, and a bloomed frame also carries
+gradients that cannot alias.
+
+**What Tier 0 deliberately did not build.** `meta.quality` as one word moving
+six dials is still below, unbuilt, because five of its six dials (supersample
+scale, shadow resolution, AO, environment, probes) are Tier 1 and Tier 2 work
+that does not exist yet -- a tier table whose columns all read `n/a` is a
+config file pretending to be a feature. What shipped is the two numbers Tier 0
+can actually set today: `samples` on the composer target (a `buildComposer`
+argument, default 4) and the output size by name. `meta.quality` lands with
+Tier 1, when there is something for it to move, and `src/core/render/quality.js`
+is the file it lands in.
 
 ### Tier 1 — shading, the largest return
 

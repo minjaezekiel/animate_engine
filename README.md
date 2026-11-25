@@ -39,6 +39,10 @@ Where the two rendering paths actually stand:
 | Keyframeable post (rack focus) | partial | **yes** — 18 parameters, 4 passes |
 | Procedural textures | n/a | yes |
 | Cutaways — sectioned geometry, clip planes | n/a | yes |
+| Asset import | raster images only | glTF/GLB/FBX, HDRI, clips, rigs |
+| Asset library — hashed, licence-gated | yes (shared) | yes (shared) |
+| Collider generation from a mesh | n/a | box, sphere, convex hull |
+| Lipsync on an *imported* head | n/a | ARKit, Oculus, CC, generic |
 
 The short version: **the 2D path is production-proven and the 3D path is
 newly capable.** 2D has been driven through five series and about fifty
@@ -60,12 +64,10 @@ discovered:
 
 The largest single gaps are now the ones the audit named rather than one path
 lagging the other: there is **no motion blur on either path**, **no
-rigid-body dynamics at all**, and music is **never ducked under dialogue** —
+rigid-body solver** (colliders can be generated from any imported mesh, but
+nothing integrates them yet), and music is **never ducked under dialogue** —
 so a bed's level is hand-tuned per film and silently wrong the moment a line
-moves. Adjacent to those, an imported asset arrives as geometry and nothing
-else: no colliders, no scale normalisation, and no morph-target visemes, so
-the viseme track the voice pipeline computes for every line has no consumer in
-3D.
+moves.
 
 ## What it does today
 
@@ -306,6 +308,8 @@ npm run test:transitions:e2e  # 3D transitions cover every pixel they claim to
 npm run test:rack:e2e # a focus pull actually reaches the lens, measured on pixels
 npm run test:all     # all of the above
 npm run check:docs   # every relative link in docs/ and README resolves
+npm run asset inspect <file|url>   # what is in a model, without a browser
+npm run asset credits <film.json>  # is this clear for release?
 ```
 
 Determinism is asserted on the **draw-call stream**, not on pixels: encoders
@@ -404,14 +408,15 @@ everything open is queued in [docs/pending/](docs/pending/).
   [docs/pending/41-AUDIO-WINDOWING.md](docs/pending/41-AUDIO-WINDOWING.md).
   Trimming a bed to a window *does* work: a cue takes `offset`, `duration`,
   `fadeIn` and `fadeOut`, per scene, on both paths.
-- **Importing an asset is a bare path, and nothing helps you after that.**
-  glTF, GLB, FBX, HDR panoramas and 2D images all import today, but there is
-  no asset library, no way to inspect a file before loading it, no scale or
-  up-axis normalisation (a 100×-wrong import is taken literally), no collider
-  generation, and **no morph-target visemes** — so the viseme track the voice
-  pipeline computes for every line has no consumer in 3D. No online sources
-  and no MCP tools either —
-  [docs/pending/40-ASSET-IMPORT.md](docs/pending/40-ASSET-IMPORT.md).
+- **2D import is raster-only.** Both image providers end in
+  `createImageBitmap`, so there is no SVG-to-path, sprite-sheet or Lottie
+  import — and the 2D side draws primitives that could consume paths
+  directly. Online asset *catalogues* cannot be searched either, though
+  `npm run asset import <url>` downloads, hashes, inspects and records one
+  from anywhere — [docs/pending/40-ASSET-IMPORT.md](docs/pending/40-ASSET-IMPORT.md).
+- **A failed skeleton retarget does not say which bones it wanted.**
+  Mixamo-named rigs retarget; anything else stands in a T-pose with no
+  explanation.
 - **No rigid-body dynamics.** `src/core/sim/` is cloth and fluid; nothing
   falls, stacks or collides. The collision-maths series animated its
   collisions with keyframes.

@@ -117,7 +117,9 @@
     "digest2d": "node scripts/digest2d.mjs",
     "test:digest2d": "node --test test/core/digest2d.test.mjs",
     "check:docs": "node scripts/check-doc-links.mjs",
-    "test:rack:e2e": "node test/e2e/rack-focus.mjs"
+    "test:rack:e2e": "node test/e2e/rack-focus.mjs",
+    "asset": "node scripts/asset.mjs",
+    "assets": "node scripts/asset.mjs list"
   },
   "keywords": [
     "animation",

@@ -26,6 +26,7 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
 import { samplePostAt } from './src/core/script/post.js';
+import { matchVisemeMorphs } from './src/core/art/visemeMorphs.js';
 import { getTrack } from './src/core/anim/Timeline.js';
 import { trackValueAt } from './src/core/anim/Track.js';
 import { clipToTracks } from './src/backends/three3d/clipToTracks.js';
@@ -117,6 +118,30 @@ async function loadModels(film, report) {
         }
     }
     return out;
+}
+
+/**
+ * Find a named mesh with morph targets inside a loaded model.
+ *
+ * By name first, because that is what the film declared. Falling back to the
+ * only morph-bearing mesh in the model is deliberate and narrow: if there is
+ * exactly ONE candidate there is nothing to get wrong, and a great many
+ * exported heads name that mesh something nobody would guess. With two or
+ * more the author has to say which, because picking the one with the most
+ * targets would be right often enough to be trusted and wrong often enough
+ * to waste an afternoon.
+ */
+function findMorphMesh(models, node) {
+    const candidates = [];
+    let named = null;
+    for (const loaded of Object.values(models ?? {})) {
+        loaded.scene?.traverse?.((o) => {
+            if (!o.morphTargetDictionary || !o.morphTargetInfluences) return;
+            candidates.push(o);
+            if (o.name === node && !named) named = o;
+        });
+    }
+    return named ?? (candidates.length === 1 ? candidates[0] : null);
 }
 
 /** An HDR or image panorama, for image-based lighting. */
@@ -257,7 +282,32 @@ window.render3d = async function render3d(film, opts = {}) {
         cues.length = 0;
         cues.push(...(compiled.audioCues ?? []), ...voiced.cues);
         voiceBuffers = voiced.buffers;
-        const n = applyLipsync(compiled.timeline, voiced.tracks, writeKey);
+        /**
+         * Resolve each declared imported head against the morph target names
+         * the loaded model ACTUALLY has.
+         *
+         * The compiler knows which mesh is the face, because the author said
+         * so; only the page knows what that mesh's blendshapes are called,
+         * because only the page has loaded the file. So the matching happens
+         * here, and it reports what it found -- a head with 52 morph targets
+         * and no recognisable mouth shape is worth a line in the log rather
+         * than a still face in the render.
+         */
+        const faces = {};
+        for (const [who, face] of Object.entries(compiled.faces ?? {})) {
+            const node = face.node.slice(face.node.indexOf('/') + 1);
+            const mesh = findMorphMesh(models, node);
+            if (!mesh) {
+                report(`[lipsync] ${who}: no mesh named '${node}' with morph targets`);
+                continue;
+            }
+            const mapping = matchVisemeMorphs(Object.keys(mesh.morphTargetDictionary ?? {}),
+                                              { extra: face.visemes ?? null });
+            report(`[lipsync] ${who}/${node}: ${mapping.reason}`);
+            if (mapping.usable) faces[who] = { ...face, mapping };
+        }
+        const n = applyLipsync(compiled.timeline, voiced.tracks, writeKey,
+                               Object.keys(faces).length ? { faces } : {});
         report(`lipsync: ${voiced.tracks.length} lines, ${n} mouth keys`);
     }
 

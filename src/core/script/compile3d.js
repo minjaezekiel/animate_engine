@@ -302,6 +302,8 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
 
     // ----------------------------------------------------------------- cast
     const castMap = new Map();
+    /** Imported talking heads, by cast name. Resolved to morph names by the page. */
+    const faces = {};
     const constraintSpecs = [];
     const characters = new Map();
     for (const entry of film.cast ?? []) {
@@ -322,6 +324,32 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         if (entry.model) {
             const spec = film.models?.[entry.model];
             if (!spec) { warn(`unknown model '${entry.model}'`, `cast.${as}`); continue; }
+            /**
+             * Which node of this model is the talking head.
+             *
+             * Declared rather than guessed, because a model commonly has
+             * several meshes with morph targets -- a head, a set of teeth, a
+             * tongue -- and picking the one with the most targets would be
+             * right often enough to be trusted and wrong often enough to
+             * waste an afternoon. The morph NAMES are discovered (the page
+             * reads them off the loaded model); which mesh to drive is the
+             * author's call.
+             */
+            if (spec.face) {
+                const face = typeof spec.face === 'string' ? { node: spec.face } : spec.face;
+                if (!face.node) {
+                    warn(`model '${entry.model}' declares a \`face\` with no \`node\``,
+                         `models.${entry.model}.face`);
+                } else {
+                    faces[as] = {
+                        node: `${as}/${face.node}`,
+                        ...(face.jaw ? { jaw: `${as}/${face.jaw}` } : {}),
+                        // An author's own viseme -> morph-name map, for a head
+                        // whose naming no table could guess.
+                        ...(face.visemes ? { visemes: face.visemes } : {}),
+                    };
+                }
+            }
             const loaded = models[entry.model] ?? null;
             scene.add({
                 id: as, kind: 'model',
@@ -726,7 +754,7 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     }
 
     return { scene, timeline, emitters, meta, cameraId, lookId, shots, constraints,
-             duration, audioCues, lipsyncJobs, characters, textures, diagnostics };
+             duration, audioCues, lipsyncJobs, characters, textures, faces, diagnostics };
 }
 
 /**

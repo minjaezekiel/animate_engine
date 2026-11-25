@@ -86,9 +86,15 @@ const asText = (value) => ({
  * same script a person would, which also means they take the same lock and
  * cannot collide with a render already in flight.
  */
-function runScript(script, env = {}, { timeoutMs = 2_400_000 } = {}) {
+/**
+ * `args` as well as `env`, because not every script reads its input from the
+ * environment: the render scripts do (FILM=, OUT=, WIDTH=) and `asset.mjs`
+ * takes a subcommand, which is the right shape for something a person also
+ * types at a prompt.
+ */
+function runScript(script, env = {}, { timeoutMs = 2_400_000, args = [] } = {}) {
     return new Promise((resolve, reject) => {
-        const child = spawn(process.execPath, [join(REPO, 'scripts', script)], {
+        const child = spawn(process.execPath, [join(REPO, 'scripts', script), ...args], {
             cwd: REPO,
             env: { ...process.env, ...Object.fromEntries(
                 Object.entries(env).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])) },
@@ -410,6 +416,105 @@ server.tool(
   'Render the selected animation to an animated GIF. If `path` is given, the file is written on this machine and its path returned; otherwise the base64 data URL is returned.',
   { path: z.string().optional() },
   async ({ path }) => exportMedia('exportGif', path)
+);
+
+/* ------------------------------------------------------------------ assets
+
+ * The library an agent can actually work from.
+ *
+ * Before these, all eighteen tools were render, check, digest and voice, so an
+ * agent could author a film that referenced an asset and could not discover,
+ * inspect, measure or clear one. Importing a model already worked -- it is
+ * one line in a film -- and everything AROUND that line was missing.
+ */
+
+server.tool(
+  'inspect_asset',
+  'What is inside a 3D model, WITHOUT loading it into a browser: triangles (stored and '
+  + 'drawn, which differ when geometry is instanced), world-space bounds, whether it is '
+  + 'rigged, its animation clips, its morph targets, whether it can be LIPSYNCED and by '
+  + 'what naming convention, and a recommended scale/rotation/ground offset. Use this to '
+  + 'choose between candidate models: a 100x-wrong import is routine and this is what '
+  + 'catches it before a render rather than after. Takes a local path or a URL; reads only '
+  + 'the glTF container, so it is fast and needs no GPU.',
+  {
+    file: z.string().describe('a local path (relative to the repo) or an https URL to a .glb/.gltf'),
+    as: z.enum(['human', 'prop', 'furniture', 'vehicle', 'building']).optional()
+      .describe('what KIND of thing it is, which is what the unit guess is measured against; '
+        + 'default human'),
+    height: z.number().optional()
+      .describe('the height in metres you want it to be. Given, this beats the unit guess '
+        + 'outright and the scale is exact.'),
+  },
+  async ({ file, as, height }) => {
+    const args = ['inspect', file];
+    if (as) args.push('--as', as);
+    if (height != null) args.push('--height', String(height));
+    const r = await runScript('asset.mjs', {}, { args, timeoutMs: 300_000 });
+    return asText(r.out || r.err || 'no output');
+  }
+);
+
+server.tool(
+  'import_asset',
+  'Add a model, image, HDRI, audio file or font to the asset library, from a local path or '
+  + 'a URL. Content-addressed by the hash of its bytes, so re-importing something already '
+  + 'held is a no-op rather than a second copy. A LICENCE is required and the call fails '
+  + 'without one: an animation built on an asset whose licence was never recorded is not '
+  + 'shippable, and that is discovered at the end. Pass "unknown" deliberately if that is '
+  + 'the truth. Returns the id to reference it by, plus the inspection.',
+  {
+    file: z.string().describe('a local path (relative to the repo) or an https URL'),
+    licence: z.string().describe('the terms, e.g. "CC0-1.0", "CC-BY-4.0", or "unknown". Free '
+      + 'text on purpose: the real world contains "royalty-free, see invoice 4471".'),
+    name: z.string().optional().describe('a short name to refer to it by; defaults to the filename'),
+    author: z.string().optional().describe('required in practice for any CC-BY or MIT-style '
+      + 'licence, which cannot be complied with without it'),
+    kind: z.enum(['model', 'image', 'texture', 'hdri', 'audio', 'font', 'other']).optional()
+      .describe('inferred from the extension if omitted'),
+    as: z.enum(['human', 'prop', 'furniture', 'vehicle', 'building']).optional(),
+    notes: z.string().optional(),
+  },
+  async ({ file, licence, name, author, kind, as, notes }) => {
+    const args = ['import', file, '--licence', licence];
+    for (const [k, v] of [['name', name], ['author', author], ['kind', kind],
+                          ['as', as], ['notes', notes]]) {
+      if (v) args.push(`--${k}`, String(v));
+    }
+    const r = await runScript('asset.mjs', {}, { args, timeoutMs: 900_000 });
+    return asText(r.out || r.err || 'no output');
+  }
+);
+
+server.tool(
+  'list_assets',
+  'What is in the asset library: id, kind, name, licence, triangle count, and whether each '
+  + 'model can be lipsynced. Ask this before importing anything, since the library may '
+  + 'already hold it.',
+  { kind: z.enum(['model', 'image', 'texture', 'hdri', 'audio', 'font', 'other']).optional() },
+  async ({ kind }) => {
+    const args = ['list'];
+    if (kind) args.push('--kind', kind);
+    const r = await runScript('asset.mjs', {}, { args, timeoutMs: 60_000 });
+    return asText(r.out || 'no assets');
+  }
+);
+
+server.tool(
+  'asset_credits',
+  'The attribution list for a film, or for the whole library, and whether it is CLEAR FOR '
+  + 'RELEASE. Reports every asset whose licence is unknown or which requires an author it '
+  + 'does not have, plus noncommercial and share-alike terms that constrain what the '
+  + 'finished work can be. Run this before publishing anything: the alternative is finding '
+  + 'out afterwards.',
+  { film: z.string().optional()
+      .describe('path to a film json; omitted, the whole library is credited') },
+  async ({ film }) => {
+    const args = ['credits'];
+    if (film) args.push(film);
+    const r = await runScript('asset.mjs', {}, { args, timeoutMs: 60_000 });
+    return asText(r.out || r.err || 'no output');
+  }
 );
 
 await server.connect(new StdioServerTransport());

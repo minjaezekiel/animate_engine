@@ -1,0 +1,14 @@
+# The asset BYTES are not source.
+#
+# A content-addressed library fills up with other people's binaries -- models,
+# HDRIs, fonts -- and committing them makes the repository enormous for no
+# gain, because `manifest.json` records the source URL and the hash of every
+# one. `npm run asset import <url>` reproduces the file exactly, and the hash
+# proves it.
+#
+# The manifest IS source, and is tracked: it is the record of what a film
+# depends on and on what terms, which is the one part that cannot be
+# regenerated.
+*
+!.gitignore
+!manifest.json

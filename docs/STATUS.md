@@ -157,6 +157,58 @@ a cold load within reach of puppeteer's 30s navigation timeout. Raised to 120s
 in the four scripts that load it; the real fix joins the offline-weights item.
 1,071 unit tests, up 21. See `docs/completed_phases/39-KEYFRAMEABLE-POST.md`.
 
+## Phase 45 — an imported asset arrives ready to animate
+
+Asked for directly, and the download was never the hard part: the ask was
+that an import leave only "adding physics, rigging, lipsync" to do.
+
+Writing the plan first required checking the brief, and two of its claims were
+wrong in ways that would have caused a rebuild. 3D lipsync DID exist --
+`PoseApplier` has handled `morph.<name>` channels all along and `applyLipsync`
+has driven faces from the viseme track since the humanoid phase -- and
+`VISEME_SHAPES` names ARKit blendshapes deliberately, so an ARKit head was
+already close to working. The two real blockers were that the channel target
+was hardcoded to `<speaker>/face`, which is the node the PROCEDURAL rig
+builds, so keys on an imported `Wolf3D_Head` landed on nothing and an
+unresolved target is skipped rather than reported; and that Oculus, Character
+Creator and hand-modelled heads name the same shapes differently.
+
+Built, all pure and tested in Node: geometry facts without a renderer
+(triangles honouring strip/fan mode, stored against DRAWN so instanced
+geometry cannot look lightweight, world bounds from the accessor min/max that
+glTF already requires, with all eight corners transformed so a rotated box is
+never undersized); scale and up-axis recommendations that recommend rather
+than apply, and report `confidence: none` for a near-cubic model instead of
+guessing; collider generation -- box, Ritter sphere asserted to enclose, and
+an incremental convex hull; the viseme name table; and a content-addressed
+asset library in which the licence is mandatory, because an animation built on
+an asset whose licence was never recorded is not shippable and that is found
+out at the end.
+
+Four bugs found by writing the tests rather than by reading the code. The
+hull used a point ON its own surface as the interior reference when orienting
+faces, which flipped near-coplanar faces and made a hull of points sampled on
+a sphere measure LARGER than the sphere. Concavity measured as hull-over-
+bounding-box cannot work, since a solid cylinder and a hollow pipe both fill
+79% of their box -- it needs the mesh's own volume, which is `solidity`. The
+viseme table listed `mouthPucker` above `mouthFunnel + mouthPucker`, so an
+ARKit head resolved "round" to a bare pucker, which is a kiss. And the
+concavity advisory was attached only to the hull branch, so a hollow box --
+the clearest case there is -- got a box collider and no warning.
+
+Proven against the Khronos sample models over the network with no browser:
+RiggedFigure reports 1 skin and 22 of 22 addressable nodes; AnimatedMorphCube
+reports morph targets that are unnamed and so index-only; BoxAnimated reports
+0 of 4 addressable nodes and an import that lifts it onto the floor, which is
+the arithmetic nobody should do by hand.
+
+`npm run asset inspect|import|list|credits|audit`, and four MCP tools taking
+the server from 18 to 22 -- all eighteen had been render, check, digest and
+voice, so an agent could reference an asset and not discover, inspect, measure
+or clear one. 1,165 unit tests, up 94. See
+`docs/completed_phases/40-ASSET-PIPELINE.md`. Source catalogues, SVG import
+and retarget diagnostics stay in `docs/pending/40-ASSET-IMPORT.md`.
+
 ## Phase 41 — Kokoro and OpenVoice, actually renderable — **done**
 
 Both had been registered, selectable and unit-tested since Phase 39 and

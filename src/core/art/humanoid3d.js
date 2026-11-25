@@ -1,4 +1,5 @@
 import { VISEME_SHAPES } from './face3d.js';
+import { visemeKeysOf, visemeMorphTracks } from './visemeMorphs.js';
 import { handBones, handSegments } from './hands.js';
 
 /**
@@ -383,12 +384,62 @@ export function humanoidSpec({ outfit = 'suit', height = 1.80, hair = null } = {
  * reads as a hand puppet; lips have mass and take a frame to arrive. And the
  * mouth is the only thing written here -- brows and cheeks belong to the
  * expression layer, which is how production rigs keep the two from fighting.
+ *
+ * # Imported heads
+ *
+ * `VISEME_SHAPES` names ARKit blendshapes, deliberately, which means an
+ * imported head that also uses ARKit names has always worked here. Two things
+ * stopped any OTHER head working, and `faces` fixes both:
+ *
+ *   1. The channel target is `<speaker>/face` and the jaw is
+ *      `<speaker>/jaw`. Those are the node names the PROCEDURAL rig builds;
+ *      an imported model's mesh is called `Wolf3D_Head` or `CC_Base_Body` or
+ *      whatever its author typed, so the keys landed on a node that does not
+ *      exist and nothing moved -- silently, since an unresolved target is
+ *      skipped rather than reported.
+ *   2. Oculus (`viseme_aa`), Character Creator (`Mouth_Open`) and
+ *      hand-modelled (`mouthOpen`) heads name the same shapes differently,
+ *      and no amount of ARKit naming will find them.
+ *
+ * `faces` is `{ [speaker]: { node, mapping } }`, where `mapping` comes from
+ * `matchVisemeMorphs` against the morph target names the loaded model
+ * actually has. Supplied, it replaces both the node and the shape table for
+ * that speaker; absent, nothing changes for anybody.
  */
-export function applyLipsync(timeline, visemeTracks, key, { amount = 1 } = {}) {
+export function applyLipsync(timeline, visemeTracks, key, { amount = 1, faces = null } = {}) {
     let written = 0;
     for (const track of visemeTracks ?? []) {
         const who = track.target;
         if (!who) continue;
+        /**
+         * An imported head: its own mesh node, its own morph names.
+         *
+         * Written through `visemeMorphTracks` rather than duplicated here, so
+         * the ramp-in behaviour and the release-on-change behaviour are
+         * decided in one place for both kinds of face.
+         */
+        const imported = faces?.[who];
+        if (imported?.mapping?.usable && imported.node) {
+            for (const t of visemeMorphTracks(imported.node,
+                                              visemeKeysOf(track), imported.mapping)) {
+                for (const k of t.keys) {
+                    key(timeline, t.target, t.path, k.t, k.v * amount,
+                        { type: 'number', ease: 'smooth' });
+                    written++;
+                }
+            }
+            // The jaw bone, where the model names one. An imported head often
+            // drives the chin from the blendshape alone, so this is optional
+            // rather than assumed.
+            if (imported.jaw) {
+                for (const k of track.keys) {
+                    key(timeline, imported.jaw, 'rotation.x', k.t,
+                        (VISEME_SHAPES[k.v]?.jawOpen ?? 0) * 0.30 * amount,
+                        { type: 'number', ease: 'smooth' });
+                }
+            }
+            continue;
+        }
         // Every shape this line will ever touch, so a viseme that does not
         // name a shape actively RELEASES it instead of leaving it stuck open.
         const used = new Set();

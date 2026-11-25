@@ -287,6 +287,10 @@ test('a film with metal in it gets the built-in studio, undeclared', () => {
     assert.equal(env.src, 'studio');
     assert.equal(env.background, false, 'lighting, not a visible sky');
     assert.ok(env.intensity > 0 && env.intensity <= 1);
+    // The flag the renderer branches on: an environment nobody asked for is
+    // attached to the METALS, because lighting a dielectric with a neutral
+    // grey room desaturates a palette the film chose under its own lights.
+    assert.equal(env.implicit, true);
 });
 
 test('a film with no metal is left exactly as it was', () => {
@@ -327,12 +331,14 @@ test('`environment: false` opts out, and a declared one is untouched', () => {
         .meta.environment;
     assert.equal(hdr.src, 'sky.hdr');
     assert.equal(hdr.builtin, false, 'or the page would never load the file');
+    assert.ok(!hdr.implicit, 'a declared environment lights the whole scene, as asked');
 });
 
 test('`environment: "studio"` names the built-in, so its intensity is tunable', () => {
     const env = compileFilm3D(metalFilm({ metalness: 0 },
         { meta: { environment: { src: 'studio', intensity: 1.4, background: true } } })).meta.environment;
     assert.equal(env.builtin, true);
+    assert.ok(!env.implicit, 'naming it is declaring it');
     assert.equal(env.intensity, 1.4);
     assert.equal(env.background, true, 'a studio can be the visible sky if asked');
 });

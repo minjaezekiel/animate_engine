@@ -509,28 +509,44 @@ declares a material above `metalness: 0.2`, or imports a model at all (a glTF
 brings its own PBR materials, authored against image-based lighting by
 whoever exported it; the compiler never sees them).
 
-Measured on frame 26 of the AK-47 film, at the default `intensity: 0.6`:
+**An implicit environment lights the metal and nothing else.** A dielectric
+does not have the black-slab problem — its colour is its albedo — and putting
+a neutral grey room on one desaturates a palette the film chose under its own
+lights. So the built-in studio is attached per material, weighted by
+`metalness`, and every dielectric in every existing film renders exactly as it
+did. A **declared** environment is applied to the whole scene, because
+declaring one is asking for precisely that.
 
-| region | without | with | |
+Measured on frame 26 of the AK-47 film:
+
+| region | without | studio on everything | studio on the metals |
 |---|---|---|---|
-| receiver, `metalness: 0.88` | 0.073 | 0.185 | **x2.54** |
-| wood stock, `metalness: 0` | 0.240 | 0.387 | x1.61 |
-| fraction of the frame below 2% luma | 9.3% | **0.0%** | — |
+| receiver, `metalness: 0.88` | 0.073 | 0.246 (x3.38) | **0.229 (x3.14)** |
+| wood stock, `metalness: 0` | 0.240 | 0.459 (x1.91) | **0.240 (x1.00)** |
+| backdrop saturation | 0.440 | 0.168 | **0.427** |
+| frame below 2% luma | 9.3% | 0.0% | **0.0%** |
 
-The **differential** is the result, not the brightening: an environment lights
-everything, but the metal gained 2.54x against the dielectric's 1.61x, and
-that excess is specular finally having something to return.
+Nearly all of the gain on the metal, none of the restyling. The Earth film,
+whose core materials are 0.25 and 0.5, moved only where it should: its
+brightest sampled shot (the inner core) 0.515 → 0.528, its darkest unchanged,
+and `check:earth` still reports zero exposure problems.
 
 ```jsonc
-"meta": { "environment": false }                            // opt out
-"meta": { "environment": "studio" }                         // the built-in, by name
-"meta": { "environment": { "src": "studio", "intensity": 1 } }   // turned up
+"meta": { "environment": false }                                 // opt out
+"meta": { "environment": "studio" }                              // the built-in, by name
+"meta": { "environment": { "src": "studio", "intensity": 1.4 } } // turned up
 "meta": { "environment": { "src": "sky.hdr", "background": true } }
 ```
 
-`intensity: 0.6` rather than 1 is a deliberate compromise: at 1 the metal
-gains 3.38x but the whole frame lifts 1.88x, and every 3D film here was
-exposed without one. At 0.6 it is 2.54x for 1.58x. A film authored *against*
-the studio should turn it up.
+Naming it — `"environment": "studio"` — makes it **declared**, so it lights
+everything at full strength. That is the switch for a film authored against a
+studio rather than one rescued by it.
+
+One three.js detail worth knowing before changing any of this:
+`material.envMapIntensity` is refreshed **only for a material that owns its
+`envMap`**. With a `scene.environment` the per-material weight is silently
+ignored — measured, setting it to zero on every material in the film changed
+not one pixel — which is why the implicit path assigns `material.envMap`
+directly.
 
 `meta.environment` had been parsed here since Phase 14 and read by nothing.

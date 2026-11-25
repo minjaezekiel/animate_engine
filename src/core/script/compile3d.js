@@ -74,7 +74,8 @@ export const METAL_NEEDS_ENV = 0.2;
  * panorama and `check:docs` has no URL to fail on.
  */
 export const BUILTIN_ENVIRONMENT = Object.freeze({
-    src: 'studio', builtin: true, background: false, intensity: 0.6, blur: 0,
+    src: 'studio', builtin: true, implicit: true,
+    background: false, intensity: 1, blur: 0,
 });
 
 /**

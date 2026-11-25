@@ -167,7 +167,7 @@ is the file it lands in.
 
 ### Tier 1 — shading, the largest return
 
-**1.1 shipped in Phase 49, and not as planned.** The plan was
+**1.1 shipped in Phase 49, and not as planned, in two ways.** The plan was
 `src/core/art/environments.js`: a procedural studio dome synthesised to pixel
 data at build time. Three ships one already -- `RoomEnvironment`, a small scene
 of emissive boxes, no texture and no network -- and `PMREMGenerator` prefilters
@@ -177,10 +177,22 @@ feature is six lines in `film3d.html` and a default in the compiler, and the
 pure module is not needed. A procedural *sky* still is, and stays on this
 list under 1.5, beside the materials.
 
+The second departure is the more interesting one. The plan said "applied
+whenever any material has `metalness > 0.2`" and meant applied to the SCENE.
+Done that way it measured as a restyling of every finished film: the AK-47's
+blue backdrop lost two thirds of its saturation, because a neutral grey room
+lights a dielectric too and a dielectric never had the problem. An implicit
+environment now attaches to the metals alone, weighted by `metalness`, which
+keeps x3.14 of the x3.38 and leaves every other surface at exactly what it
+was. Finding 2's caveat -- "scene exposure has to be re-tuned when one is
+introduced" -- turned out to be avoidable rather than unavoidable, and a
+declared environment still lights everything, because declaring one is asking
+for that.
+
 
 | # | Item | Why |
 |---|---|---|
-| 1.1 | ~~**A default environment.**~~ **done, Phase 49.** Applied whenever any material has `metalness > 0.2`, or the film imports a model at all. | Finding 2. Receiver **x2.54** against the wood stock's x1.61 at `intensity: 0.6`; nothing in the frame is below 2% luma any more. |
+| 1.1 | ~~**A default environment.**~~ **done, Phase 49.** Applied whenever any material has `metalness > 0.2`, or the film imports a model at all -- and attached to the METALS alone, so no dielectric moves. | Finding 2. Receiver **x3.14**, wood stock beside it **x1.00**, backdrop saturation 0.440 -> 0.427; nothing in the frame is below 2% luma any more. |
 | 1.2 | **Bevelled edges.** A `bevel` on `cube` and `extrude`, as a geometry generator -- three has no modifier stack. | Nothing in the physical world has a zero-radius edge. A bevel one or two pixels wide catches a highlight along every silhouette, and it is the single clearest difference between the reference frames and ours. |
 | 1.3 | **Contact shadows on by default.** SSAO exists and is used by no film. | A film with no AO has objects floating above the floor. It is what the eye reads as "placed in the scene". |
 | 1.4 | **Shadow quality tied to the tier,** with bounds fitted to the scene rather than fixed, and the bias derived from the texel size rather than hardcoded. | 1024x1024 stretched over a whole set is a few texels per object. |

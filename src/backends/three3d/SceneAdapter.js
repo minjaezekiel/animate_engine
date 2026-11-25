@@ -459,6 +459,19 @@ function makeMaterial(T, spec = {}, blending = null, textures = null, clipPlanes
     return material;
 }
 
+/** Every standard-lit material under an object, meshes with arrays included. */
+function* materialsIn(root) {
+    for (const o of [root]) {
+        const seen = new Set();
+        o.traverse((n) => {
+            for (const m of (Array.isArray(n.material) ? n.material : [n.material])) {
+                if (m?.isMeshStandardMaterial && !seen.has(m)) { seen.add(m); }
+            }
+        });
+        yield* seen;
+    }
+}
+
 function makeLight(T, p) {
     switch (p.lightType) {
         case 'ambient': return new T.AmbientLight(new T.Color(p.color), p.intensity);
@@ -1063,7 +1076,13 @@ export function buildScene3D(T, compiled, {
     const clipPlanes = [];
     const root = new T.Scene();
     root.background = new T.Color(meta.background);
-    if (environment) {
+    /**
+     * An environment the film DECLARED lights everything, as asked. An
+     * implicit one -- the built-in studio, applied because the film contains
+     * a metal -- is attached per material instead, below. See the end of this
+     * function.
+     */
+    if (environment && !meta.environment?.implicit) {
         root.environment = environment;
         if (meta.environment?.intensity != null) root.environmentIntensity = meta.environment.intensity;
         // Lighting by default, sky only if the film asked: most shots want
@@ -1300,6 +1319,36 @@ export function buildScene3D(T, compiled, {
     };
 
     const resolve = (id) => registry.get(id);
+    /**
+     * An environment nobody asked for lights only what needs it.
+     *
+     * The built-in studio is a DEFAULT -- the film did not declare it -- and
+     * it exists for exactly one reason: a metal has no diffuse albedo, so
+     * with nothing to reflect it renders black. A dielectric has no such
+     * problem, its colour IS its albedo, and lighting one with a neutral grey
+     * room desaturates a palette the film chose under its own lights.
+     * Measured: `scene.environment` at full strength took the AK-47's blue
+     * backdrop from 0.44 saturation to 0.17. That is a restyling of fifty
+     * finished films, to fix a defect in their metals.
+     *
+     * So an implicit environment is attached to the METALS and to nothing
+     * else, weighted by `metalness` so a half-metal gets half of it. Every
+     * dielectric in every existing film renders exactly as it did.
+     *
+     * It has to be `material.envMap` rather than `scene.environment`:
+     * `envMapIntensity` is refreshed only for a material that owns its map,
+     * so with a scene environment the weighting is silently ignored --
+     * measured, setting it to 0 on every material changed not one pixel.
+     */
+    if (environment && meta.environment?.implicit) {
+        const strength = meta.environment.intensity ?? 1;
+        for (const m of materialsIn(root)) {
+            if (!(m.metalness > 0)) continue;
+            m.envMap = environment;
+            m.envMapIntensity = m.metalness * strength;
+        }
+    }
+
     return { root, camera, lookTarget, registry, resolve, step, pools, sims,
              clipPlanes, textures,
              constraints: compiled.constraints ?? [],

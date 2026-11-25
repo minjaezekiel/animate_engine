@@ -11,6 +11,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { QUALITIES, resolveSize, bitrateFor } from '../../src/core/render/quality.js';
 import { buildComposer } from '../../src/render/post3d.js';
+import { bevelRadius, DEFAULT_BEVEL } from '../../src/backends/three3d/SceneAdapter.js';
 
 // ------------------------------------------------------------------- the size
 
@@ -125,4 +126,34 @@ test('samples is a dial, and 0 is still expressible', () => {
         post: ['bloom'], samples: 0,
     });
     assert.equal(off.composer.target.samples, 0, 'for a machine that cannot afford it');
+});
+
+// ------------------------------------------------------------------ the bevel
+
+/**
+ * Nothing in the physical world has a zero-radius edge, and every box in this
+ * engine had twelve of them. The radius is a fact about the tool that cut the
+ * part, not about how big the part is -- so it is absolute, and clamped only
+ * where it would eat the part.
+ */
+test('a box is bevelled by default, at a tool-sized radius', () => {
+    assert.equal(bevelRadius({ width: 0.25, height: 0.07, depth: 0.04 }), DEFAULT_BEVEL);
+    assert.equal(bevelRadius({}), DEFAULT_BEVEL, 'a 1x1x1 box too');
+    assert.ok(DEFAULT_BEVEL > 0 && DEFAULT_BEVEL < 0.01, 'a chamfer, not a rounded brick');
+});
+
+test('the clamp keeps a thin part from being eaten by its own edge', () => {
+    // A radius over half the smallest dimension is not a box any more, and
+    // RoundedBoxGeometry degenerates there.
+    const thin = bevelRadius({ width: 1, height: 1, depth: 0.008 });
+    assert.equal(thin, 0.002, 'a quarter of the thinnest dimension');
+    assert.ok(thin < 0.008 / 2);
+    assert.ok(bevelRadius({ width: 2, height: 1, depth: -0.008 }) > 0, 'sign is not size');
+});
+
+test('`bevel` overrides it and `bevel: 0` is a sharp box', () => {
+    assert.equal(bevelRadius({ bevel: 0 }), 0, 'for a film that wants the diagram look');
+    assert.equal(bevelRadius({ bevel: 0.02, width: 1, height: 1, depth: 1 }), 0.02);
+    assert.equal(bevelRadius({ bevel: 5, width: 1, height: 1, depth: 1 }), 0.25, 'still clamped');
+    assert.equal(bevelRadius({ bevel: -1 }), 0, 'nonsense is flat, not negative');
 });

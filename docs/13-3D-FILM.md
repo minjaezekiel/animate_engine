@@ -232,6 +232,35 @@ The magazine is now **one swept profile** instead of four rotated slabs, and
 the seams are gone. A lathe covers every turned part — a muzzle nut, a gas
 piston, a case — where stacked cylinders are what make a model read as blocks.
 
+### Every box is bevelled
+
+Nothing in the physical world has a zero-radius edge. A real one is a chamfer
+or a fillet half a millimetre wide, and the only reason it matters at a
+film's distance is that it **catches a highlight**: a thin bright line along
+every silhouette, which is most of what separates a rendered object from a
+diagram of one. It is the clearest single difference between reference
+footage and ours, and every box here was a `BoxGeometry` — twelve edges, each
+mathematically sharp, each shading as one flat face meeting another with
+nothing in between.
+
+So since [Phase 50](STATUS.md) a `cube` is a `RoundedBoxGeometry` with a
+**4 mm** radius. Measured on frame 26 of the AK-47 film, counting specular
+ridges — a pixel brighter than what is two pixels either side of it along a
+scanline, which is what a rim highlight is and what a step between two flat
+faces is not: **89 → 730**, with 2.3% of the frame's pixels changed at all.
+
+```jsonc
+{ "kind": "cube", "width": 0.25, "bevel": 0 }      // sharp, for a diagram
+{ "kind": "cube", "width": 2.0, "bevel": 0.02 }    // a cast corner
+```
+
+4 mm rather than a percentage, because a chamfer is a fact about the tool
+that cut the part and not about how big the part is — a 2 m door and a 40 mm
+receiver carry the same one. It is clamped to a quarter of the smallest
+dimension, which is what keeps a part thinner than its own edge from
+degenerating, and a box that asks for explicit `widthSegments` is left alone
+because it wanted a subdivided box for a reason.
+
 ### The bullet
 
 A round at 715 m/s crosses the 2.4 m to the wall in 3.4 ms, an eighth of one
@@ -262,7 +291,7 @@ Measured against Blender, this is still a small toolset. The honest list:
 
 | Gap | Note |
 |---|---|
-| **No CSG, bevel, loop cut or subdivision** | `lathe` and `extrude` cover swept and turned shapes, which is most of a mechanical model, but nothing cuts a hole in a solid. A magwell is a gap between parts, not an opening |
+| **No CSG, loop cut or subdivision** | `lathe` and `extrude` cover swept and turned shapes, which is most of a mechanical model, but nothing cuts a hole in a solid. A magwell is a gap between parts, not an opening. Bevel is no longer on this list: a `cube` is bevelled by default and `extrude` takes one, but a **cylinder's rim is still sharp** — a chamfered rim needs a `lathe`, by hand |
 | **No UV mapping or texturing on the 3D film path** | Materials are untextured PBR. No wood grain, no stamped markings, no wear |
 | **No "spawn"** | Scaling from zero is the only way to bring geometry into existence; the bullet craters use it |
 | **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |

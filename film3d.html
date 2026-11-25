@@ -24,6 +24,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
 import { samplePostAt } from './src/core/script/post.js';
@@ -349,6 +350,7 @@ window.render3d = async function render3d(film, opts = {}) {
 
     const built = buildScene3D(THREE, compiled, {
         width, height, mergeGeometries, models, environment, textures,
+        geometries: { RoundedBoxGeometry },
         // `Object3D.clone` copies a skinned mesh and leaves it bound to the
         // ORIGINAL skeleton, so two characters from one file move as one.
         cloneModel: SkeletonUtils.clone,

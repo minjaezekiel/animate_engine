@@ -23,10 +23,54 @@ import { applyChannel, readChannel } from './PoseApplier.js';
  * id, exactly as it writes onto the editor's objects.
  */
 
+/**
+ * Nothing in the physical world has a zero-radius edge.
+ *
+ * A real edge is a chamfer or a fillet half a millimetre wide, and the only
+ * reason it matters at this distance is that it catches a highlight: a thin
+ * bright line along every silhouette, which is most of what separates a
+ * rendered object from a diagram of one. It is the clearest single difference
+ * between the reference footage and ours, and every box in this engine was a
+ * `BoxGeometry` -- twelve edges, each of them mathematically sharp, each of
+ * them shading as one flat face meeting another with nothing in between.
+ *
+ * 4 mm rather than a percentage, because a chamfer is a fact about the tool
+ * that cut the part and not about how big the part is -- a 2 m door and a
+ * 40 mm receiver carry the same one. The clamp is what keeps it from eating
+ * a part thinner than itself: a radius over half the smallest dimension is
+ * not a box any more, and `RoundedBoxGeometry` degenerates there.
+ */
+export const DEFAULT_BEVEL = 0.004;
+
+/** The corner radius for a box, in the film's own units. `bevel: 0` is flat. */
+export function bevelRadius(g = {}) {
+    const want = g.bevel ?? DEFAULT_BEVEL;
+    if (!(want > 0)) return 0;
+    const min = Math.min(Math.abs(g.width ?? 1), Math.abs(g.height ?? 1), Math.abs(g.depth ?? 1));
+    return Math.min(want, min * 0.25);
+}
+
 const GEOMETRY = {
-    cube: (T, g) => new T.BoxGeometry(g.width ?? 1, g.height ?? 1, g.depth ?? 1,
-                                      g.widthSegments ?? 1, g.heightSegments ?? 1, g.depthSegments ?? 1),
-    box: (T, g) => GEOMETRY.cube(T, g),
+    /**
+     * A box, bevelled unless the film says otherwise.
+     *
+     * `RoundedBoxGeometry` is an addon class, so it arrives as an argument
+     * for the same reason `mergeGeometries` does: this module takes THREE as
+     * a parameter and imports nothing, which is what lets the core bundle
+     * resolve in Node. Without it -- an older page, a test harness -- the
+     * box is the box it always was.
+     */
+    cube: (T, g, add = null) => {
+        const radius = bevelRadius(g);
+        const Rounded = add?.RoundedBoxGeometry;
+        if (radius > 0 && Rounded && !g.widthSegments && !g.heightSegments && !g.depthSegments) {
+            return new Rounded(g.width ?? 1, g.height ?? 1, g.depth ?? 1,
+                               g.bevelSegments ?? 2, radius);
+        }
+        return new T.BoxGeometry(g.width ?? 1, g.height ?? 1, g.depth ?? 1,
+                                 g.widthSegments ?? 1, g.heightSegments ?? 1, g.depthSegments ?? 1);
+    },
+    box: (T, g, add = null) => GEOMETRY.cube(T, g, add),
     /**
      * A sphere, optionally a WEDGE of one.
      *
@@ -686,6 +730,8 @@ function buildHumanoid(T, mergeGeometries, node, resolveMaterial) {
         if (scaled.radius) scaled.radius *= spec.scale;
         const material = resolveMaterial(p[part.material] ?? MOUTH_MATERIALS[part.material]);
         if (part.side === 'back') material.side = T.BackSide;
+        // ponytail: no addon here -- `buildHumanoid` does not take them, and
+        // a 4 mm chamfer on a lip part is not a thing anybody would see.
         const mesh = new T.Mesh(build(T, scaled), material);
         mesh.name = `${node.id}#${part.id}`;
         mesh.position.set(...part.at.map((v) => v * spec.scale));
@@ -1065,6 +1111,11 @@ export function buildScene3D(T, compiled, {
      */
     models = null, cloneModel = null, environment = null,
     /**
+     * Addon geometry classes the page imported. Only `RoundedBoxGeometry` so
+     * far, and only `cube` reads it; same bargain as `mergeGeometries`.
+     */
+    geometries = null,
+    /**
      * Built textures, keyed by the id the film declared. Built by the page
      * (via `buildTextures`) for the same reason models are: a `src` has to
      * be fetched, and this function is synchronous.
@@ -1139,7 +1190,7 @@ export function buildScene3D(T, compiled, {
         if (node.kind === 'mesh') {
             const build = GEOMETRY[p.geometry?.kind];
             if (!build) return;
-            object = new T.Mesh(build(T, p.geometry),
+            object = new T.Mesh(build(T, p.geometry, geometries),
                                 makeMaterial(T, p.material, p.blending, textures, clipByName));
             // A cut face and a sky shell are both single-sided surfaces seen
             // from the inside at some point in a move, so a mesh may ask for
@@ -1244,7 +1295,7 @@ export function buildScene3D(T, compiled, {
     for (const spec of emitters.values()) {
         const build = GEOMETRY[spec.geometry.kind] ?? GEOMETRY.sphere;
         const baseOpacity = spec.material.opacity ?? 1;
-        const geometry = build(T, spec.geometry);
+        const geometry = build(T, spec.geometry, geometries);
         // A stretched particle is oriented with lookAt, which aims +Z -- but
         // a cylinder, capsule and cone all run along +Y. Rotating the
         // geometry once at build time makes "long axis on +Z" true for every

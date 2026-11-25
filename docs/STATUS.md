@@ -255,6 +255,58 @@ denser rather than obviously wrong.
 
 1,194 unit tests, up 29. See `docs/completed_phases/41-DUCKING.md`.
 
+## Phase 47 — motion blur, by subframe accumulation
+
+Audit priority 3, and after the rack focus the clearest remaining visual
+difference from reference work at 24fps: every frame the engine drew was an
+INSTANT, so fast motion strobed.
+
+Accumulation rather than a velocity-buffer post-process, because a post-pass
+has to guess what was behind the moving thing and nothing in the frame knows.
+It needed nothing the renderer did not already have -- this engine can draw
+frame N at any t it is asked for -- so the loop grew one inner loop, and
+`drawAt` was factored out rather than written twice: an earlier draft had the
+blur path forget `physics.stepTo`, so a blurred film had static physics.
+
+Three decisions worth keeping. Midpoint sampling, because endpoint sampling
+double-counts the frame boundary and the midpoint rule is better quadrature --
+and it makes `samples: 1` bit-identical to no blur rather than a half-frame
+offset. Averaging in LINEAR light, because a shutter integrates radiance: half
+a frame of white and half of black must resolve to 188, the encoding of 0.5
+linear, not to the byte average of 128. And writing the average BACK onto the
+backend's own canvas, because `MediaRecorderSink` captures a stream from the
+canvas it was handed at configure time -- hand it a different one and the
+recording is of the unblurred original. That constraint is also why the 3D
+path's composite condition now includes motion blur: `putImageData` needs a 2D
+context and WebGL has none.
+
+Proven on pixels against the physics rather than against "it got blurrier":
+a bar travelling 11.7 px a frame must smear by 5.8 px at 180 degrees and
+11.7 px at 360. Measured 6 px and 11 px -- within a pixel at both angles. A
+still frame stays bit-identical, and a uniform frame resolves to itself at
+every level from 0 to 255.
+
+Rendering a real film found the thing no amount of reading would have. The
+AK-47 film at 480x270 went from 6.4 ms a frame to 127.0 ms with 8 samples --
+19.8x, not 8x, because each subframe's getImageData costs more than the draw
+it accompanies. Which meant my own preflight fix was wrong: multiplying by the
+sample count closed 8x of a 19.8x gap and left preflight 2.5x optimistic,
+still clearing renders it should flag. The readback is now MEASURED once,
+since no multiplier could guess a cost that scales with resolution and with
+the machine. The draws stay multiplied, because measuring them would make
+preflight itself eight times slower.
+
+One flaky test caught and replaced: a wall-clock preflight assertion passed
+alone and failed under `node --test`'s parallel runner, where contention
+stretched a 4 ms busy-wait to 60.92 ms. Timing assertions in a concurrent
+suite measure the machine, not the code.
+
+1,222 unit tests, up 28. No shipped film declares it yet -- the Earth film's
+motion is too gentle to be worth 20x -- and GPU accumulation, which would
+remove the readback at the cost of the gamma correctness this phase went out
+of its way to get right, is not built. See
+`docs/completed_phases/42-MOTION-BLUR.md`.
+
 ## Phase 41 — Kokoro and OpenVoice, actually renderable — **done**
 
 Both had been registered, selectable and unit-tested since Phase 39 and

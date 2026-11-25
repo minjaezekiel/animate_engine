@@ -10,7 +10,7 @@ acceptance test passes, not when its code lands.
 
 | # | Item | Why it is next | Risk |
 |---|---|---|---|
-| 1 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: **motion blur by subframe accumulation**, which is now the clearest visual difference from reference 3D work. Keyframeable post came off this list in Phase 44 and music ducking in Phase 46. | Varies |
+| 1 | [37-MISSING-TOOLS.md](37-MISSING-TOOLS.md) | The audit: what a hybrid 2D/3D animation engine is expected to have and this one does not, each with a home in the tree, a cost and a risk. Items graduate out of it into their own doc when they come up the queue. Next out of it: a **shared verb table** (priority 4), then a **curve editor and dope sheet** (5), **rigid-body dynamics baked to keys** (6) — the collider half of which shipped in Phase 45 — and **proxy render, resume and queue** (7). Keyframeable post came off this list in Phase 44, music ducking in Phase 46 and motion blur in Phase 47. | Varies |
 | 2 | [38-3D-CROSSFADE.md](38-3D-CROSSFADE.md) | Tier 2 of the transition work. `kind: 'crossfade'` compiles, warns by name and renders as a dip; a true dissolve needs two cameras and two render targets. | Medium |
 | 3 | [39-OFFLINE-VOICE-WEIGHTS.md](39-OFFLINE-VOICE-WEIGHTS.md) | The take cache made Kokoro's download a one-off rather than per-render, which was the real problem. An air-gapped checkout still cannot make that first bake. | Low |
 | 4 | [40-ASSET-IMPORT.md](40-ASSET-IMPORT.md) | Mostly shipped in Phase 45. What is left: **source catalogues** to search (importing from a URL already works, and the licence plumbing that makes it safe is done), **SVG and sprite-sheet import** for the 2D side, which is still raster-only, and **retarget diagnostics** for non-Mixamo skeletons. | Low |
@@ -36,6 +36,8 @@ acceptance test passes, not when its code lands.
   [../completed_phases/40-ASSET-PIPELINE.md](../completed_phases/40-ASSET-PIPELINE.md).
 - Music ducking, and four audio defects that shipped silently — Phase 46,
   [../completed_phases/41-DUCKING.md](../completed_phases/41-DUCKING.md).
+- Motion blur by subframe accumulation — Phase 47,
+  [../completed_phases/42-MOTION-BLUR.md](../completed_phases/42-MOTION-BLUR.md).
 
 ## The three rules this queue runs on
 

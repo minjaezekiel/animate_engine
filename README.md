@@ -39,6 +39,7 @@ Where the two rendering paths actually stand:
 | `digest` — what is on screen, as numbers | yes | yes |
 | Transitions between shots | yes — fade, crossfade, dip | yes — fade, dip, wipe, iris, `continue`; **no crossfade** |
 | Keyframeable post (rack focus) | partial | **yes** — 18 parameters, 4 passes |
+| Motion blur — subframe accumulation | yes | yes |
 | Procedural textures | n/a | yes |
 | Cutaways — sectioned geometry, clip planes | n/a | yes |
 | Asset import | raster images only | glTF/GLB/FBX, HDRI, clips, rigs |
@@ -65,11 +66,11 @@ discovered:
   no page.
 
 The largest single gaps are now the ones the audit named rather than one path
-lagging the other: there is **no motion blur on either path**, **no
-rigid-body solver** (colliders can be generated from any imported mesh, but
-nothing integrates them yet), and **no curve editor or dope sheet** — easing
-is chosen by name from a table, so weight is changed by editing a word rather
-than dragging a handle.
+lagging the other: there is **no rigid-body solver** (colliders can be
+generated from any imported mesh, but nothing integrates them yet), **no
+curve editor or dope sheet** — easing is chosen by name from a table, so
+weight is changed by editing a word rather than dragging a handle — and **no
+shared verb table**, so the 2D and 3D action vocabularies have drifted.
 
 ## What it does today
 
@@ -313,6 +314,7 @@ npm run check:docs   # every relative link in docs/ and README resolves
 npm run asset inspect <file|url>   # what is in a model, without a browser
 npm run asset credits <film.json>  # is this clear for release?
 npm run test:duck:e2e # ducking measured on a rendered mix, against derived figures
+npm run test:blur:e2e # a smear exactly as wide as the travel under the shutter
 ```
 
 Determinism is asserted on the **draw-call stream**, not on pixels: encoders
@@ -404,8 +406,11 @@ everything open is queued in [docs/pending/](docs/pending/).
   renders as a dip to colour; a real dissolve needs two cameras and two render
   targets — [docs/pending/38-3D-CROSSFADE.md](docs/pending/38-3D-CROSSFADE.md).
   Fade, dip, wipe, iris and `continue` all work.
-- **No motion blur on either path**, which is now the clearest visual
-  difference from reference 3D work at 24 fps.
+- **Motion blur costs ~20x, not the 8x its sample count suggests**, because
+  each subframe's pixel readback is larger than the draw it accompanies. GPU
+  accumulation would remove it and would average in sRGB rather than linear
+  light, which is the thing the implementation went out of its way to get
+  right — [docs/completed_phases/42-MOTION-BLUR.md](docs/completed_phases/42-MOTION-BLUR.md).
 - **Cue gain is a constant, not a timeline channel**, so a music swell means
   splitting one cue into several abutting ones and hoping the seams are
   inaudible. Nothing reports an audio file's duration either, so an in-point

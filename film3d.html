@@ -413,8 +413,18 @@ window.render3d = async function render3d(film, opts = {}) {
      */
     const transitions = compiled.meta.transitions ?? [];
     const drawnTransitions = transitions.filter((t) => t.kind !== 'continue');
+    /**
+     * Motion blur joins the list of things that need a 2D surface.
+     *
+     * The accumulator averages subframes with `getImageData` and writes the
+     * result back with `putImageData`, neither of which a WebGL canvas has.
+     * The composite exists for exactly this sort of reason already -- an
+     * overlay and a transition both need somewhere to draw over the render --
+     * so blur asks for it the same way rather than inventing a second surface.
+     */
     const drawn = !!overlay || drawnTransitions.length > 0;
-    const composite = drawn ? createCompositeCanvas(renderer.domElement, width, height) : null;
+    const composite = (drawn || compiled.meta.motionBlur)
+        ? createCompositeCanvas(renderer.domElement, width, height) : null;
     const measure = composite ? createMeasurer(composite.ctx) : null;
     const project = composite
         ? createProjector(THREE, { camera: built.camera, resolve: built.resolve, width, height })
@@ -728,7 +738,7 @@ window.render3d = async function render3d(film, opts = {}) {
         scene: compiled.scene, timeline: compiled.timeline, backend,
         cameraId: compiled.cameraId, fps: compiled.meta.fps,
         width, height, durationSec: opts.durationSec ?? compiled.duration,
-        sink, poser,
+        sink, poser, motionBlur: compiled.meta.motionBlur,
         // Aiming the camera and solving the particles both happen after the
         // pose is written and before the frame is drawn. `frameTime` is set
         // here because the overlay is drawn inside `renderFrame`, which the

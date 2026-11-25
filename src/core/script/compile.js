@@ -1,5 +1,6 @@
 import { Scene } from '../scene/Scene.js';
 import { normalizeDuck } from '../audio/ducking.js';
+import { normalizeMotionBlur } from '../motion/motionBlur.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
 import { createClip } from '../anim/Clip.js';
 import { easeProgress } from '../anim/easing.js';
@@ -72,9 +73,14 @@ export function compileFilm(film, { assets = {} } = {}) {
      * Ducking the bed under the dialogue. Opt-in: switching it on for every
      * existing film would change fifty-one finished mixes.
      */
-    meta.duck = normalizeDuck(film.meta?.audio?.duck ?? film.meta?.duck, {
-        warn: (m, where) => diagnostics.push({ severity: 'warning', message: m,
-                                               path: where ?? 'meta.audio.duck' }) });
+    const metaWarn = (m, where) => diagnostics.push({
+        severity: 'warning', message: m, path: where ?? 'meta' });
+    meta.duck = normalizeDuck(film.meta?.audio?.duck ?? film.meta?.duck, { warn: metaWarn });
+    /**
+     * Subframe motion blur. Opt-in because it multiplies render time by the
+     * sample count, not because it is exotic.
+     */
+    meta.motionBlur = normalizeMotionBlur(film.meta?.motionBlur, { warn: metaWarn });
     const audioCues = [];
     const lipsyncJobs = [];
 

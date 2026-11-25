@@ -487,8 +487,10 @@ export class FilmStudio {
             scene: prepared.scene, timeline: prepared.timeline,
             backend, cameraId: prepared.cameraId, fps: rate, beforeFrame,
             startSec: span?.startSec ?? 0, endSec: span?.endSec ?? null,
+            motionBlur: meta.motionBlur ?? null,
         });
         this.log(`preflight: mean ${pf.meanMs}ms, median ${pf.medianMs}ms, p95 ${pf.p95Ms}ms per frame `
+            + (pf.subframes > 1 ? `(x${pf.subframes} subframes for motion blur) ` : '')
             + `(ceiling ${pf.ceilingMs}ms${span ? `, sampled from ${span.startSec.toFixed(1)}s, `
                 + `shot "${span.shotId}"` : ''})${pf.withinBudget ? '' : ' -- OVER BUDGET'}`);
         if (span) {
@@ -540,6 +542,7 @@ export class FilmStudio {
                 fps: rate, width: w, height: h,
                 durationSec: meta.duration,
                 sink: chosen, signal,
+                motionBlur: meta.motionBlur ?? null,
                 // Async, so photo warps run across the worker pool before
                 // the synchronous draw. Without a pool `preparePhotos`
                 // returns immediately and the sync path does the work.

@@ -12,6 +12,7 @@ import { normalizePost, normalizePostRamp, isPostKeyable, postChannel,
          POST_KEYABLE, POST_NODE } from './post.js';
 import { normalizeOverlay } from '../art/overlay.js';
 import { normalizeDuck } from '../audio/ducking.js';
+import { normalizeMotionBlur } from '../motion/motionBlur.js';
 import { normalizeTransitions } from '../art/transitions.js';
 import { anticipationValue, overshootValue, ANTICIPATION_SHARE, OVERSHOOT_AT } from '../anim/principles.js';
 
@@ -214,6 +215,12 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
      * every existing film would change fifty-one finished mixes.
      */
     meta.duck = normalizeDuck(film.meta?.audio?.duck ?? film.meta?.duck, { warn });
+    /**
+     * Subframe motion blur. Opt-in, and the reason is cost rather than taste:
+     * it multiplies render time by the sample count, so turning it on for
+     * every film would make a 175-second render take 23 minutes.
+     */
+    meta.motionBlur = normalizeMotionBlur(film.meta?.motionBlur, { warn });
     meta.overlay = normalizeOverlay(film.overlay, warn, { designHeight: meta.height });
 
     const scene = new Scene();

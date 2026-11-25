@@ -297,7 +297,7 @@ Measured against Blender, this is still a small toolset. The honest list:
 | **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |
 | **No per-object motion blur** | Particles stretch by velocity; meshes do not. A fast-moving bolt carrier is sharp when it should smear |
 | **No dependency between actions** | A crater cannot say "open when this round lands"; both are timed independently against the same clock, and nothing checks they agree |
-| **Shadow and contact quality** | *Half closed:* `meta.post.ssao` is wired. Still one shadow-casting light with a 1024 map, no contact shadows, no area lights |
+| **Shadow and contact quality** | *Half closed:* `ssao` is a working GTAO pass as of Phase 51 (it was arithmetically impossible before). Still one shadow-casting light with a fixed 1024 map and no area lights |
 | **Exposure is sampled, not continuous** | Two frames per shot. A one-second blown highlight between samples is invisible to the check |
 | **Framing ignores rotation** | Bounds are axis-aligned and can only overstate, which is the safe direction — it will not pass a clipped shot, but it will occasionally complain about a tight one |
 
@@ -429,6 +429,52 @@ depth and a bloomed frame has none, bloom's threshold only means something on
 the linear buffer, a defocused highlight blooms but a bloomed highlight does
 not come back into focus, and antialiasing anything but the final image is
 work the next pass undoes.
+
+#### `ssao` — contact shadows, and why no film had ever used one
+
+An object with no ambient occlusion floats above the floor rather than sitting
+on it. The pass to fix that has been declared, documented and wired since
+Phase 24, and **not one film in this repository used it**, for a reason that
+was never going to show up in a review: it could not work.
+
+`SSAOPass`'s `minDistance` and `maxDistance` are differences of orthographic
+depth **normalised over `[near, far]`**, and this adapter passed them metres.
+A film camera is built with `near: 0.01, far: 200`, so `bias: 0.008` asked the
+shader to count occlusion only where the depth gap was between **1.6 m and
+48 m** — in scenes where the whole subject is under a metre. The pass rendered,
+cost its frames, and produced a white AO buffer. That looks exactly like a
+scene with no concavities in it.
+
+Since [Phase 51](STATUS.md) `ssao` builds a **`GTAOPass`** instead, for two
+reasons beyond quality. GTAO's `radius` is in world units, which is what a
+film script means by one. And `SSAOPass` renders its *own* beauty pass into a
+target it allocates with no samples and outputs that — so asking for ambient
+occlusion silently threw away the multisampled frame the composer had just
+drawn, which is Finding 1 of the render-quality work all over again in a
+different file. GTAO composites onto the buffer it is handed. The old pass is
+still the fallback for a page that supplies it and not GTAO, with the
+conversion applied.
+
+Measured on a cube resting on a plane, flat-lit so that nothing but occlusion
+can move:
+
+| region | no AO | with AO | |
+|---|---|---|---|
+| where the cube meets the floor (2.3% of the frame) | 0.617 | 0.551 | **x0.893** |
+| darkest pixel of that band | — | — | **-0.337** |
+| open floor, same material, same light | 0.635 | 0.635 | x1.000 |
+
+Occlusion where surfaces meet and nowhere else, which is the whole claim.
+
+```jsonc
+"meta": { "post": { "ssao": { "radius": 0.3, "intensity": 1 } } }
+```
+
+It is **not on by default**, unlike the environment and the bevel, and that is
+a deliberate exception: switching any post pass on also moves the background
+colour (see [the defect register](pending/DEFECTS.md)), so defaulting it would
+restyle every film to fix the shading of some of them. Turning it on is one
+line, and it is worth it on anything that touches anything.
 
 `meta.bloom` still means what it meant and folds in as a `bloom` entry, so
 every film already in the repo renders unchanged. Naming bloom in both places

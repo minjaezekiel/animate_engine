@@ -10,7 +10,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { QUALITIES, resolveSize, bitrateFor } from '../../src/core/render/quality.js';
-import { buildComposer } from '../../src/render/post3d.js';
+import { buildComposer, ssaoDepthWindow } from '../../src/render/post3d.js';
 import { bevelRadius, DEFAULT_BEVEL } from '../../src/backends/three3d/SceneAdapter.js';
 
 // ------------------------------------------------------------------- the size
@@ -156,4 +156,51 @@ test('`bevel` overrides it and `bevel: 0` is a sharp box', () => {
     assert.equal(bevelRadius({ bevel: 0.02, width: 1, height: 1, depth: 1 }), 0.02);
     assert.equal(bevelRadius({ bevel: 5, width: 1, height: 1, depth: 1 }), 0.25, 'still clamped');
     assert.equal(bevelRadius({ bevel: -1 }), 0, 'nonsense is flat, not negative');
+});
+
+// ----------------------------------------------------------- contact shadows
+
+/**
+ * The ambient occlusion pass existed for six phases and no film used it,
+ * because it could not work: `minDistance`/`maxDistance` are differences of
+ * orthographic depth NORMALISED over [near, far], and this adapter passed
+ * metres. With the film camera's 0.01..200, `bias: 0.008` asked for occlusion
+ * only where the depth gap was between 1.6 m and 48 m.
+ */
+test('the occlusion window is normalised depth, not metres', () => {
+    const cam = { near: 0.01, far: 200 };
+    const w = ssaoDepthWindow(0.008, 0.12, cam);
+    assert.ok(Math.abs(w.minDistance - 0.008 / 199.99) < 1e-9,
+        `a 8 mm bias in a 200 m frustum is ${w.minDistance}, not 0.008`);
+    assert.ok(w.minDistance < 0.0001, 'the old value was 200x too large');
+    assert.ok(w.maxDistance > w.minDistance);
+    // The same scene shot with a tighter frustum occludes over the same
+    // WORLD distance, which is the whole point of the conversion.
+    const tight = ssaoDepthWindow(0.008, 0.12, { near: 0.1, far: 10 });
+    assert.ok(tight.minDistance > w.minDistance * 15,
+        'a 10 m frustum spends far more of its depth range on 8 mm');
+    assert.deepEqual(ssaoDepthWindow(0.008, 0.12), ssaoDepthWindow(0.008, 0.12, null),
+        'no camera falls back to the film camera defaults');
+});
+
+test('ambient occlusion is GTAO when it can be, and composites on what it is handed', () => {
+    // `SSAOPass` renders its OWN beauty pass into a target it allocates with
+    // no samples and outputs that -- so asking for occlusion silently threw
+    // away the multisampled frame. GTAO multiplies onto `readBuffer`.
+    const s = stubs();
+    const seen = [];
+    class GTAOPass {
+        constructor(scene, camera, w, h) { this.size = [w, h]; this.blendIntensity = 1; }
+        updateGtaoMaterial(p) { seen.push(p); }
+    }
+    const built = buildComposer({
+        ...s, renderer: {}, scene: {}, camera: { near: 0.1, far: 50 },
+        width: 640, height: 360, post: { ssao: { radius: 0.3, intensity: 0.8 } },
+        GTAOPass,
+    });
+    assert.deepEqual(built.passes, ['ssao']);
+    const pass = built.composer.passes.find((p) => p instanceof GTAOPass);
+    assert.ok(pass, 'GTAO was supplied, so GTAO is what gets built');
+    assert.equal(seen[0].radius, 0.3, "GTAO's radius is world units, which is what a film means");
+    assert.equal(pass.blendIntensity, 0.8, 'and it has a real intensity, unlike SSAO');
 });

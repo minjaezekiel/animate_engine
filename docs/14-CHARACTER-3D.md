@@ -130,7 +130,7 @@ problem: it is the absence of a modelling tool.
 | **IK** — *closed* | [`core/rig/IK3D.js`](../src/core/rig/IK3D.js), closed-form two-bone, driven by an `ik` constraint at a target node. Originally: gestures are forward-kinematic angles. There is no "put the hand on the screen"; the pose that looks like pointing was found by typing degrees |
 | **Teeth and a tongue** — *closed* | Two dental arches, a tongue, a mouth bag and an aperture in the skull. Originally: the mouth is a dark cavity. At any real close-up this is obvious |
 | **Eye convergence** — *closed* | A `lookAt` per eye at one target, limited to the socket. Originally: the eyes dart on an open loop. They do not converge on what the head is turned toward, so the gaze never quite lands on anything |
-| **Ambient occlusion and contact shadows** — *half closed* | `meta.post.ssao` is wired. Still one shadow-casting light with a 1024 map and no area lights |
+| **Ambient occlusion and contact shadows** — *half closed* | `meta.post.ssao` builds a working GTAO pass as of Phase 51; before that its occlusion window was in metres where the shader wanted normalised depth, so it produced nothing. Still one shadow-casting light with a 1024 map and no area lights |
 | **Painted weight groups** | *(still open)* Blendshape regions are soft boxes in head-local space, not artist-painted vertex selections. They work on *this* generated head and would need re-tuning for another |
 | **Coarticulation** | *(still open)* Lipsync is per-viseme. Real mouths anticipate the next sound while still forming the current one |
 

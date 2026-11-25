@@ -199,7 +199,39 @@ from a CDN today gets an engine with no rigging. Phase 1 adds
 ## Defects in the new code
 
 These are not legacy. Each was found by a test written to assert something
-nobody had checked. Each is **fixed**.
+nobody had checked. All but the first below are **fixed**.
+
+### Declaring a post pass changes the background colour — **fix (next)**
+
+`meta.background` is reproduced exactly when a film declares no post, and
+**tone-mapped** when it declares any. Measured on a `#202020` backdrop, same
+film, same frame, the only difference being one pass in the chain:
+
+| chain | background luma |
+|---|---|
+| no post at all | **0.1255** — the authored colour, exactly |
+| one pass (`bloom`, strength 0) | **0.0549** |
+
+Nothing else in the frame moves: the floor measures 0.6353 either way. The
+cause is that a plain `Color` background is written as a clear value, so in
+the direct path it reaches the drawing buffer untouched, while in the composer
+path it lands in the linear HDR buffer and `OutputPass` runs ACES over it with
+everything else.
+
+Neither answer is obviously the right one -- an author picks a colour and
+expects to see it, but a backdrop that skips the curve every lit surface goes
+through is brighter than any surface in the scene can be -- which is exactly
+why it needs deciding rather than defaulting. It is the reason ambient
+occlusion did **not** become a default in Phase 51: switching post on for
+every film would have restyled the backdrop of every film in the repository to
+fix the shading of some of them.
+
+Found while measuring contact shadows, by rendering a control frame with a
+post chain that does nothing.
+
+*Fix:* decide which space `meta.background` is authored in, document it, and
+make both paths agree. Tier 1 of
+[42-RENDER-QUALITY.md](42-RENDER-QUALITY.md).
 
 ### Post-processing silently disables anti-aliasing — **fixed (48)**
 

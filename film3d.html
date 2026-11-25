@@ -16,6 +16,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -384,7 +385,7 @@ window.render3d = async function render3d(film, opts = {}) {
         THREE, renderer, scene: built.root, camera: built.camera, width, height,
         post: compiled.meta.post, bloom: null,
         EffectComposer, RenderPass, ShaderPass, OutputPass,
-        UnrealBloomPass, SSAOPass, BokehPass, SMAAPass,
+        UnrealBloomPass, SSAOPass, BokehPass, SMAAPass, GTAOPass,
         warn: (m, where) => report(`[post] ${m} @ ${where ?? '-'}`),
     });
     if (post) report(`post: ${post.passes.join(' -> ')} -> output`);

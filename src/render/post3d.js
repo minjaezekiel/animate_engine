@@ -17,11 +17,29 @@ import { GradeShader, applyGrade } from './gradeShader.js';
  * renders of the same film differ. `film3d.html` calls it from `beforeFrame`,
  * beside `built.step(t)`.
  */
+/**
+ * `SSAOPass`'s occlusion window, in the units the shader actually compares.
+ *
+ * Pure, and exported, because the bug it fixes is invisible: the pass renders,
+ * costs its frames and produces nothing, which looks exactly like a scene with
+ * no concavities in it. See the call site for the measurement.
+ */
+export function ssaoDepthWindow(bias, radius, camera = null) {
+    const near = camera?.near ?? 0.01;
+    const far = camera?.far ?? 200;
+    const span = Math.max(1e-6, far - near);
+    return {
+        minDistance: bias / span,
+        maxDistance: Math.max(bias * 2, radius * 2) / span,
+    };
+}
+
 export function buildComposer({
     THREE, renderer, scene, camera, width, height,
     post = null, bloom = null, samples = 4,
     EffectComposer, RenderPass, ShaderPass, OutputPass,
     UnrealBloomPass = null, SSAOPass = null, BokehPass = null, SMAAPass = null,
+    GTAOPass = null,
     warn = () => {},
 } = {}) {
     const chain = normalizePost(post, { bloom, warn });
@@ -71,11 +89,57 @@ export function buildComposer({
 
     for (const p of chain) {
         if (p.kind === 'ssao') {
-            if (!SSAOPass) { warn('SSAOPass was not supplied', 'meta.post.ssao'); continue; }
+            /**
+             * GTAO in preference to SSAO, for two measured reasons.
+             *
+             * `SSAOPass` renders its OWN beauty pass into a render target it
+             * allocates with no samples, and outputs that -- so a film that
+             * asked for ambient occlusion silently threw away the
+             * multisampled frame the composer had just drawn. That is Finding
+             * 1 of 42-RENDER-QUALITY all over again, in a different file.
+             * `GTAOPass` composites onto `readBuffer`: it renders the scene
+             * once more with an override material for depth and normals, and
+             * multiplies the denoised occlusion over the frame it was handed.
+             *
+             * And GTAO's `radius` is in WORLD UNITS, which is what a film
+             * script means by one. See the fallback below for what that cost
+             * the old pass.
+             */
+            if (GTAOPass) {
+                const pass = new GTAOPass(scene, camera, width, height);
+                pass.updateGtaoMaterial({
+                    radius: p.radius,
+                    // How fast occlusion falls off with distance, and how
+                    // thick a surface is assumed to be when something passes
+                    // behind it. Three's own defaults; nothing in a film
+                    // script has ever wanted to say otherwise.
+                    distanceExponent: 1, thickness: 1, scale: 1,
+                });
+                pass.blendIntensity = p.intensity;
+                if (p.output && p.output !== 'default' && GTAOPass.OUTPUT?.[p.output] != null) {
+                    pass.output = GTAOPass.OUTPUT[p.output];
+                }
+                composer.addPass(pass);
+                live.set('ssao', pass);
+                built.push('ssao');
+                continue;
+            }
+            if (!SSAOPass) { warn('neither GTAOPass nor SSAOPass was supplied', 'meta.post.ssao'); continue; }
             const pass = new SSAOPass(scene, camera, width, height);
             pass.kernelRadius = p.radius;
-            pass.minDistance = p.bias;
-            pass.maxDistance = Math.max(p.bias * 2, p.radius * 2);
+            /**
+             * `minDistance` and `maxDistance` are NOT world units.
+             *
+             * The shader compares a difference of orthographic depths
+             * normalised over `[near, far]`, so a world distance divides by
+             * `far - near` before it means anything here. This adapter passed
+             * metres: with the film camera's 0.01..200 range, `bias: 0.008`
+             * asked the pass to count occlusion only where the depth gap was
+             * between **1.6 m and 48 m**, in scenes where the whole subject is
+             * under a metre. Ambient occlusion was arithmetically impossible,
+             * which is why the pass existed for six phases and no film used it.
+             */
+            Object.assign(pass, ssaoDepthWindow(p.bias, p.radius, camera));
             // `intensity` is not a field on SSAOPass; the knob it does have
             // is the output mode, so an author asking for a stronger pass
             // gets a larger kernel rather than nothing happening.
@@ -159,8 +223,12 @@ export function buildComposer({
             if (u?.[name]) u[name].value = v;
         },
         bloom: (pass, param, v) => { pass[param] = v; },
-        ssao: (pass, param, v) => { pass.kernelRadius = chain.find(
-            (p) => p.kind === 'ssao').radius * v; },
+        // GTAO has a real intensity; SSAO does not, so for it a stronger
+        // pass is a wider kernel, which is the closest thing it has.
+        ssao: (pass, param, v) => {
+            if ('blendIntensity' in pass) { pass.blendIntensity = v; return; }
+            pass.kernelRadius = chain.find((p) => p.kind === 'ssao').radius * v;
+        },
         grade: (pass, param, v) => { if (pass.uniforms?.[param]) pass.uniforms[param].value = v; },
     };
 

@@ -248,7 +248,7 @@ small and unblock films that exist; the rest are subsystems.
 | 5 | ~~Boolean / CSG~~ | **done, Phase 58** | A 1x1 bar through a 2-cube leaves **6.000000** against an analytic 6, closure error **< 1e-5**, and the AK-47's receiver has an ejection port. Not Rust: 4.8 ms, once, at build time |
 | 6 | **Subdivision + displacement** | M | Smooth organic form from coarse input, and the height maps already exist |
 | 7 | ~~Scatter / instancing on points~~ | **done, Phase 59** | 600 grit instances on the AK-47's floor took the frame from **234 draw calls to 235**. Poisson-disc, seeded: closest pair **0.0742 m** against uniform random's 0.0095 m |
-| 8 | **Rigid-body dynamics, baked to keys** | L | The largest missing subsystem. Already priority 6 of 37 |
+| 8 | ~~Rigid-body dynamics, baked to keys~~ | **Tier 1 done, Phase 60** | Eight cases land in the AK-47 film and rest at y **-1.5846** against an analytic -1.5843. Stacking needs box-box and is Tier 2 |
 | 9 | **Render passes / AOVs** | M | The precondition for masking, pass recombination and any real compositing |
 | 10 | **Volumetrics** (smoke, fire, god rays) | L | One solver, three products |
 | 11 | **Global illumination** | L | Tier 2 of 42; the honest remainder of the gap to Blender |
@@ -462,12 +462,29 @@ line read the counters **after** the composer, which resets them per
 `renderer.render` — so it reported "1 calls, 1 triangles", which is the final
 full-screen quad.
 
-**8. Rigid bodies.** Its own doc before any code, as 37 already says. The
-shape is fixed by this engine's contract: **simulate once, bake to keys**, so
-the timeline stays the single source of truth and frame *N* stays pure. The
-solver is a kernel (Rust, JS oracle); the output is a `clip`, indistinguishable
-from a hand-authored one. *Proof:* energy drift under a fixed step, and a
-golden bake that is byte-identical on re-run.
+**8. Rigid bodies.** The doc came first, as this item demanded —
+[44-RIGID-BODIES.md](44-RIGID-BODIES.md) — and **Tier 1 shipped in Phase
+60**. The shape is the one predicted: simulate once, bake to keys, so the
+timeline stays the single source of truth and frame *N* stays pure. The output
+is a `position` track and a `quaternion` track rather than a `clip`, which is
+the same claim in a simpler form: there is nothing to instance, so there is
+no instance.
+
+Not a Rust kernel, and for the second time: the bake is 222 ms for the whole
+AK-47 film including eight bodies at a 0.8 ms substep. The CSG lesson again.
+
+*Proof,* as specified: the energy loss under a fixed step is 0.84% a bounce at
+4 ms, 0.40% at 1 ms and 0.11% at 0.25 ms — first order, which is what
+distinguishes discretisation from a leak — and two bakes of one film are
+identical to the last digit. Three more were added, because each fails for a
+different reason: the *e²* law (the impulse), angular momentum over 10,000
+steps (the rotational integrator, which drifts silently), and a settled box's
+penetration (Baumgarte and sleeping together).
+
+What is **not** in Tier 1, with the reason stated rather than forgotten: box
+against box, which needs a contact manifold and is most of a physics engine,
+and therefore stacking; and joints, which are a second system beside the
+`constraints` that already exist.
 
 **9. Render passes.** `EffectComposer` already renders to targets;
 `MeshNormalMaterial`/`MeshDepthMaterial` overrides already exist in GTAO. An
@@ -501,7 +518,7 @@ kind of items.
 | ~~then~~ | ~~**The shared verb table**~~ (37 priority 4) | **done, Phase 57** — and it closed two gaps that were a call nobody had made: `show`/`hide` in 3D, `sound` in 2D |
 | ~~then~~ | ~~**Boolean / CSG**~~ | **done, Phase 58** — and it did not need Rust: 4.8 ms, once, at build time. It also turned up the missing `GEOMETRY_KINDS` guard list |
 | ~~then~~ | ~~**Scatter + instancing**~~ | **done, Phase 59** — 600 instances, one draw call, and the AK-47's floor is no longer bare |
-| then | **Rigid bodies** (37 priority 6) | largest subsystem; needs its own doc first |
+| ~~then~~ | ~~**Rigid bodies**~~ (37 priority 6) | **Tier 1 done, Phase 60** — the doc came first, as both registers demanded |
 | later | subdivision + displacement, render passes, volumetrics, GI | each is a phase of its own |
 
 **Not planned, and the reason stated once:** a mesh-editing viewport,

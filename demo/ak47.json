@@ -1152,6 +1152,134 @@
       0.21136639502976892,
       0.5304142928349516
      ]
+    },
+    {
+     "id": "case1",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0056,
+      "radiusBottom": 0.0062,
+      "height": 0.039,
+      "radialSegments": 12
+     },
+     "material": "brass",
+     "at": [
+      0.055,
+      0.012,
+      0.022
+     ]
+    },
+    {
+     "id": "case2",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0056,
+      "radiusBottom": 0.0062,
+      "height": 0.039,
+      "radialSegments": 12
+     },
+     "material": "brass",
+     "at": [
+      0.055,
+      0.012,
+      0.022
+     ]
+    },
+    {
+     "id": "case3",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0056,
+      "radiusBottom": 0.0062,
+      "height": 0.039,
+      "radialSegments": 12
+     },
+     "material": "brass",
+     "at": [
+      0.055,
+      0.012,
+      0.022
+     ]
+    },
+    {
+     "id": "case4",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0056,
+      "radiusBottom": 0.0062,
+      "height": 0.039,
+      "radialSegments": 12
+     },
+     "material": "brass",
+     "at": [
+      0.055,
+      0.012,
+      0.022
+     ]
+    },
+    {
+     "id": "case5",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0056,
+      "radiusBottom": 0.0062,
+      "height": 0.039,
+      "radialSegments": 12
+     },
+     "material": "brass",
+     "at": [
+      0.055,
+      0.012,
+      0.022
+     ]
+    },
+    {
+     "id": "case6",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0056,
+      "radiusBottom": 0.0062,
+      "height": 0.039,
+      "radialSegments": 12
+     },
+     "material": "brass",
+     "at": [
+      0.055,
+      0.012,
+      0.022
+     ]
+    },
+    {
+     "id": "case7",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0056,
+      "radiusBottom": 0.0062,
+      "height": 0.039,
+      "radialSegments": 12
+     },
+     "material": "brass",
+     "at": [
+      0.055,
+      0.012,
+      0.022
+     ]
+    },
+    {
+     "id": "case8",
+     "geometry": {
+      "kind": "cylinder",
+      "radiusTop": 0.0056,
+      "radiusBottom": 0.0062,
+      "height": 0.039,
+      "radialSegments": 12
+     },
+     "material": "brass",
+     "at": [
+      0.055,
+      0.012,
+      0.022
+     ]
     }
    ]
   }
@@ -3199,5 +3327,248 @@
    "tilt": 180,
    "castShadow": false
   }
+ },
+ "bodies": {
+  "case1": {
+   "of": "set/case1",
+   "shape": "box",
+   "size": [
+    0.0115,
+    0.039,
+    0.0115
+   ],
+   "mass": 0.0105,
+   "at": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "velocity": [
+    0.9780000000000001,
+    2.05,
+    0.3
+   ],
+   "spin": [
+    2.2,
+    18,
+    4.5
+   ],
+   "restitution": 0.28,
+   "friction": 0.45,
+   "start": 0
+  },
+  "case2": {
+   "of": "set/case2",
+   "shape": "box",
+   "size": [
+    0.0115,
+    0.039,
+    0.0115
+   ],
+   "mass": 0.0105,
+   "at": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "velocity": [
+    1.05,
+    2.19,
+    0.42
+   ],
+   "spin": [
+    2.2,
+    19,
+    4.2
+   ],
+   "restitution": 0.28,
+   "friction": 0.45,
+   "start": 0.1
+  },
+  "case3": {
+   "of": "set/case3",
+   "shape": "box",
+   "size": [
+    0.0115,
+    0.039,
+    0.0115
+   ],
+   "mass": 0.0105,
+   "at": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "velocity": [
+    1.122,
+    2.33,
+    0.54
+   ],
+   "spin": [
+    2.2,
+    20,
+    3.9
+   ],
+   "restitution": 0.28,
+   "friction": 0.45,
+   "start": 0.2
+  },
+  "case4": {
+   "of": "set/case4",
+   "shape": "box",
+   "size": [
+    0.0115,
+    0.039,
+    0.0115
+   ],
+   "mass": 0.0105,
+   "at": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "velocity": [
+    0.9780000000000001,
+    2.4699999999999998,
+    0.3
+   ],
+   "spin": [
+    2.2,
+    21,
+    3.6
+   ],
+   "restitution": 0.28,
+   "friction": 0.45,
+   "start": 0.3
+  },
+  "case5": {
+   "of": "set/case5",
+   "shape": "box",
+   "size": [
+    0.0115,
+    0.039,
+    0.0115
+   ],
+   "mass": 0.0105,
+   "at": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "velocity": [
+    1.05,
+    2.05,
+    0.42
+   ],
+   "spin": [
+    2.2,
+    22,
+    3.3
+   ],
+   "restitution": 0.28,
+   "friction": 0.45,
+   "start": 0.4
+  },
+  "case6": {
+   "of": "set/case6",
+   "shape": "box",
+   "size": [
+    0.0115,
+    0.039,
+    0.0115
+   ],
+   "mass": 0.0105,
+   "at": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "velocity": [
+    1.122,
+    2.19,
+    0.54
+   ],
+   "spin": [
+    2.2,
+    23,
+    3
+   ],
+   "restitution": 0.28,
+   "friction": 0.45,
+   "start": 0.5
+  },
+  "case7": {
+   "of": "set/case7",
+   "shape": "box",
+   "size": [
+    0.0115,
+    0.039,
+    0.0115
+   ],
+   "mass": 0.0105,
+   "at": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "velocity": [
+    0.9780000000000001,
+    2.33,
+    0.3
+   ],
+   "spin": [
+    2.2,
+    24,
+    2.7
+   ],
+   "restitution": 0.28,
+   "friction": 0.45,
+   "start": 0.6
+  },
+  "case8": {
+   "of": "set/case8",
+   "shape": "box",
+   "size": [
+    0.0115,
+    0.039,
+    0.0115
+   ],
+   "mass": 0.0105,
+   "at": [
+    0.055,
+    0.012,
+    0.022
+   ],
+   "velocity": [
+    1.05,
+    2.4699999999999998,
+    0.42
+   ],
+   "spin": [
+    2.2,
+    25,
+    2.4
+   ],
+   "restitution": 0.28,
+   "friction": 0.45,
+   "start": 0.7
+  }
+ },
+ "surfaces": [
+  {
+   "node": "set/floor",
+   "restitution": 0.22,
+   "friction": 0.55
+  }
+ ],
+ "physics": {
+  "from": 39.45,
+  "until": 3.2,
+  "step": 0.0008,
+  "gravity": [
+   0,
+   -9.81,
+   0
+  ]
  }
 }

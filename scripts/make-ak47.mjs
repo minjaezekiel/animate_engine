@@ -515,6 +515,66 @@ FIRE_AT = +(shotStart(FIRE_SHOT) + FIRE_IN).toFixed(3);
 roundTimes = Array.from({ length: ROUNDS }, (_, i) => +(FIRE_AT + i * 0.1).toFixed(3));
 film.emitters = buildEmitters();
 
+/**
+ * Brass that LANDS. The first use of Phase 60's rigid bodies.
+ *
+ * The `shells` emitter throws brass out of the ejection port and the brass
+ * then ceases to exist: particles here are closed-form, so they cannot
+ * collide, and the trade recorded in 13-3D-FILM.md §8 is explicit -- "debris
+ * passes through the floor". A case's life is 1.1-1.5 s, and the fall from
+ * the port to the floor takes about 0.85 s, so every case vanishes at
+ * roughly the moment it would have hit.
+ *
+ * Eight of them are now real bodies: ejected on their round's frame, tumbling
+ * on a box collider the size of a 7.62x39 case, bouncing once off the
+ * concrete and settling. The emitter still throws the spray during the burst
+ * -- it is what reads as *rate* -- and these are the ones that are still
+ * there in the hero shot, where the floor used to be bare.
+ *
+ * They live in the `set` assembly, not the rifle's, for one reason: a body
+ * writes `position` and `quaternion` in its node's parent frame, and the set
+ * is the one frame in this film that is world space and stays still.
+ *
+ * `step: 0.0008` rather than the 4 ms default: a case falls 1.6 m, arrives at
+ * about 5.8 m/s and is 11.5 mm thick, so at 4 ms it moves most of its own
+ * width per step. The compiler checks that and says so.
+ */
+const BRASS = 8;
+const CASE = [0.0115, 0.039, 0.0115];       // a 7.62x39 case, as a box collider
+const cases = [];
+film.bodies = {};
+for (let i = 0; i < BRASS; i++) {
+    const id = `case${i + 1}`;
+    // Deterministic, and no PRNG needed for eight: the spread is authored.
+    const lean = ((i % 3) - 1) * 0.12;
+    const lift = 2.05 + (i % 4) * 0.14;
+    cases.push({ id, geometry: { kind: 'cylinder', radiusTop: 0.0056,
+                                 radiusBottom: 0.0062, height: 0.039, radialSegments: 12 },
+                 material: 'brass', at: [0.055, 0.012, 0.022] });
+    film.bodies[id] = {
+        of: `set/${id}`, shape: 'box', size: CASE, mass: 0.0105,
+        at: [0.055, 0.012, 0.022],
+        /**
+         * Forward and to the right, which is where an AK actually throws
+         * brass -- and, conveniently, where the hero shot is looking. Real
+         * ejection clears three metres; this clears one, because a case that
+         * comes to rest behind the camera is a case nobody sees. Where it
+         * lands is a decision about where the camera is. How it gets there,
+         * bounces and settles is the solver's.
+         */
+        velocity: [1.05 + lean * 0.6, lift, 0.42 + lean],
+        spin: [2.2, 18 + i, 4.5 - i * 0.3],
+        restitution: 0.28, friction: 0.45,
+        start: +(i * 0.1).toFixed(3),
+    };
+}
+film.assemblies.set.parts.push(...cases);
+film.surfaces = [{ node: 'set/floor', restitution: 0.22, friction: 0.55 }];
+
+// The bake starts when the first round fires and runs long enough for the
+// last case to settle: ejected at +0.7 s, down at +1.6 s, still by +2.5 s.
+film.physics = { from: FIRE_AT, until: 3.2, step: 0.0008, gravity: [0, -9.81, 0] };
+
 // Craters open on the frame their round lands. Scale is the only channel that
 // can bring geometry into existence here -- there is no "spawn" -- and 0 to 1
 // over two frames reads as the hole punching through.

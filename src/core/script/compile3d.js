@@ -2,6 +2,7 @@ import { Scene } from '../scene/Scene.js';
 import { supports, divergence, verbDiagnostic } from './verbs.js';
 import { GEOMETRY_KINDS, isGeometryKind } from '../geom/kinds.js';
 import { scatterPoints } from '../geom/scatter.js';
+import { simulateBodies, makeBody, makeSurface, BODY_SHAPES, CONTACT } from '../sim/rigid.js';
 import { extentOf } from './staging3d.js';
 import { CSG_OPS } from '../geom/csg.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
@@ -85,6 +86,48 @@ function orthoHeight(spec) {
  * constant, measured at 37 ms for 1,000 points and 400 ms for 4,000, paid
  * once at build time. So this is a warning rather than a limit.
  */
+/**
+ * `'set/floor'` -> a node id, or null. The same resolution a verb's `target`
+ * gets, in one place so the scatter, body and surface blocks cannot disagree.
+ */
+function resolveCastNode(ref, castMap, scene) {
+    if (!ref) return null;
+    const slash = String(ref).indexOf('/');
+    if (slash < 0) return castMap.get(ref)?.rootId ?? (scene.get(ref) ? ref : null);
+    return castMap.get(String(ref).slice(0, slash))?.parts
+        ?.get(String(ref).slice(slash + 1)) ?? null;
+}
+
+/**
+ * Drop every key that lies on the line between its neighbours.
+ *
+ * A bake writes one key per frame per channel, and most of them say nothing:
+ * a body in free fall is a straight line in each axis over any short span,
+ * and a **sleeping** body is the same value until the film ends. Keeping them
+ * would make a settled case cost as many keys as a tumbling one, and
+ * `samplePose` walks every key in every track of every frame.
+ *
+ * The same trick `count` uses to cost one key per *visible* value, on vectors
+ * rather than strings.
+ */
+function prunePath(samples, epsilon = 1e-4) {
+    if (samples.length <= 2) return samples;
+    const out = [samples[0]];
+    for (let i = 1; i < samples.length - 1; i++) {
+        const prev = out.at(-1), next = samples[i + 1], here = samples[i];
+        const span = next.t - prev.t;
+        const u = span > 1e-9 ? (here.t - prev.t) / span : 0;
+        let keep = false;
+        for (let c = 0; c < here.v.length; c++) {
+            const lerped = prev.v[c] + (next.v[c] - prev.v[c]) * u;
+            if (Math.abs(here.v[c] - lerped) > epsilon) { keep = true; break; }
+        }
+        if (keep) out.push(here);
+    }
+    out.push(samples.at(-1));
+    return out;
+}
+
 export const SCATTER_MAX = 5000;
 
 /** Geometries that are a surface in their own local XY, not a solid. */
@@ -831,13 +874,7 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         let y = Number(spec.y) || 0;
         let flat = false;
         if (spec.on) {
-            // 'set/floor' is a cast member and one of its parts, resolved
-            // exactly as a verb's `target` is.
-            const slash = String(spec.on).indexOf('/');
-            const target = slash < 0
-                ? (castMap.get(spec.on)?.rootId ?? (scene.get(spec.on) ? spec.on : null))
-                : (castMap.get(String(spec.on).slice(0, slash))?.parts
-                    ?.get(String(spec.on).slice(slash + 1)) ?? null);
+            const target = resolveCastNode(spec.on, castMap, scene);
             if (!target) { warn(`scatter is \`on\` '${spec.on}', which is not a node`, where); continue; }
             parentId = target;
             const geometry = scene.get(target)?.props?.geometry ?? {};
@@ -925,6 +962,114 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     }
     const duration = t;
     timeline.duration = duration;
+
+    /**
+     * ------------------------------------------------------- rigid bodies
+     *
+     * Simulated once, here, and **baked to ordinary keyframe tracks**. After
+     * this block there is no physics in the engine: there is a `position`
+     * track and a `quaternion` track, the same shape an imported Mixamo clip
+     * produces, and every mechanism the timeline has applies to them.
+     *
+     * That is the contract, not an optimisation. A live solver's state at
+     * frame 600 depends on having integrated frames 0 to 599, so seeking
+     * would be impossible, a dropped frame would change the film, and two
+     * renders of one file would differ. Frame *N* stays a pure function of
+     * *N*. The whole design, and the five proofs, are in
+     * [44-RIGID-BODIES.md](../../../docs/pending/44-RIGID-BODIES.md).
+     */
+    const physics = film.physics ?? {};
+    const bodySpecs = Object.entries(film.bodies ?? {});
+    if (bodySpecs.length) {
+        const from = Math.max(0, Number(physics.from) || 0);
+        const bodies = [];
+        const nodeFor = new Map();
+        for (const [id, spec] of bodySpecs) {
+            const where = `bodies.${id}`;
+            const target = resolveCastNode(spec.of ?? spec.target, castMap, scene);
+            if (!target) { warn(`body is \`of\` '${spec.of}', which is not a node`, where); continue; }
+            if (spec.shape && !BODY_SHAPES.includes(spec.shape)) {
+                warn(`unknown body shape '${spec.shape}'; try ${BODY_SHAPES.join(', ')}`, where);
+                continue;
+            }
+            // Measured from the part it drives, so a body is a line rather
+            // than a second copy of the model's dimensions. Phase 45's
+            // colliders made the same choice for the same reason.
+            const node = scene.get(target);
+            const extent = extentOf(node?.props?.geometry ?? {});
+            const size = spec.size ?? extent.map((e) => Math.max(1e-4, e * 2));
+            const body = makeBody({
+                ...spec, id, size,
+                radius: spec.radius ?? Math.max(...size) / 2,
+                at: spec.at ?? node?.props?.at ?? [0, 0, 0],
+            });
+            /**
+             * Tunnelling, caught before simulating rather than discovered as
+             * an object that vanished: a body must not move more than half
+             * its own smallest dimension in one step.
+             */
+            const reach = Math.hypot(...body.v) * (Number(physics.step) || 0.004);
+            const thinnest = body.shape === 'sphere' ? body.radius * 2 : Math.min(...body.size);
+            if (reach > thinnest / 2) {
+                warn(`body moves ${(reach * 1000).toFixed(1)} mm per step and is `
+                    + `${(thinnest * 1000).toFixed(1)} mm thick, so it can pass through a `
+                    + `surface without touching it; lower \`physics.step\``, where);
+            }
+            bodies.push(body);
+            nodeFor.set(id, target);
+        }
+
+        const surfaces = [];
+        for (const [i, spec] of (film.surfaces ?? []).entries()) {
+            const where = `surfaces[${i}]`;
+            if (spec?.node) {
+                const target = resolveCastNode(spec.node, castMap, scene);
+                if (!target) { warn(`surface names '${spec.node}', which is not a node`, where); continue; }
+                const node = scene.get(target);
+                const extent = extentOf(node?.props?.geometry ?? {});
+                // Its top face, in the node's own frame plus its offset --
+                // which is the same measurement `scatter` makes.
+                surfaces.push(makeSurface({
+                    normal: [0, 1, 0],
+                    offset: (node?.props?.at?.[1] ?? 0) + extent[1],
+                    restitution: spec.restitution, friction: spec.friction,
+                }));
+            } else if (Array.isArray(spec?.normal)) {
+                surfaces.push(makeSurface(spec));
+            } else {
+                warn('a surface needs a `node` or a `normal`', where);
+            }
+        }
+        if (bodies.length && !surfaces.length) {
+            warn('there are bodies and no `surfaces`, so nothing will stop them falling',
+                 'surfaces');
+        }
+
+        if (bodies.length) {
+            const until = Math.max(0, Number(physics.until) || (duration - from) || 1);
+            const simulated = simulateBodies({
+                bodies, surfaces, fps: meta.fps,
+                gravity: physics.gravity ?? [0, -9.81, 0],
+                step: physics.step ?? 0.004,
+                iterations: physics.iterations ?? 8,
+                until,
+            });
+            for (const run of simulated) {
+                const target = nodeFor.get(run.id);
+                const last = run.samples.at(-1);
+                if (last && !last.sleeping && last.speed > CONTACT.SLEEP_LINEAR) {
+                    warn(`body '${run.id}' is still moving at ${last.speed.toFixed(2)} m/s when `
+                        + 'the bake ends, so it stops dead at that instant -- in mid-air if it '
+                        + 'had not landed yet; raise `physics.until`', `bodies.${run.id}`);
+                }
+                for (const [path, read] of [['position', (x) => x.at], ['quaternion', (x) => x.q]]) {
+                    const keys = prunePath(run.samples.map((x) => ({ t: from + x.t, v: read(x) })));
+                    for (const k of keys) key(timeline, target, path, k.t, k.v);
+                }
+            }
+        }
+    }
+
     if (!shots.length) warn('film has no shots', 'scenes');
     if (film.meta?.duration != null && Math.abs(film.meta.duration - duration) > 0.001) {
         warn(`declared duration ${film.meta.duration}s but shots total ${duration.toFixed(2)}s; `

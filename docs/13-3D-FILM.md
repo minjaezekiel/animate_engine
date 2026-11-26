@@ -305,6 +305,74 @@ Shared by both compilers, deliberately: a driver is arithmetic over channels
 and neither path owns that, so `core/anim/driver.js` is called by
 `compile.js` and `compile3d.js` alike.
 
+### `bodies` — drop this, let it land
+
+`src/core/sim/` held `cloth.js`, `fluid.js` and `colliders.js`, and the third
+is **descriptions only** — box, sphere and hull measured from a mesh since
+Phase 45, with nothing to hand them to. So a seven-part series *about
+collision maths* animated every collision with authored keyframes, and the
+AK-47 ejects seventeen rounds of which **not one lands**: debris is particles,
+particles are closed-form, and the trade in §8 was explicit — a case's life
+is 1.1–1.5 s and the fall from the port takes 0.85 s, so every one of them
+ceased to exist at roughly the moment it would have hit.
+
+```jsonc
+"physics": { "from": 39.45, "until": 3.2, "step": 0.0008 },
+"bodies": {
+  "case1": { "of": "set/case1", "shape": "box", "size": [0.0115, 0.039, 0.0115],
+             "mass": 0.0105, "at": [0.055, 0.012, 0.022],
+             "velocity": [1.05, 2.05, 0.42], "spin": [2.2, 18, 4.5],
+             "restitution": 0.28, "friction": 0.45, "start": 0 }
+},
+"surfaces": [{ "node": "set/floor", "restitution": 0.22, "friction": 0.55 }]
+```
+
+**It bakes.** The solver runs once, in the compiler, and writes a `position`
+track and a `quaternion` track — the same shape `clipToTracks` emits for an
+imported Mixamo clip. After the bake there is no physics in the engine at
+all, which is the point: a live solver's state at frame 600 depends on having
+integrated frames 0 to 599, so seeking would be impossible and two renders of
+one file would differ. Frame *N* stays a pure function of *N*, and every
+mechanism the timeline has applies to a simulated body for free, because it
+is not a simulated body any more.
+
+The whole design — the scope boundary, the constants, why `cannon-es` was
+declined, and the five proofs — is in
+[44-RIGID-BODIES.md](pending/44-RIGID-BODIES.md). The numbers:
+
+| | measured |
+|---|---|
+| elastic ball, five bounces from 1.000 m | within **2%**, and the loss halves when the step halves (0.84% → 0.40% → 0.11% a bounce at 4 / 1 / 0.25 ms) |
+| `restitution: 0.5`, bounces 1 and 2 | **0.2461** and **0.0600** against the *e²* law's 0.2500 and 0.0625 |
+| angular momentum, 10,000 steps, free body | drifts **1.6e-16**, quaternion stays unit to 1e-15 |
+| a box dropped at three orientations | lands flat, settles **0.31 mm** into the floor, sleeps |
+| eight cases in the film | rest at y **−1.5846** against an analytic −1.5843 |
+
+**`of` drives a part that already exists.** A body does not create geometry;
+the case is modelled, materialled and lit like anything else and the solver
+only decides where it is — the same split `scatter` makes. Its collider size
+defaults to the part's own measured extent, which is what Phase 45's
+colliders were for.
+
+**Surfaces are half-spaces, not heavy bodies.** A floor as a body with
+infinite mass is the usual way to make a floor jitter; a half-space contact
+is one dot product, cannot be tunnelled, and is stable to rest on.
+
+**Keys that say nothing are dropped.** A bake writes one key per frame per
+channel, and a body in free fall is a straight line while a sleeping one
+repeats a value: 1,248 samples became **223 keys** in the AK-47 film, the
+same trick `count` uses to cost one key per *visible* value.
+
+What a film gets, measured against the same film without the block: **491
+pixels** of brass in flight at t=40.4, and **176 pixels** of it still lying
+on the concrete at t=43.5, two and a half seconds after the last round —
+where before there was nothing on the floor at any time.
+
+ponytail: **box against box is deliberately not here.** It needs a contact
+manifold — SAT, clipping, feature pairs — which is most of a physics engine,
+and a stack is the only thing that needs it. No film has asked for a stack.
+Tier 2 in the design doc, with joints behind it.
+
 ### `scatter` — a thousand of something, placed rather than authored
 
 Everything in a 3D film here is cast by hand. Sixteen set pieces is a
@@ -716,7 +784,7 @@ Measured against Blender, this is still a small toolset. The honest list:
 | **No loop cut or subdivision** | *CSG closed in Phase 58:* `{ kind: 'boolean' }` subtracts, unions and intersects, proved against analytic volume, and the AK-47's receiver has an ejection port. What is left here is **subdivision** — nothing smooths a coarse mesh — and the cost CSG does carry: a BSP splits the faces a cutter passes through, so holes are paid for in triangles. Bevel came off this list in Phase 50, but a **cylinder's rim is still sharp** — a chamfered rim needs a `lathe`, by hand |
 | **No UV control on the 3D film path** | Closed in part: `preset` gives a material a synthesised albedo, roughness and normal map as of Phase 53, and the AK-47 uses them. But the UVs are whatever the primitive generates, so a grain direction cannot be chosen per part, and there are still no stamped markings and no wear |
 | **No "spawn"** | Scaling from zero is the only way to bring geometry into existence; the bullet craters use it |
-| **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |
+| **Particles cannot collide** | Inherent to the closed-form solution, and still the right trade for a spray. *Half closed in Phase 60:* what has to **land** is a rigid body now -- eight of the AK-47's cases are, and they come to rest on the floor -- while the emitter still throws the brass that reads as rate during the burst. Replacing the emitter entirely is Tier 2 work |
 | **No per-object motion blur** | Particles stretch by velocity; meshes do not. A fast-moving bolt carrier is sharp when it should smear |
 | **No dependency between actions** | A crater cannot say "open when this round lands"; both are timed independently against the same clock, and nothing checks they agree |
 | **Shadow and contact quality** | *Half closed:* `ssao` is a working GTAO pass as of Phase 51, shadow cameras are fitted to the scene at 2048² as of Phase 52, and area lights exist as of Phase 55 — but an area light casts no shadow map in THREE, and the shadow fit covers the set rather than the view |

@@ -3,7 +3,9 @@
 **Status: open**, and four items have graduated out of it: 3D transitions
 (Phase 40), the voice runtime (Phase 41), `digest` on the 2D path
 (Phase 42) and the shared verb table (Phase 57 — §1 below, which is now a
-record of what it found rather than a plan). Written against the code, not
+record of what it found rather than a plan). Rigid bodies graduated into
+[44-RIGID-BODIES.md](44-RIGID-BODIES.md) and Tier 1 of that shipped in Phase
+60. Written against the code, not
 against an old plan. Every
 claim here was checked by grep or by running something; where a claim is a
 judgement rather than a measurement it says so. Items graduate out of this
@@ -132,15 +134,15 @@ This is where the engine is thinnest relative to what the word "physics"
 promises. `src/core/sim/` contains exactly two files: `cloth.js` and
 `fluid.js`.
 
-- **No rigid-body dynamics.** Nothing falls, stacks, topples or collides. A
-  seven-part series *about collision maths* (Phase 34–35) animated its
-  collisions with authored keyframes, which was the right call for teaching
-  and is not a substitute. This is the largest genuinely-missing subsystem.
-  It is also the one with a clean seam: a solver that runs on a fixed substep
-  and **bakes to keyframes** keeps frame N a pure function of N, which a live
-  solver would not. Bake, do not simulate at render time.
-- **No particle collision**, inherent to the closed-form solver and a
-  deliberate trade (debris passes through the floor).
+- ~~**No rigid-body dynamics.**~~ **Tier 1 shipped in Phase 60** — things
+  fall, bounce, tumble, land and settle, and the seam is the one predicted
+  here: a fixed substep, baked to keyframes, so frame N stays a pure function
+  of N. The design, the scope boundary and the five proofs are in
+  [44-RIGID-BODIES.md](44-RIGID-BODIES.md). **Stacking is still open**,
+  because it needs box-against-box with a real contact manifold; so are
+  joints.
+- **No particle collision**, inherent to the closed-form solver and still the
+  right trade for a spray — but what has to *land* is a rigid body now.
 - **No volumetrics.** The fluid solver is a 2D grid on a card.
 - **No soft body, no constraints between bodies** (hinges, ropes, springs).
 
@@ -244,7 +246,7 @@ Ordered by value over cost, not by size.
 | 3 | **Motion blur via subframe accumulation** | The clearest visual gap against reference 3D work; deterministic. |
 | ~~4~~ | ~~**Shared verb table**~~ — **done**, Phase 57 (§1 above) | Stopped the 2D/3D divergence at the source, and closed two gaps that were a call nobody had made. |
 | 5 | **Curve editor + dope sheet UI** | Large, but no engine change: the tracks are already data. |
-| 6 | **Rigid-body dynamics, baked to keys** | Largest missing subsystem; needs its own doc before any code. |
+| ~~6~~ | ~~**Rigid-body dynamics, baked to keys**~~ — **Tier 1 done**, Phase 60 ([44](44-RIGID-BODIES.md)) | Was the largest missing subsystem. The doc came first, as this row demanded, and it is the doc that caught the `cannon-es` question early. Stacking and joints remain. |
 | 7 | **Proxy render + resume + queue** | Iteration cost, not capability. |
 
 ---

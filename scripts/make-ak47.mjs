@@ -271,6 +271,35 @@ film.assemblies.set = { parts: [...stage, ...craters] };
 // subject-sized measurement is meaningless against set dressing.
 film.cast.push({ assembly: 'set', as: 'set', at: [0, 0, 0], set: true });
 
+/**
+ * Grit on the floor: 600 pieces, one draw call.
+ *
+ * The floor was nine metres of flat concrete with nothing on it -- not
+ * because a bare range floor is a choice, but because four hundred stones
+ * is four hundred lines of JSON with coordinates chosen by hand, and
+ * coordinates chosen by hand look chosen by hand. This is the first use of
+ * Phase 59's `scatter`, and it is the honest one: a thousand of something
+ * placed by a seeded sampler, drawn as a single `InstancedMesh`.
+ *
+ * Confined to the four metres the camera actually crosses rather than the
+ * whole nine, because grit outside the frame costs instances and shows
+ * nobody anything. `tilt: 180` lets a shard lie any way up; `scale` from a
+ * third to one and a half of 12 mm is the spread between dust and chipping.
+ */
+film.scatter = {
+    grit: {
+        geometry: { kind: 'tetrahedron', radius: 0.012 },
+        material: 'crater',
+        on: 'set/floor',
+        area: [4.2, 4.2],
+        count: 600,
+        seed: 1947,
+        scale: [0.35, 1.5],
+        tilt: 180,
+        castShadow: false,
+    },
+};
+
 // ========================================================= the fifty seconds
 
 /**

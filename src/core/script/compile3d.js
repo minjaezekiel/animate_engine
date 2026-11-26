@@ -1,6 +1,8 @@
 import { Scene } from '../scene/Scene.js';
 import { supports, divergence, verbDiagnostic } from './verbs.js';
 import { GEOMETRY_KINDS, isGeometryKind } from '../geom/kinds.js';
+import { scatterPoints } from '../geom/scatter.js';
+import { extentOf } from './staging3d.js';
 import { CSG_OPS } from '../geom/csg.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
 import { createClip } from '../anim/Clip.js';
@@ -75,6 +77,19 @@ function orthoHeight(spec) {
 }
 
 /** Every light type `makeLight` actually builds. See the guard list below. */
+/**
+ * Where a scatter stops being free.
+ *
+ * It is **one draw call at any count** -- that is the whole point of the
+ * node. What is not free is the sampler: Poisson-disc is O(n) with a real
+ * constant, measured at 37 ms for 1,000 points and 400 ms for 4,000, paid
+ * once at build time. So this is a warning rather than a limit.
+ */
+export const SCATTER_MAX = 5000;
+
+/** Geometries that are a surface in their own local XY, not a solid. */
+export const PLANAR_GEOMETRY = new Set(['plane', 'circle', 'ring']);
+
 export const LIGHT_TYPES = ['ambient', 'hemisphere', 'point', 'spot', 'directional', 'area'];
 
 export const METAL_NEEDS_ENV = 0.2;
@@ -776,6 +791,108 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     const constraints = [];
     for (const { c, where } of constraintSpecs) {
         constraints.push(...normalizeConstraints([c], { warn, where, exists: (id) => !!scene.get(id) }));
+    }
+
+    /**
+     * ------------------------------------------------------------- scatter
+     *
+     * A thousand of something, placed rather than authored.
+     *
+     * ```jsonc
+     * "scatter": {
+     *   "gravel": { "geometry": { "kind": "tetrahedron", "radius": 0.008 },
+     *               "material": "concrete", "on": "set/floor",
+     *               "count": 400, "seed": 7,
+     *               "scale": [0.5, 1.5], "tilt": 25 }
+     * }
+     * ```
+     *
+     * Placed here, after the cast, because `on` names a node that has to
+     * exist to be measured -- and measured is the point: the area comes from
+     * the target's own geometry through `extentOf`, so a floor that is
+     * resized does not leave its gravel behind.
+     *
+     * The node is **parented to the target**, which is what makes that true
+     * for rotation and scale as well: the points are local, `y` is the
+     * target's own top surface, and the target's transform carries the lot.
+     *
+     * ponytail: `geometry` is one primitive, so a scatter is one
+     * `InstancedMesh`. Scattering a multi-part *assembly* -- the plan's
+     * `of: 'tree'` -- is one InstancedMesh per part plus a shared transform,
+     * which is a bigger change than this, and nothing has needed it yet.
+     */
+    for (const [id, spec] of Object.entries(film.scatter ?? {})) {
+        const where = `scatter.${id}`;
+        if (!spec?.geometry) { warn('a scatter needs a `geometry`', where); continue; }
+        checkGeometry(spec.geometry, `${where}.geometry`, warn);
+
+        let parentId = scene.rootId;
+        let area = spec.area;
+        let y = Number(spec.y) || 0;
+        let flat = false;
+        if (spec.on) {
+            // 'set/floor' is a cast member and one of its parts, resolved
+            // exactly as a verb's `target` is.
+            const slash = String(spec.on).indexOf('/');
+            const target = slash < 0
+                ? (castMap.get(spec.on)?.rootId ?? (scene.get(spec.on) ? spec.on : null))
+                : (castMap.get(String(spec.on).slice(0, slash))?.parts
+                    ?.get(String(spec.on).slice(slash + 1)) ?? null);
+            if (!target) { warn(`scatter is \`on\` '${spec.on}', which is not a node`, where); continue; }
+            parentId = target;
+            const geometry = scene.get(target)?.props?.geometry ?? {};
+            const extent = extentOf(geometry);
+            /**
+             * Which way is up, for the thing being scattered ON?
+             *
+             * A `plane`, `circle` or `ring` lies in its own local XY with
+             * its face along +z, and is rotated into place by the film; a
+             * solid's top face is local XZ. Caught immediately: the first
+             * scatter on a `plane` floor read a 2 x 0 area and placed every
+             * point a metre in the air, because the code assumed a solid.
+             *
+             * Rather than teach the sampler two frames, the NODE carries a
+             * quarter turn: the scatter's own ground plane is rotated into
+             * the surface it sits on, by the transform system that is
+             * already there for exactly this.
+             */
+            flat = PLANAR_GEOMETRY.has(geometry.kind);
+            area ??= flat ? [extent[0] * 2, extent[1] * 2] : [extent[0] * 2, extent[2] * 2];
+            // On top of it, not inside it: a stone sunk halfway into the
+            // floor is the first thing anybody notices.
+            y += flat ? extent[2] : extent[1];
+        }
+        if (!area) { warn('a scatter needs an `area` or an `on`', where); continue; }
+
+        const count = Math.floor(Number(spec.count) || 0);
+        if (count <= 0) { warn('a scatter needs a `count` above zero', where); continue; }
+        if (count > SCATTER_MAX) {
+            warn(`a scatter of ${count} is above the ${SCATTER_MAX} this runs in `
+                + 'reasonable build time; it is one draw call either way, but the '
+                + 'sampler is O(n) with a real constant', where);
+        }
+
+        const points = scatterPoints({
+            count, area, y, seed: Number(spec.seed) || 1,
+            radius: spec.radius ?? null,
+            scale: spec.scale ?? 1, rotY: spec.rotY ?? 360, tilt: spec.tilt ?? 0,
+        });
+        if (points.length < count) {
+            warn(`scatter asked for ${count} and ${points.length} fit; `
+                + 'widen the `area` or lower the `radius`', where);
+        }
+        scene.add({
+            id: `__scatter:${id}`, kind: 'scatter', parentId,
+            props: {
+                points,
+                geometry: { ...spec.geometry },
+                material: resolveMaterial(spec.material, where),
+                blending: spec.blending ?? null,
+                castShadow: spec.castShadow,
+                receiveShadow: spec.receiveShadow,
+                at: [0, 0, 0], rot: [flat ? 90 * DEG : 0, 0, 0], scale: [1, 1, 1],
+            },
+        }, parentId);
     }
 
     // ------------------------------------------------------------- emitters

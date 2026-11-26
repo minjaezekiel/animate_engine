@@ -305,6 +305,68 @@ Shared by both compilers, deliberately: a driver is arithmetic over channels
 and neither path owns that, so `core/anim/driver.js` is called by
 `compile.js` and `compile3d.js` alike.
 
+### `scatter` — a thousand of something, placed rather than authored
+
+Everything in a 3D film here is cast by hand. Sixteen set pieces is a
+reasonable thing to type; six hundred pieces of grit is not, and a forest is
+out of the question. So every set in this repository was bare — the AK-47's
+floor was nine metres of flat concrete with nothing on it, because the
+alternative was six hundred lines of JSON with coordinates chosen by hand,
+and coordinates chosen by hand look chosen by hand.
+
+```jsonc
+"scatter": {
+  "grit": { "geometry": { "kind": "tetrahedron", "radius": 0.012 },
+            "material": "crater", "on": "set/floor",
+            "area": [4.2, 4.2], "count": 600, "seed": 1947,
+            "scale": [0.35, 1.5], "tilt": 180, "castShadow": false }
+}
+```
+
+**One draw call.** That is the claim and it is measured, not asserted: adding
+600 instances to the AK-47 film took the frame from **234 draw calls to 235**
+and added 2,400 triangles. Six hundred *cast* parts would have been six
+hundred calls and six hundred nodes for everything that walks the scene. The
+`draw:` line `film3d.html` now prints on the first frame is where that number
+comes from — `renderer.info`, after a real render.
+
+**Blue noise, not a random spray.** Uniform random points clump: at 400
+samples you get pairs almost touching and bald patches the size of a tree,
+and that reads as a mistake, because a real scatter has a *minimum spacing*.
+[`core/geom/scatter.js`](../src/core/geom/scatter.js) is Bridson's
+Poisson-disc sampling, and the guarantee is exact — measured against uniform
+random over the same area:
+
+| | closest pair, 400 points in 4 m² |
+|---|---|
+| uniform random | **0.0095 m** |
+| Poisson-disc | **0.0742 m** — the radius, to three decimals |
+
+**Seeded, and pure.** Its own 32-bit PRNG rather than `Math.random`, so a
+film renders the same on every machine and in every re-render; changing
+`seed` is how an author asks for a different arrangement. It runs once, in
+the compiler, so the points are part of the compiled scene and the backend
+only uploads them. 1,000 points is 37 ms at build time, 4,000 is 400 ms —
+which is why `SCATTER_MAX` warns at 5,000. The *drawing* is free at any
+count; the sampler is not.
+
+**`on` measures what it sits on.** The area and the height come from the
+target's own geometry, and the node is **parented** to it, so a floor that is
+resized or rotated does not leave its gravel behind. A `plane`, `circle` or
+`ring` is a surface in its own local XY rather than a solid with a top face,
+so the node carries a quarter turn — the first scatter on a `plane` floor
+read a 2 × 0 area and put every point a metre in the air.
+
+**The three jitters are not decoration.** Six hundred identical stones in six
+hundred different places still read as six hundred copies of one stone.
+`rotY` hides the repeat, `scale` (a `[min, max]` range) breaks the
+silhouette, and `tilt` stops them all standing to attention.
+
+ponytail: `geometry` is one primitive, so a scatter is one `InstancedMesh`.
+Scattering a multi-part **assembly** — the plan's `of: 'tree'` — is one
+InstancedMesh per part plus a shared transform, which is a bigger change than
+this and nothing has needed it yet.
+
 ### `boolean` — a hole in a solid
 
 Every mechanical model here is assembled from primitives, and a primitive

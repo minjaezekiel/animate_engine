@@ -3177,5 +3177,27 @@
     }
    ]
   }
- ]
+ ],
+ "scatter": {
+  "grit": {
+   "geometry": {
+    "kind": "tetrahedron",
+    "radius": 0.012
+   },
+   "material": "crater",
+   "on": "set/floor",
+   "area": [
+    4.2,
+    4.2
+   ],
+   "count": 600,
+   "seed": 1947,
+   "scale": [
+    0.35,
+    1.5
+   ],
+   "tilt": 180,
+   "castShadow": false
+  }
+ }
 }

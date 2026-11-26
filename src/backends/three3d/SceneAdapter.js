@@ -1411,6 +1411,48 @@ export function buildScene3D(T, compiled, {
             else if (p.material?.side === 'back') object.material.side = T.BackSide;
             object.castShadow = p.castShadow !== false;
             object.receiveShadow = p.receiveShadow !== false;
+        } else if (node.kind === 'scatter') {
+            /**
+             * A thousand of something, in **one draw call**.
+             *
+             * This is the whole reason scatter exists as a node kind rather
+             * than as four hundred cast entries. Four hundred nodes is four
+             * hundred draw calls and four hundred entries in the pose walk;
+             * an `InstancedMesh` is one object, one geometry, one material,
+             * and one matrix per instance uploaded once at build time.
+             *
+             * The placement is already decided: `core/geom/scatter.js` ran
+             * in the compiler, so this reads `props.points` and uploads
+             * them. Nothing here is random and nothing here is per frame.
+             */
+            const build = GEOMETRY[p.geometry?.kind];
+            const points = p.points ?? [];
+            if (!build || !points.length) return;
+            const mesh = new T.InstancedMesh(
+                projectUV(build(T, p.geometry, geometries), p.geometry?.uv),
+                makeMaterial(T, p.material, p.blending, textures, clipByName),
+                points.length);
+            const m = new T.Matrix4();
+            const q = new T.Quaternion();
+            const e = new T.Euler();
+            const v = new T.Vector3();
+            const sc = new T.Vector3();
+            for (const [i, point] of points.entries()) {
+                e.set((point.rot?.[0] ?? 0) * Math.PI / 180,
+                      (point.rot?.[1] ?? 0) * Math.PI / 180,
+                      (point.rot?.[2] ?? 0) * Math.PI / 180);
+                v.set(point.at?.[0] ?? 0, point.at?.[1] ?? 0, point.at?.[2] ?? 0);
+                sc.set(point.scale?.[0] ?? 1, point.scale?.[1] ?? 1, point.scale?.[2] ?? 1);
+                mesh.setMatrixAt(i, m.compose(v, q.setFromEuler(e), sc));
+            }
+            mesh.instanceMatrix.needsUpdate = true;
+            // Without this the whole set shares the single geometry's bounds,
+            // so a scatter spread over a floor is culled the moment the one
+            // stone at the origin leaves the frustum.
+            mesh.computeBoundingSphere();
+            mesh.castShadow = p.castShadow !== false;
+            mesh.receiveShadow = p.receiveShadow !== false;
+            object = mesh;
         } else if (node.kind === 'humanoid') {
             if (!mergeGeometries) return;
             const built = buildHumanoid(T, mergeGeometries, node,

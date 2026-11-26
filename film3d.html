@@ -402,6 +402,16 @@ window.render3d = async function render3d(film, opts = {}) {
             + ` (${(f.texel * 1000).toFixed(1)} mm per texel), bias ${f.bias.toExponential(1)}`);
     }
     if (post) report(`post: ${post.passes.join(' -> ')} -> output`);
+    {
+        // One line per scatter, because the count is the claim: a scatter is
+        // one InstancedMesh however many instances are in it, and the `draw:`
+        // line below is what proves that rather than asserting it.
+        const scatters = [...compiled.scene.byId.values()].filter((n) => n.kind === 'scatter');
+        for (const n of scatters) {
+            report(`scatter: ${n.id.replace('__scatter:', '')} -- `
+                + `${n.props.points.length} instances on ${n.parentId}`);
+        }
+    }
     const composer = post?.composer ?? null;
 
     /**
@@ -482,13 +492,35 @@ window.render3d = async function render3d(film, opts = {}) {
         render: () => (composer ? composer.render() : renderer.render(built.root, built.camera)),
     };
     let frameTime = 0;
+    /**
+     * Draw calls, measured once, on the first frame.
+     *
+     * Every frame of a film draws the same objects, so one frame says what
+     * all 1,200 of them cost -- and this is the only number that proves
+     * instancing is doing what it claims. Four hundred cast nodes is four
+     * hundred calls; four hundred instances of one scatter is one.
+     */
+    let reportedDraw = false;
+    // `info` resets itself at the start of every `renderer.render`, and a
+    // composer makes several per frame -- so without this the number read
+    // back is the final full-screen quad, which is 1 call and 1 triangle
+    // whatever the scene contains. First version of this line said exactly
+    // that, proudly.
+    renderer.info.autoReset = false;
     const backend = {
         capabilities: { kind: '3d', postFX: !!composer, overlay: !!overlay,
                         transitions: drawnTransitions.length },
         mount: () => backend, unmount() {}, sync: () => backend,
         resize: () => backend,
         renderFrame: () => {
+            renderer.info.reset();
             sceneManager.render();
+            if (!reportedDraw) {
+                reportedDraw = true;
+                const i = renderer.info.render;
+                report(`draw: ${i.calls} calls, ${i.triangles} triangles per frame`
+                    + (composer ? ` (including ${post.passes.length} post pass(es))` : ''));
+            }
             if (composite) {
                 // Transition ops LAST, so the colour is drawn over the type
                 // rather than under it: a subtitle that stays legible through

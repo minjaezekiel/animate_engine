@@ -80,7 +80,10 @@ export const KNOWN = {
            // worked perfectly and reported itself as a mistake on every
            // build. A diagram whose span has to be drawn along its own +x
            // and then turned is the case that found it.
-           'rot', 'sx', 'sy'],
+           'rot', 'sx', 'sy',
+           // A sprite sheet declared on the PART, overriding the asset's own:
+           // one atlas, six characters, one of them taking a different slice.
+           'grid', 'frames', 'margin', 'spacing', 'count'],
     scene: ['id', 'background', 'transitionIn', 'transitionOut', 'cast', 'audio', 'shots',
             'scenery', 'palette', 'ground', 'template', 'drawings', 'photos'],
     // A still photograph animated by `core/motion/PhotoMotion.js`. `source`
@@ -125,7 +128,12 @@ export const KNOWN = {
     dialogue: ['speaker', 'at', 'text', 'audio', 'voice', 'lipsync', 'subtitle', 'gain', 'duration'],
     camera: ['from', 'to', 'ease', 'h', 'at', 'for', 'shake'],
     audioCue: ['asset', 'at', 'gain', 'fadeIn', 'fadeOut', 'offset', 'duration', 'bus'],
-    asset: ['kind', 'src', 'file', 'provider', 'frames', 'grid', 'pivot', 'fit'],
+    // A sprite sheet or atlas. `grid` is [cols, rows] and `frames` is an
+    // explicit [[x, y, w, h], ...]; `margin`, `spacing` and `count` are the
+    // three things a real packer's output needs and a bare grid cannot say.
+    // See src/core/art/sheet.js.
+    asset: ['kind', 'src', 'file', 'provider', 'frames', 'grid', 'pivot', 'fit',
+            'margin', 'spacing', 'count'],
     // A cast voice: its provider spec, plus an optional per-voice trim so
     // casting a character quieter is one edit, not a `gain` on every line.
     voiceEntry: ['spec', 'gain', 'name', 'lang', 'notes'],

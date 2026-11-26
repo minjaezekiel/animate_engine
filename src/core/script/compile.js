@@ -27,6 +27,7 @@ import {
 import { derivePalette } from '../art/palette.js';
 import { buildSceneryTemplate } from '../art/scenery.js';
 import { buildEcho } from '../anim/echo.js';
+import { sheetProps } from '../art/sheet.js';
 
 /**
  * compileFilm: declarative film -> core Scene + Timeline + audio cues +
@@ -50,6 +51,28 @@ export function compileFilm(film, { assets = {} } = {}) {
     const diagnostics = validateFilm(film);
     if (diagnostics.some((d) => d.severity === 'fatal')) {
         return { scene: null, timeline: null, audioCues: [], lipsyncJobs: [], diagnostics, meta: null };
+    }
+
+    /**
+     * Sprite sheets, resolved once per ASSET rather than per part.
+     *
+     * A sheet's cell geometry depends only on the image and its declaration,
+     * so computing it per part would be the same arithmetic repeated for
+     * every character that walks on the same spritesheet. See
+     * `core/art/sheet.js` for why this is a swap set and not a new verb.
+     */
+    const sheets = {};
+    for (const [id, spec] of Object.entries(film.assets ?? {})) {
+        if (!spec || (!spec.grid && !spec.frames)) continue;
+        const props = sheetProps(spec, assets[id]);
+        if (props) sheets[id] = props;
+        else {
+            diagnostics.push({ severity: 'warning', path: `assets.${id}`,
+                message: `Asset "${id}" declares a sprite sheet that does not resolve `
+                    + `to any frames${assets[id] ? '' : ' (the image is not loaded)'}. `
+                    + 'A `grid` needs [cols, rows] and a loaded image; `frames` needs '
+                    + '[x, y, w, h] rows. The whole image will be drawn instead.' });
+        }
     }
 
     const meta = {
@@ -162,7 +185,7 @@ export function compileFilm(film, { assets = {} } = {}) {
         const scenePalette = derivePalette(palettes[spec.palette] ?? {});
         buildBackground(scene, timeline, spec, groupId, meta, assets, diagnostics,
                         (c) => (c == null ? null : (scenePalette[c] ?? c)));
-        buildScenery(scene, spec, groupId, palettes, meta, assets, diagnostics);
+        buildScenery(scene, spec, groupId, palettes, meta, assets, diagnostics, sheets);
         buildDrawings(scene, spec, groupId, sceneId, scenePalette, meta, diagnostics);
         buildPhotos(scene, timeline, spec, groupId, sceneId, meta, assets, diagnostics,
                     sceneStart, sceneEnd);
@@ -185,7 +208,7 @@ export function compileFilm(film, { assets = {} } = {}) {
             instantiateCharacter({
                 scene, char, charName, as, rootId, parentId: groupId,
                 entry: standOnGround(entry, char, spec.ground),
-                palettes, diagnostics, assets, scenePalette: spec.palette,
+                palettes, diagnostics, assets, sheets, scenePalette: spec.palette,
             });
             castMap.set(as, { rootId, char, charName, entry });
             if (entry.echo) echoes.push([rootId, entry.echo]);
@@ -326,7 +349,7 @@ export function compileFilm(film, { assets = {} } = {}) {
  * Accepts `image` or `asset` as the id, so scenery and parts can read the way
  * their authors expect.
  */
-function resolveImageProps(props, assets, diagnostics, path) {
+function resolveImageProps(props, assets, diagnostics, path, sheets = {}) {
     const id = props.asset ?? (typeof props.image === 'string' ? props.image : null);
     if (id == null) return props;
 
@@ -341,6 +364,25 @@ function resolveImageProps(props, assets, diagnostics, path) {
         return props;
     }
     props.image = image;
+
+    /**
+     * A sheet arrives as the `frame` swap channel, merged BESIDE whatever
+     * swap sets the part already declared rather than replacing them: a
+     * character can have a `view` set and a sheet at the same time, and the
+     * one that clobbered the other would do it silently.
+     *
+     * A part that names its own `frames`/`grid` wins, because the part is
+     * the more specific statement -- an atlas shared by six characters, with
+     * one of them using a different slice of it, is the case.
+     */
+    const sheet = (props.grid || props.frames)
+        ? sheetProps({ ...props }, image) : sheets[id];
+    if (sheet) {
+        props.swapSets = { ...(props.swapSets ?? {}), frame: sheet.swapSets.frame };
+        props.swapDefaults = { ...(props.swapDefaults ?? {}), frame: '0' };
+        props.frameCount = sheet.frameCount;
+        for (const k of ['grid', 'frames', 'margin', 'spacing', 'count']) delete props[k];
+    }
     return props;
 }
 
@@ -438,7 +480,8 @@ function expandTemplate(sceneSpec, meta, palettes, diagnostics) {
     };
 }
 
-function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics) {
+function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnostics,
+                      sheets = {}) {
     const items = sceneSpec.scenery ?? [];
     if (!items.length) return;
     const palette = derivePalette(palettes[sceneSpec.palette] ?? {});
@@ -463,7 +506,7 @@ function buildScenery(scene, sceneSpec, groupId, palettes, meta, assets, diagnos
                 alpha: item.alpha ?? 1,
                 ...drawProps(item, colorOf),
                 screenSpace: item.screenSpace ?? false,
-            }, assets, diagnostics, `scenes.${sceneSpec.id}.scenery.${item.id ?? i}`),
+            }, assets, diagnostics, `scenes.${sceneSpec.id}.scenery.${item.id ?? i}`, sheets),
             z: item.z ?? -500,
         }, groupId);
     });
@@ -503,7 +546,8 @@ export function shotAt(film, t) {
 // ----------------------------------------------------------------- character
 
 function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
-                               entry, palettes, diagnostics, assets = {}, scenePalette }) {
+                               entry, palettes, diagnostics, assets = {}, scenePalette,
+                               sheets = {} }) {
     // Derived, so a part can name `skinShade` and `skinLine` without the
     // author having picked three tones per material -- and so a generated
     // character renders at all with no palette declared, instead of sending
@@ -582,7 +626,7 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
                 ...swapProps(part, colorOf, diagnostics,
                              `characters.${charName}.parts.${part.id}`),
                 ...(painted ?? {}),
-            }, assets, diagnostics, `characters.${charName}.parts.${part.id}`),
+            }, assets, diagnostics, `characters.${charName}.parts.${part.id}`, sheets),
             z: part.z ?? 0,
         }, part.parent ? `${rootId}/${part.parent}` : rootId);
 
@@ -600,7 +644,8 @@ function instantiateCharacter({ scene, char, charName, as, rootId, parentId,
                     alpha: layer.alpha ?? 1,
                     ...drawProps(layer, colorOf),
                     ...swapProps(layer, colorOf),
-                }, assets, diagnostics, `characters.${charName}.parts.${part.id}.${layer.id ?? i}`),
+                }, assets, diagnostics,
+                   `characters.${charName}.parts.${part.id}.${layer.id ?? i}`, sheets),
                 z: layer.z ?? i,
             }, nodeId);
         }

@@ -20,6 +20,7 @@ import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import { basename, extname, join, resolve } from 'node:path';
 import { inspectGLTF, isGLTF } from '../src/core/io/gltf.js';
+import { parseSVG } from '../src/core/art/svg.js';
 import { glbJSON } from '../src/core/io/gltf.js';
 import { meshStats, modelBounds, morphTargets } from '../src/core/io/gltfGeometry.js';
 import { recommendImport, triangleAdvice } from '../src/core/io/normalizeAsset.js';
@@ -47,6 +48,8 @@ const KIND_BY_EXT = {
     '.hdr': 'hdri', '.exr': 'hdri',
     '.wav': 'audio', '.mp3': 'audio', '.ogg': 'audio',
     '.ttf': 'font', '.otf': 'font', '.woff2': 'font',
+    // A vector import is not an image import: it ends in paths, not pixels.
+    '.svg': 'vector',
 };
 
 async function loadManifest() {
@@ -136,7 +139,34 @@ async function fetchBytes(src) {
 
 // ------------------------------------------------------------------ commands
 
-if (cmd === 'inspect') {
+if (cmd === 'svg') {
+    /**
+     * An SVG as film parts, printed or written.
+     *
+     *   node scripts/asset.mjs svg logo.svg --width 400 --id logo --out parts.json
+     *
+     * This is a CONVERSION, not an import: the output is film data, to paste
+     * into a scene's `scenery` or a character's `parts`, and it never gets
+     * rasterised on the way. `import` still records the source file and its
+     * licence, which is the half of the asset pipeline that matters.
+     */
+    const src = positional[0];
+    if (!src) { console.error('usage: asset.mjs svg <file|url> [--width N] [--id name] [--out f]'); process.exit(2); }
+    const text = new TextDecoder().decode(await fetchBytes(src));
+    const res = parseSVG(text, {
+        id: flag('id', 'svg'),
+        width: flag('width') ? Number(flag('width')) : null,
+        center: flag('center', 'yes') !== 'no',
+    });
+    for (const w of res.warnings) console.error(`  [svg] ${w}`);
+    console.error(`  ${res.parts.length} part(s), `
+        + `${res.size[0].toFixed(1)} x ${res.size[1].toFixed(1)} units, `
+        + `${res.parts.reduce((a, p) => a + p.shape.d.length, 0)} chars of path data`);
+    const json = `${JSON.stringify(res.parts, null, 2)}\n`;
+    const out = flag('out');
+    if (out) { await writeFile(out, json); console.error(`  wrote ${out}`); }
+    else process.stdout.write(json);
+} else if (cmd === 'inspect') {
     const src = positional[0];
     if (!src) { console.error('usage: asset.mjs inspect <file|url>'); process.exit(2); }
     const bytes = await fetchBytes(src);
@@ -212,6 +242,7 @@ if (cmd === 'inspect') {
     if (!a.releasable) process.exit(1);
 } else {
     console.log(`usage:
+  asset.mjs svg     <file|url> [--width N] [--id name] [--out f] [--center no]
   asset.mjs inspect <file|url> [--as human|prop|furniture|vehicle|building] [--height 1.8]
   asset.mjs import  <file|url> --licence <terms> [--name n] [--author a] [--kind k] [--notes t]
   asset.mjs list    [--kind model]

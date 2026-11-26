@@ -38,17 +38,39 @@ allowed to happen, for the reason [`takeCache.js`](../../src/core/voice/takeCach
 argues at length: a render that can make a network request is not
 reproducible.
 
-## 2. 2D vector and sprite-sheet import
+## ~~2. 2D vector and sprite-sheet import~~ — done, Phase 63
 
-[`UrlProvider`](../../src/core/art/providers/UrlProvider.js) and
-[`FileProvider`](../../src/core/art/providers/FileProvider.js) both end in
-`createImageBitmap`, so **a 2D import is a raster import**. There is no
-SVG-to-path import, no sprite-sheet or atlas import, and no Lottie.
+Both halves shipped, and both were smaller than this section assumed, for the
+same reason: the renderer was already there and only the arithmetic was
+missing.
 
-SVG is the obvious one and the cheapest: the 2D side already draws
-`rect`/`text`/`line`/`dot` primitives and could consume paths directly, rather
-than scaling someone's PNG and losing the edges. Fifty of the fifty-one films
-live on this path, so it is worth more than its size suggests.
+**SVG.** `backends/canvas2d/shapes.js` has fed a part's `d` straight to
+`Path2D` since the beginning, so SVG path syntax was already this engine's
+native path format. The work was a parser --
+[`core/art/svgPath.js`](../../src/core/art/svgPath.js) for one `d` string and
+[`core/art/svg.js`](../../src/core/art/svg.js) for a document -- reducing
+everything to absolute `M`/`L`/`C`/`Z` and never flattening a curve.
+`npm run svg -- logo.svg --width 400` emits film parts. *Measured:* the same
+mark has a **2.00 px** edge as imported paths against **16.67 px** delivered
+as a raster at an eighth the size and scaled up, through the real compiler
+and the real backend (`npm run test:svg`).
+
+**Sprite sheets.** `frames`, `grid`, `pivot` and `fit` were listed in
+`schema.js` as known asset keys and **nothing read them**. A sheet is now a
+swap set on the channel `frame`, so `set`, `expose` and a named cycle all
+drive one with no new verb. `margin`, `spacing` and `count` were added
+because a real packer's output needs all three.
+
+It also fixed a defect it did not go looking for: `staging.js` measured a
+path's bounds by reading `d` as a flat list of coordinate PAIRS, which is
+right for absolute `M`/`L` and wrong for relative commands (`m0 0 l10 0 l10 0
+l10 0` measured **10** wide and is 30), for arcs (`a20 20 0 0 1 40 0`
+measured **20 x 40** and is 40 x 20) and for `H`/`V`. That box is what every
+2D framing check measures against.
+
+**Not done, and said rather than forgotten:** Lottie, which is a different
+format with its own animation model; `<use>` resolution; and CSS class
+application. Each is reported by name at import rather than dropped.
 
 ## 3. Retarget diagnostics
 
@@ -65,7 +87,8 @@ T-pose with no explanation is not. The viseme work is the template to copy.
 
 - `search_assets` returns candidates with a licence and an author, from at
   least two sources, and `import_asset` takes one of those results directly.
-- An SVG imports as paths and renders in a 2D film without being rasterised.
+- ~~An SVG imports as paths and renders in a 2D film without being rasterised.~~
+  **Done, Phase 63:** 2.00 px edge against a raster's 16.67 px.
 - A retarget against a non-Mixamo skeleton reports the bones it could not
   match, by name.
 - Unit tests for every pure part; fixtures built rather than downloaded.

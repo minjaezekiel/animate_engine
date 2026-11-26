@@ -3,6 +3,7 @@ import { characterParts, filmShots } from './compile.js';
 import { estimateFrameCost } from './budget.js';
 import { applyToPoint } from '../math/mat2d.js';
 import { pathToRuns } from '../paint/path.js';
+import { normalizePath, pathBounds } from '../art/svgPath.js';
 
 /**
  * Staging checks: is what you authored actually on screen?
@@ -145,25 +146,30 @@ function shapeExtent(shape, strokeWidth) {
 }
 
 /**
- * Bounds of an SVG path, from its coordinate pairs.
+ * Bounds of an SVG path -- exactly, curves included.
  *
- * ponytail: the numbers in `d`, not a real path parse. Control points lie
- * outside the drawn curve, so this over-estimates slightly -- which is the
- * right direction for a check that warns about things leaving the frame.
+ * This used to read `d` as a flat list of coordinate PAIRS, with a
+ * `ponytail:` note saying control points lie outside the curve so it
+ * over-estimates in the safe direction. That was true only for an absolute
+ * path made of `M` and `C`. It is false for:
+ *
+ *   - **relative commands**, whose numbers are deltas: `m0 0 l10 0 l10 0`
+ *     measured 10 wide and is 20,
+ *   - **arcs**, whose seven arguments include two radii, an angle and two
+ *     flags that are not coordinates at all,
+ *   - **`H`/`V`**, which carry one number, so every pair after one is read
+ *     off by one axis.
+ *
+ * Each of those is a framing check measuring a box that is not around the
+ * thing. The parser that makes SVG import possible also makes this exact,
+ * so the shortcut's upgrade path is taken rather than described.
  */
 function pathExtent(d, pad) {
     if (!d) return null;
-    const nums = String(d).match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi);
-    if (!nums || nums.length < 2) return null;
-    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
-    for (let i = 0; i + 1 < nums.length; i += 2) {
-        const x = Number(nums[i]), y = Number(nums[i + 1]);
-        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-        left = Math.min(left, x); right = Math.max(right, x);
-        top = Math.min(top, y); bottom = Math.max(bottom, y);
-    }
-    if (!Number.isFinite(left)) return null;
-    return { left: left - pad, right: right + pad, top: top - pad, bottom: bottom + pad };
+    const b = pathBounds(normalizePath(d));
+    if (!b) return null;
+    return { left: b.left - pad, right: b.right + pad,
+             top: b.top - pad, bottom: b.bottom + pad };
 }
 
 /** The ground height under x, from a scene's declared ground. */

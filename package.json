@@ -30,7 +30,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:e2e": "node test/e2e/render-film.mjs",
     "test:av": "node test/e2e/render-av.mjs",
-    "test:all": "npm test && npm run audit:deps && npm run test:e2e && npm run test:av && npm run test:av:mp4 && npm run test:studio && npm run test:draw:e2e && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle && npm run test:transitions:e2e && npm run test:rack:e2e && npm run test:duck:e2e && npm run test:blur:e2e && npm run test:aov",
+    "test:all": "npm test && npm run audit:deps && npm run test:e2e && npm run test:av && npm run test:av:mp4 && npm run test:studio && npm run test:draw:e2e && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle && npm run test:transitions:e2e && npm run test:rack:e2e && npm run test:duck:e2e && npm run test:blur:e2e && npm run test:aov && npm run test:svg",
     "produce": "node scripts/produce.mjs",
     "icons": "node scripts/make-icons.mjs",
     "serve": "node scripts/serve.mjs",
@@ -122,7 +122,9 @@
     "assets": "node scripts/asset.mjs list",
     "test:duck:e2e": "node test/e2e/duck.mjs",
     "test:blur:e2e": "node test/e2e/motion-blur.mjs",
-    "test:aov": "node test/e2e/aov.mjs"
+    "test:aov": "node test/e2e/aov.mjs",
+    "test:svg": "node test/e2e/svg-import.mjs",
+    "svg": "node scripts/asset.mjs svg"
   },
   "keywords": [
     "animation",

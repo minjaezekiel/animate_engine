@@ -413,3 +413,76 @@ shot. Both are kept; they solve different problems.
 In the studio page, `window.jirex` exposes `setFilm`, `prepare`, `render` and
 `produce`, so an agent can author a `film.json` and render it without touching
 the UI.
+
+## Vector and sprite-sheet import
+
+**Phase 63.** Every 2D import used to end in `createImageBitmap`, so a vector
+logo arrived as pixels and the first shot that pushed in on it went soft.
+Both halves of the fix were smaller than they look, because the engine
+already had the renderer for each and only wanted the arithmetic.
+
+### SVG, as paths
+
+```
+npm run svg -- logo.svg --width 400 --id logo --out logo-parts.json
+```
+
+The output is film data: a list of parts with `shape: { kind: 'path', d }`,
+ready to paste into a scene's `scenery` or a character's `parts`. There is no
+new shape kind and no new renderer, because
+[`backends/canvas2d/shapes.js`](../src/backends/canvas2d/shapes.js) has fed a
+part's `d` straight to `Path2D` since the beginning — **SVG path syntax was
+already this engine's native path format.** What was missing was the parser.
+
+Measured, through the real compiler and the real backend: the same mark
+rendered as imported paths has an edge transition of **2.00 px**; delivered
+as a raster at an eighth the size and scaled up, it is **16.67 px** — 8.3×
+softer. `npm run test:svg`.
+
+| Handled | Reported, with what to do instead |
+|---|---|
+| `path`, `rect` (with `rx`/`ry`), `circle`, `ellipse`, `line`, `polyline`, `polygon` | `text` — a `text` part with a font, not geometry |
+| `g`/`a`/`switch` nesting, `transform` on any element | `use` — flatten the symbol in the editor |
+| `viewBox` with uniform scaling and centring | `image` — a raster inside an SVG is still a raster |
+| `fill`, `stroke`, `stroke-width`, `stroke-linecap`/`linejoin`, `opacity`, inherited | `<style>` — CSS classes are not applied; export with presentation attributes |
+| `style="…"` overriding presentation attributes | `url(#…)` fills — the film has its own `gradient`, which is keyable |
+| `defs`, `clipPath` and `mask` subtrees, correctly **not** drawn | — |
+
+Everything reduces to absolute `M`/`L`/`C`/`Z`: arcs become cubics, `H`/`V`
+become `L`, `S`/`T` get their reflected controls written out. **Curves are
+never flattened to polylines** — a flattened curve bakes a resolution
+decision in at import time, and `Path2D` can draw the real thing.
+
+### Sprite sheets and atlases
+
+`frames`, `grid`, `pivot` and `fit` have been listed as known asset keys
+since the asset pipeline landed and **nothing read them** — the same shape as
+`displacementMap` in Phase 61 and `ssao` in Phase 51.
+
+```json
+"assets": {
+  "walk": { "kind": "image", "src": "walk.png",
+            "grid": [8, 2], "count": 13, "pivot": [0.5, 1],
+            "margin": 2, "spacing": 2 }
+}
+```
+
+A sheet becomes a **swap set on the channel `frame`**, which means no new
+verb: the engine already had three ways to say "hold this drawing, then that
+one", and all three now drive a sprite sheet unchanged.
+
+```json
+{ "target": "hero", "do": "set", "channel": "props.frame", "value": "3" },
+{ "target": "hero", "do": "expose", "sheet": "4 4 2 1 1 2" }
+```
+
+| key | what it is |
+|---|---|
+| `grid` | `[cols, rows]`. The **cell size is derived** from the image, never declared, for the same reason a film's duration is |
+| `frames` | `[[x, y, w, h], …]` — an atlas, where the packer chose the layout. Beats `grid` when both are present |
+| `margin`, `spacing` | the border around the sheet and the gutter between cells, in pixels |
+| `count` | stop early: a 4 × 4 grid holding 13 drawings has three blank cells, and cycling through them is a stutter nobody authored |
+| `pivot` | where inside a cell the origin sits, in cell fractions. `[0.5, 1]` is "centred, standing on its feet" — what a walk cycle wants and what centring gets wrong by half a body height |
+
+A sheet declared on the **part** beats the asset's own, so one atlas can serve
+six characters with one of them taking a different slice.

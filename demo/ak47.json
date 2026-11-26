@@ -202,10 +202,28 @@
     {
      "id": "receiver",
      "geometry": {
-      "kind": "cube",
-      "width": 0.25,
-      "height": 0.07,
-      "depth": 0.038
+      "kind": "boolean",
+      "op": "subtract",
+      "a": {
+       "kind": "cube",
+       "width": 0.25,
+       "height": 0.07,
+       "depth": 0.038
+      },
+      "b": {
+       "kind": "cube",
+       "width": 0.045,
+       "height": 0.021,
+       "depth": 0.02,
+       "at": [
+        0.055,
+        0.016,
+        0.019
+       ]
+      },
+      "uv": {
+       "tile": 0.07
+      }
      },
      "material": "steel",
      "at": [

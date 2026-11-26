@@ -305,6 +305,72 @@ Shared by both compilers, deliberately: a driver is arithmetic over channels
 and neither path owns that, so `core/anim/driver.js` is called by
 `compile.js` and `compile3d.js` alike.
 
+### `boolean` — a hole in a solid
+
+Every mechanical model here is assembled from primitives, and a primitive
+cannot have a hole. So the AK-47's magwell was **a gap between four slabs**,
+a window was a frame with air behind it, and the receiver — the part the
+film's third shot is entirely about — was a featureless 250 × 70 × 38 mm
+box with no ejection port, because there was no way to cut one.
+
+```jsonc
+{ "kind": "boolean", "op": "subtract",
+  "a": { "kind": "cube", "width": 0.25, "height": 0.07, "depth": 0.038 },
+  "b": { "kind": "cube", "width": 0.045, "height": 0.021, "depth": 0.02,
+         "at": [0.055, 0.016, 0.019] },
+  "uv": { "tile": 0.07 } }
+```
+
+`op` is `subtract`, `union` or `intersect`. Operands are **geometry specs**,
+so they nest — a second cutter is a `boolean` in the `a` slot — and each
+takes its own `at`, `rot` and `scale`, because a cutter is positioned
+relative to what it cuts and has no node of its own to carry a transform.
+
+The arithmetic is [`core/geom/csg.js`](../src/core/geom/csg.js) and it is
+pure: a flat triangle soup in, a soup out. The backend's whole share is
+building the two operands, baking their transforms into their vertices, and
+wrapping the result back up. That is what lets the proof run in Node, which
+matters more here than anywhere else in the engine — **a boolean can be
+checked against arithmetic**:
+
+| | measured | analytic |
+|---|---|---|
+| a 1 × 1 bar through a 2-cube | **6.000000** | 6 |
+| a 6 mm hole through a 40 mm plate | within **1e-4** relative | — |
+| two cubes overlapping by half, unioned | **12.000000** | 12 |
+| closure error, every case | **< 1e-5** | 0 |
+
+Volume catches an inverted result (it goes negative, which renders as an
+object seen from inside) and closure catches a dropped face (which renders
+as a shadow that leaks and a surface that disappears at a grazing angle).
+Neither is visible in a still frame of the side that worked.
+
+In the film, the receiver's ejection port changed **556 pixels** — 0.06% of
+the frame, confined to a 237 × 78 px box — and took the strong luma steps
+inside that box from **99 to 137**, while whole-frame mean luma moved
+0.12512 → 0.12521. A cut, and nothing else.
+
+**UVs.** A CSG result has none of its own: the vertices it keeps came from
+two different unwraps and the vertices it made are new. So it gets a box
+projection at `tile: 1`, which is the Phase 56 contract — a tile is an
+amount of surface. Declare `uv` to choose: on the receiver, `tile: 0.07`
+keeps the brushed-steel grain at the scale the primitive's own unwrap gave
+it, and `tile: 0.25` visibly stretches it, because a box's faces are not
+square and its per-face unwrap was stretching the texture to hide that.
+
+**The known failure, stated rather than discovered.** Mesh booleans are
+fragile on **coplanar** input: a cutter whose face lies exactly in the face
+it cuts has no well-defined inside. So a cutter must poke out of both sides,
+or stop short to make a pocket. `coplanarRisk` names the axis at build time
+instead of leaving an author to wonder why one face went missing.
+
+**Cost, and why this is not Rust yet.** A 24-sided cutter through a box is
+**4.8 ms**; four holes is 31.6 ms; the result's volume is identical whether
+the operand carries 12 triangles or 1,728. It runs once, at build time. What
+it does cost is *triangles* — a BSP splits the faces it passes through, so
+four holes in a box is 2,212 triangles where the box was 12. That, not the
+milliseconds, is the thing to watch.
+
 ### `show` / `hide` — reveal a prop mid-shot, and the shared verb table
 
 The verb list is now **data**: [`src/core/script/verbs.js`](../src/core/script/verbs.js),
@@ -585,7 +651,7 @@ Measured against Blender, this is still a small toolset. The honest list:
 
 | Gap | Note |
 |---|---|
-| **No CSG, loop cut or subdivision** | `lathe` and `extrude` cover swept and turned shapes, which is most of a mechanical model, but nothing cuts a hole in a solid. A magwell is a gap between parts, not an opening. Bevel is no longer on this list: a `cube` is bevelled by default and `extrude` takes one, but a **cylinder's rim is still sharp** — a chamfered rim needs a `lathe`, by hand |
+| **No loop cut or subdivision** | *CSG closed in Phase 58:* `{ kind: 'boolean' }` subtracts, unions and intersects, proved against analytic volume, and the AK-47's receiver has an ejection port. What is left here is **subdivision** — nothing smooths a coarse mesh — and the cost CSG does carry: a BSP splits the faces a cutter passes through, so holes are paid for in triangles. Bevel came off this list in Phase 50, but a **cylinder's rim is still sharp** — a chamfered rim needs a `lathe`, by hand |
 | **No UV control on the 3D film path** | Closed in part: `preset` gives a material a synthesised albedo, roughness and normal map as of Phase 53, and the AK-47 uses them. But the UVs are whatever the primitive generates, so a grain direction cannot be chosen per part, and there are still no stamped markings and no wear |
 | **No "spawn"** | Scaling from zero is the only way to bring geometry into existence; the bullet craters use it |
 | **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |

@@ -1,5 +1,7 @@
 import { Scene } from '../scene/Scene.js';
 import { supports, divergence, verbDiagnostic } from './verbs.js';
+import { GEOMETRY_KINDS, isGeometryKind } from '../geom/kinds.js';
+import { CSG_OPS } from '../geom/csg.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
 import { createClip } from '../anim/Clip.js';
 import { createTrack, setKey } from '../anim/Track.js';
@@ -585,6 +587,7 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
                          + 'a bone nor an earlier part', nodeId);
                     continue;
                 }
+                if (part.geometry) checkGeometry(part.geometry, `${nodeId}.geometry`, warn);
                 scene.add({
                     id: nodeId, kind: 'mesh', parentId,
                     props: {
@@ -668,6 +671,7 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
              * to remove -- and getting it wrong makes the pole trace a cone
              * instead of holding still.
              */
+            if (part.geometry) checkGeometry(part.geometry, `${nodeId}.geometry`, warn);
             const isPivot = !part.geometry || part.geometry.kind === 'group';
             scene.add({
                 id: nodeId, kind: isPivot ? 'group' : 'mesh', parentId,
@@ -778,6 +782,7 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     const emitters = new Map();
     for (const [id, spec] of Object.entries(film.emitters ?? {})) {
         const emitter = createEmitter(spec);
+        if (spec.geometry) checkGeometry(spec.geometry, `emitters.${id}.geometry`, warn);
         emitters.set(id, {
             id, emitter,
             geometry: { ...(spec.geometry ?? { kind: 'sphere', radius: 0.5 }) },
@@ -1266,6 +1271,47 @@ function seedChannel3D(timeline, scene, id, channel, at, type, from) {
     if (at <= 0 || timeline._index?.get(`${id}\u0000${channel}`)) return;
     const prior = from ?? priorValue(scene.get(id), channel);
     if (prior !== undefined) key(timeline, id, channel, 0, prior, { type, ease: 'step' });
+}
+
+/**
+ * Check a geometry spec, recursively, and report rather than vanish.
+ *
+ * An unknown kind makes the backend skip the node **and everything parented
+ * to it**, with nothing said. That comment has been in this file since Phase
+ * 24 and the list that turns it into a diagnostic arrived in Phase 58:
+ * `GEOMETRY_KINDS` in `core/geom/kinds.js`, read by this compiler and by the
+ * backend's factory, so the two cannot disagree about what exists.
+ *
+ * Recursive because a `boolean` operand is itself a geometry spec, and a
+ * typo inside a cutter is the hardest kind to see: the part still renders,
+ * uncut, looking exactly like a solid somebody meant to be solid.
+ */
+function checkGeometry(spec, where, warn, depth = 0) {
+    if (!spec || typeof spec !== 'object') return;
+    if (!isGeometryKind(spec.kind)) {
+        warn(`unknown geometry kind '${spec.kind}'; try ${GEOMETRY_KINDS.join(', ')}`, where);
+        return;
+    }
+    if (spec.kind !== 'boolean') return;
+    if (depth >= 8) {
+        // A chain this deep is a build-time cost nobody asked for, and a
+        // cycle authored by a generator would otherwise recurse forever.
+        return warn('boolean operands nest more than 8 deep', where);
+    }
+    if (!CSG_OPS.includes(spec.op ?? 'subtract')) {
+        warn(`unknown boolean op '${spec.op}'; try ${CSG_OPS.join(', ')}`, where);
+    }
+    for (const side of ['a', 'b']) {
+        if (!spec[side]) {
+            warn(`a boolean needs \`${side}\`: two solids and an operation`, where);
+            continue;
+        }
+        if (spec[side].kind === 'group') {
+            warn(`a boolean's \`${side}\` is a pivot, which has no surface to cut`, where);
+            continue;
+        }
+        checkGeometry(spec[side], `${where}.${side}`, warn, depth + 1);
+    }
 }
 
 function lastValueBefore3D(timeline, target, path, t) {

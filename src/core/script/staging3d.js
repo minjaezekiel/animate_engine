@@ -57,6 +57,35 @@ export function extentOf(g = {}) {
             const span = (a) => (Math.max(...a) - Math.min(...a)) / 2;
             return [span(ax) + sx, span(ay) + sy, span(az) + Math.max(sx, sy)];
         }
+        /**
+         * A boolean's box is its operands', not a guess.
+         *
+         * Caught the moment the AK-47's receiver became one: an unmeasured
+         * kind fell to the 0.5 m default below, so a 250 x 70 x 38 mm
+         * receiver measured a metre cubed, the rifle's bounds grew with it,
+         * and FIVE shots that frame correctly were reported as overflowing.
+         * A framing check that cries wolf is a framing check nobody reads.
+         *
+         * `subtract` and `intersect` can only ever shrink `a`, so `a`'s box
+         * bounds them. `union` takes both, offset included. Rotation is
+         * ignored here as it is everywhere in this function, which can only
+         * overstate -- the safe direction.
+         */
+        case 'boolean': {
+            const box = (spec) => {
+                if (!spec || typeof spec !== 'object') return null;
+                const e = extentOf(spec);
+                const at = Array.isArray(spec.at) ? spec.at : [0, 0, 0];
+                const s = Array.isArray(spec.scale) ? spec.scale
+                    : [spec.scale ?? 1, spec.scale ?? 1, spec.scale ?? 1];
+                return e.map((v, i) => Math.abs(v * (Number(s[i]) || 1))
+                                     + Math.abs(Number(at[i]) || 0));
+            };
+            const a = box(g.a);
+            if (!a) return [0.5, 0.5, 0.5];
+            const b = g.op === 'union' ? box(g.b) : null;
+            return b ? a.map((v, i) => Math.max(v, b[i])) : a;
+        }
         default: return [0.5, 0.5, 0.5];
     }
 }

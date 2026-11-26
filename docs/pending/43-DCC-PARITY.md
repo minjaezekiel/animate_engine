@@ -67,7 +67,7 @@ Every "yes" names where it lives, so the claim can be checked.
 | Vertex / edge / face editing | **no** | **Interface, deferred.** There is no viewport. The legacy editor had it; the new pipeline deliberately does not |
 | Inset, knife, loop cut, bridge, merge | **no** | Interface, deferred — all four are gestures |
 | Subdivision surface | **no** | **Engine gap.** A modifier, not a gesture: `subdivide: 2` on a geometry spec is data |
-| Boolean / CSG | **no** | **Engine gap.** The one modelling operation films keep asking for: a magwell, a window, a bolt hole. Named as missing in [13-3D-FILM.md §8](../13-3D-FILM.md) |
+| Boolean / CSG | **yes** | **Closed, Phase 58.** `{ kind: 'boolean', op, a, b }` -- subtract, union, intersect, in pure `core/geom/csg.js`, proved against analytic volume. See [13-3D-FILM.md § `boolean`](../13-3D-FILM.md) |
 | Proportional editing | **no** | Category error: the declarative equivalent is a deform modifier or a lattice |
 | Displacement | **no** | Engine gap, small: the height maps already exist (Phase 53) |
 
@@ -245,7 +245,7 @@ small and unblock films that exist; the rest are subsystems.
 | 2 | ~~Orthographic camera~~ | **done, Phase 56** | `meta.ortho: 2.4`. Two identical cubes at different depths: near/far **2.39 -> 1.00** |
 | 3 | ~~Drivers~~ | **done, Phase 56** | `expr` over channels and `t`, parsed not evaluated. Agrees with the hand-keyed version to 1e-9 over every frame; shared by both compilers |
 | 4 | ~~UV projection~~ | **done, Phase 56** | `uv: { tile, angle }`. Two panels of one fabric: thread spacing **4.00x apart -> 1.04x**. Triplanar not built, and said why |
-| 5 | **Boolean / CSG** | M | The one modelling operation films keep needing. A hole is not a gap between parts |
+| 5 | ~~Boolean / CSG~~ | **done, Phase 58** | A 1x1 bar through a 2-cube leaves **6.000000** against an analytic 6, closure error **< 1e-5**, and the AK-47's receiver has an ejection port. Not Rust: 4.8 ms, once, at build time |
 | 6 | **Subdivision + displacement** | M | Smooth organic form from coarse input, and the height maps already exist |
 | 7 | **Scatter / instancing on points** | M | A thousand trees, one draw call. Needs `InstancedMesh` and a point generator |
 | 8 | **Rigid-body dynamics, baked to keys** | L | The largest missing subsystem. Already priority 6 of 37 |
@@ -289,10 +289,15 @@ Three mechanisms already in the tree, in increasing order of strength:
    `buildComposer({ EffectComposer, ... })`, `geometries: { RoundedBoxGeometry }`.
    A caller that lacks a dependency gets a diagnostic and a working render
    without it, and `core/` stays importable in Node.
-3. **The guard list.** `TEXTURE_SLOTS`, `COLOR_PROPS`, `POST_KEYABLE` — a
-   named list of what may be set, so a typo is a diagnostic instead of a
-   property nothing reads. This repo has shipped that exact bug three times
-   (`normalScale`, `props.trim.offset`, `map: "albedo"`); the list is the fix.
+3. **The guard list.** `TEXTURE_SLOTS`, `COLOR_PROPS`, `POST_KEYABLE`,
+   `LIGHT_TYPES`, `UV_PROJECTIONS`, `CSG_OPS` and — as of Phase 58 —
+   `GEOMETRY_KINDS`: a named list of what may be set, so a typo is a
+   diagnostic instead of a property nothing reads. This repo has shipped that
+   exact bug four times (`normalScale`, `props.trim.offset`, `map:
+   "albedo"`, a mistyped light type that lit the scene from a direction); the
+   list is the fix. `GEOMETRY_KINDS` closed the fifth before it shipped: an
+   unknown geometry kind made the backend skip the node **and everything
+   parented to it**, with nothing said.
 
 4. **The verb table.** `src/core/script/verbs.js`, shipped in **Phase 57**:
    the standing structural defect 37 opens with — two compilers sharing a
@@ -407,15 +412,26 @@ and normals — `core/geom/uv.js`, pure — applied to the `BufferGeometry` once
 at build time. *Proof:* a wood grain's direction on a part rotated 90° in the
 film is unchanged in the frame.
 
-**5. Boolean / CSG.** The first real candidate for Rust. Mesh booleans are
-notoriously fragile on degenerate input, so: a BVH-accelerated
-triangle-triangle intersection in `rust/jirex-kernels`, a JS reference
-implementation kept as the oracle, and `geometry: { kind: 'boolean', op:
-'subtract', a, b }` as the declaration. It runs **at build time**, not per
-frame, and the result is cached by the hash of its inputs — the same
-content-addressed trick as the take cache. *Proof:* volume and closedness —
-the result is watertight, and its volume equals the analytic answer for
-primitive operands.
+**5. Boolean / CSG.** **Shipped in Phase 58**, and the plan was half wrong
+about how. The declaration is as written — `geometry: { kind: 'boolean', op:
+'subtract', a, b }`, operands nesting because an operand is a geometry spec —
+and so is the proof: volume equals the analytic answer for primitive operands
+(**6.000000** against 6) and the result is closed (**< 1e-5**).
+
+What the plan got wrong was the implementation. It called this the first real
+candidate for Rust and specified a BVH-accelerated triangle-triangle
+intersection with a JS oracle beside it. Measured first: a BSP over polygons,
+in `core/geom/csg.js`, costs **4.8 ms** for a 24-sided cutter through a box,
+**once**, at build time, and the result's volume is identical whether the
+operand carries 12 triangles or 1,728. Rust would turn a millisecond into a
+tenth of one. The oracle is written; the kernel is not needed, and the
+`ponytail:` note in that file names the ceiling (the JS stack, tens of
+thousands of triangles) and the upgrade path for when something reaches it.
+
+Input hashing was also skipped for the same reason: caching 5 ms is not worth
+a cache. What the operation *does* cost is triangles -- a BSP splits every
+face a cutter passes through, so four holes in a box is 2,212 triangles where
+the box was 12 -- and that is the number a future phase will care about.
 
 **6. Subdivision and displacement.** Catmull-Clark in `core/geom/subdivide.js`
 (pure, and the loop is a kernel candidate), and `displacementMap` wired
@@ -468,7 +484,7 @@ kind of items.
 | ~~next~~ | ~~Area lights~~ (42 Tier 1.6) | **done, Phase 55** |
 | ~~then~~ | ~~Orthographic camera + drivers + UV projection~~ | **done, Phase 56** |
 | ~~then~~ | ~~**The shared verb table**~~ (37 priority 4) | **done, Phase 57** — and it closed two gaps that were a call nobody had made: `show`/`hide` in 3D, `sound` in 2D |
-| then | **Boolean / CSG** | the one modelling operation films keep asking for; first real Rust kernel beyond images |
+| ~~then~~ | ~~**Boolean / CSG**~~ | **done, Phase 58** — and it did not need Rust: 4.8 ms, once, at build time. It also turned up the missing `GEOMETRY_KINDS` guard list |
 | then | **Scatter + instancing** | unblocks environments at scale and forces the draw-call fix |
 | then | **Rigid bodies** (37 priority 6) | largest subsystem; needs its own doc first |
 | later | subdivision + displacement, render passes, volumetrics, GI | each is a phase of its own |

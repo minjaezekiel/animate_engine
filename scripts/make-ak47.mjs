@@ -49,8 +49,30 @@ const parts = [];
 const part = (id, spec) => { parts.push({ id, ...spec }); return id; };
 
 // --------------------------------------------------------------- the rifle
+/**
+ * The receiver, with its ejection port CUT rather than implied.
+ *
+ * It was a featureless box, which is what the third shot is entirely about:
+ * 250 x 70 x 38 mm of steel with the most recognisable opening on the
+ * weapon simply absent, because until Phase 58 nothing could cut a hole in a
+ * solid. The cutter pokes out of the right-hand face (+z, the side the
+ * charging handle and selector are on, and the side that shot faces) and
+ * stops 10 mm in, so it is a port rather than a tunnel -- and `coplanarRisk`
+ * is clean because it overshoots the surface instead of ending on it.
+ *
+ * `tile: 0.07` keeps the brushed-steel grain at the scale the primitive's
+ * own per-face unwrap gave it; the default `tile: 1` stretches it, because a
+ * box's faces are not square and that unwrap was hiding the fact.
+ */
 part('receiver', {
-    geometry: { kind: 'cube', width: RECEIVER_LEN, height: RECEIVER_TOP - RECEIVER_BOT, depth: RECEIVER_W },
+    geometry: {
+        kind: 'boolean', op: 'subtract',
+        a: { kind: 'cube', width: RECEIVER_LEN, height: RECEIVER_TOP - RECEIVER_BOT,
+             depth: RECEIVER_W },
+        b: { kind: 'cube', width: 0.045, height: 0.021, depth: 0.020,
+             at: [0.055, 0.016, RECEIVER_W / 2] },
+        uv: { tile: 0.07 },
+    },
     material: 'steel',
     at: [mid(RECEIVER_REAR, RECEIVER_FRONT), mid(RECEIVER_BOT, RECEIVER_TOP), 0],
 });

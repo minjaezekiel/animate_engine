@@ -1,5 +1,6 @@
 import { emitterState } from '../../core/anim/particles.js';
 import { boxUV, normalizeUV } from '../../core/geom/uv.js';
+import { csg, CSG_OPS } from '../../core/geom/csg.js';
 import { humanoidSpec, segmentSkin } from '../../core/art/humanoid3d.js';
 import { buildTube, buildHead, buildHairCap } from '../../core/art/mesh3d.js';
 import { faceMorphs } from '../../core/art/face3d.js';
@@ -161,7 +162,83 @@ const GEOMETRY = {
         }
         return new T.ExtrudeGeometry(shape, options);
     },
+
+    /**
+     * Two solids and an operation: the one modelling step films keep needing.
+     *
+     * ```jsonc
+     * { "kind": "boolean", "op": "subtract",
+     *   "a": { "kind": "cube", "width": 0.25, "height": 0.07, "depth": 0.038 },
+     *   "b": { "kind": "cube", "width": 0.08, "height": 0.02, "depth": 0.06,
+     *          "at": [0.04, 0.012, 0] } }
+     * ```
+     *
+     * Operands are geometry specs, so they nest -- a second cutter is a
+     * `boolean` in the `a` slot -- and each takes its own `at`, `rot` and
+     * `scale`, because a cutter is positioned relative to what it cuts and
+     * has no node of its own to carry a transform.
+     *
+     * The arithmetic is in [`core/geom/csg.js`](../../core/geom/csg.js) and
+     * is pure: this function's whole share is building the operands,
+     * baking their transforms into their vertices, handing over two flat
+     * arrays, and wrapping the result back up. That is what lets the proof
+     * -- volume against the analytic answer, and closure -- run in Node.
+     *
+     * A CSG result has no UVs of its own: the vertices it keeps came from
+     * two different unwraps and the vertices it made are new. So it gets a
+     * box projection, `tile: 1` unless the film says otherwise, which is
+     * exactly the contract Phase 56 established -- a tile is an amount of
+     * surface.
+     */
+    boolean: (T, g, add = null) => {
+        const soup = (spec) => {
+            const build = GEOMETRY[spec?.kind];
+            if (!build || spec.kind === 'group') return null;
+            const geometry = build(T, spec, add);
+            // Baked into the vertices, not held on a node: a cutter is not
+            // part of the scene and never gets one.
+            if (spec.at || spec.rot || spec.scale != null) {
+                const euler = new T.Euler(...vec3(spec.rot ?? 0).map((d) => (d * Math.PI) / 180));
+                const scale = vec3(spec.scale ?? 1);
+                geometry.applyMatrix4(new T.Matrix4().compose(
+                    new T.Vector3(...vec3(spec.at ?? 0)),
+                    new T.Quaternion().setFromEuler(euler),
+                    new T.Vector3(scale[0], scale[1], scale[2])));
+            }
+            const flat = geometry.index ? geometry.toNonIndexed() : geometry;
+            if (!flat.getAttribute('normal')) flat.computeVertexNormals();
+            return { positions: flat.getAttribute('position').array,
+                     normals: flat.getAttribute('normal').array };
+        };
+
+        const a = soup(g.a);
+        const b = soup(g.b);
+        // Either operand missing is reported by the compiler. Here the first
+        // one still renders, because a part that vanishes takes its children
+        // with it -- the failure `GEOMETRY_KINDS` exists to end.
+        if (!a) return GEOMETRY.cube(T, g, add);
+        if (!b) return GEOMETRY.cube(T, { ...g.a }, add);
+
+        const out = csg(CSG_OPS.includes(g.op) ? g.op : 'subtract', a, b);
+        const geometry = new T.BufferGeometry();
+        geometry.setAttribute('position', new T.BufferAttribute(out.positions, 3));
+        geometry.setAttribute('normal', new T.BufferAttribute(out.normals, 3));
+        geometry.setAttribute('uv', new T.BufferAttribute(
+            boxUV({ positions: out.positions, normals: out.normals,
+                    tile: g.uv?.tile ?? 1, angle: g.uv?.angle ?? 0 }), 2));
+        return geometry;
+    },
 };
+
+/** `[x, y, z]` from a number or a short array, like the compiler's own. */
+function vec3(v, fill = 0) {
+    if (Array.isArray(v)) return [v[0] ?? fill, v[1] ?? fill, v[2] ?? fill];
+    const n = Number(v) || 0;
+    return [n, n, n];
+}
+
+/** Every kind the factory builds, for the test that keeps it in step with core. */
+export const GEOMETRY_BUILDERS = Object.keys(GEOMETRY);
 
 /**
  * Replace a geometry's UVs with a box projection, when the film asks.

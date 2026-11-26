@@ -232,6 +232,46 @@ The magazine is now **one swept profile** instead of four rotated slabs, and
 the seams are gone. A lathe covers every turned part — a muzzle nut, a gas
 piston, a case — where stacked cylinders are what make a model read as blocks.
 
+### `area` — a light with size
+
+Every light in this engine was a point or a direction. A point source cannot
+make a penumbra, a soft terminator, or a highlight with a **shape** — it makes
+a dot, and a dot is what reads as computer graphics. Every real key light is a
+rectangle: a window, a softbox, a strip, a practical in shot.
+
+```jsonc
+"lights": [
+  { "id": "key", "type": "area", "width": 1.6, "height": 1.6,
+    "intensity": 4, "at": [1.4, 1.6, 1.8], "target": [0, 0.5, 0] }
+]
+```
+
+Measured on a chrome sphere, one light, nothing else changed:
+
+| | point | area (1.6 x 1.6) |
+|---|---|---|
+| specular highlight | 734 px | **2,888 px** (x3.9) |
+| highlight width | 30 px | **60 px** (x2.0) |
+| shape | a dot | **the rectangle, reflected** |
+
+The last row is the one that matters: a metal surface shows you the shape of
+what is lighting it, and until now the answer was always "a point".
+
+Two honest limits, both of which the compiler states rather than leaving to be
+discovered. `RectAreaLight` **casts no shadow** — `castShadow: true` on one is
+a diagnostic, and the answer is to pair it with a directional key or to let
+`post.ssao` carry the contact. And it lights only `MeshStandardMaterial` and
+`MeshPhysicalMaterial`, which is every lit material this engine builds, so in
+practice that limit costs nothing. It is aimed by `target` like a spot, and
+aimed once at build time: a film that animates a light's position keeps the
+aim it was built with.
+
+The same phase closed a guard-list hole beside it. `makeLight`'s `switch`
+falls through to a directional light, so `type: 'arealight'` lit the scene
+from a direction and said nothing at all — the third instance of the class
+`COLOR_PROPS` and `TEXTURE_SLOTS` exist to prevent. `LIGHT_TYPES` now names
+the six that are real, and a typo is a diagnostic.
+
 ### `preset` — surfaces, from a library
 
 Every material in every 3D film here was **one flat colour** with a roughness
@@ -419,7 +459,7 @@ Measured against Blender, this is still a small toolset. The honest list:
 | **Particles cannot collide** | Inherent to the closed-form solution, and the right trade. Debris passes through the floor |
 | **No per-object motion blur** | Particles stretch by velocity; meshes do not. A fast-moving bolt carrier is sharp when it should smear |
 | **No dependency between actions** | A crater cannot say "open when this round lands"; both are timed independently against the same clock, and nothing checks they agree |
-| **Shadow and contact quality** | *Half closed:* `ssao` is a working GTAO pass as of Phase 51, and shadow cameras are fitted to the scene at 2048² as of Phase 52. Still no area lights, and the fit covers the set rather than the view |
+| **Shadow and contact quality** | *Half closed:* `ssao` is a working GTAO pass as of Phase 51, shadow cameras are fitted to the scene at 2048² as of Phase 52, and area lights exist as of Phase 55 — but an area light casts no shadow map in THREE, and the shadow fit covers the set rather than the view |
 | **Exposure is sampled, not continuous** | Two frames per shot. A one-second blown highlight between samples is invisible to the check |
 | **Framing ignores rotation** | Bounds are axis-aligned and can only overstate, which is the safe direction — it will not pass a clipped shot, but it will occasionally complain about a tight one |
 

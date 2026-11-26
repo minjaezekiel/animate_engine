@@ -212,7 +212,13 @@ unnecessary, which is worth noticing before writing the third.
 | 1.3 | ~~**Contact shadows**~~ **done, Phase 51 -- but NOT by default.** `ssao` builds a GTAO pass; the old one's occlusion window was in metres where the shader wanted normalised depth, so it was arithmetically impossible and that is why no film used it. | **x0.893** where a cube meets a floor, x1.000 on the open floor. Not defaulted because any post pass also moves the background colour -- a new entry in DEFECTS.md, and the thing to settle before post can be on for everything. |
 | 1.4 | ~~**Shadow quality**~~ **done, Phase 52.** Ortho box fitted to the casters' bounding sphere, near/far from the light, `bias` and `normalBias` derived from the texel, map 2048². Not tied to a tier, because there are no tiers. | The bias was **0.4 m** of depth offset (it is normalised depth, and -0.0008 was written against a 0.5..500 frustum): a 0.5 m cube's shadow sat **53 px** from the cube, now 1 px. The same scene at 10x used to render differently; now it does not. |
 | 1.5 | ~~**A procedural material library**~~ **done, Phase 53.** `{ preset: 'brushed-metal' }` fills `map`, `roughnessMap` and `normalMap`; the AK-47 film adopted all four. | Surface detail, as deviation from a 5x5 neighbourhood: wood **x141**, fabric **x25**, metal x3.0, concrete x2.4 on a test cube; on the AK-47, receiver x5.0, stock x13.9, wall x20.5. |
-| 1.6 | **Area lights.** `RectAreaLight` with real extent. | Soft shadows come from a light having size. PCF blur is a blur, not a penumbra, and the difference is legible. |
+| 1.6 | ~~**Area lights.**~~ **done, Phase 55.** `type: 'area'` with `width`/`height`, aimed by `target`. | On a chrome sphere: highlight **x3.9** in area, **x2.0** in width, and shaped like the light instead of like a dot. The caveat the plan did not know: `RectAreaLight` casts **no shadow map**, so the penumbra half of the claim needs a paired directional or the AO pass, and the compiler says so. |
+
+**Tier 1 is complete.** Six items, five of them defaults a film gets without
+asking (environment, bevel, shadow fit) or one line (`ssao`, `preset`,
+`area`). What remains of the realism gap is Tier 2, which is light transport,
+plus the eleven engine gaps in [43-DCC-PARITY.md](43-DCC-PARITY.md) -- of
+which the next three are an orthographic camera, drivers and UV projection.
 
 ### Tier 2 — light transport
 

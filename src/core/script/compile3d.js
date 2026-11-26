@@ -62,6 +62,9 @@ const vec3 = (v, fallback = 0) => (Array.isArray(v)
  * `environment: false` opts out, and anything else that is false-y gets the
  * built-in studio.
  */
+/** Every light type `makeLight` actually builds. See the guard list below. */
+export const LIGHT_TYPES = ['ambient', 'hemisphere', 'point', 'spot', 'directional', 'area'];
+
 export const METAL_NEEDS_ENV = 0.2;
 
 /**
@@ -337,16 +340,41 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
     // ---------------------------------------------------------------- lights
     for (const [i, light] of (film.lights ?? []).entries()) {
         const id = light.id ?? `light${i + 1}`;
+        const type = light.type ?? 'directional';
+        /**
+         * A guard list, for the reason `TEXTURE_SLOTS` and `COLOR_PROPS`
+         * exist: `makeLight`'s `switch` falls through to a directional light,
+         * so `type: 'arealight'` lit the scene from a direction and said
+         * nothing. A typo must be a diagnostic.
+         */
+        if (!LIGHT_TYPES.includes(type)) {
+            warn(`unknown light type '${type}'; try ${LIGHT_TYPES.join(', ')}`, `lights[${i}]`);
+        }
+        /**
+         * An area light has size, and size is what a penumbra is made of --
+         * but THREE's `RectAreaLight` casts no shadow map at all. Saying so
+         * at compile time beats an author wondering where the shadow went.
+         */
+        if (type === 'area' && light.castShadow) {
+            warn('an area light cannot cast a shadow; pair it with a directional '
+                + 'key, or use `post.ssao` for contact', `lights[${i}]`);
+        }
         scene.add({
             id, kind: 'light',
             props: {
-                lightType: light.type ?? 'directional',
+                lightType: type,
+                // The emitting rectangle, in world units. Only `area` reads
+                // them, and they are what makes its highlight a shape rather
+                // than a dot.
+                width: light.width ?? 1,
+                height: light.height ?? 1,
                 color: light.color ?? '#ffffff',
                 intensity: light.intensity ?? 1,
                 distance: light.distance ?? 0,
                 angle: light.angle ?? 60,
                 penumbra: light.penumbra ?? 0.2,
-                castShadow: light.castShadow ?? (light.type !== 'ambient'),
+                castShadow: (light.castShadow ?? (type !== 'ambient'))
+                    && type !== 'area' && type !== 'ambient' && type !== 'hemisphere',
                 at: vec3(light.at ?? [0, 0, 0]),
                 target: light.target ? vec3(light.target) : null,
             },

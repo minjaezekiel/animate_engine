@@ -26,6 +26,7 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
 import { samplePostAt } from './src/core/script/post.js';
@@ -331,6 +332,10 @@ window.render3d = async function render3d(film, opts = {}) {
     }
 
     const images = await loadTextureImages(compiled.textures, report);
+
+    // The LTC lookup tables a RectAreaLight integrates against. Two small
+    // data textures, built once; without them an area light renders black.
+    RectAreaLightUniformsLib.init();
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(width, height, false);

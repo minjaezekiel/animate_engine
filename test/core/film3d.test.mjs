@@ -342,3 +342,62 @@ test('`environment: "studio"` names the built-in, so its intensity is tunable', 
     assert.equal(env.intensity, 1.4);
     assert.equal(env.background, true, 'a studio can be the visible sky if asked');
 });
+
+/* ---------------------------------------------------------------- lights
+ *
+ * Every light in this engine was a point or a direction, and a point source
+ * cannot make a penumbra, a soft terminator or a highlight with a shape. It
+ * makes a dot, and a dot is what reads as computer graphics.
+ */
+
+const lit = (light) => compileFilm3D({
+    lights: [light],
+    assemblies: { a: { parts: [{ id: 'p', geometry: { kind: 'cube' } }] } },
+    cast: [{ assembly: 'a', as: 't' }],
+    scenes: [{ id: 's', shots: [{ id: 'one', duration: 1 }] }],
+});
+
+test('an area light carries the size that makes it one', () => {
+    const c = lit({ id: 'key', type: 'area', width: 1.6, height: 0.4, at: [1, 2, 1] });
+    assert.deepEqual(c.diagnostics, []);
+    const p = c.scene.get('key').props;
+    assert.equal(p.lightType, 'area');
+    assert.equal(p.width, 1.6);
+    assert.equal(p.height, 0.4, 'a strip light is not a square one');
+    assert.deepEqual(lit({ id: 'k', type: 'area' }).scene.get('k').props.width, 1,
+        'and a default size, because a zero-area light emits nothing');
+});
+
+test('an area light does not pretend to cast a shadow', () => {
+    // THREE's RectAreaLight has no shadow map at all. Saying so at compile
+    // time beats an author wondering where the shadow went.
+    const c = lit({ id: 'key', type: 'area', castShadow: true });
+    assert.equal(c.scene.get('key').props.castShadow, false);
+    assert.equal(c.diagnostics.length, 1);
+    assert.match(c.diagnostics[0].message, /cannot cast a shadow/);
+    assert.match(c.diagnostics[0].message, /ssao|directional/, 'and says what to do instead');
+    // Asking for nothing asks for nothing.
+    assert.deepEqual(lit({ id: 'k', type: 'area' }).diagnostics, []);
+});
+
+test('an unknown light type is a diagnostic, not a directional light', () => {
+    // `makeLight`'s switch falls through to DirectionalLight, so `arealight`
+    // lit the scene from a direction and said nothing. Third instance of the
+    // same class after COLOR_PROPS and TEXTURE_SLOTS.
+    const c = lit({ id: 'key', type: 'arealight' });
+    assert.equal(c.diagnostics.length, 1);
+    assert.match(c.diagnostics[0].message, /unknown light type 'arealight'/);
+    assert.match(c.diagnostics[0].message, /area/, 'and lists the ones there are');
+    for (const type of ['ambient', 'hemisphere', 'point', 'spot', 'directional', 'area']) {
+        assert.deepEqual(lit({ id: 'k', type }).diagnostics, [], type);
+    }
+});
+
+test('only the light types that have a shadow map default to casting one', () => {
+    assert.equal(lit({ id: 'k', type: 'directional' }).scene.get('k').props.castShadow, true);
+    assert.equal(lit({ id: 'k', type: 'spot' }).scene.get('k').props.castShadow, true);
+    assert.equal(lit({ id: 'k', type: 'ambient' }).scene.get('k').props.castShadow, false);
+    assert.equal(lit({ id: 'k', type: 'hemisphere' }).scene.get('k').props.castShadow, false,
+        'an ambient term has no direction to cast from');
+    assert.equal(lit({ id: 'k', type: 'area' }).scene.get('k').props.castShadow, false);
+});

@@ -596,6 +596,22 @@ function fitShadows(T, root) {
 function makeLight(T, p) {
     switch (p.lightType) {
         case 'ambient': return new T.AmbientLight(new T.Color(p.color), p.intensity);
+        /**
+         * A light with SIZE.
+         *
+         * Every light in this engine until now was a point or a direction,
+         * and a point source cannot make a penumbra, a soft terminator or a
+         * highlight with a shape -- it makes a dot, and a dot is what reads
+         * as computer graphics. A window, a softbox, a strip light and a
+         * practical in shot are all rectangles.
+         *
+         * Two honest limits, both documented where a film can see them:
+         * `RectAreaLight` casts no shadow map (the compiler warns), and it
+         * lights only `MeshStandardMaterial` and `MeshPhysicalMaterial`,
+         * which is every lit material this engine builds.
+         */
+        case 'area': return new T.RectAreaLight(new T.Color(p.color), p.intensity,
+                                                p.width ?? 1, p.height ?? 1);
         case 'hemisphere': return new T.HemisphereLight(new T.Color(p.color), 0x202025, p.intensity);
         case 'point': return new T.PointLight(new T.Color(p.color), p.intensity, p.distance || 0);
         case 'spot': {
@@ -1341,6 +1357,13 @@ export function buildScene3D(T, compiled, {
             if (p.target && object.target) {
                 object.target.position.set(...p.target);
                 root.add(object.target);
+            } else if (object.isRectAreaLight) {
+                // A rect area light emits from one FACE and has no `target`
+                // object to aim; it is pointed by its own rotation. Aimed
+                // once, here, because the alternative is every film
+                // discovering that a light at [2,3,2] shines at the ceiling.
+                object.position.set(...(p.at ?? [0, 0, 0]));
+                object.lookAt(...(p.target ?? [0, 0, 0]));
             }
         } else {
             object = new T.Object3D();

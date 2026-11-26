@@ -294,12 +294,14 @@ Three mechanisms already in the tree, in increasing order of strength:
    property nothing reads. This repo has shipped that exact bug three times
    (`normalScale`, `props.trim.offset`, `map: "albedo"`); the list is the fix.
 
-**The standing structural defect** is the one 37 opens with: two compilers
-sharing a vocabulary and not a table. Every gap below that adds a verb must go
-into a **shared verb table with a per-path capability flag**, so that a 2D
-compiler meeting a 3D-only verb *says so* rather than ignoring it. That work
-(priority 4 of 37) is now a precondition for items 3, 5 and 7, not an
-independent nicety.
+4. **The verb table.** `src/core/script/verbs.js`, shipped in **Phase 57**:
+   the standing structural defect 37 opens with — two compilers sharing a
+   vocabulary and not a table — closed by making the vocabulary *data*, with
+   `paths` as the per-path capability flag. Every gap below that adds a verb
+   adds **one row and one handler**, and a compiler that cannot honour a verb
+   names the path it lives on and what to say here instead. A row with no
+   handler, or a handler with no row, fails `test/core/verbs.test.mjs`. This
+   was a precondition for items 3, 5 and 7 and is no longer in their way.
 
 ### 4.3 Performance: where the time actually goes
 
@@ -465,7 +467,7 @@ kind of items.
 |---|---|---|
 | ~~next~~ | ~~Area lights~~ (42 Tier 1.6) | **done, Phase 55** |
 | ~~then~~ | ~~Orthographic camera + drivers + UV projection~~ | **done, Phase 56** |
-| then | **The shared verb table** (37 priority 4) | a precondition for everything that adds a verb, and it stops the 2D/3D divergence at its source |
+| ~~then~~ | ~~**The shared verb table**~~ (37 priority 4) | **done, Phase 57** — and it closed two gaps that were a call nobody had made: `show`/`hide` in 3D, `sound` in 2D |
 | then | **Boolean / CSG** | the one modelling operation films keep asking for; first real Rust kernel beyond images |
 | then | **Scatter + instancing** | unblocks environments at scale and forces the draw-call fix |
 | then | **Rigid bodies** (37 priority 6) | largest subsystem; needs its own doc first |

@@ -1,5 +1,6 @@
-import { FILM_VERSION, KNOWN, DO_VERBS, TRANSITION_KINDS, KNOWN_SCENERY,
+import { FILM_VERSION, KNOWN, TRANSITION_KINDS, KNOWN_SCENERY,
          ASSET_KINDS, SHAPE_KINDS } from './schema.js';
+import { verbDiagnostic } from './verbs.js';
 import { generateActions, generatedCycles, isQuadruped, BUILDS } from './generate.js';
 import { QUADRUPED_BUILDS } from './quadruped.js';
 import { FACE_KITS } from '../art/face.js';
@@ -119,9 +120,12 @@ export function validateFilm(film) {
 
             for (const a of shot.actions ?? []) {
                 unknown(`${hp}.actions`, a, KNOWN.action, warn);
-                if (!DO_VERBS.includes(a.do)) {
-                    warn(`${hp}.actions`, `Unknown verb "${a.do}"; ignored. Known: ${DO_VERBS.join(', ')}.`);
-                }
+                // A verb that is spelled correctly and lives on the other
+                // path gets told WHICH path and what to say here instead;
+                // only a word that is no verb at all gets the list. See
+                // `verbs.js`.
+                const wrongVerb = verbDiagnostic(a.do, '2d');
+                if (wrongVerb) warn(`${hp}.actions`, `${wrongVerb} Ignored.`);
                 // `draw` and `boil` name a drawing rather than a cast member,
                 // so the cast check does not apply to them. `expose` may name
                 // either, or nothing at all -- no target means the whole shot.

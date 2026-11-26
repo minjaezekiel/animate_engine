@@ -1,4 +1,5 @@
 import { Scene } from '../scene/Scene.js';
+import { supports, divergence, verbDiagnostic } from './verbs.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
 import { createClip } from '../anim/Clip.js';
 import { createTrack, setKey } from '../anim/Track.js';
@@ -1253,6 +1254,20 @@ function writeScalar(timeline, target, path, value, at, span, ease = 'smooth',
     key(timeline, target, path, at + span, value, { type: 'number' });
 }
 
+/**
+ * Hold a channel's prior value until `at`.
+ *
+ * Without this a single `set` late in the film rewrites every frame before
+ * it, because a track reads as its first key at every earlier time. The 2D
+ * compiler grew `seedChannel` for the same trap; this is the 3D half, shared
+ * by `set` and by `show`/`hide` so the two cannot drift apart.
+ */
+function seedChannel3D(timeline, scene, id, channel, at, type, from) {
+    if (at <= 0 || timeline._index?.get(`${id}\u0000${channel}`)) return;
+    const prior = from ?? priorValue(scene.get(id), channel);
+    if (prior !== undefined) key(timeline, id, channel, 0, prior, { type, ease: 'step' });
+}
+
 function lastValueBefore3D(timeline, target, path, t) {
     const track = timeline._index?.get(`${target}\u0000${path}`);
     if (!track) return undefined;
@@ -1467,20 +1482,45 @@ function buildAction3D({ scene, timeline, action, castMap, emitters, shot, camer
             return;
         }
 
+        /**
+         * `show` / `hide` -- reveal or conceal a prop mid-shot.
+         *
+         * The machinery was already here and the call had never been made:
+         * `PoseApplier` has understood a discrete `visible` channel since
+         * Phase 14, so a 3D film could only reveal a prop by authoring
+         * `set visible` -- naming an internal channel to say one of the
+         * plainest things in the language, which is why no film did it. One
+         * row in the verb table, one key here.
+         *
+         * `visible` is honoured for the whole subtree by Three, so hiding a
+         * cast root hides the prop and its parts together.
+         *
+         * ponytail: this is a CUT, not a fade. A fade needs the material
+         * marked `transparent` at build time -- which the adapter
+         * deliberately does not imply from opacity, because transparency
+         * changes sort order, depth writes and shadow casting for the whole
+         * object. The upgrade path is a material-level `fade` flag, not a
+         * wider verb; until then `for` says so rather than silently cutting.
+         */
+        case 'show':
+        case 'hide': {
+            const id = resolve(action.target);
+            if (!id) return warn(`unknown target '${action.target}'`, location);
+            if (span > 0) {
+                warn(`${action.do} is a cut on this path, so \`for\` is ignored; a fade needs `
+                    + 'a transparent material and `set material.opacity`', location);
+            }
+            seedChannel3D(timeline, scene, id, 'visible', at, 'discrete');
+            key(timeline, id, 'visible', at, action.do === 'show', { type: 'discrete', ease: 'step' });
+            return;
+        }
+
         case 'set': {
             const id = resolve(action.target);
             if (!id) return warn(`unknown target '${action.target}'`, location);
             if (!action.channel) return warn('`set` needs a channel', location);
             const type = typeof action.value === 'number' ? 'number' : 'discrete';
-            // Hold the prior value until this instant, or a single `set` late
-            // in the film rewrites every frame before it -- the exact trap the
-            // 2D compiler had to grow `seedChannel` for.
-            if (!timeline._index?.get(`${id}\u0000${action.channel}`) && at > 0) {
-                const prior = action.from ?? priorValue(scene.get(id), action.channel);
-                if (prior !== undefined) {
-                    key(timeline, id, action.channel, 0, prior, { type, ease: 'step' });
-                }
-            }
+            seedChannel3D(timeline, scene, id, action.channel, at, type, action.from);
             if (type === 'number' && span > 0) {
                 writeScalar(timeline, id, action.channel, action.value, at, span, ease);
             } else {
@@ -1644,8 +1684,18 @@ function buildAction3D({ scene, timeline, action, castMap, emitters, shot, camer
             return;
         }
 
+        /**
+         * A verb this path does not honour. The message comes from the
+         * shared table, so an author who wrote a 2D verb is told which path
+         * it lives on and what to say here -- not that the word does not
+         * exist, which is a lie. A verb the table PROMISES here and this
+         * switch has no case for is the divergence the table exists to
+         * prevent, and says so by name.
+         */
         default:
-            warn(`unknown verb '${action.do}'`, location);
+            warn(supports('3d', action.do)
+                ? divergence(action.do, '3d')
+                : verbDiagnostic(action.do, '3d'), location);
     }
 }
 

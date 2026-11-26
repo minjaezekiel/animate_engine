@@ -173,7 +173,10 @@ test('unknown fields and bad references are diagnostics, never throws', () => {
     assert.ok(msgs.some((m) => m.includes('sideburns')));
     assert.ok(d.some((x) => x.severity === 'error' && /Duplicate part/.test(x.message)));
     assert.ok(d.some((x) => /not defined/.test(x.message)), 'missing character is an error');
-    assert.ok(d.some((x) => /Unknown verb/.test(x.message)));
+    // Lower-cased in Phase 57: the message now comes from the shared verb
+    // table, which distinguishes a word that is no verb from one that is a
+    // verb on the other path.
+    assert.ok(d.some((x) => /unknown verb 'teleport'/.test(x.message)));
     assert.ok(d.some((x) => /not declared/.test(x.message)), 'missing audio asset reported');
     assert.ok(!d.some((x) => x.severity === 'fatal'), 'nothing fatal: it still renders');
 });

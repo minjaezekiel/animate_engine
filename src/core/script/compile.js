@@ -13,6 +13,7 @@ import { DEFAULTS, FILM_VERSION } from './schema.js';
 /** Epsilon for a hard on/off alpha step at a cut. */
 const EPS = 1e-4;
 import { validateFilm } from './validate.js';
+import { supports, divergence } from './verbs.js';
 import { castVoices } from '../voice/synthesize.js';
 import { generateMouth, generatedParts, generatedCycles, isQuadruped } from './generate.js';
 import { pathToRuns } from '../paint/path.js';
@@ -233,7 +234,8 @@ export function compileFilm(film, { assets = {} } = {}) {
                 }
                 buildAction({
                     scene, timeline, action, castMap, shotStart, shotEnd,
-                    sceneId, characters, diagnostics, ground: spec.ground ?? null,
+                    sceneId, characters, diagnostics, audioCues,
+                    ground: spec.ground ?? null,
                     // So `set props.fill` can name a palette colour, exactly
                     // as a part or a scenery item does.
                     colorOf: (c) => (c == null ? null : (scenePalette[c] ?? c)),
@@ -1199,8 +1201,41 @@ function buildExposure({ scene, timeline, action, castMap, shotStart, shotEnd,
 }
 
 function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
-                       sceneId, characters, diagnostics, ground = null, colorOf = null }) {
+                       sceneId, characters, diagnostics, audioCues = [],
+                       ground = null, colorOf = null }) {
     const at0 = shotStart + (action.at ?? 0);
+
+    /**
+     * `sound` -- an effect at a shot-relative moment.
+     *
+     * The machinery was already here and the call had never been made: the
+     * 2D path could declare audio only at SCENE level, with an `at` measured
+     * from the start of the scene, so a door slam two seconds into the third
+     * shot was arithmetic the author had to do by hand and redo whenever a
+     * shot above it changed length. The 3D path has had the verb since
+     * Phase 20. One row in the verb table, one `createCue` here.
+     *
+     * Resolved before the cast lookup, like `draw` and `expose`, because an
+     * asset is not a cast member.
+     */
+    if (action.do === 'sound') {
+        if (!action.asset) {
+            diagnostics.push({ severity: 'warning', path: `scenes.${sceneId}.actions`,
+                message: 'sound: needs an `asset`' });
+            return;
+        }
+        audioCues.push(createCue({
+            id: `${sceneId}/${action.asset}@${at0.toFixed(4)}:sfx`,
+            assetId: action.asset,
+            at: +at0.toFixed(4),
+            gain: action.gain ?? 1,
+            fadeIn: action.fadeIn ?? 0,
+            fadeOut: action.fadeOut ?? 0,
+            offset: action.offset ?? 0,
+            bus: action.bus ?? 'sfx',
+        }));
+        return;
+    }
 
     // `draw` targets a *drawing*, not a cast member, so it resolves before
     // the cast lookup -- which would otherwise discard it silently.
@@ -1716,8 +1751,20 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
             }
             break;
         }
+        /**
+         * `validate()` has already reported an unknown verb, and a verb on
+         * the other path, with the message from the shared table. What is
+         * left for this branch is the one thing validation cannot see: a
+         * verb the TABLE promises on this path and this compiler does not
+         * handle. That is the divergence the table exists to prevent, so it
+         * is reported as itself rather than as a typo.
+         */
         default:
-            break;      // validate() already reported the unknown verb
+            if (supports('2d', action.do)) {
+                diagnostics.push({ severity: 'warning', path: `scenes.${sceneId}.actions`,
+                                   message: divergence(action.do, '2d') });
+            }
+            break;
     }
 }
 

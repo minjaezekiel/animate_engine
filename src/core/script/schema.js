@@ -10,6 +10,8 @@
  *     plausible-but-unsupported keys, and a render that aborts at frame 1 on
  *     a typo is worse than one that renders and reports.
  */
+import { verbsFor } from './verbs.js';
+
 export const FILM_VERSION = 'jirex.film/1';
 
 export const DEFAULTS = {
@@ -115,7 +117,11 @@ export const KNOWN = {
              // `smear` -- multiple-image and stretched smears for fast motion
              'samples', 'spread', 'fade',
              // `boil` -- the redrawn-contour shimmer of a pencil test
-             'amplitude', 'rate'],
+             'amplitude', 'rate',
+             // `sound` -- a shot-relative effect cue. `asset` and `offset`
+             // are its own; `gain`, `fadeIn`, `fadeOut` and `bus` are the
+             // same keys a scene-level `audio` entry takes.
+             'asset', 'offset', 'gain', 'fadeIn', 'fadeOut', 'bus'],
     dialogue: ['speaker', 'at', 'text', 'audio', 'voice', 'lipsync', 'subtitle', 'gain', 'duration'],
     camera: ['from', 'to', 'ease', 'h', 'at', 'for', 'shake'],
     audioCue: ['asset', 'at', 'gain', 'fadeIn', 'fadeOut', 'offset', 'duration', 'bus'],
@@ -135,6 +141,12 @@ export const KNOWN_SCENERY = ['id', 'shape', 'at', 'fill', 'stroke', 'strokeWidt
 
 export const SHAPE_KINDS = ['path', 'ellipse', 'rect', 'image', 'text', 'group'];
 export const TRANSITION_KINDS = ['fade', 'crossfade', 'none'];
-export const DO_VERBS = ['play', 'pose', 'move', 'reach', 'grip', 'set', 'show', 'hide', 'draw',
-                         'squash', 'spin', 'count', 'shift',
-                         'expose', 'smear', 'boil'];
+/**
+ * The 2D verbs, DERIVED from the shared verb table rather than listed here.
+ *
+ * It was a second list, and a second list of the same thing is the defect
+ * `verbs.js` exists to remove: the 3D compiler had no list at all, so a 2D
+ * film naming a 3D verb was told the word did not exist, and a 3D film
+ * naming a 2D verb was told the same. One row, both answers.
+ */
+export const DO_VERBS = verbsFor('2d');

@@ -1,8 +1,9 @@
 # What this engine is missing — an audit, and how to add it safely
 
-**Status: open**, and three items have graduated out of it: 3D transitions
-(Phase 40), the voice runtime (Phase 41) and `digest` on the 2D path
-(Phase 42). Written against the code, not
+**Status: open**, and four items have graduated out of it: 3D transitions
+(Phase 40), the voice runtime (Phase 41), `digest` on the 2D path
+(Phase 42) and the shared verb table (Phase 57 — §1 below, which is now a
+record of what it found rather than a plan). Written against the code, not
 against an old plan. Every
 claim here was checked by grep or by running something; where a claim is a
 judgement rather than a measurement it says so. Items graduate out of this
@@ -23,27 +24,51 @@ made — MP4, chunked readback, `retimeToAudio`, voice levelling and vendored
 voice models all existed and had never been wired to the 3D path.
 
 That is not a bug to fix once. It is a shape that will keep producing bugs
-while the two compilers share a vocabulary but not a table. The verbs each one
-actually recognizes today:
+while the two compilers share a vocabulary but not a table.
 
-| verb | 2D | 3D | note |
-|---|---|---|---|
-| `move`, `set`, `play`, `spin`, `squash`, `grip` | yes | yes | the shared spine |
-| `hide` / `show` | yes | **no** | 3D has a `visible` passthrough on a node, not a verb. A 3D film cannot reveal a prop mid-shot without authoring the flag. **A real gap.** |
-| `count` | yes | **no** | the ramping numeric readout from Phase 35. Any 3D film with a figure on screen needs it. |
-| `shift` | yes | **no** | move *by* an offset instead of to a position. Phase 35. |
-| `pose`, `reach` | yes | **no** | 3D has IK constraints and target nodes, which is arguably the better form — but the 2D vocabulary is what a writer knows. |
-| `turn`, `fly`, `grow`, `nudge`, `burst`, `cut`, `sound`, `express` | **no** | yes | several are legitimately 3D-only. `sound` and `express` are not, and are worth checking against how 2D spells the same intent. |
+**CLOSED in Phase 57.** The table is
+[`src/core/script/verbs.js`](../../src/core/script/verbs.js): 24 verbs, one
+row each, with `paths` as the per-path capability flag. It is read in three
+places and nowhere else — `validate.js`, and each compiler's `default:`
+branch. The matrix it replaced is now generated from it and lives in
+[02-FILM-SCRIPT.md § Verbs](../02-FILM-SCRIPT.md#verbs).
 
-**The fix is not to copy verbs across.** It is to make the verb table *data*
-shared by both compilers, with a per-path capability flag, so that adding a
-verb is one row and a compiler that cannot honour it says so at compile time
-instead of ignoring it. `src/core/script/ops.js` already proves the pattern —
-the MCP surface is 28 tools generated from one op table — and this is the same
-idea one layer up.
+What the table bought, measured:
 
-Until that exists, every new verb is two implementations and one silent
-divergence.
+| | before | after |
+|---|---|---|
+| cross-path verbs told which path they live on | 0 of 15 | **15 of 15** |
+| …and told what to say on this path instead | 0 | **8** |
+| lists of the verbs, kept by hand | 2 (and the 3D path had none) | **1, derived** |
+| a verb added to one compiler alone | shipped 15 times | **fails the test suite** |
+
+The fix was deliberately **not** to copy verbs across: half of them are
+legitimately one-path-only, because a clip plane is not a thing a flat
+drawing has and an exposure sheet is not a thing a solid has. What the author
+gets is the honest answer — `'nudge' is a 3D verb. On the 2D path, use
+shift.` — where before each path reported a correctly-spelled verb as an
+unknown word, which sent the author hunting for a misspelling.
+
+Two of the gaps in the old matrix turned out to be **a call nobody had
+made**, the same finding as Phase 39, and shipped with the table:
+
+- **`show` / `hide` on the 3D path.** `PoseApplier` has understood a discrete
+  `visible` channel since Phase 14. A cut, not a fade — a fade needs the
+  material marked `transparent` at build time, and `for` says so.
+- **`sound` on the 2D path.** 2D audio could be declared only at scene level,
+  so a cue two seconds into the third shot was arithmetic the author did by
+  hand and redid whenever a shot above it changed length.
+
+Still genuinely missing, and now recorded as rows rather than as absences:
+`count` in 3D (it needs a text texture per displayed value, which is a
+texture-streaming question, not a verb), and `express` in 2D (a cast entry's
+`expression` is chosen per shot and cannot change mid-shot).
+
+And the guard that makes the table binding rather than decorative:
+`test/core/verbs.test.mjs` compiles every verb the table promises on every
+path it claims, **and** reads each compiler's own source back out to check
+the other direction. Verified by introducing both kinds of drift and watching
+the suite fail.
 
 ---
 
@@ -217,7 +242,7 @@ Ordered by value over cost, not by size.
 | 1 | **Keyframeable post → rack focus** | The most cinematic missing move, and mostly plumbing. |
 | 2 | **Music ducking** | ~30 lines; currently hand-tuned per film and silently wrong the moment a line moves. |
 | 3 | **Motion blur via subframe accumulation** | The clearest visual gap against reference 3D work; deterministic. |
-| 4 | **Shared verb table** | Stops the 2D/3D divergence at the source. |
+| ~~4~~ | ~~**Shared verb table**~~ — **done**, Phase 57 (§1 above) | Stopped the 2D/3D divergence at the source, and closed two gaps that were a call nobody had made. |
 | 5 | **Curve editor + dope sheet UI** | Large, but no engine change: the tracks are already data. |
 | 6 | **Rigid-body dynamics, baked to keys** | Largest missing subsystem; needs its own doc before any code. |
 | 7 | **Proxy render + resume + queue** | Iteration cost, not capability. |

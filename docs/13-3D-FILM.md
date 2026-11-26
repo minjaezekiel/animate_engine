@@ -305,6 +305,36 @@ Shared by both compilers, deliberately: a driver is arithmetic over channels
 and neither path owns that, so `core/anim/driver.js` is called by
 `compile.js` and `compile3d.js` alike.
 
+### `show` / `hide` — reveal a prop mid-shot, and the shared verb table
+
+The verb list is now **data**: [`src/core/script/verbs.js`](../src/core/script/verbs.js),
+read by both compilers, with the full matrix and the rules in
+[02-FILM-SCRIPT.md § Verbs](02-FILM-SCRIPT.md#verbs). What that bought on
+this path immediately was `show` / `hide`, which was never missing machinery
+— `PoseApplier` has understood a discrete `visible` channel since Phase 14.
+A 3D film could only reveal a prop by writing `set visible`, naming an
+internal channel to say one of the plainest things in the language, which is
+why no film ever did it.
+
+```json
+{ "target": "crate/lid", "do": "hide", "at": 2.0 }
+```
+
+`visible` is honoured for the whole subtree, so hiding a cast root hides the
+prop and its parts together, and the key is **seeded at frame zero** with the
+prop's authored state — without that, one `hide` at t=2 hides it from frame
+one, because a track reads as its first key at every earlier time.
+
+It is a **cut**, not a fade. A fade needs the material marked `transparent`
+at build time, which the adapter deliberately does not imply from opacity
+because transparency changes sort order, depth writes and shadow casting for
+the whole object; the upgrade path is a material-level flag, not a wider
+verb. Until then `for` on a 3D `show` / `hide` says so rather than being
+silently dropped.
+
+The same table closed the mirror-image gap on the 2D path — `sound`, a cue
+at a shot-relative moment, which the 3D path has had since Phase 20.
+
 ### `uv` — a tile is an amount of surface
 
 Every primitive unwraps each face to the full 0..1 square. So a 1.2 m panel

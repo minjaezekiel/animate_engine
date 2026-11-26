@@ -162,16 +162,64 @@ mesh tearing and depth maps.
 
 ### Verbs
 
-| `do` | Effect |
-|---|---|
-| `play` | instance a named action as a clip, tiled across `for` (or the shot) |
-| `pose` | key every channel in a named pose; with `for`, transition from the current value |
-| `move` | key the cast root's `x`/`y` to `to` over `for` |
-| `reach` | **IK** — put `part` on the point `to`, solving the bones above it |
-| `grip` | key a named **hand pose** on `handL` or `handR` |
-| `set` | key an arbitrary channel; `part` selects a sub-node |
-| `show` / `hide` | key the cast root's alpha |
-| `draw` | ramp a **drawing**'s reveal or a **photo**'s playback, `from` → `to` over `for` |
+Every verb lives in one table, [`src/core/script/verbs.js`](../src/core/script/verbs.js),
+which **both compilers read**. That is the whole of the mechanism: the `2D`
+and `3D` columns below are the table's `paths` field, and they are checked in
+three places and nowhere else — `validate.js`, and each compiler's `default:`
+branch.
+
+An arrow means the verb is not on that path and names what to say there
+instead; `—` means there is no equivalent, which is an honest answer and a
+recorded engine gap rather than a typo. Either way the compiler says so, by
+name: before Phase 57 a 2D film that wrote `nudge` was told the word was
+unknown, which is false — it is a verb, on the other path.
+
+| `do` | 2D | 3D | what it does |
+|---|---|---|---|
+| `move` | yes | yes | go to an absolute position |
+| `set` | yes | yes | write one channel directly; `part` selects a sub-node |
+| `play` | yes | yes | run a named cycle, tiled across `for`, or an imported clip |
+| `spin` | yes | yes | rotate, by whole revolutions (`turns`) |
+| `squash` | yes | yes | squash and stretch at conserved volume |
+| `grip` | yes | yes | take a named hand pose on `handL` / `handR` |
+| `show` | yes | yes | reveal, mid-shot |
+| `hide` | yes | yes | conceal, mid-shot |
+| `sound` | yes | yes | fire an effect at a shot-relative moment |
+| `pose` | yes | → `play`, or `nudge` for one bone | adopt a named pose from the character |
+| `reach` | yes | → a `targets` entry with an `ik` constraint | **IK** — put `part` on a point, solving the bones above it |
+| `shift` | yes | → `nudge` | move BY an offset from where it is |
+| `count` | yes | — | a numeric readout that ramps and reformats |
+| `draw` | yes | — | reveal a drawing stroke by stroke, or play a photo's motion |
+| `expose` | yes | — | an exposure sheet: hold drawings for n frames each |
+| `boil` | yes | — | reseed a drawing per hold, for a living line |
+| `smear` | yes | → `meta.shutter` | a smear frame through the fastest part of a move |
+| `nudge` | → `shift` | yes | offset BY an amount from the rest pose |
+| `turn` | → `spin` | yes | rotate to an absolute orientation, in degrees |
+| `grow` | → `set transform.sx` | yes | scale to an absolute size |
+| `fly` | — | yes | arrive from an offset start pose — an assembly shot |
+| `cut` | — | yes | slide a declared clip plane through a solid |
+| `express` | → the cast entry's `expression` | yes | a facial expression, as morph weights |
+| `burst` | — | yes | fire a declared particle emitter |
+
+Adding a verb is **one row and one handler**. A row that promises a path
+whose compiler has no handler is reported as a *table/compiler divergence*,
+and `test/core/verbs.test.mjs` fails on it — in both directions: it also
+reads each compiler's own source back out and fails on a verb implemented
+there and absent from the table, which is how all 15 of the cross-path verbs
+came to exist in the first place.
+
+#### `sound` — an effect at a shot-relative moment
+
+```json
+{ "do": "sound", "asset": "slam", "at": 2.0, "gain": 0.8 }
+```
+
+No `target`: an asset is not a cast member. Before Phase 57 the 2D path
+could declare audio only at **scene** level, with `at` measured from the
+start of the scene — so a door slam two seconds into the third shot was
+arithmetic the author did by hand, and redid whenever a shot above it changed
+length. A scene-level `audio` entry is still the right place for a music bed,
+which belongs to the scene rather than to a moment in it.
 
 #### Characters from an uploaded image
 

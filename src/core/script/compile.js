@@ -967,6 +967,31 @@ function castFeet(char, entry) {
  * same channel behaving as a plain keyframe.
  */
 /**
+ * Every expression this cast member can actually wear, by name.
+ *
+ * Read off the SCENE rather than from `EXPRESSIONS`, because a hand-authored
+ * character declares its own set -- half the films here are drawn cutouts
+ * with no generated face -- and because a diagnostic that lists what this
+ * character CAN do is worth more than one listing what the kit ships.
+ *
+ * Members are view-qualified (`angry@profile`), so the suffix comes off: the
+ * author names the expression and the swap pass picks the view.
+ */
+function expressionsUnder(scene, rootId) {
+    const names = new Set();
+    const prefix = `${rootId}/`;
+    let resting = null;
+    for (const [id, node] of scene.byId) {
+        if (id !== rootId && !id.startsWith(prefix)) continue;
+        for (const name of Object.keys(node.props?.swapSets?.expression ?? {})) {
+            names.add(name.split('@')[0]);
+        }
+        resting ??= node.props?.swapDefaults?.expression ?? null;
+    }
+    return { names, resting: resting ?? (names.has('neutral') ? 'neutral' : [...names][0]) };
+}
+
+/**
  * Hold a channel at its authored value from frame one.
  *
  * Without this, a channel first keyed at t=35 reads as that key's value
@@ -1598,6 +1623,82 @@ function buildAction({ scene, timeline, action, castMap, shotStart, shotEnd,
                 : action.value;
             if (at > 0) seedChannel(scene, timeline, node, action.channel);
             key(timeline, node, action.channel, at, value, { ease, h });
+            break;
+        }
+        /**
+         * `express` -- a facial expression, as a drawing swap.
+         *
+         * ```json
+         * { "target": "host", "do": "express", "expression": "surprised", "at": 1.2 }
+         * ```
+         *
+         * The verb table used to say the 2D answer to `express` was "the cast
+         * entry's `expression`, which is chosen per shot and cannot change
+         * mid-shot". That was an honest description of a gap: a character
+         * could be angry for a whole shot, or cut to another shot to stop
+         * being angry, and acting does not work that way -- the beat lands on
+         * a line, not on an edit.
+         *
+         * It needed nothing new. `face.js` has built a view-qualified
+         * `expression` swap set on every brow and eye part since the
+         * generated rig landed, and the cast entry writes `props.expression`
+         * on the ROOT, which the swap pass resolves down the tree by nearest
+         * declaration. So an expression mid-shot is one discrete key on that
+         * same channel -- and lipsync cannot fight it, because the mouth is a
+         * different channel, which is the separation the 3D path gets from
+         * owning a different subset of morphs.
+         *
+         * Deliberately NOT a ramp, and this is where the two paths honestly
+         * differ: 3D blends morph weights over `for`, and a drawn expression
+         * is a different drawing. There is nothing between two drawings, so
+         * `for` and `amount` are reported rather than silently ignored.
+         */
+        case 'express': {
+            const where = `scenes.${sceneId}.actions.${action.target}.express`;
+            const { names, resting } = expressionsUnder(scene, rootId);
+            if (!names.size) {
+                diagnostics.push({ severity: 'warning', path: where,
+                    message: `"${action.target}" has no face to express with: nothing `
+                        + 'under it declares an `expression` swap set. A generated '
+                        + 'character has one; a hand-authored one needs '
+                        + '`swap: { expression: { ... } }` on its brow or eye parts.' });
+                break;
+            }
+            const want = action.expression;
+            if (!names.has(want)) {
+                diagnostics.push({ severity: 'warning', path: where,
+                    message: `Unknown expression "${want}" for "${action.target}". `
+                        + `It can express: ${[...names].sort().join(', ')}.` });
+                break;
+            }
+            if (action.for != null || action.amount != null) {
+                diagnostics.push({ severity: 'info', path: where,
+                    message: 'A 2D expression is a swap, not a blend, so `for` and '
+                        + '`amount` have no effect here -- there is nothing between two '
+                        + 'drawings. Use a second `express` to come back off the beat.' });
+            }
+            /**
+             * Seeded EXPLICITLY, not through `seedChannel`.
+             *
+             * A discrete track with no earlier key reads as its first key at
+             * every earlier time, so a character who gets angry at 6.8s was
+             * angry for the first 6.8 seconds -- the trap `seedChannel`
+             * exists for, and the one a blink already found once.
+             *
+             * `seedChannel` cannot do it here. It reads the node's own
+             * authored value or its `swapDefaults`, and a cast ROOT has
+             * neither: the expression set lives on the brow and eye parts
+             * below it, and the root is only where the channel is written so
+             * that every one of them sees it. So the resting value is read
+             * off those parts, and the cast entry's own `expression` -- the
+             * per-shot form this verb does not replace -- still wins.
+             */
+            if (at > 0 && !timeline._index?.get(`${rootId}\u0000props.expression`)) {
+                const start = scene.get(rootId)?.props?.expression ?? resting;
+                if (start) key(timeline, rootId, 'props.expression', 0, start,
+                               { type: 'discrete' });
+            }
+            key(timeline, rootId, 'props.expression', at, want, { type: 'discrete' });
             break;
         }
         case 'show':

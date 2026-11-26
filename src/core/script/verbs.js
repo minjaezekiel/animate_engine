@@ -38,10 +38,15 @@
  *
  * # What `instead` is for
  *
- * A phrase, not always a verb: the 2D answer to `express` is a cast entry
- * field chosen per shot, and the 2D answer to `smear` is `meta.shutter`.
- * Writing the honest answer down is the difference between a diagnostic
- * that ends the author's search and one that starts it.
+ * A phrase, not always a verb: the 2D answer to `nudge` is `shift`, and the
+ * 3D answer to `smear` is `meta.shutter`. Writing the honest answer down is
+ * the difference between a diagnostic that ends the author's search and one
+ * that starts it.
+ *
+ * It is also a to-do list. `express` carried the `instead` "the cast entry's
+ * `expression`, which is chosen per shot and cannot change mid-shot" until
+ * Phase 64, when the sentence had been read often enough to notice it was
+ * describing a gap rather than a design. The verb is on both paths now.
  *
  * Pure data and one lookup: no THREE, no DOM, no fs.
  */
@@ -89,9 +94,8 @@ export const VERBS = {
             instead: { '2d': 'set, on transform.sx and transform.sy' } },
     fly: { paths: ['3d'], does: 'arrive from an offset start pose -- an assembly shot' },
     cut: { paths: ['3d'], does: 'slide a declared clip plane through a solid' },
-    express: { paths: ['3d'], does: 'a facial expression, as morph weights',
-               instead: { '2d': "the cast entry's `expression`, which is chosen per "
-                   + 'shot and cannot change mid-shot' } },
+    express: { paths: ['2d', '3d'],
+               does: 'a facial expression, by name' },
     burst: { paths: ['3d'], does: 'fire a declared particle emitter' },
 };
 

@@ -103,6 +103,10 @@ export const KNOWN = {
              // `grip` blends toward a named hand pose; `squash` uses the same
              // key for how far it deforms
              'amount',
+             // `express` -- a facial expression by name. Shared with the 3D
+             // compiler, which has read it since Phase 24; the 2D one gained
+             // the verb in Phase 64 and the validator had never been told.
+             'expression',
              // `squash`: how long it takes to recover, after `for`
              'back',
              // `spin`: whole revolutions, signed

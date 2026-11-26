@@ -61,10 +61,18 @@ made**, the same finding as Phase 39, and shipped with the table:
   so a cue two seconds into the third shot was arithmetic the author did by
   hand and redid whenever a shot above it changed length.
 
-Still genuinely missing, and now recorded as rows rather than as absences:
+- **`express` on the 2D path** — **closed in Phase 64**, and it was the same
+  shape a third time: `face.js` has built a view-qualified `expression` swap
+  set on every brow and eye part since the generated rig landed, and the cast
+  entry already wrote `props.expression` on the cast ROOT for the swap pass
+  to resolve downward. One discrete key on that channel was the whole verb.
+  The `instead` text — "the cast entry's `expression`, which is chosen per
+  shot and cannot change mid-shot" — had been sitting in the table describing
+  a gap as though it were a design.
+
+Still genuinely missing, and recorded as a row rather than as an absence:
 `count` in 3D (it needs a text texture per displayed value, which is a
-texture-streaming question, not a verb), and `express` in 2D (a cast entry's
-`expression` is chosen per shot and cannot change mid-shot).
+texture-streaming question, not a verb).
 
 And the guard that makes the table binding rather than decorative:
 `test/core/verbs.test.mjs` compiles every verb the table promises on every

@@ -198,8 +198,20 @@ unknown, which is false — it is a verb, on the other path.
 | `grow` | → `set transform.sx` | yes | scale to an absolute size |
 | `fly` | — | yes | arrive from an offset start pose — an assembly shot |
 | `cut` | — | yes | slide a declared clip plane through a solid |
-| `express` | → the cast entry's `expression` | yes | a facial expression, as morph weights |
+| `express` | yes | yes | a facial expression, by name |
 | `burst` | — | yes | fire a declared particle emitter |
+
+`express` is where the two paths honestly differ while sharing a word: 3D
+blends morph weights over `for`, and a drawn expression is a **different
+drawing**, so there is nothing between two of them. On the 2D path `for` and
+`amount` are *reported* rather than silently ignored, and the beat still
+happens. Phase 64; before it, the row read "→ the cast entry's `expression`,
+which is chosen per shot and cannot change mid-shot", which was a description
+of a gap rather than a design — a character could be angry for a whole shot,
+or cut to another shot to stop being angry, and acting does not work that
+way. The diagnostic for a misspelling lists what **that character** can
+express, read off its own swap sets, so a hand-authored cutout gets its own
+vocabulary rather than the generated kit's.
 
 Adding a verb is **one row and one handler**. A row that promises a path
 whose compiler has no handler is reported as a *table/compiler divergence*,

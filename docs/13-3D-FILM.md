@@ -305,6 +305,76 @@ Shared by both compilers, deliberately: a driver is arithmetic over channels
 and neither path owns that, so `core/anim/driver.js` is called by
 `compile.js` and `compile3d.js` alike.
 
+### `subdivide` and `displacementMap` — relief that is geometry
+
+`displacementMap` has been a recognised texture slot since Phase 24 and **no
+film has ever used it**, which in this repository is a reliable sign that
+something about it does not work. Two things did not:
+
+- THREE's `displacementScale` defaults to **1**, which in a film authored in
+  metres is a metre of relief — a rifle becomes a cloud.
+- A displacement map moves *the vertices that exist*. On a twelve-triangle box
+  it moves eight corners and nothing else, so the map loads, the material
+  takes it, and the surface is unchanged with nothing said anywhere. The same
+  shape as `ssao`, which was wired for seven phases and arithmetically could
+  not occlude.
+
+Both are diagnostics now, and the second one names its own remedy:
+
+```jsonc
+{ "kind": "cube", "width": 1, "height": 1, "depth": 1, "subdivide": 3 }
+{ "kind": "plane", "width": 4, "height": 4, "subdivide": { "levels": 2, "smooth": false } }
+```
+
+**Two needs, one flag.** `smooth: true` (the default) is **Loop**
+subdivision, which splits every triangle into four *and moves the vertices*,
+converging on a smooth limit surface — a 12 × 8 sphere's sharpest crease goes
+**29.45° → 15.04° → 7.57° → 3.79°** over three levels, halving each time. A
+silhouette is made of creases and no amount of shading smooths one.
+`smooth: false` is the same 1-to-4 split with nothing moved, which is what
+displacement needs: the surface must be dense before the height field is
+applied and must not have been bent on the way. The proof is the volume — a
+unit cube is **1.000000** at every linear level, exactly.
+
+(The plan in [43-DCC-PARITY.md §5.6](pending/43-DCC-PARITY.md) said
+Catmull-Clark. Catmull-Clark subdivides *quads*, and every geometry here is
+triangles; Loop is the triangle-mesh equivalent, published for that reason.)
+
+**In the earth film**, the planet's mountains were a normal map — shading
+with a perfectly circular silhouette. The globe already carries a `height`
+texture (the normal map is derived from it) and 160 × 96 segments, so it
+needed no subdivision at all, only the two numbers that were missing:
+
+```jsonc
+"surface": { "map": "albedo", "normalMap": "surfaceNormal",
+             "displacementMap": "height",
+             "displacementScale": 0.009, "displacementBias": -0.0045 }
+```
+
+Measured against the same frame without them, by distance from the globe's
+centre:
+
+| | pixels changed |
+|---|---|
+| the inner disc | **2.3%** |
+| the limb (outer 6% of the radius) | **36.5%** |
+
+Which is the whole point: a normal map cannot move a silhouette, and this is
+where relief shows. `displacementBias: -scale/2` keeps the mean radius where
+it was rather than inflating the planet.
+
+The first attempt used **0.022** — a 15× exaggeration of Earth's real 0.14%
+relief — and put a visible stair-step in the limb, because each quad of a
+160 × 96 sphere spans about 250 km and a large height difference between
+adjacent vertices is a notch rather than a mountain. Displacement is limited
+by vertex spacing in both directions, which is the diagnostic's lesson from
+the other side.
+
+ponytail: `subdivide` is capped at **4 levels**, because 4^n is a steep
+ceiling — 1,024× the faces at five. The inner loop is the kernel candidate
+the plan named, and it is not needed: a 12 × 8 sphere to level 3 is 62 ms,
+once, at build time.
+
 ### `bodies` — drop this, let it land
 
 `src/core/sim/` held `cloth.js`, `fluid.js` and `colliders.js`, and the third
@@ -781,7 +851,7 @@ Measured against Blender, this is still a small toolset. The honest list:
 
 | Gap | Note |
 |---|---|
-| **No loop cut or subdivision** | *CSG closed in Phase 58:* `{ kind: 'boolean' }` subtracts, unions and intersects, proved against analytic volume, and the AK-47's receiver has an ejection port. What is left here is **subdivision** — nothing smooths a coarse mesh — and the cost CSG does carry: a BSP splits the faces a cutter passes through, so holes are paid for in triangles. Bevel came off this list in Phase 50, but a **cylinder's rim is still sharp** — a chamfered rim needs a `lathe`, by hand |
+| **No loop cut** | *CSG closed in Phase 58* and *subdivision in Phase 61* — `{ kind: 'boolean' }` cuts holes, proved against analytic volume, and `subdivide: n` smooths a silhouette or densifies one for displacement. What is left is the interactive half (a loop cut is a gesture) and the cost CSG carries: a BSP splits the faces a cutter passes through, so holes are paid for in triangles. Bevel came off this list in Phase 50, but a **cylinder's rim is still sharp** — a chamfered rim needs a `lathe`, by hand |
 | **No UV control on the 3D film path** | Closed in part: `preset` gives a material a synthesised albedo, roughness and normal map as of Phase 53, and the AK-47 uses them. But the UVs are whatever the primitive generates, so a grain direction cannot be chosen per part, and there are still no stamped markings and no wear |
 | **No "spawn"** | Scaling from zero is the only way to bring geometry into existence; the bullet craters use it |
 | **Particles cannot collide** | Inherent to the closed-form solution, and still the right trade for a spray. *Half closed in Phase 60:* what has to **land** is a rigid body now -- eight of the AK-47's cases are, and they come to rest on the floor -- while the emitter still throws the brass that reads as rate during the burst. Replacing the emitter entirely is Tier 2 work |

@@ -3,6 +3,7 @@ import { supports, divergence, verbDiagnostic } from './verbs.js';
 import { GEOMETRY_KINDS, isGeometryKind } from '../geom/kinds.js';
 import { scatterPoints } from '../geom/scatter.js';
 import { simulateBodies, makeBody, makeSurface, BODY_SHAPES, CONTACT } from '../sim/rigid.js';
+import { MAX_LEVELS, vertexEstimate, DISPLACEMENT_VERTICES } from '../geom/subdivide.js';
 import { extentOf } from './staging3d.js';
 import { CSG_OPS } from '../geom/csg.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
@@ -731,6 +732,10 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
              */
             if (part.geometry) checkGeometry(part.geometry, `${nodeId}.geometry`, warn);
             const isPivot = !part.geometry || part.geometry.kind === 'group';
+            if (!isPivot) {
+                checkDisplacement(part.geometry, resolveMaterial(part.material, nodeId),
+                                  `${nodeId}.material`, warn);
+            }
             scene.add({
                 id: nodeId, kind: isPivot ? 'group' : 'mesh', parentId,
                 props: {
@@ -1554,6 +1559,16 @@ function checkGeometry(spec, where, warn, depth = 0) {
         warn(`unknown geometry kind '${spec.kind}'; try ${GEOMETRY_KINDS.join(', ')}`, where);
         return;
     }
+    if (spec.subdivide != null) {
+        const levels = typeof spec.subdivide === 'number'
+            ? spec.subdivide : Number(spec.subdivide?.levels);
+        if (!Number.isFinite(levels) || levels < 0) {
+            warn('`subdivide` is a number of levels, or `{ levels, smooth }`', where);
+        } else if (levels > MAX_LEVELS) {
+            warn(`\`subdivide: ${levels}\` is ${4 ** levels}x the triangles; `
+                + `${MAX_LEVELS} levels is the cap`, where);
+        }
+    }
     if (spec.kind !== 'boolean') return;
     if (depth >= 8) {
         // A chain this deep is a build-time cost nobody asked for, and a
@@ -1573,6 +1588,37 @@ function checkGeometry(spec, where, warn, depth = 0) {
             continue;
         }
         checkGeometry(spec[side], `${where}.${side}`, warn, depth + 1);
+    }
+}
+
+/**
+ * A `displacementMap` that cannot displace anything.
+ *
+ * Both halves of this are completely silent today. The map loads, the
+ * material takes it, and:
+ *
+ *   - with no `displacementScale`, THREE's default is **1**, which on a film
+ *     authored in metres pushes every vertex up to a metre along its normal
+ *     and turns a rifle into a cloud; and
+ *   - on a geometry with a handful of vertices there is nothing to move -- a
+ *     twelve-triangle box displaces its eight corners and nothing else -- so
+ *     the surface is simply unchanged and no part of the engine says why.
+ *
+ * The second is the one worth catching. It is the same shape as `ssao`
+ * (Phase 51), which was wired for seven phases and arithmetically could not
+ * occlude, and as `envMapIntensity` (Phase 49), which was set on every
+ * material and changed not one pixel.
+ */
+function checkDisplacement(geometry, material, where, warn) {
+    if (!material || typeof material !== 'object' || !material.displacementMap) return;
+    if (material.displacementScale == null) {
+        warn('`displacementMap` with no `displacementScale` displaces by 1 unit, which in '
+            + 'a film authored in metres is a metre of relief', where);
+    }
+    const vertices = vertexEstimate(geometry ?? {});
+    if (vertices < DISPLACEMENT_VERTICES) {
+        warn(`\`displacementMap\` moves the vertices that exist and this geometry has about `
+            + `${vertices}; add \`subdivide\` or segments, or the map will do nothing`, where);
     }
 }
 

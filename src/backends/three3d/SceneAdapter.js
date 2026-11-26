@@ -1,6 +1,7 @@
 import { emitterState } from '../../core/anim/particles.js';
 import { boxUV, normalizeUV } from '../../core/geom/uv.js';
 import { csg, CSG_OPS } from '../../core/geom/csg.js';
+import { subdivide } from '../../core/geom/subdivide.js';
 import { humanoidSpec, segmentSkin } from '../../core/art/humanoid3d.js';
 import { buildTube, buildHead, buildHairCap } from '../../core/art/mesh3d.js';
 import { faceMorphs } from '../../core/art/face3d.js';
@@ -267,6 +268,38 @@ function projectUV(geometry, spec) {
         geometry.setAttribute('uv', new position.constructor(data, 2));
     }
     return geometry;
+}
+
+/**
+ * `subdivide: 2` on a geometry spec -- more surface, optionally smoother.
+ *
+ * Two needs, one flag. `smooth: true` (the default) is Loop subdivision and
+ * takes the facets off a silhouette; `subdivide: { levels: 2, smooth: false }`
+ * is the same 1-to-4 split with nothing moved, which is what a displacement
+ * map needs -- it moves the vertices that exist, and the shape must not
+ * change before the height field is applied to it.
+ *
+ * The arithmetic is [`core/geom/subdivide.js`](../../core/geom/subdivide.js)
+ * and runs once, at build time. Normals are recomputed here rather than
+ * carried: smoothing a surface and keeping its old face normals would move
+ * the silhouette and leave the shading flat, which is worse than either.
+ */
+function tessellate(T, geometry, spec) {
+    const levels = typeof spec === 'number' ? spec : Math.floor(Number(spec?.levels) || 0);
+    if (!(levels > 0)) return geometry;
+    const flat = geometry.index ? geometry.toNonIndexed() : geometry;
+    const position = flat.getAttribute('position');
+    if (!position) return geometry;
+    const out = subdivide(
+        { positions: position.array, uvs: flat.getAttribute('uv')?.array ?? null },
+        { levels, smooth: typeof spec === 'number' ? true : spec?.smooth !== false });
+    const next = new T.BufferGeometry();
+    next.setAttribute('position', new T.BufferAttribute(out.positions, 3));
+    if (out.uvs) next.setAttribute('uv', new T.BufferAttribute(out.uvs, 2));
+    next.setIndex(new T.BufferAttribute(out.index, 1));
+    next.computeVertexNormals();
+    geometry.dispose?.();
+    return next;
 }
 
 /** `new T.Object3D()`, named so the pre-walk block above reads as intent. */
@@ -1402,7 +1435,8 @@ export function buildScene3D(T, compiled, {
         if (node.kind === 'mesh') {
             const build = GEOMETRY[p.geometry?.kind];
             if (!build) return;
-            object = new T.Mesh(projectUV(build(T, p.geometry, geometries), p.geometry?.uv),
+            object = new T.Mesh(projectUV(tessellate(T, build(T, p.geometry, geometries), p.geometry?.subdivide),
+                                          p.geometry?.uv),
                                 makeMaterial(T, p.material, p.blending, textures, clipByName));
             // A cut face and a sky shell are both single-sided surfaces seen
             // from the inside at some point in a move, so a mesh may ask for
@@ -1429,7 +1463,8 @@ export function buildScene3D(T, compiled, {
             const points = p.points ?? [];
             if (!build || !points.length) return;
             const mesh = new T.InstancedMesh(
-                projectUV(build(T, p.geometry, geometries), p.geometry?.uv),
+                projectUV(tessellate(T, build(T, p.geometry, geometries), p.geometry?.subdivide),
+                                          p.geometry?.uv),
                 makeMaterial(T, p.material, p.blending, textures, clipByName),
                 points.length);
             const m = new T.Matrix4();

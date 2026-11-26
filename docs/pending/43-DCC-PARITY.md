@@ -66,10 +66,10 @@ Every "yes" names where it lives, so the claim can be checked.
 | Symmetry | *partial* | `face3d.js` and `generate.js` mirror procedurally; there is no mirror *modifier* |
 | Vertex / edge / face editing | **no** | **Interface, deferred.** There is no viewport. The legacy editor had it; the new pipeline deliberately does not |
 | Inset, knife, loop cut, bridge, merge | **no** | Interface, deferred — all four are gestures |
-| Subdivision surface | **no** | **Engine gap.** A modifier, not a gesture: `subdivide: 2` on a geometry spec is data |
+| Subdivision surface | **yes** | **Closed, Phase 61.** `subdivide: 2` on a geometry spec, Loop in pure `core/geom/subdivide.js`. A 12x8 sphere's sharpest crease: **29.45 -> 15.04 -> 7.57 -> 3.79** degrees |
 | Boolean / CSG | **yes** | **Closed, Phase 58.** `{ kind: 'boolean', op, a, b }` -- subtract, union, intersect, in pure `core/geom/csg.js`, proved against analytic volume. See [13-3D-FILM.md § `boolean`](../13-3D-FILM.md) |
 | Proportional editing | **no** | Category error: the declarative equivalent is a deform modifier or a lattice |
-| Displacement | **no** | Engine gap, small: the height maps already exist (Phase 53) |
+| Displacement | **yes** | **Closed, Phase 61**, and it was small: the slot had been wired since Phase 24 and no film had used it, because the default scale is 1 metre and a bare primitive has nothing to move. Both are diagnostics now. The earth film's limb: **36.5%** of its pixels changed against **2.3%** on the inner disc |
 
 ### 2.2 Sculpting
 
@@ -246,7 +246,7 @@ small and unblock films that exist; the rest are subsystems.
 | 3 | ~~Drivers~~ | **done, Phase 56** | `expr` over channels and `t`, parsed not evaluated. Agrees with the hand-keyed version to 1e-9 over every frame; shared by both compilers |
 | 4 | ~~UV projection~~ | **done, Phase 56** | `uv: { tile, angle }`. Two panels of one fabric: thread spacing **4.00x apart -> 1.04x**. Triplanar not built, and said why |
 | 5 | ~~Boolean / CSG~~ | **done, Phase 58** | A 1x1 bar through a 2-cube leaves **6.000000** against an analytic 6, closure error **< 1e-5**, and the AK-47's receiver has an ejection port. Not Rust: 4.8 ms, once, at build time |
-| 6 | **Subdivision + displacement** | M | Smooth organic form from coarse input, and the height maps already exist |
+| 6 | ~~Subdivision + displacement~~ | **done, Phase 61** | Loop, not Catmull-Clark: a 12x8 sphere's crease goes **29.45 -> 3.79** degrees over three levels, and a linear split holds a unit cube at 1.000000. The earth film's limb: **36.5%** of pixels changed |
 | 7 | ~~Scatter / instancing on points~~ | **done, Phase 59** | 600 grit instances on the AK-47's floor took the frame from **234 draw calls to 235**. Poisson-disc, seeded: closest pair **0.0742 m** against uniform random's 0.0095 m |
 | 8 | ~~Rigid-body dynamics, baked to keys~~ | **Tier 1 done, Phase 60** | Eight cases land in the AK-47 film and rest at y **-1.5846** against an analytic -1.5843. Stacking needs box-box and is Tier 2 |
 | 9 | **Render passes / AOVs** | M | The precondition for masking, pass recombination and any real compositing |
@@ -439,11 +439,33 @@ a cache. What the operation *does* cost is triangles -- a BSP splits every
 face a cutter passes through, so four holes in a box is 2,212 triangles where
 the box was 12 -- and that is the number a future phase will care about.
 
-**6. Subdivision and displacement.** Catmull-Clark in `core/geom/subdivide.js`
-(pure, and the loop is a kernel candidate), and `displacementMap` wired
-through to the existing height textures. Both are build-time.
-*Proof:* a subdivided cube's vertex count follows the exact 4^n rule and its
-limit surface stays within tolerance of a sphere of the same radius.
+**6. Subdivision and displacement.** **Shipped in Phase 61**, in
+`core/geom/subdivide.js`, pure and build-time as specified — with one
+correction and one discovery.
+
+The correction: **not Catmull-Clark**, which subdivides quads, where every
+geometry this engine builds is triangles. Loop is the triangle-mesh
+equivalent and was published for exactly that reason.
+
+The discovery: `displacementMap` needed no wiring at all. It has been a
+recognised texture slot since Phase 24 and no film had ever used it, which
+here is a reliable sign that something does not work — and two things did
+not. THREE's `displacementScale` defaults to 1, a metre of relief in a film
+authored in metres; and a map moves only the vertices that exist, so on a
+twelve-triangle box it moves eight corners in silence. Both are diagnostics
+now, and the second names `subdivide` as its remedy. Same shape as `ssao`
+(Phase 51) and `envMapIntensity` (Phase 49).
+
+*Proof:* the 4^n rule holds exactly, and the better half of that test is the
+**volume** — a linear split leaves a unit cube at 1.000000 at every level,
+which is what says the shape did not change before the height field was
+applied. The limit-surface claim was replaced by a measurement that means
+something on a silhouette: the sharpest crease between adjacent faces on a
+12 x 8 sphere, **29.45 -> 15.04 -> 7.57 -> 3.79** degrees over three levels.
+And in the earth film, **36.5%** of the limb's pixels changed against 2.3% on
+the inner disc.
+
+Not a kernel, for the third time: a 12 x 8 sphere to level 3 is 62 ms, once.
 
 **7. Scatter.** **Shipped in Phase 59**, as specified: Poisson-disc in pure,
 seeded `core/geom/scatter.js`, uploaded as one `InstancedMesh`, with the same
@@ -519,7 +541,8 @@ kind of items.
 | ~~then~~ | ~~**Boolean / CSG**~~ | **done, Phase 58** — and it did not need Rust: 4.8 ms, once, at build time. It also turned up the missing `GEOMETRY_KINDS` guard list |
 | ~~then~~ | ~~**Scatter + instancing**~~ | **done, Phase 59** — 600 instances, one draw call, and the AK-47's floor is no longer bare |
 | ~~then~~ | ~~**Rigid bodies**~~ (37 priority 6) | **Tier 1 done, Phase 60** — the doc came first, as both registers demanded |
-| later | subdivision + displacement, render passes, volumetrics, GI | each is a phase of its own |
+| ~~then~~ | ~~**Subdivision + displacement**~~ | **done, Phase 61** — and displacement needed no wiring, only two diagnostics |
+| later | render passes / AOVs, volumetrics, global illumination | each is a phase of its own, and the first is the precondition for any real compositing |
 
 **Not planned, and the reason stated once:** a mesh-editing viewport,
 sculpting, weight painting, a node editor, video editing, motion tracking and

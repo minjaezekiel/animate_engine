@@ -220,6 +220,29 @@ const film = {
             emissiveMap: 'night',
             emissive: '#ffcf84',
             /**
+             * Relief that is geometry, not shading. Phase 61.
+             *
+             * The normal map above is derived from this same `height` plate
+             * and it cannot move a silhouette: the limb of a normal-mapped
+             * planet is a perfect circle. `displacementMap` moves the
+             * vertices, and the globe already has 160 x 96 of them, so this
+             * needed no `subdivide` -- only the two numbers.
+             *
+             * 0.009 on a radius of 1 is about a 6x exaggeration of Earth's
+             * real 0.14% relief, which is what makes mountains readable at
+             * this scale. **0.022 is too much**: each quad of a 160 x 96
+             * sphere spans about 250 km, and a large height difference
+             * between adjacent vertices is a visible stair-step in the limb
+             * rather than a mountain. Displacement is bounded by vertex
+             * spacing in both directions.
+             *
+             * The bias is minus half the scale, so the mean radius stays
+             * where it was instead of the planet inflating.
+             */
+            displacementMap: 'height',
+            displacementScale: 0.009,
+            displacementBias: -0.0045,
+            /**
              * 0.45, not 1.5.
              *
              * There is no day/night mask without a custom shader, so an

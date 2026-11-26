@@ -29,6 +29,8 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
+import { captureAOV, aovTarget, aovToPNG } from './src/render/aov.js';
+import { AOV_KINDS, objectManifest } from './src/core/render/aov.js';
 import { samplePostAt } from './src/core/script/post.js';
 import { matchVisemeMorphs } from './src/core/art/visemeMorphs.js';
 import { getTrack } from './src/core/anim/Timeline.js';
@@ -745,6 +747,71 @@ window.render3d = async function render3d(film, opts = {}) {
         poser.reset();
         return { digests: out, duration: compiled.duration,
                  diagnostics: compiled.diagnostics };
+    }
+
+    /**
+     * Render passes (AOVs): depth, normal and object matte.
+     *
+     * Rendered OFF the post chain and off the overlay on purpose. A depth
+     * pass with bloom on it is not a depth pass, and a matte with a subtitle
+     * burned into it is a matte of the subtitle. The composite canvas is the
+     * picture; these are the data beside it.
+     *
+     * `probe` returns raw bytes at named pixels so the check can be made in
+     * Node by the same pure functions a compositor would use, instead of
+     * encoding a PNG here and decoding it there. See `core/render/aov.js`.
+     */
+    if (opts.aov) {
+        const kinds = (opts.aov.kinds ?? AOV_KINDS).filter((k) => AOV_KINDS.includes(k));
+        const bad = (opts.aov.kinds ?? []).filter((k) => !AOV_KINDS.includes(k));
+        for (const k of bad) report(`[aov] unknown pass '${k}'; try ${AOV_KINDS.join(', ')}`);
+        const target = aovTarget(THREE, width, height);
+        const times = opts.aov.at ?? [0];
+        const probe = opts.aov.probe ?? [];
+        const passes = [];
+        const probes = [];
+        const raws = [];
+        for (const t of times) {
+            warmTo(t);
+            for (const kind of kinds) {
+                const pass = captureAOV(THREE, {
+                    kind, renderer, scene: built.root, camera: built.camera,
+                    target, registry: built.registry, width, height,
+                });
+                if (!opts.aov.probeOnly) {
+                    passes.push({ kind, t, png: aovToPNG(pass, (w, h) => {
+                        const c = document.createElement('canvas');
+                        c.width = w; c.height = h; return c;
+                    }) });
+                }
+                if (probe.length) {
+                    probes.push({ kind, t, px: probe.map(([x, y]) => {
+                        const i = (y * width + x) * 4;
+                        return [pass.pixels[i], pass.pixels[i + 1],
+                                pass.pixels[i + 2], pass.pixels[i + 3]];
+                    }) });
+                }
+                // The whole buffer, base64, for a measurement over every
+                // pixel. Raw bytes rather than a PNG: a check that has to
+                // decode an image first is a check of the decoder too.
+                if (opts.aov.raw) {
+                    let bin = '';
+                    for (let i = 0; i < pass.pixels.length; i += 0x8000) {
+                        bin += String.fromCharCode(...pass.pixels.subarray(i, i + 0x8000));
+                    }
+                    raws.push({ kind, t, base64: btoa(bin) });
+                }
+            }
+        }
+        target.dispose();
+        poser.reset();
+        return {
+            aovs: passes, probes, raws,
+            manifest: objectManifest([...built.registry.keys()]),
+            camera: { near: built.camera.near, far: built.camera.far,
+                      ortho: !!built.camera.isOrthographicCamera },
+            duration: compiled.duration, diagnostics: compiled.diagnostics,
+        };
     }
 
     // Grab single frames at given times. The cheapest way to check that a

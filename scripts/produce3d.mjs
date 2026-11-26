@@ -37,6 +37,7 @@ import { extname, join, normalize, dirname } from 'node:path';
 import { acquireLock, releaseLock } from './lib/render-lock.mjs';
 import { handleTake } from './lib/take-cache-server.mjs';
 import { resolveSize, QUALITIES } from '../src/core/render/quality.js';
+import { AOV_KINDS, depthRange, depthQuantum } from '../src/core/render/aov.js';
 
 const CHROME = process.env.CHROME_PATH
     ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -97,6 +98,40 @@ const NO_RETIME = process.env.NO_RETIME === '1';
 const TTS_MODULE_URL = process.env.TTS_MODULE_URL
     ?? (existsSync(new URL('../vendor/vits-web.js', import.meta.url))
         ? '/vendor/vits-web.js' : null);
+/**
+ * AOV=depth,normal,object writes render passes beside the picture.
+ *
+ *   AOV=depth GRAB=12.5 FILM=demo/ak47.json node scripts/produce3d.mjs
+ *
+ * Times come from `GRAB` when it is set, because the frame you want a matte
+ * for is the frame you were looking at. A whole sequence is the same loop
+ * with every frame in it; see docs/13-3D-FILM.md for why that is not the
+ * default.
+ *
+ * ponytail: single times, not a sequence. A 1,200-frame film is 1,200
+ * base64 round trips through CDP; the upgrade is a per-frame write inside
+ * `renderOffline`'s loop, and nothing composites here yet to need it.
+ */
+const AOV = process.env.AOV ? process.env.AOV.split(',').map((s) => s.trim()) : null;
+/** What each pass holds, written into the sidecar so the file explains itself. */
+const PASS_DOC = {
+    depth: { encoding: 'three.js RGBADepthPacking, red most significant',
+             depth: 'z = r/256 + g/65536 + b/16777216 + a/4294967296',
+             distance: 'perspective: (near*far)/(far - (far-near)*z); '
+                 + 'orthographic: near + z*(far-near)',
+             note: 'opens white: red saturates beyond 2.56 m with a 0.01 m near plane' },
+    normal: { encoding: 'three.js MeshNormalMaterial, n*0.5+0.5 per channel',
+              normal: 'n = [r,g,b]/127.5 - 1, renormalised',
+              space: 'view space, geometric -- no normal map is applied' },
+    object: { encoding: 'flat matte colour per node, no antialiasing',
+              lookup: '`colors` below maps #rrggbb to the node id',
+              note: 'black is reserved for the background' },
+};
+if (AOV) {
+    const bad = AOV.filter((k) => !AOV_KINDS.includes(k));
+    if (bad.length) throw new Error(`AOV=${bad.join(',')} is not a pass; `
+        + `try ${AOV_KINDS.join(', ')}`);
+}
 // GRAB=1,34.4,40 writes a PNG per time instead of a video. Looking at the
 // thing is the only check that catches a model not looking like a rifle.
 const GRAB = process.env.GRAB ? process.env.GRAB.split(',').map(Number) : null;
@@ -302,6 +337,55 @@ if (DIGEST) {
     for (const d of findings) console.log(`  [${d.severity}] ${d.message}`);
     await browser.close(); server.close(); releaseLock();
     process.exit(findings.length ? 1 : 0);
+}
+
+if (AOV) {
+    const dir = join(ROOT, dirname(OUT));
+    await mkdir(dir, { recursive: true });
+    const res = await page.evaluate((f, o) => window.render3d(f, o), film,
+        { width: WIDTH, height: HEIGHT, silent: true,
+          aov: { kinds: AOV, at: GRAB ?? [0], raw: AOV.includes('depth') } });
+    for (const a of res.aovs) {
+        const f = join(dir, `aov-${a.kind}-${String(a.t).replace('.', '_')}.png`);
+        await writeFile(f, Buffer.from(a.png.split(',')[1], 'base64'));
+        console.log(`  ${f.replace(ROOT, '')}`);
+    }
+    /**
+     * One sidecar for every pass, not just the mattes.
+     *
+     * A render pass without the key to read it is a picture of data. The
+     * depth pass in particular opens WHITE (see `depthRange`), so the file
+     * that says what it contains is the half of the feature that makes it
+     * usable -- and it is also the only place the decode is written down
+     * where a compositor, rather than this repo's test suite, will find it.
+     */
+    const sidecar = {
+        camera: res.camera, width: WIDTH, height: HEIGHT,
+        passes: Object.fromEntries(AOV.map((k) => [k, PASS_DOC[k]])),
+    };
+    for (const r of res.raws ?? []) {
+        if (r.kind !== 'depth') continue;
+        const px = Buffer.from(r.base64, 'base64');
+        const range = depthRange(px, res.camera);
+        sidecar.depthRange = { ...range, at: r.t,
+                               quantum: depthQuantum(range.far, res.camera) };
+        console.log(`  depth at ${r.t}s: ${range.near.toFixed(3)} m to `
+            + `${range.far.toFixed(3)} m over ${(range.covered * 100).toFixed(1)}% `
+            + `of the frame (+/-${depthQuantum(range.far, res.camera).toExponential(1)} m `
+            + 'at the back)');
+    }
+    if (AOV.includes('object')) Object.assign(sidecar, res.manifest);
+    const mf = join(dir, 'aov-manifest.json');
+    await writeFile(mf, `${JSON.stringify(sidecar, null, 2)}\n`);
+    console.log(`  ${mf.replace(ROOT, '')}`
+        + (res.manifest && AOV.includes('object')
+            ? ` -- ${Object.keys(res.manifest.colors).length} mattes, `
+              + `${res.manifest.collisions.length} collision(s)` : ''));
+    console.log(`  camera: near ${res.camera.near} far ${res.camera.far}`
+        + `${res.camera.ortho ? ' (orthographic: depth is LINEAR)' : ''}`);
+    for (const d of res.diagnostics) console.log(`  [${d.severity}] ${d.message}`);
+    await browser.close(); server.close(); releaseLock();
+    process.exit(0);
 }
 
 console.log(`rendering ${FILM} at ${WIDTH}x${HEIGHT} (${FORMAT})${PROBE ? ' probe, no encode' : ''}`);

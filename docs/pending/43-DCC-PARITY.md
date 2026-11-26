@@ -191,8 +191,8 @@ Every "yes" names where it lives, so the claim can be checked.
 | Real-time (raster) engine | **yes** | three.js, WebGL2 |
 | GPU rendering, animation rendering, resolution, sampling | **yes** | Phase 48: `QUALITY=720p`, MSAA, bitrate from pixels |
 | Path tracing | **no** | Tier 2 of 42 |
-| Render passes / AOVs | **no** | **Engine gap**, and the precondition for real compositing |
-| Render layers | **no** | Engine gap, with passes |
+| Render passes / AOVs | **yes** | Phase 62: `AOV=depth,normal,object`. A cube 11.000 m away reads **10.999909 m**, one eighth of a code step |
+| Render layers | **no** | Engine gap. The object pass is most of it: a matte per part is a layer you can pull |
 | Denoising | **no** | Only matters with path tracing |
 | Workbench / preview shading | *partial* | `PROBE=1` and `DIGEST=1` answer "what is in the frame" in numbers instead |
 
@@ -204,7 +204,7 @@ Every "yes" names where it lives, so the claim can be checked.
 | Glow, blur, vignette, grain, chromatic aberration | **yes** | `bloom`, `dof`, `grade` |
 | Keyable post | **yes** | Phase 44 |
 | Lens distortion | **no** | Engine gap, trivial, in the `grade` shader |
-| Masking, alpha, background replacement, pass combination | **no** | Engine gap, and all four want 2.11's passes first |
+| Masking, alpha, background replacement, pass combination | *partial* | Phase 62 shipped what all four waited on: the object pass is the matte, **63 mattes, 0 collisions** on the AK-47. Combining them is a compositor's job, and this engine is not one |
 | Node-based compositing | **no** | Category error: `POST_ORDER` is the graph, as a list, because a linear chain is what a film needs |
 
 ### 2.13 Video and audio
@@ -249,7 +249,7 @@ small and unblock films that exist; the rest are subsystems.
 | 6 | ~~Subdivision + displacement~~ | **done, Phase 61** | Loop, not Catmull-Clark: a 12x8 sphere's crease goes **29.45 -> 3.79** degrees over three levels, and a linear split holds a unit cube at 1.000000. The earth film's limb: **36.5%** of pixels changed |
 | 7 | ~~Scatter / instancing on points~~ | **done, Phase 59** | 600 grit instances on the AK-47's floor took the frame from **234 draw calls to 235**. Poisson-disc, seeded: closest pair **0.0742 m** against uniform random's 0.0095 m |
 | 8 | ~~Rigid-body dynamics, baked to keys~~ | **Tier 1 done, Phase 60** | Eight cases land in the AK-47 film and rest at y **-1.5846** against an analytic -1.5843. Stacking needs box-box and is Tier 2 |
-| 9 | **Render passes / AOVs** | M | The precondition for masking, pass recombination and any real compositing |
+| 9 | ~~Render passes / AOVs~~ | **done, Phase 62** | `AOV=depth,normal,object`, decoded by pure arithmetic in `core/render/aov.js`. A cube at a known 11.000 m reads **10.999909 m**, against that frustum's own quantisation step of 7.2e-4 m. The depth pass opens WHITE and is correct; it is measured, not looked at |
 | 10 | **Volumetrics** (smoke, fire, god rays) | L | One solver, three products |
 | 11 | **Global illumination** | L | Tier 2 of 42; the honest remainder of the gap to Blender |
 
@@ -508,11 +508,18 @@ against box, which needs a contact manifold and is most of a physics engine,
 and therefore stacking; and joints, which are a second system beside the
 `constraints` that already exist.
 
-**9. Render passes.** `EffectComposer` already renders to targets;
-`MeshNormalMaterial`/`MeshDepthMaterial` overrides already exist in GTAO. An
-`aov: ['depth', 'normal', 'object']` on the render request writes extra PNG
-sequences beside the video. *Proof:* a depth pass reconstructs the known
-camera distance of a test object to within one quantisation step.
+**9. Render passes. Done, Phase 62.** Built as planned, with three
+corrections the plan could not have known. The passes do NOT go through
+`EffectComposer`: they render into their own `samples: 0` target, because the
+page's renderer is antialiased and an antialiased matte is a **wrong** matte
+-- a blended edge pixel is a third id belonging to nobody. Tone mapping and
+`outputColorSpace` come off around them, because both exist to make light
+right and a pass writes data. And the deliverable is not the PNG but the
+**decode**: `core/render/aov.js` is pure, unit-tested, and is what the pixel
+probe measures the renderer with. *Proof, as specified:* a test cube at a
+known 11.000 m reads **10.999909 m**, an error of 9.1e-5 m against
+`depthQuantum`'s 7.2e-4 m -- one eighth of a quantisation step. Single times
+rather than sequences, marked `ponytail:` with the upgrade named.
 
 **10. Volumetrics.** One grid solver (a kernel) feeding a 3D texture and a
 ray-marched shader; smoke, fire and god rays are three configurations of it.
@@ -542,7 +549,8 @@ kind of items.
 | ~~then~~ | ~~**Scatter + instancing**~~ | **done, Phase 59** — 600 instances, one draw call, and the AK-47's floor is no longer bare |
 | ~~then~~ | ~~**Rigid bodies**~~ (37 priority 6) | **Tier 1 done, Phase 60** — the doc came first, as both registers demanded |
 | ~~then~~ | ~~**Subdivision + displacement**~~ | **done, Phase 61** — and displacement needed no wiring, only two diagnostics |
-| later | render passes / AOVs, volumetrics, global illumination | each is a phase of its own, and the first is the precondition for any real compositing |
+| ~~then~~ | ~~**Render passes / AOVs**~~ | **done, Phase 62** -- and it found that three's depth packing puts the coarsest bits in red, which read the other way is a plausible depth map of nothing |
+| later | volumetrics, global illumination | each is a phase of its own |
 
 **Not planned, and the reason stated once:** a mesh-editing viewport,
 sculpting, weight painting, a node editor, video editing, motion tracking and

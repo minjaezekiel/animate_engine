@@ -1185,3 +1185,138 @@ not one pixel — which is why the implicit path assigns `material.envMap`
 directly.
 
 `meta.environment` had been parsed here since Phase 14 and read by nothing.
+
+---
+
+## 12. Render passes (AOVs) — depth, normal and object matte
+
+**Phase 62.** A finished frame is one picture with every decision baked into
+it. A compositor needs the decisions back: which pixels are the rifle, how
+far away each one is, which way each surface faces. Those are render passes,
+and this engine had none — which is why §2.12 of
+[pending/43-DCC-PARITY.md](pending/43-DCC-PARITY.md) lists masking, alpha,
+background replacement and pass combination as four separate gaps that are
+really one.
+
+```
+AOV=depth,normal,object GRAB=12.5 FILM=demo/ak47.json node scripts/produce3d.mjs
+```
+
+writes `aov-depth-12_5.png`, `aov-normal-12_5.png`, `aov-object-12_5.png` and
+one `aov-manifest.json` beside the video. `AOV` is a **render** option, not a
+film property, for the same reason `QUALITY` is: it describes this output, not
+this film.
+
+### What each pass is
+
+| Pass | What it holds | Read it with |
+|---|---|---|
+| `depth` | distance from the camera, 24-bit, packed over RGBA | `unpackDepth` then `depthToDistance` |
+| `normal` | the **geometric** surface normal in view space | `decodeNormal` |
+| `object` | a flat, unique colour per node — the matte | `aov-manifest.json`'s `colors` |
+
+The decode lives in [`src/core/render/aov.js`](../src/core/render/aov.js),
+is pure, and is the same code the probe checks real pixels with. That is the
+point: *an AOV is only worth writing if it can be read back*, so the decode is
+the feature and the PNG is its container.
+
+### The depth pass opens white, and that is correct
+
+With the standard 0.01 m near plane, red — the most significant byte —
+saturates for everything beyond **2.56 m**. A scene filmed from three metres
+writes 255 into red for every pixel of it and keeps the picture in green and
+blue. Opening the file shows a white rectangle, which is indistinguishable
+from the pass having failed.
+
+So it is measured rather than looked at. One frame of the AK-47 film:
+
+```
+depth at 12.5s: 0.596 m to 6.892 m over 60.7% of the frame (+/-2.8e-04 m at the back)
+```
+
+`depthRange` excludes the background, because the background *is* the far
+plane by construction and would hide the answer. The sidecar carries the
+same numbers plus the decode formula, so the file explains itself to a
+compositor that has never read this document.
+
+### Why precision is a function of distance
+
+A perspective depth buffer spends nearly all its codes near the near plane.
+`depthQuantum(d)` is metres per code step at distance *d*, and any claim
+about a depth pass that does not come with it is not a claim:
+
+| distance | metres per code step (0.01 / 200 frustum, 24 bits) |
+|---|---|
+| 1 m | 1.19e-7 |
+| 11 m | 7.21e-4 |
+| 100 m | 1.19e-2 |
+
+The probe asserts against that number, not against a remembered tolerance.
+
+An **orthographic** camera's depth buffer is linear, so the same bytes mean a
+different distance. `ortho` is a parameter of `depthToDistance` rather than an
+assumption, because applying the perspective formula to an ortho pass is a
+wrong answer with no symptom.
+
+### Why the passes render without antialiasing
+
+The page's renderer is created with `antialias: true`, and an antialiased
+object pass is not a worse object pass — it is a **wrong** one. A pixel on the
+boundary between two mattes resolves to the average of two ids, which is a
+third id: either nobody's, or, with bad luck, a third object's. A mask built
+on that grows a halo of pixels belonging to something else.
+
+So every pass renders into an explicit `WebGLRenderTarget` with `samples: 0`,
+which also buys `readRenderTargetPixels` — the bytes, directly, with no PNG
+in the loop. Tone mapping and `outputColorSpace` are switched off and back on
+around it, because both exist to make *light* look right and all three passes
+write *data*.
+
+### The matte is per PART, and the manifest is the key
+
+`ak/receiver` and `ak/barrel` get different colours; a compositor wanting the
+whole weapon unions every id under `ak/`. The colour is FNV-1a over the id,
+so it is stable across runs and across films — a mask set built last week
+still applies — where a counter would renumber everything the moment a film
+gained a node. **Black is reserved** for "no object here".
+
+24 bits and a few hundred nodes makes a collision unlikely and not
+impossible, and a collision means two objects share a matte, which looks
+exactly like a correct render of one object. So `objectManifest` reports
+collisions by name. The AK-47 film: **63 mattes, 0 collisions**.
+
+### What is not here
+
+The passes are written at single times, not as a sequence: a 1,200-frame film
+would be 1,200 base64 round trips through the debug protocol, and nothing in
+this repo composites yet. The upgrade is a per-frame write inside
+`renderOffline`'s loop and is marked `ponytail:` at the call site.
+
+`position`, `velocity` and `cryptomatte` are not here either. The first two
+are derivable from depth and the camera; the third is the right answer for
+antialiased mattes and is a format, not a pass.
+
+A normal pass shows **geometry**, not material: `MeshNormalMaterial` replaces
+the material, so a normal map's detail is absent by construction. That is the
+pass doing its job — it answers "which way does this surface face", and a
+normal map is an answer about light.
+
+### Checking it
+
+`npm run test:aov` renders a 2 m cube at a distance nobody has to measure —
+camera at z = 12, front face at z = 1, so the centre pixel is 11.000 m away —
+and checks every pass against that:
+
+```
+depth: centre bytes [255,199,178,0] -> 10.999909 m (err 9.06e-05 m, quantum 7.21e-04 m)
+normal: centre bytes [128,128,255] -> [0.0039, 0.0039, 1.0000]
+object: centre #a524fe want #a524fe
+  coverage 4.00% of the frame (analytic 3.92%)
+```
+
+The first run read 11 m as **0.010027 m** — the near plane — because the
+bytes were summed least-significant-first. Three's `packDepthToRGBA` puts the
+coarsest bits in **red**, not in alpha. The reversed reading is not noisy or
+obviously broken; it is a smooth, plausible depth map of nothing that exists,
+which is exactly why the probe compares against a distance known from the
+film's own geometry instead of eyeing a grey picture.

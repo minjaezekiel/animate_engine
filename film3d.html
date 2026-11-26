@@ -361,7 +361,10 @@ window.render3d = async function render3d(film, opts = {}) {
         // ORIGINAL skeleton, so two characters from one file move as one.
         cloneModel: SkeletonUtils.clone,
     });
-    built.camera.aspect = width / height;
+    // An orthographic camera has no `aspect`: its frame is its own left and
+    // right, which `buildScene3D` already derived from this width and height.
+    if (built.camera.isPerspectiveCamera) built.camera.aspect = width / height;
+    built.camera.updateProjectionMatrix();
 
     /**
      * Clipping planes, global rather than per-material.

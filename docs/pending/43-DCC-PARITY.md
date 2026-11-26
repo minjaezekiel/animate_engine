@@ -242,9 +242,9 @@ small and unblock films that exist; the rest are subsystems.
 | # | Gap | Size | Why it is where it is |
 |---|---|---|---|
 | 1 | **Area lights** | S | A light with size is the only source of a real penumbra. Already Tier 1.6 of 42 |
-| 2 | **Orthographic camera** | XS | One flag. Every blueprint, diagram and technical film wants it and none can have it |
-| 3 | **Drivers** | S | One property as a function of another; removes a class of hand-keyed arithmetic |
-| 4 | **UV projection** (box / triplanar / per-part grain angle) | S | Phase 53 shipped materials whose direction cannot be chosen |
+| 2 | ~~Orthographic camera~~ | **done, Phase 56** | `meta.ortho: 2.4`. Two identical cubes at different depths: near/far **2.39 -> 1.00** |
+| 3 | ~~Drivers~~ | **done, Phase 56** | `expr` over channels and `t`, parsed not evaluated. Agrees with the hand-keyed version to 1e-9 over every frame; shared by both compilers |
+| 4 | ~~UV projection~~ | **done, Phase 56** | `uv: { tile, angle }`. Two panels of one fabric: thread spacing **4.00x apart -> 1.04x**. Triplanar not built, and said why |
 | 5 | **Boolean / CSG** | M | The one modelling operation films keep needing. A hole is not a gap between parts |
 | 6 | **Subdivision + displacement** | M | Smooth organic form from coarse input, and the height maps already exist |
 | 7 | **Scatter / instancing on points** | M | A thousand trees, one draw call. Needs `InstancedMesh` and a point generator |
@@ -463,8 +463,8 @@ kind of items.
 
 | Phase | Work | Rationale |
 |---|---|---|
-| next | **Area lights** (42 Tier 1.6) | finishes Tier 1; a penumbra is the last cheap realism win |
-| then | **Orthographic camera + drivers + UV projection** | three small engine gaps in one phase; each is one declaration and a unit test |
+| ~~next~~ | ~~Area lights~~ (42 Tier 1.6) | **done, Phase 55** |
+| ~~then~~ | ~~Orthographic camera + drivers + UV projection~~ | **done, Phase 56** |
 | then | **The shared verb table** (37 priority 4) | a precondition for everything that adds a verb, and it stops the 2D/3D divergence at its source |
 | then | **Boolean / CSG** | the one modelling operation films keep asking for; first real Rust kernel beyond images |
 | then | **Scatter + instancing** | unblocks environments at scale and forces the draw-call fix |

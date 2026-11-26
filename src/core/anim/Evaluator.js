@@ -1,5 +1,6 @@
 import { trackValueAt } from './Track.js';
 import { clipLocalTime } from './Clip.js';
+import { applyDrivers } from './driver.js';
 
 /**
  * Samples a Timeline at an explicit time into a Pose, then applies a Pose to
@@ -184,6 +185,16 @@ export function samplePose(timeline, tSec) {
             : contribution.over(base));
     }
 
+    /**
+     * 4. Drivers, last, because a driver is arithmetic OVER the animation
+     *    rather than a layer of it: a wheel's rotation is the car's travel,
+     *    and the car has to have travelled before the wheel can be told.
+     *
+     *    Exempt from the hold for the same reason the camera is: a film shot
+     *    on twos holds its drawings on twos, not its mechanisms.
+     */
+    applyDrivers(timeline.drivers, pose, { time: tSec });
+
     return pose;
 }
 
@@ -229,6 +240,7 @@ export function applyPose(scene, pose) {
  */
 export function timelineChannels(timeline) {
     const channels = [];
+    for (const d of timeline.drivers ?? []) channels.push([d.target, d.path]);
     for (const track of timeline.tracks) channels.push([track.target, track.path]);
     for (const inst of timeline.instances) {
         const clip = timeline.clips.get(inst.clipId);

@@ -1,4 +1,5 @@
 import { emitterState } from '../../core/anim/particles.js';
+import { boxUV, normalizeUV } from '../../core/geom/uv.js';
 import { humanoidSpec, segmentSkin } from '../../core/art/humanoid3d.js';
 import { buildTube, buildHead, buildHairCap } from '../../core/art/mesh3d.js';
 import { faceMorphs } from '../../core/art/face3d.js';
@@ -161,6 +162,35 @@ const GEOMETRY = {
         return new T.ExtrudeGeometry(shape, options);
     },
 };
+
+/**
+ * Replace a geometry's UVs with a box projection, when the film asks.
+ *
+ * Every primitive unwraps each face to the full 0..1 square, so a 1.2 m
+ * panel and a 0.2 m block carry the same texture over six times the
+ * distance. `uv: { tile: 0.25 }` makes a repeat mean a fixed amount of
+ * SURFACE instead, which is what Phase 53's materials assume and could not
+ * get. Once, at build time; see `core/geom/uv.js` for why the arithmetic
+ * lives there.
+ */
+function projectUV(geometry, spec) {
+    const uv = normalizeUV(spec);
+    if (!uv) return geometry;
+    const position = geometry.getAttribute('position');
+    if (!position) return geometry;
+    const normal = geometry.getAttribute('normal');
+    const existing = geometry.getAttribute('uv');
+    const data = boxUV({ positions: position.array, normals: normal?.array ?? null,
+                         tile: uv.tile, angle: uv.angle, offset: uv.offset });
+    if (existing) {
+        // Reuse the attribute object so nothing downstream holds a stale one.
+        existing.array.set(data.subarray(0, existing.array.length));
+        existing.needsUpdate = true;
+    } else {
+        geometry.setAttribute('uv', new position.constructor(data, 2));
+    }
+    return geometry;
+}
 
 /** `new T.Object3D()`, named so the pre-walk block above reads as intent. */
 const THREE_OBJECT = (T) => new T.Object3D();
@@ -1240,7 +1270,19 @@ export function buildScene3D(T, compiled, {
     const w = width ?? meta.width;
     const h = height ?? meta.height;
 
-    const camera = new T.PerspectiveCamera(meta.fov ?? 38, w / h, 0.01, 200);
+    /**
+     * The camera. Orthographic when the film asks for one, which is what a
+     * blueprint, an exploded view or an isometric set is drawn with: two
+     * parts the same size measure the same on the page whatever their depth.
+     *
+     * `meta.ortho` is the frame HEIGHT in world units; the width follows the
+     * aspect, so changing the output resolution never reframes the film --
+     * the same rule `test/core/resolution.test.mjs` already enforces for 2D.
+     */
+    const camera = meta.ortho > 0
+        ? new T.OrthographicCamera((-meta.ortho * (w / h)) / 2, (meta.ortho * (w / h)) / 2,
+                                   meta.ortho / 2, -meta.ortho / 2, 0.01, 200)
+        : new T.PerspectiveCamera(meta.fov ?? 38, w / h, 0.01, 200);
     const lookTarget = new T.Object3D();
     root.add(camera);
     root.add(lookTarget);
@@ -1283,7 +1325,7 @@ export function buildScene3D(T, compiled, {
         if (node.kind === 'mesh') {
             const build = GEOMETRY[p.geometry?.kind];
             if (!build) return;
-            object = new T.Mesh(build(T, p.geometry, geometries),
+            object = new T.Mesh(projectUV(build(T, p.geometry, geometries), p.geometry?.uv),
                                 makeMaterial(T, p.material, p.blending, textures, clipByName));
             // A cut face and a sky shell are both single-sided surfaces seen
             // from the inside at some point in a move, so a mesh may ask for

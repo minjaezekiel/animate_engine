@@ -1,4 +1,6 @@
 import { Scene } from '../scene/Scene.js';
+import { compileDrivers } from '../anim/driver.js';
+import { timelineChannels } from '../anim/Evaluator.js';
 import { normalizeDuck } from '../audio/ducking.js';
 import { normalizeMotionBlur } from '../motion/motionBlur.js';
 import { createTimeline, key, addClip, addInstance } from '../anim/Timeline.js';
@@ -282,6 +284,12 @@ export function compileFilm(film, { assets = {} } = {}) {
 
     buildTransitions({ scene, timeline, sceneSpans, meta });
     buildSubtitleNode({ scene, meta });
+
+    // Shared with the 3D compiler, deliberately: a driver is arithmetic over
+    // channels and neither path owns that. See `core/anim/driver.js`.
+    compileDrivers(film.drivers, timeline,
+                   (message, location) => diagnostics.push({ severity: 'warning', message, location }),
+                   { channels: new Set(timelineChannels(timeline).map(([t, p]) => `${t}.${p}`)) });
 
     return {
         scene,

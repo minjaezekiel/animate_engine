@@ -129,7 +129,7 @@ const norm = (a) => { const l = Math.hypot(...a) || 1; return [a[0] / l, a[1] / 
  * All eight corners, not the centre: a long object seen end-on has a centre
  * that sits comfortably in frame while both ends run off it.
  */
-export function projectBounds({ lo, hi }, { eye, look, fov, aspect }) {
+export function projectBounds({ lo, hi }, { eye, look, fov, aspect, ortho = 0 }) {
     const f = norm(sub(look, eye));
     const r = norm(cross(f, Math.abs(f[1]) > 0.99 ? [0, 0, 1] : [0, 1, 0]));
     const u = cross(r, f);
@@ -142,8 +142,14 @@ export function projectBounds({ lo, hi }, { eye, look, fov, aspect }) {
         const z = dot(d, f);
         minZ = Math.min(minZ, z);
         if (z <= 1e-4) { behind++; continue; }
-        const x = (dot(d, r) / z) / (tan * aspect);
-        const y = (dot(d, u) / z) / tan;
+        /**
+         * An orthographic frame does not divide by depth -- that division IS
+         * perspective. Without this branch every framing check on an ortho
+         * film measures a frame the renderer never drew, and the staging
+         * warnings become noise exactly where a technical film needs them.
+         */
+        const x = ortho > 0 ? dot(d, r) / ((ortho * aspect) / 2) : (dot(d, r) / z) / (tan * aspect);
+        const y = ortho > 0 ? dot(d, u) / (ortho / 2) : (dot(d, u) / z) / tan;
         minX = Math.min(minX, x); maxX = Math.max(maxX, x);
         minY = Math.min(minY, y); maxY = Math.max(maxY, y);
     }
@@ -220,7 +226,8 @@ export function analyseFraming3D(compiled, film, { samplesPerShot = 3 } = {}) {
                 if (on && !on.includes('/') && s.name !== on) continue;
                 report.push({ shotId: shot.shotId, t: +t.toFixed(2), subject: s.name, wanted,
                               on: on === s.name,
-                              ...projectBounds(s.bounds, { eye, look, fov, aspect }) });
+                              ...projectBounds(s.bounds, { eye, look, fov, aspect,
+                                                          ortho: compiled.meta?.ortho ?? 0 }) });
             }
         }
     }

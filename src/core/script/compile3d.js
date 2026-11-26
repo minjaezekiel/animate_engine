@@ -9,6 +9,8 @@ import { EXPRESSIONS } from '../art/face3d.js';
 import { normalizeConstraints, humanoidCorrectives } from '../rig/constraints.js';
 import { gripAngles, DIGIT_IDS, HAND_POSE_NAMES } from '../art/hands.js';
 import { expandPreset, PRESET_NAMES } from '../art/materials.js';
+import { compileDrivers } from '../anim/driver.js';
+import { timelineChannels } from '../anim/Evaluator.js';
 import { normalizePost, normalizePostRamp, isPostKeyable, postChannel,
          POST_KEYABLE, POST_NODE } from './post.js';
 import { normalizeOverlay } from '../art/overlay.js';
@@ -62,6 +64,13 @@ const vec3 = (v, fallback = 0) => (Array.isArray(v)
  * `environment: false` opts out, and anything else that is false-y gets the
  * built-in studio.
  */
+/** `ortho: true | 2.4` -> the frame height in world units, or 0 for perspective. */
+function orthoHeight(spec) {
+    if (spec === true) return 2;
+    const n = Number(spec);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 /** Every light type `makeLight` actually builds. See the guard list below. */
 export const LIGHT_TYPES = ['ambient', 'hemisphere', 'point', 'spot', 'directional', 'area'];
 
@@ -208,6 +217,26 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         width: film.meta?.width ?? DEFAULTS.width,
         height: film.meta?.height ?? DEFAULTS.height,
         background: film.meta?.background ?? '#0b0b0d',
+        /**
+         * An orthographic camera: parallel projection, no perspective.
+         *
+         * `ortho: 2.4` means "the frame is 2.4 world units tall"; `true`
+         * means 2. Zero -- the default -- is a perspective camera and every
+         * film that predates this.
+         *
+         * It is a property of the FILM rather than of a shot, because the
+         * post chain, the AO pass and the depth-of-field pass each hold a
+         * reference to one camera object; swapping projections mid-film means
+         * swapping that object underneath them. A film that wants both is two
+         * films, and every film that wants this -- a blueprint, an exploded
+         * view, a technical diagram, an isometric set -- wants it throughout.
+         *
+         * Perspective is how an eye sees. Orthographic is how a DRAWING of a
+         * machine is read: two parts the same size measure the same on the
+         * page whatever their depth, which is the entire point of a technical
+         * drawing and was not expressible here at all.
+         */
+        ortho: orthoHeight(film.meta?.ortho),
         /**
          * An image-based lighting environment: an HDR panorama that lights
          * the scene and can also be its sky.
@@ -875,6 +904,13 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
                             location: `${s.shotId}.actions[${ai}]` });
         }
     }
+
+    /**
+     * Drivers, compiled last, because the reference check needs every track
+     * the film turned out to write.
+     */
+    compileDrivers(film.drivers, timeline, warn,
+                   { channels: new Set(timelineChannels(timeline).map(([t, p]) => `${t}.${p}`)) });
 
     /**
      * The default environment, decided last because it depends on what the

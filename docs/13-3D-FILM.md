@@ -232,6 +232,108 @@ The magazine is now **one swept profile** instead of four rotated slabs, and
 the seams are gone. A lathe covers every turned part — a muzzle nut, a gas
 piston, a case — where stacked cylinders are what make a model read as blocks.
 
+### `ortho` — the camera a technical drawing is read with
+
+Perspective is how an eye sees. **Orthographic is how a drawing of a machine
+is read**: two parts the same size measure the same on the page whatever
+their depth, which is the entire point of a technical drawing and was not
+expressible here at all.
+
+```jsonc
+"meta": { "ortho": 2.4 }     // the frame is 2.4 world units tall
+"meta": { "ortho": true }    // the same, at 2
+```
+
+Measured on two identical cubes at different depths:
+
+| | perspective | orthographic |
+|---|---|---|
+| near cube | 201 px wide | 100 px |
+| far cube | 84 px | 100 px |
+| near / far | **2.39** | **1.00** |
+
+The width follows the output aspect, so changing the resolution never
+reframes the film — the same rule `test/core/resolution.test.mjs` enforces
+for 2D. The framing checks know about it: `projectBounds` skips the divide by
+depth, because that division *is* perspective, and without the branch every
+staging warning on an ortho film would measure a frame the renderer never
+drew.
+
+It is a property of the **film**, not of a shot. The post chain, the AO pass
+and the depth-of-field pass each hold a reference to one camera object, so
+switching projections mid-film means swapping that object underneath them —
+and every film that wants this (a blueprint, an exploded view, an isometric
+set) wants it throughout.
+
+### `drivers` — a relationship instead of a list of answers
+
+Some values are **arithmetic, not acting**. A wheel's rotation is the
+vehicle's travel over its radius. A dial reads a pressure. A fan turns at a
+constant rate forever. Keying those is writing down the answers to a sum, and
+the sum has to be re-done by hand every time the input moves.
+
+```jsonc
+"drivers": [
+  { "target": "wheel", "path": "transform.rot", "expr": "car.transform.x * -114.6" },
+  { "target": "fan",   "path": "transform.rot", "expr": "t * 720" }
+]
+```
+
+`t` is the time in seconds, so the second line is a fan that spins forever
+with no keys at all. Available: `+ - * / %`, parentheses, and `abs floor ceil
+round sqrt sign sin cos tan atan2 min max pow clamp lerp rad deg step`.
+Angles are degrees, like every other angle in a film script.
+
+Drivers resolve **after** the animation they read and in declaration order,
+so a chain works (`b` from `a`, `c` from `b`). A reference nothing animates
+reads 0 and says so at compile time, because a driver that silently evaluates
+to zero is a part that silently does not move. A driver and the hand-keyed
+version of the same relationship agree to 1e-9 over every frame, which is the
+test that says this is the sum rather than an approximation of it.
+
+**There is no `eval` here, and that is the point.** A film is data: it arrives
+as JSON, it is written by scripts and by agents, and it is checked into git.
+The moment a film can name code, every film in the repository is an
+executable and `git clone` is an arbitrary code execution. `expr` is parsed
+by a hand-written recursive-descent parser over a closed grammar with no
+property access, no call into anything it did not define, and no way to reach
+a global — `alert(1)` is a parse error, and `globalThis` is a channel name
+that resolves to zero. See
+[43-DCC-PARITY.md §4.5](pending/43-DCC-PARITY.md).
+
+Shared by both compilers, deliberately: a driver is arithmetic over channels
+and neither path owns that, so `core/anim/driver.js` is called by
+`compile.js` and `compile3d.js` alike.
+
+### `uv` — a tile is an amount of surface
+
+Every primitive unwraps each face to the full 0..1 square. So a 1.2 m panel
+and a 0.3 m panel carry the same texture across four times the distance, and
+the cloth on one is woven four times coarser than the cloth on the other.
+Phase 53 shipped a material library whose whole contract is "one tile is
+about a metre of surface", and there was no way to make that true.
+
+```jsonc
+{ "kind": "cube", "width": 1.2, "height": 0.5,
+  "uv": { "projection": "box", "tile": 0.3, "angle": 0 } }
+```
+
+Measured on two panels of the same fabric, 1.2 m and 0.3 m wide:
+
+| | thread spacing, long panel | short panel | ratio |
+|---|---|---|---|
+| the primitive's own UVs | 22.86 px | 5.71 px | **4.00** |
+| `box`, `tile: 0.3` | 5.93 px | 5.71 px | **1.04** |
+
+And the weave stops being stretched: 5.93 across against 5.83 down, where the
+primitive's UVs gave 22.86 against 10.00 on the same panel.
+
+`angle` rotates the projection in degrees, which is how a part aims its grain
+— the limitation Phase 53 shipped with. Box projection only; triplanar
+blending needs a shader and three texture reads per fragment to remove a seam
+that is invisible on flat-sided geometry. It runs once, at build time: a
+per-frame UV recompute is the one thing the performance rule forbids.
+
 ### `area` — a light with size
 
 Every light in this engine was a point or a direction. A point source cannot

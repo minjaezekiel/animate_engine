@@ -54,6 +54,16 @@ if (ONION && (ONION.length !== 3 || ONION.some((n) => !Number.isFinite(n)))) {
  */
 const ONION_ONLY = process.env.ONION_ONLY
     ? process.env.ONION_ONLY.split(',').map((x) => x.trim()).filter(Boolean) : null;
+/**
+ * How a ghost's distance is counted: `drawing` (default), `frame`, `second`.
+ *
+ * `drawing` is the animator's unit and this is a drawn film, so it is the
+ * default: on a shot exposed on twos, "two back" means two DRAWINGS back
+ * and not 0.5 s back, which would be six drawings. See
+ * `src/core/anim/onion.js`. `ONION`'s third number is then "every Nth
+ * drawing" rather than a duration.
+ */
+const ONION_STEP = process.env.ONION_STEP ?? 'drawing';
 // Default to the authored size. Overriding it is how you check that a render
 // at another resolution SCALES the film rather than cropping it -- the defect
 // that shipped a 1280x720 film as a 640x360 window onto its own middle.
@@ -113,7 +123,7 @@ async function onPage(page, url, fn) {
 }
 
 const film = JSON.parse(await readFile(join(ROOT, FILM), 'utf8'));
-const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async (f, times, size, onionSpec, only) => {
+const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async (f, times, size, onionSpec, only, onionStep) => {
     window.jirex.setFilm(f);
     const prepared = await window.jirex.prepare({ skipVoices: true });
     // The studio's own log, which carries the asset and compile diagnostics.
@@ -186,6 +196,8 @@ const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async
      */
     const { OnionSkin, ghostMask, castRoots } =
         await import('/src/render/onionSkin.js');
+    const { ghostPlan, shotWindow } = await import('/src/core/anim/onion.js');
+    const { filmShots } = await import('/src/core/script/compile.js');
     const ghosted = only ?? castRoots(f);
     const mask = ghostMask(prepared.scene, ghosted);
     const hidden = only?.includes('*') ? [] : mask.hidden;
@@ -223,7 +235,29 @@ const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async
             // an opaque target would silently break.
             const gctx = ghostLayer.getContext('2d');
             gctx.clearRect(0, 0, w, h);
+            /**
+             * The ghosts are chosen off the EXPOSURE, and clamped to the
+             * SHOT.
+             *
+             * One composited ghost frame cannot be on two exposures at
+             * once, so the target counted in is the single ghosted node
+             * when there is one and the shot's blanket step otherwise --
+             * the honest answer rather than a silent pick.
+             *
+             * The shot clamp is the other half: a ghost across a cut is a
+             * drawing from another scene, with different staging and a
+             * different camera, and nothing an animator can read an arc
+             * from. Clamping to the film let exactly that through.
+             */
+            const plan = ghostPlan(prepared.timeline, {
+                target: ghosted.length === 1 ? ghosted[0] : null,
+                time: t, before: onionSpec[0], after: onionSpec[1],
+                step: onionStep, spacing: onionSpec[2],
+                within: shotWindow(filmShots(f), t) ?? [0, prepared.meta.duration],
+                duration: prepared.meta.duration,
+            });
             ghostCount = onion.draw(gctx, {
+                plan,
                 time: t, duration: prepared.meta.duration, width: w, height: h,
                 scratch: onionScratch,
                 render: (gt) => {
@@ -251,13 +285,16 @@ const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async
         cctx.drawImage(ghostLayer, 0, 0, w, h);
         out.push({ t, png: composite.toDataURL('image/png'), ghosts: ghostCount });
     }
-    if (onion) notes.push(`onion: ${ghostCount} ghost(s) per frame, `
-        + `${onionSpec[0]} behind and ${onionSpec[1]} ahead at ${onionSpec[2]}s apart`);
+    if (onion) {
+        const unit = onionStep === 'second' ? 's' : ` ${onionStep}(s)`;
+        notes.push(`onion: ${ghostCount} ghost(s) drawn, ${onionSpec[0]} behind and `
+            + `${onionSpec[1]} ahead, every ${onionSpec[2]}${unit}, clamped to the shot`);
+    }
     notes.push(`camera: ${prepared.cameraId ?? '(none)'}, `
         + `rendered ${backend.width}x${backend.height}, `
         + `authored ${prepared.meta.width}x${prepared.meta.height}`);
     return { frames: out, notes };
-}, film, AT, { width: WIDTH, height: HEIGHT }, ONION, ONION_ONLY));
+}, film, AT, { width: WIDTH, height: HEIGHT }, ONION, ONION_ONLY, ONION_STEP));
 
 for (const line of frames.notes ?? []) console.log(' ', line);
 await mkdir(join(ROOT, OUT), { recursive: true });

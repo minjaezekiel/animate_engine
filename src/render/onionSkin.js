@@ -44,6 +44,17 @@
  * invisible and the arithmetic hard to reason about, so it is geometric:
  * each step is `falloff` times the previous one.
  *
+ * # A `plan` replaces the arithmetic, and a drawn film brings one
+ *
+ * `frames()` below picks ghosts at fixed intervals of TIME, which is right
+ * for a 3D shot: a solid is a continuous function of t and there is no
+ * "previous drawing" to speak of. A drawn film is a sequence of drawings
+ * held for some number of frames, and the animator's question is "show me
+ * the two drawings before this one" -- a different question with a
+ * different answer the moment a shot is on twos. `core/anim/onion.js`
+ * answers that one, off the engine's own exposure data, and hands the
+ * result in as `plan`. Everything below composites whatever it is given.
+ *
  * # Spacing is in seconds, not frames
  *
  * A ghost a frame away from the current one is nearly identical to it and
@@ -125,8 +136,8 @@ export class OnionSkin {
      * @returns {number} how many ghosts were drawn
      */
     draw(ctx, { render, time, duration = Infinity, width = null, height = null,
-                scratch = null }) {
-        const frames = this.frames({ time, duration });
+                scratch = null, plan = null }) {
+        const frames = plan ?? this.frames({ time, duration });
         if (!frames.length) return 0;
         if (scratch) return this.#drawTinted(ctx, frames, { render, width, height, scratch });
 
@@ -240,8 +251,9 @@ export class OnionSkin {
      * @param {object} job as `draw`, plus `scratch`: a canvas to tint on
      * @returns {number} how many ghosts were drawn
      */
-    drawLit(ctx, { render, time, duration = Infinity, width, height, scratch }) {
-        const frames = this.frames({ time, duration });
+    drawLit(ctx, { render, time, duration = Infinity, width, height, scratch,
+                   plan = null }) {
+        const frames = plan ?? this.frames({ time, duration });
         if (!frames.length) return 0;
         const sctx = scratch?.getContext('2d') ?? null;
         const savedAlpha = ctx.globalAlpha;

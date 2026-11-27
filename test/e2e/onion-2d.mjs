@@ -55,8 +55,17 @@ const film = {
     scenes: [{
         id: 's', background: { color: PAPER },
         cast: [{ character: 'box', as: 'box', at: [60, 60] }],
-        shots: [{ id: 'one', duration: 2, actions: [
-            { target: 'box', do: 'move', to: [580, 60], at: 0, for: 2, ease: 'linear' }] }],
+        shots: [
+            // Shot one is on ones: the plain case.
+            { id: 'one', duration: 2, actions: [
+                { target: 'box', do: 'move', to: [580, 60], at: 0, for: 2, ease: 'linear' }] },
+            // Shot two is exposed on THREES, which is where counting in
+            // seconds and counting in drawings stop agreeing.
+            // ...and travels back, or every ghost would land on the same
+            // spot and prove nothing.
+            { id: 'two', duration: 2, step: 3, actions: [
+                { target: 'box', do: 'move', to: [60, 60], at: 0, for: 2, ease: 'linear' }] },
+        ],
     }],
 };
 
@@ -89,6 +98,9 @@ const res = await onPage(() => pg.evaluate(async (f, at, spacing, w, h) => {
         await import('/src/core/anim/Evaluator.js');
     const { applySwapSets } = await import('/src/core/scene/swapSets.js');
     const { OnionSkin, ghostMask, castRoots } = await import('/src/render/onionSkin.js');
+    const { ghostPlan, shotWindow } = await import('/src/core/anim/onion.js');
+    const { filmShots } = await import('/src/core/script/compile.js');
+    const shots = filmShots(f);
 
     const c = compileFilm(f);
     const backend = new Canvas2DBackend({ width: w, height: h });
@@ -104,7 +116,7 @@ const res = await onPage(() => pg.evaluate(async (f, at, spacing, w, h) => {
         applySwapSets(c.scene);
     };
 
-    const frameAt = (t, { onion = null } = {}) => {
+    const frameAt = (t, { onion = null, plan = null } = {}) => {
         const out = document.createElement('canvas');
         out.width = w; out.height = h;
         const octx = out.getContext('2d');
@@ -115,6 +127,7 @@ const res = await onPage(() => pg.evaluate(async (f, at, spacing, w, h) => {
             const scratch = document.createElement('canvas');
             scratch.width = w; scratch.height = h;
             ghosts = onion.draw(layer.getContext('2d'), {
+                plan,
                 time: t, duration: c.meta.duration, width: w, height: h, scratch,
                 render: (gt) => {
                     // Posed first, THEN hidden: `applyPose` rewrites keyed
@@ -169,11 +182,60 @@ const res = await onPage(() => pg.evaluate(async (f, at, spacing, w, h) => {
     const plainRow = frameAt(at).data;
     const paper = [plainRow[0], plainRow[1], plainRow[2]];
     const onion = new OnionSkin({ before: 2, after: 2, spacing });
-    const lit = frameAt(at, { onion });
+    const lit = frameAt(at, { onion, plan: ghostPlan(c.timeline, {
+        target: 's/box', time: at, before: 2, after: 2, step: 'second', spacing,
+        within: shotWindow(shots, at),
+    }) });
+
+    /**
+     * Shot two is exposed on threes. At 24 fps a drawing lasts 0.125 s, so
+     * two ghosts counted in SECONDS at 0.05 s apart both land inside the
+     * same held drawing and render as one cluster; counted in DRAWINGS they
+     * are two different drawings and render as two.
+     */
+    const ON_THREES = 3.0;
+    const threesDrawings = frameAt(ON_THREES, { onion, plan: ghostPlan(c.timeline, {
+        target: 's/box', time: ON_THREES, before: 2, after: 2, step: 'drawing',
+        within: shotWindow(shots, ON_THREES),
+    }) });
+    const threesSeconds = frameAt(ON_THREES, { onion, plan: ghostPlan(c.timeline, {
+        target: 's/box', time: ON_THREES, before: 2, after: 2, step: 'second', spacing: 0.05,
+        within: shotWindow(shots, ON_THREES),
+    }) });
+
+    /**
+     * Just after the cut. Counted against the FILM, the ghosts behind reach
+     * back into shot one -- a drawing from another scene. Counted against
+     * the SHOT they do not exist.
+     */
+    const AFTER_CUT = 2 + 1 / 24;
+    const acrossCut = ghostPlan(c.timeline, {
+        target: 's/box', time: AFTER_CUT, before: 3, after: 0,
+        step: 'frame', duration: c.meta.duration,
+    });
+    const insideShot = ghostPlan(c.timeline, {
+        target: 's/box', time: AFTER_CUT, before: 3, after: 0,
+        step: 'frame', within: shotWindow(shots, AFTER_CUT),
+    });
+
     return {
         paper, ghosts: lit.ghosts,
         plain: clusters(plainRow, paper),
         onion: clusters(lit.data, paper),
+        threes: {
+            drawings: clusters(threesDrawings.data, paper),
+            seconds: clusters(threesSeconds.data, paper),
+            planDrawings: ghostPlan(c.timeline, {
+                target: 's/box', time: ON_THREES, before: 2, after: 2, step: 'drawing',
+                within: shotWindow(shots, ON_THREES),
+            }).map((g) => Math.round(g.time * 24)),
+            planSeconds: ghostPlan(c.timeline, {
+                target: 's/box', time: ON_THREES, before: 2, after: 2, step: 'second',
+                spacing: 0.05, within: shotWindow(shots, ON_THREES),
+            }).map((g) => Math.round(g.time * 24)),
+        },
+        cut: { across: acrossCut.map((g) => +g.time.toFixed(4)),
+               inside: insideShot.map((g) => +g.time.toFixed(4)) },
     };
 }, film, AT, SPACING, W, H));
 
@@ -216,6 +278,38 @@ if (res.onion.length === 5) {
        `evenly spaced, ${gap} px for ${SPACING}s of a linear move`);
 }
 
+// ------------------------------------------- drawings, not instants
+
+console.log(`\nshot two is exposed on THREES; at 3.0s the drawing shows on frame `
+    + `${Math.round(3 * 24 / 3) * 3}`);
+console.log(`  counted in drawings  frames ${res.threes.planDrawings.join(', ')}`
+    + `  -> ${res.threes.drawings.length} clusters`);
+console.log(`  counted in seconds   frames ${res.threes.planSeconds.join(', ')}`
+    + `  -> ${res.threes.seconds.length} clusters`);
+
+ok(res.threes.drawings.length === 5,
+   `counting in DRAWINGS gives four distinct ghosts and the live frame `
+   + `(${res.threes.drawings.length})`);
+ok(res.threes.seconds.length < res.threes.drawings.length,
+   `counting in seconds collapses ghosts onto the same held drawing `
+   + `(${res.threes.seconds.length} clusters)`);
+ok(res.threes.planDrawings.every((f) => f % 3 === 0),
+   `and every drawing-stepped ghost lands on a drawing (${res.threes.planDrawings.join(', ')})`);
+ok(!res.threes.planSeconds.every((f) => f % 3 === 0),
+   `where a second-stepped ghost asks for frames that are not drawings `
+   + `(${res.threes.planSeconds.join(', ')})`);
+
+// ------------------------------------------------------- the cut
+
+console.log(`\njust after the cut at 2.0s:`);
+console.log(`  clamped to the film  ${res.cut.across.join(', ')}`);
+console.log(`  clamped to the shot  ${res.cut.inside.join(', ') || '(none behind)'}`);
+ok(res.cut.across.some((t) => t < 2),
+   'clamped to the film, ghosts reach back across the cut into another scene');
+ok(res.cut.inside.every((t) => t >= 2),
+   'clamped to the shot, none of them do');
+
 console.log('');
 if (fails.length) { for (const f of fails) console.error(`FAIL: ${f}`); process.exit(1); }
-console.log(`PASS: ${res.ghosts} ghosts on light paper, darker than the page and tinted.`);
+console.log(`PASS: ${res.ghosts} ghosts on light paper, on the author's own drawings, `
+    + 'inside the shot.');

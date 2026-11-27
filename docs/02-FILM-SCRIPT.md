@@ -596,13 +596,68 @@ so the one view that shows an arc was available for a single pose and never
 for a shot.
 
 ```
-ONION=2,2,0.5 AT=26.5 FILM=demo/film.json npm run grab2d
-ONION_ONLY=climb/mara ONION=3,0,0.2 AT=26.5 FILM=demo/film.json npm run grab2d
+ONION=2,2,1 AT=26.5 FILM=demo/film.json npm run grab2d
+ONION_ONLY=climb/mara ONION=3,1,1 AT=26.5 FILM=demo/film.json npm run grab2d
+ONION_STEP=frame ONION=4,4,2 AT=26.5 FILM=demo/film.json npm run grab2d
 ```
 
-*before, after, spacing in seconds.* Spacing is seconds rather than frames
-because a ghost one frame away is nearly identical to the live one and tells
-an animator nothing.
+*before, after, every-Nth.* The third number is counted in whatever
+`ONION_STEP` says — **`drawing`** by default, then `frame`, then `second`.
+
+### Counted in drawings, because this is a drawn film
+
+A 3D shot is a continuous function of *t*: there is no previous drawing, so
+a ghost a fixed interval back is the only thing to ask for. A drawn film is
+a sequence of **drawings**, each held for some number of frames, and the
+question an animator asks is the one Toon Boom's markers ask — *show me the
+two **drawings** before this one.*
+
+Those are different questions, and on a shot exposed on twos they have
+different answers. Measured on a shot exposed on **threes**, at 3.0 s:
+
+| counted in | frames asked for | clusters on screen |
+|---|---|---|
+| **drawings** | 66, 69, 75, 78 | **5** — four ghosts and the live frame |
+| seconds (0.05 s) | 70, 71, 73, 74 | **2** |
+
+Every drawing-stepped ghost is a multiple of three; none of the
+second-stepped ones are. They quantise back to the drawings on either side,
+so four ghosts become two and two of them are invisible — a reference view
+silently showing half of what it says it shows.
+
+It needed no new data. `timeline.sheets` has held the absolute boundaries an
+`expose` wrote since the X-sheet landed, `timeline.steps` holds the "on twos"
+spans, and `Evaluator.js` already reads both every frame to decide which
+drawing is showing. [`core/anim/onion.js`](../src/core/anim/onion.js) asks
+the same question of the same data through the same exported helpers, so
+there is no second hold model to drift from the first — and an `expose` sheet
+of `4 4 2 1 1 2` is followed exactly, uneven holds and all.
+
+### A ghost never crosses a cut
+
+A drawing from the previous shot is a different scene: different staging,
+different camera, nothing an animator can read an arc from. Ghosts are
+clamped to the **shot**, not the film. One frame after a cut at 2.0 s:
+
+| clamped to | ghosts behind |
+|---|---|
+| the film | 1.9167, 1.9583, 2.0 — two of them in the last shot |
+| the shot | 2.0 |
+
+### The rest of the controls
+
+| | |
+|---|---|
+| `before` / `after` | how many drawings each side, counted independently |
+| every-Nth | ghost every second or third drawing, for a dense pencil test |
+| `opacity` | one number, or `{ before, after }` — the two sides may differ |
+| `falloff` | each further ghost is this much of the previous one's opacity |
+| `tint` | warm behind, cool ahead; `null` for the drawing's own colour |
+| `ONION_ONLY` | which nodes are ghosted; defaults to the cast, `*` is everything |
+
+One composited ghost frame cannot be on two exposures at once, so the
+exposure counted in is the single ghosted node's when exactly one is named
+and the shot's blanket step otherwise. Stated rather than silently picked.
 
 ### Ghosting a film is not ghosting a pose
 

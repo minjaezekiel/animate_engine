@@ -116,7 +116,11 @@ Each row: what it is, where it would live, and the honest cost.
   per output frame in `OfflineRenderer` behind a `shutter` meta key. Costs
   exactly what it accumulates, is deterministic, and needs no new pass.
 - ~~**No onion skin on either film path.**~~ 3D in **Phase 66**, 2D in
-  **Phase 67** — the pose editor had it and neither film path did, so the
+  **Phase 67**, and the 2D one given its own selection model in **Phase 68**:
+  ghosts are counted in **drawings** (Harmony's unit, and this engine already
+  stored where every drawing is) and clamped to the **shot**. On a shot
+  exposed on threes, counting in seconds collapsed four ghosts onto two held
+  drawings — 5 clusters against 2. — the pose editor had it and neither film path did, so the
   one view that shows an arc was available for a single pose and never for
   a shot. The three surfaces need three compositing answers and share
   `frames()`: ghosts under a transparent 2D editor canvas, added over an

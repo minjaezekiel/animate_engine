@@ -53,14 +53,14 @@ const RATIO_CHANNELS = new Set(['transform.sx', 'transform.sy']);
  */
 const SMOOTH_TARGETS = new Set(['__camera', '__subtitle', '__post']);
 
-function stepAt(timeline, tSec) {
+export function stepAt(timeline, tSec) {
     for (const span of timeline.steps ?? []) {
         if (tSec >= span.start && tSec < span.end) return span.step ?? 0;
     }
     return timeline.step ?? 0;
 }
 
-function quantise(tSec, step, fps) {
+export function quantise(tSec, step, fps) {
     if (!step || step <= 1) return tSec;
     const frame = Math.floor(tSec * fps + 1e-6);
     return (Math.floor(frame / step) * step) / fps;
@@ -91,7 +91,7 @@ function covers(spanTarget, target) {
  * beats a blanket one, so a film can shoot on twos and still expose one
  * character differently without restating the rest.
  */
-function spanFor(list, target, tSec) {
+export function spanFor(list, target, tSec) {
     let best = null;
     for (const span of list ?? []) {
         if (tSec < span.start || tSec >= span.end) continue;
@@ -101,8 +101,16 @@ function spanFor(list, target, tSec) {
     return best;
 }
 
-/** When the drawing visible at `tSec` was exposed. Boundaries ascend. */
-function holdStart(boundaries, tSec) {
+/**
+ * When the drawing visible at `tSec` was exposed. Boundaries ascend.
+ *
+ * Exported, with `stepAt`, `quantise` and `spanFor`, because onion skinning
+ * asks the same question this evaluator answers every frame -- "which
+ * drawing is showing, and when did it start" -- and a second copy of the
+ * hold model would be the defect this repository keeps finding. See
+ * `core/anim/onion.js`.
+ */
+export function holdStart(boundaries, tSec) {
     let lo = 0, hi = boundaries.length - 1, found = boundaries[0];
     while (lo <= hi) {
         const mid = (lo + hi) >> 1;

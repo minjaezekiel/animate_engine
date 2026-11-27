@@ -1320,3 +1320,80 @@ coarsest bits in **red**, not in alpha. The reversed reading is not noisy or
 obviously broken; it is a smooth, plausible depth map of nothing that exists,
 which is exactly why the probe compares against a distance known from the
 film's own geometry instead of eyeing a grey picture.
+
+---
+
+## 13. Onion skinning
+
+**Phase 66.** [pending/37-MISSING-TOOLS.md](pending/37-MISSING-TOOLS.md)
+listed `src/render/onionSkin.js` as *"2D only"*. It never was. Its whole
+contract is
+
+```js
+onion.draw(ctx, { render: (time) => /* anything drawImage accepts */ })
+```
+
+and its own header says it never tells the backend that onion skinning
+exists. A WebGL canvas satisfies that exactly as a 2D one does. The gap was
+a call nobody had made — the fourth of those in six phases.
+
+```
+ONION=2,1,0.25 GRAB=12.5 FILM=demo/ak47.json node scripts/produce3d.mjs
+```
+
+*before, after, spacing in seconds.* Spacing is **seconds and not frames**
+because a ghost one frame away is nearly identical to the live one and tells
+an animator nothing; what is wanted is a ghost a *beat* away, and a beat is a
+duration — which also means the view does not change meaning when the film's
+fps does.
+
+### Why the 3D path composites the other way round
+
+`draw` lays ghosts **under** the live frame. That works on a 2D canvas,
+which is transparent where nothing was drawn, so a ghost is still visible
+around the frame in front of it. **A 3D render is opaque.** Its background is
+a wall of pixels, and the first run of `npm run test:onion` measured the
+consequence precisely: four ghosts reported, **one cluster on screen** —
+every ghost buried under the next frame's background.
+
+So `drawLit` composites the live frame first and then **adds** each ghost
+with `lighter`, where black contributes nothing and lit pixels brighten. The
+tint cannot be a `source-atop` fill either — the destination is opaque
+everywhere, so that would wash the whole frame — and is instead *multiplied*
+into the ghost on a scratch canvas before it is added, which leaves black
+black and colours only what was drawn.
+
+What the two share is `frames()`: which times, in what order, at what
+opacity, clamped away from the ends. That is the part that is about onion
+skinning. How pixels combine is about the surface, and the two surfaces
+genuinely differ.
+
+### Warm behind, cool ahead
+
+Measured on a white card crossing a 640 px frame, sampled at 1.0 s with two
+ghosts each side 0.3 s apart:
+
+| cluster | centre | colour | reading |
+|---|---|---|---|
+| −0.6 s | 276 px | `rgb(35, 11, 11)` | warm, faintest |
+| −0.3 s | 298 px | `rgb(61, 19, 19)` | warm |
+| **live** | 320 px | `rgb(199, 199, 199)` | |
+| +0.3 s | 341 px | `rgb(11, 31, 61)` | cool |
+| +0.6 s | 363 px | `rgb(7, 17, 35)` | cool, faintest |
+
+The past is **24 redder** and the future **28 bluer**. That is the desk
+convention and it is not decoration: a stack of identical grey ghosts is
+unreadable the moment there is more than one on each side, because a limb's
+direction of travel disappears. Opacity falls off geometrically, so the
+nearest ghost is clearly the nearest.
+
+### The cost, stated rather than discovered
+
+A ghost is a **full render**. Worse, `warmTo` replays a simulated scene from
+t = 0 at the film's own frame rate, so onion skinning a long simulated shot
+is quadratic. `produce3d` says so when the scene has sims rather than letting
+a long film find out.
+
+The ghosts are the **raw render**, not the composite: a subtitle or a
+transition stacked four deep at four opacities is not a reference view, it is
+a smear — the same argument the AOV passes make one branch up.

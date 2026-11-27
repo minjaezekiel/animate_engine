@@ -201,6 +201,66 @@ test('onion skin renders through the real renderer and restores alpha', () => {
     assert.equal(new OnionSkin({ enabled: false }).draw(ctx, { render: () => null, time: 1 }), 0);
 });
 
+/**
+ * The 3D surface. `draw` assumes what a 2D canvas gives it -- transparency
+ * where nothing was drawn -- so a ghost under the live frame is still
+ * visible around it. A 3D render is opaque, and the first run of
+ * `test/e2e/onion-3d.mjs` measured the consequence exactly: four ghosts
+ * reported, one cluster on screen, every one of them buried under the
+ * background of the frame in front.
+ */
+test('drawLit adds ghosts OVER an opaque frame, and tints them before adding', () => {
+    const ops = [];
+    const mk = () => ({
+        globalAlpha: 1, globalCompositeOperation: 'source-over', fillStyle: null,
+        clearRect() { ops.push('clear'); },
+        drawImage() { ops.push(`draw@${this.globalAlpha.toFixed(3)}:${this.globalCompositeOperation}`); },
+        fillRect() { ops.push(`tint:${this.fillStyle}@${this.globalCompositeOperation}`); },
+    });
+    const ctx = mk();
+    const sctx = mk();
+    const scratch = { getContext: () => sctx };
+    const onion = new OnionSkin({ before: 1, after: 1, spacing: 0.2 });
+    const drawn = onion.drawLit(ctx, {
+        render: () => ({ width: 8, height: 8 }),
+        time: 1, duration: 5, width: 8, height: 8, scratch,
+    });
+
+    assert.equal(drawn, 2);
+    // Additive, so a black background contributes nothing and only the lit
+    // pixels of a ghost brighten the frame already underneath.
+    assert.ok(ops.some((o) => o.endsWith(':lighter')), ops.join(' '));
+    // Multiplied, not `source-atop`: the destination is opaque everywhere,
+    // so an atop fill would wash the whole frame rather than the drawing.
+    assert.ok(ops.includes(`tint:${DEFAULT_TINT.before}@multiply`), ops.join(' '));
+    assert.ok(ops.includes(`tint:${DEFAULT_TINT.after}@multiply`), ops.join(' '));
+    assert.ok(!ops.some((o) => o.includes('source-atop')));
+    // And it hands the context back as it found it, or the next thing drawn
+    // on this frame is drawn additively at a ghost's opacity.
+    assert.equal(ctx.globalAlpha, 1);
+    assert.equal(ctx.globalCompositeOperation, 'source-over');
+});
+
+test('drawLit still chooses its times with the shared logic', () => {
+    const calls = [];
+    const ctx = { globalAlpha: 1, globalCompositeOperation: 'source-over',
+                  drawImage() {}, fillRect() {}, clearRect() {} };
+    const onion = new OnionSkin({ before: 2, after: 1, spacing: 0.25, tint: null });
+    onion.drawLit(ctx, {
+        render: (t) => { calls.push(Number(t.toFixed(3))); return { width: 1, height: 1 }; },
+        time: 1, duration: 5, width: 1, height: 1,
+    });
+    // Furthest first, so the nearest ghost lands on top of the further
+    // ones; the two at equal distance keep their own order.
+    assert.deepEqual(calls, [0.5, 0.75, 1.25]);
+    // A ghost whose render returned nothing is not on screen, so it is not
+    // counted: a view that reports three ghosts over a frame with one is
+    // lying about itself.
+    assert.equal(onion.drawLit(ctx, { render: () => null, time: 1, width: 1, height: 1 }), 0);
+    assert.equal(new OnionSkin({ enabled: false })
+        .drawLit(ctx, { render: () => null, time: 1, width: 1, height: 1 }), 0);
+});
+
 // =====================================================================
 // hotkeys
 // =====================================================================

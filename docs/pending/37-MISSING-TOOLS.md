@@ -115,7 +115,15 @@ Each row: what it is, where it would live, and the honest cost.
   original brief for Phase 39. Cheap approximation: accumulate 2–4 subframes
   per output frame in `OfflineRenderer` behind a `shutter` meta key. Costs
   exactly what it accumulates, is deterministic, and needs no new pass.
-- **No onion skin in 3D.** `src/render/onionSkin.js` is 2D only.
+- ~~**No onion skin in 3D.**~~ **Done, Phase 66** — and the premise was
+  wrong: `onionSkin.js` was never 2D-only. Its contract is
+  `draw(ctx, { render: (time) => something drawImage accepts })` and its
+  header says it never tells the backend that onion skinning exists, so a
+  WebGL canvas always satisfied it. What the 3D path did need was the
+  other compositing order: a 3D render is **opaque**, so ghosts laid under
+  the live frame are buried by its background — four reported, one on
+  screen, measured. `drawLit` adds them over it instead, with the tint
+  multiplied in rather than filled `source-atop`. `ONION=2,1,0.25`.
 
 ### Camera
 

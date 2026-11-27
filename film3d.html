@@ -30,6 +30,7 @@ import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUnifo
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
 import { captureAOV, aovTarget, aovToPNG } from './src/render/aov.js';
+import { OnionSkin } from './src/render/onionSkin.js';
 import { AOV_KINDS, objectManifest } from './src/core/render/aov.js';
 import { samplePostAt } from './src/core/script/post.js';
 import { matchVisemeMorphs } from './src/core/art/visemeMorphs.js';
@@ -812,6 +813,52 @@ window.render3d = async function render3d(film, opts = {}) {
                       ortho: !!built.camera.isOrthographicCamera },
             duration: compiled.duration, diagnostics: compiled.diagnostics,
         };
+    }
+
+    /**
+     * Onion skinning: ghosted frames behind and ahead of the playhead.
+     *
+     * `render/onionSkin.js` has been here since the 2D editor and was listed
+     * as "2D only" in 37-MISSING-TOOLS.md. It never was. Its whole contract
+     * is `draw(ctx, { render: (time) => something drawImage accepts })`, and
+     * it is documented as never telling the backend that onion skinning
+     * exists -- so a WebGL canvas satisfies it exactly as a 2D one does.
+     * The gap was a call nobody had made, the fourth of those in six phases.
+     *
+     * The ghosts are the RAW render, not the composite: a subtitle or a
+     * transition stacked four deep at four opacities is not a reference
+     * view, it is a smear. Same argument as the aov passes one branch up.
+     */
+    if (opts.onion) {
+        const onion = new OnionSkin(opts.onion);
+        const target = createCompositeCanvas(renderer.domElement, width, height);
+        const out = [];
+        const counts = [];
+        const scratch = document.createElement('canvas');
+        scratch.width = width; scratch.height = height;
+        for (const t of (opts.onion.at ?? [0])) {
+            // The live frame FIRST, then the ghosts added over it. A 3D
+            // render is opaque, so the usual order buries every ghost under
+            // the background of the frame in front; see `drawLit`.
+            warmTo(t);
+            backend.renderFrame();
+            target.ctx.globalAlpha = 1;
+            target.ctx.globalCompositeOperation = 'source-over';
+            target.ctx.drawImage(backend.canvas(), 0, 0, width, height);
+            const drawn = onion.drawLit(target.ctx, {
+                time: t, duration: compiled.duration, width, height, scratch,
+                render: (gt) => { warmTo(gt); sceneManager.render(); return renderer.domElement; },
+            });
+            counts.push({ t, ghosts: drawn });
+            out.push({ t, png: target.canvas.toDataURL('image/png') });
+        }
+        poser.reset();
+        return { frames: out, onion: counts,
+                 // A ghost costs a full render, and a scene with sims costs a
+                 // REPLAY from zero per ghost -- so the price is stated rather
+                 // than discovered on a long film.
+                 sims: built.sims.length,
+                 duration: compiled.duration, diagnostics: compiled.diagnostics };
     }
 
     // Grab single frames at given times. The cheapest way to check that a

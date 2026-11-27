@@ -8,6 +8,14 @@
  *                   time: t, duration: 12 });
  * ```
  *
+ * # Two surfaces, one set of times
+ *
+ * `draw` composites ghosts UNDER the live frame, which works because a 2D
+ * canvas is transparent where nothing was drawn. A 3D render is opaque, so
+ * `drawLit` composites them OVER it additively instead. What the two share
+ * is `frames()` -- which times, in what order, at what opacity -- because
+ * that is the part that is about onion skinning rather than about pixels.
+ *
  * # Why it needs nothing from the backend
  *
  * Each ghost is produced by the **same renderer that produces the final
@@ -117,9 +125,15 @@ export class OnionSkin {
         if (!frames.length) return 0;
 
         const saved = ctx.globalAlpha;
+        // Counted as DRAWN, not as asked for: a `render` that returns
+        // nothing -- a frame outside a clip, a backend not ready -- is a
+        // ghost that is not on screen, and a caller reporting "3 ghosts"
+        // over a frame with one is the reference view lying about itself.
+        let drawn = 0;
         for (const frame of frames) {
             const image = render(frame.time);
             if (!image) continue;
+            drawn++;
             const w = width ?? image.width;
             const h = height ?? image.height;
             ctx.globalAlpha = frame.alpha;
@@ -139,6 +153,68 @@ export class OnionSkin {
             }
         }
         ctx.globalAlpha = saved;
-        return frames.length;
+        return drawn;
+    }
+
+    /**
+     * The same ghosts, composited ADDITIVELY onto an opaque frame.
+     *
+     * `draw` above assumes what a 2D canvas gives it: an image that is
+     * transparent where nothing was drawn, so a ghost can be laid under the
+     * live frame and still be seen around it. **A 3D render has no such
+     * transparency.** Its drawing buffer is opaque, the background is a
+     * wall of pixels, and laying the live frame over four ghosts hides all
+     * four of them completely -- which is exactly what the first run of
+     * `test/e2e/onion-3d.mjs` measured: four ghosts reported, one cluster
+     * on screen.
+     *
+     * So the 3D path composites the other way round: the live frame first,
+     * then each ghost added on top with `lighter`, where black contributes
+     * nothing and lit pixels brighten. The tint cannot be a `source-atop`
+     * fill either -- the destination is opaque everywhere, so that would
+     * wash the whole frame -- and is instead multiplied into the ghost on a
+     * scratch canvas before it is added, which leaves black black and
+     * colours only what was drawn.
+     *
+     * What is shared is `frames()`: which times, in what order, at what
+     * opacity, clamped away from the ends. That is the part that is about
+     * onion skinning. How pixels combine is about the surface, and the two
+     * surfaces genuinely differ.
+     *
+     * @param {CanvasRenderingContext2D} ctx the opaque frame, already drawn
+     * @param {object} job as `draw`, plus `scratch`: a canvas to tint on
+     * @returns {number} how many ghosts were drawn
+     */
+    drawLit(ctx, { render, time, duration = Infinity, width, height, scratch }) {
+        const frames = this.frames({ time, duration });
+        if (!frames.length) return 0;
+        const sctx = scratch?.getContext('2d') ?? null;
+        const savedAlpha = ctx.globalAlpha;
+        const savedOp = ctx.globalCompositeOperation;
+        let drawn = 0;
+
+        for (const frame of frames) {
+            const image = render(frame.time);
+            if (!image) continue;
+            drawn++;
+            let source = image;
+            if (this.tint && sctx) {
+                sctx.globalCompositeOperation = 'source-over';
+                sctx.globalAlpha = 1;
+                sctx.clearRect(0, 0, width, height);
+                sctx.drawImage(image, 0, 0, width, height);
+                sctx.globalCompositeOperation = 'multiply';
+                sctx.fillStyle = this.tint[frame.side];
+                sctx.fillRect(0, 0, width, height);
+                sctx.globalCompositeOperation = 'source-over';
+                source = scratch;
+            }
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = frame.alpha;
+            ctx.drawImage(source, 0, 0, width, height);
+        }
+        ctx.globalAlpha = savedAlpha;
+        ctx.globalCompositeOperation = savedOp;
+        return drawn;
     }
 }

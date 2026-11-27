@@ -132,6 +132,20 @@ if (AOV) {
     if (bad.length) throw new Error(`AOV=${bad.join(',')} is not a pass; `
         + `try ${AOV_KINDS.join(', ')}`);
 }
+/**
+ * ONION=2,1,0.25 draws ghosted frames around each GRAB time.
+ *
+ *   ONION=3,2,0.2 GRAB=12.5 FILM=demo/ak47.json node scripts/produce3d.mjs
+ *
+ * before, after, spacing-in-seconds. Spacing is seconds and not frames
+ * because a ghost one frame away is nearly identical to the live one and
+ * tells an animator nothing; see src/render/onionSkin.js.
+ */
+const ONION = process.env.ONION
+    ? process.env.ONION.split(',').map(Number) : null;
+if (ONION && (ONION.length !== 3 || ONION.some((n) => !Number.isFinite(n)))) {
+    throw new Error('ONION takes three numbers: before,after,spacing (e.g. 2,1,0.25)');
+}
 // GRAB=1,34.4,40 writes a PNG per time instead of a video. Looking at the
 // thing is the only check that catches a model not looking like a rifle.
 const GRAB = process.env.GRAB ? process.env.GRAB.split(',').map(Number) : null;
@@ -337,6 +351,30 @@ if (DIGEST) {
     for (const d of findings) console.log(`  [${d.severity}] ${d.message}`);
     await browser.close(); server.close(); releaseLock();
     process.exit(findings.length ? 1 : 0);
+}
+
+if (ONION) {
+    const dir = join(ROOT, dirname(OUT));
+    await mkdir(dir, { recursive: true });
+    const [before, after, spacing] = ONION;
+    const res = await page.evaluate((f, o) => window.render3d(f, o), film,
+        { width: WIDTH, height: HEIGHT, silent: true,
+          onion: { before, after, spacing, at: GRAB ?? [0] } });
+    for (const fr of res.frames) {
+        const f = join(dir, `onion-${String(fr.t).replace('.', '_')}.png`);
+        await writeFile(f, Buffer.from(fr.png.split(',')[1], 'base64'));
+        console.log(`  ${f.replace(ROOT, '')}`);
+    }
+    for (const c of res.onion) {
+        console.log(`  ${c.t}s: ${c.ghosts} ghost(s) at ${spacing}s apart `
+            + `(${before} behind, ${after} ahead)`);
+    }
+    if (res.sims) {
+        console.log(`  note: this scene has ${res.sims} simulation(s), so every ghost `
+            + 'replays from t=0 -- onion skinning a long simulated shot is quadratic.');
+    }
+    await browser.close(); server.close(); releaseLock();
+    process.exit(0);
 }
 
 if (AOV) {

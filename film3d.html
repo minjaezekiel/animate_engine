@@ -34,7 +34,8 @@ import { OnionSkin } from './src/render/onionSkin.js';
 import { shotWindow } from './src/core/anim/onion.js';
 import { fogReport } from './src/core/render/fog.js';
 import { shaftReport } from './src/core/render/shaft.js';
-import { boundsCentre, assignProbes, bounceReport } from './src/core/render/bounce.js';
+import { boundsCentre, assignProbes, bounceReport, probeVerdicts }
+    from './src/core/render/bounce.js';
 import { bakeProbes, probeTargets, applyProbes } from './src/render/bounce.js';
 import { AOV_KINDS, objectManifest } from './src/core/render/aov.js';
 import { samplePostAt } from './src/core/script/post.js';
@@ -395,16 +396,32 @@ window.render3d = async function render3d(film, opts = {}) {
                 : { min: box.min.toArray(), max: box.max.toArray() };
         })())];
         const t0 = performance.now();
-        const { maps, disposables } = bakeProbes(THREE, {
+        const { maps, disposables, energy } = bakeProbes(THREE, {
             renderer, scene: built.root, positions,
             size: b.size, near: b.near, far: b.far,
         });
         const assigned = assignProbes(targets, positions);
+        const verdicts = probeVerdicts(energy);
         const touched = applyProbes(targets, assigned, maps,
                                     { intensity: b.intensity, metals: b.metals });
-        bounceProbes = { positions, assigned, maps, disposables, touched };
-        report(`${bounceReport(b, positions, assigned)}, ${touched} material(s), `
+        bounceProbes = { positions, assigned, energy, verdicts, touched };
+        bounceProbes.disposables = disposables;
+        report(`${bounceReport(b, positions, assigned, verdicts)}, ${touched} material(s), `
             + `baked in ${(performance.now() - t0).toFixed(0)} ms`);
+        /**
+         * A dark probe joins the film's own diagnostics rather than being
+         * left in the numbers, because it is the one way this feature fails
+         * completely while every step of it reports success. Pushed into
+         * `compiled.diagnostics` so it reaches the CLI through the same
+         * channel as every compile warning and counts as a finding in
+         * `check:3d` -- a warning nothing can fail on is a comment.
+         */
+        for (const v of verdicts) {
+            if (v.dark) {
+                compiled.diagnostics.push({ severity: 'warning', message: v.note,
+                                            location: 'meta.bounce' });
+            }
+        }
     }
 
     /**
@@ -932,7 +949,13 @@ window.render3d = async function render3d(film, opts = {}) {
             out.push({ t, png: backend.canvas().toDataURL('image/png') });
         }
         poser.reset();
-        return { frames: out, duration: compiled.duration, diagnostics: compiled.diagnostics };
+        return { frames: out, duration: compiled.duration, diagnostics: compiled.diagnostics,
+                 // Returned, not just logged: a probe's measured radiance is
+                 // what `test/e2e/bounce.mjs` asserts on, and asserting on
+                 // log text is asserting on prose.
+                 bounce: bounceProbes && { energy: bounceProbes.energy,
+                                           verdicts: bounceProbes.verdicts,
+                                           touched: bounceProbes.touched } };
     }
 
     /**

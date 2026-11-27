@@ -1636,17 +1636,43 @@ to place probes automatically. A film that needs more says where they go, and
 the render log names the furthest object from its probe, which is the number
 that says whether one was enough.
 
-### Found on the way
+### A dead probe is a diagnostic
 
-**`rot` is in degrees.** The probe scene was written with `[0, 0.9, 0]`
-meaning 0.9 radians; it is 0.9°, so the wall stayed square-on, the probe sat
-behind it, and a single-sided plane is invisible from behind — the probe came
-back perfectly grey and the bounce measured exactly zero three times over.
+A bounce pass has exactly one failure and it is total: **a probe that sees
+nothing bakes to black**, every object it feeds gets no indirect light, and
+the film renders precisely as it would have with the feature off. Nothing in
+the declaration can tell you — the probe was placed, the bake ran, the
+materials were assigned, every step reported success.
 
-**`readRenderTargetPixels` needs a buffer matching the target's type.** A
-`Float32Array` against a `HalfFloatType` cube target returns silent zeros, so
-a working bake reads as a black probe. That one cost an hour of looking in the
-wrong place and is why the diagnostic now uses `UnsignedByteType`.
+So the bake reads each probe back and reports what it caught. Measured over
+all six faces, as mean linear radiance:
+
+| bake | mean | |
+|---|---|---|
+| red wall | **1.05e-1** | |
+| black wall | **6.18e-3** | the white card, seen by the probe |
+| probe behind the set | **0.00e+0** | **DARK** — a warning in `compiled.diagnostics` |
+
+`PROBE_DARK` is `1/255`, not zero: below one byte of an 8-bit frame a probe
+cannot change a pixel, so a probe that caught only a dim backdrop is as
+useless as one that caught nothing, and a strict zero test would pass it. The
+warning goes into the film's own diagnostics rather than the log, so
+`check:3d` counts it as a finding — *a warning nothing can fail on is a
+comment*.
+
+The usual cause is the one that cost an hour while this was being built: a
+set made of single-sided `plane` parts is **invisible from behind**, so a
+probe on the wrong side of its own room catches the background and nothing
+else. `npm run test:bounce` now renders that case on purpose and asserts the
+warning fires, and asserts it does not fire on a bake that worked.
+
+### `rot` is in degrees
+
+The probe scene was written as `[0, 0.9, 0]` meaning 0.9 radians. It is 0.9°,
+which is square-on. The film format is degrees everywhere — `compile3d.js`
+multiplies by `DEG` on the way in, and scatter's `rotY`/`tilt` are degrees too
+— so the engine was right and the test was wrong. Recorded because the symptom
+(a wall that would not turn) looks like an engine bug and is not.
 
 **No film declares bounce yet**, for the reason §13 gives about fog.
 

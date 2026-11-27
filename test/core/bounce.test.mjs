@@ -9,7 +9,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    PROBE_SIZES, normalizeBounce, boundsCentre, nearestProbe, assignProbes, bounceReport,
+    PROBE_SIZES, PROBE_DARK, normalizeBounce, boundsCentre, nearestProbe, assignProbes,
+    bounceReport, probeVerdicts,
 } from '../../src/core/render/bounce.js';
 
 test('off is off, and true is one probe at the centre of the set', () => {
@@ -103,4 +104,34 @@ test('the report names the furthest object from its probe', () => {
     assert.match(line, /furthest 12\.00 units/);
     assert.match(line, /\(metals too\)/);
     assert.equal(bounceReport(null, [], []), 'bounce: none');
+});
+
+test('a probe that caught nothing is a verdict, not a number to ignore', () => {
+    const v = probeVerdicts([
+        { r: 0, g: 0, b: 0 },                    // behind single-sided geometry
+        { r: 0.1, g: 0.09, b: 0.09 },            // a lit room
+        { r: 0.002, g: 0.002, b: 0.002 },        // a dim backdrop and nothing else
+    ]);
+    assert.deepEqual(v.map((p) => p.dark), [true, false, true]);
+    assert.match(v[0].note, /caught no light/);
+    assert.match(v[0].note, /single-sided geometry/);
+    assert.equal(v[1].note, null, 'a working probe must say nothing');
+    // Not a strict zero test: below one byte of an 8-bit frame a probe cannot
+    // change a pixel, so calling it lit would be the diagnostic lying.
+    assert.ok(v[2].dark, `${v[2].mean} should be below PROBE_DARK ${PROBE_DARK}`);
+    assert.ok(Math.abs(v[1].mean - (0.1 + 0.09 + 0.09) / 3) < 1e-12);
+});
+
+test('the report states the measured radiance, not just that the bake ran', () => {
+    const b = normalizeBounce(true, {});
+    const assigned = assignProbes([{ id: 'a', at: [0, 0, 0] }], [[0, 0, 0]]);
+    const line = bounceReport(b, [[0, 0, 0]], assigned,
+                              probeVerdicts([{ r: 0.2, g: 0.2, b: 0.2 }]));
+    assert.match(line, /1\/1 carrying light/);
+    assert.match(line, /brightest mean 2\.00e-1/);
+    // A dark probe is visible in the count, so the log reads as wrong too.
+    const dead = bounceReport(b, [[0, 0, 0]], assigned, probeVerdicts([{ r: 0, g: 0, b: 0 }]));
+    assert.match(dead, /0\/1 carrying light/);
+    // And with no verdicts at all the line is what it was.
+    assert.doesNotMatch(bounceReport(b, [[0, 0, 0]], assigned), /carrying light/);
 });

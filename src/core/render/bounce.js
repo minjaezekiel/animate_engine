@@ -155,12 +155,62 @@ export function assignProbes(items, positions) {
     });
 }
 
+/**
+ * Below this mean radiance a probe is carrying no light worth the name.
+ *
+ * Not zero. A probe that catches a dim backdrop and nothing else is as
+ * useless as one that catches pure black, and a strict zero test would pass
+ * it. 1/255 is one byte of an 8-bit frame -- below that, the probe cannot
+ * change a pixel.
+ */
+export const PROBE_DARK = 1 / 255;
+
+/**
+ * What each baked probe actually caught, as a verdict rather than a number.
+ *
+ * A bounce pass has exactly one silent failure and it is total: a probe that
+ * sees nothing bakes to black, every object it feeds gets no indirect light,
+ * and the film renders precisely as it would have with the feature off. The
+ * declaration cannot tell you -- the probe was placed, the bake ran, the
+ * materials were assigned, every step reported success.
+ *
+ * The usual cause is the one that cost Phase 72 an hour: a set built from
+ * single-sided `plane` parts is invisible from behind, so a probe on the
+ * wrong side of its own room catches the background and nothing else.
+ *
+ * Pure, and takes the measured radiance rather than the renderer, so the
+ * classification is unit-testable with no GPU.
+ */
+export function probeVerdicts(energy, { dark = PROBE_DARK } = {}) {
+    return energy.map((e, i) => {
+        const mean = (e.r + e.g + e.b) / 3;
+        return {
+            probe: i,
+            mean,
+            dark: mean < dark,
+            note: mean < dark
+                ? `probe ${i} caught no light (mean ${mean.toExponential(2)}); it is `
+                  + 'either outside the lit set or behind single-sided geometry, which is '
+                  + 'invisible from the back. Nothing will be lit by it'
+                : null,
+        };
+    });
+}
+
 /** The line a render log prints. */
-export function bounceReport(bounce, probes, assigned) {
+export function bounceReport(bounce, probes, assigned, verdicts = []) {
     if (!bounce) return 'bounce: none';
     const far = assigned.reduce((m, a) => Math.max(m, a.distance), 0);
+    const lit = verdicts.filter((v) => !v.dark);
+    const brightest = lit.reduce((m, v) => Math.max(m, v.mean), 0);
     return `bounce: ${probes.length} probe(s) at ${bounce.size}^2, `
         + `${assigned.length} object(s) assigned, furthest ${far.toFixed(2)} units from `
         + `its probe, intensity ${bounce.intensity}`
-        + (bounce.metals ? ' (metals too)' : ' (dielectrics only)');
+        + (bounce.metals ? ' (metals too)' : ' (dielectrics only)')
+        // The measured radiance, because "1 probe baked" is a claim about
+        // the code running and this is a claim about the film.
+        + (verdicts.length
+            ? `, ${lit.length}/${verdicts.length} carrying light `
+              + `(brightest mean ${brightest.toExponential(2)})`
+            : '');
 }

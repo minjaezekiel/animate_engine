@@ -17,6 +17,7 @@
  * So the shortest route that works is the better-looking one, which does
  * happen sometimes.
  */
+import { meanRadiance } from './readback.js';
 
 /**
  * Render the scene from each probe position and prefilter the result.
@@ -25,12 +26,15 @@
  * `captureAOV` does it: this runs in the middle of somebody else's render
  * setup, and a left-behind render target is a black film.
  *
- * @returns {{maps: object[], disposables: object[]}}
+ * @returns {{maps: object[], disposables: object[], energy: object[]}}
+ *   `energy` is each probe's mean linear radiance, which is the only thing
+ *   that distinguishes a bake that worked from one that caught an empty room.
  */
 export function bakeProbes(THREE, { renderer, scene, positions, size = 64,
                                     near = 0.05, far = 200 }) {
     const maps = [];
     const disposables = [];
+    const energy = [];
     const prevTarget = renderer.getRenderTarget();
     const pmrem = new THREE.PMREMGenerator(renderer);
     pmrem.compileCubemapShader();
@@ -50,6 +54,26 @@ export function bakeProbes(THREE, { renderer, scene, positions, size = 64,
         cam.update(renderer, scene);
         scene.remove(cam);
 
+        /**
+         * What the probe actually caught, before it is prefiltered into
+         * something nothing can look at.
+         *
+         * A bounce pass has one silent failure and it is total: a probe that
+         * sees nothing bakes to black, every object it feeds gets no indirect
+         * light, and the film renders exactly as it would have with the
+         * feature switched off. There is no diagnostic to be had from the
+         * declaration -- the probe is placed, the bake runs, the materials
+         * are assigned -- so the only honest check is to look at the pixels
+         * and say what is in them.
+         *
+         * It is not a hypothetical. A set built from single-sided `plane`
+         * parts is invisible from behind, so a probe on the wrong side of its
+         * own room catches the background and nothing else; that is how
+         * Phase 72's probe scene came back perfectly grey with a bounce of
+         * exactly zero, three runs in a row.
+         */
+        energy.push(meanRadiance(THREE, renderer, target));
+
         const filtered = pmrem.fromCubemap(target.texture);
         maps.push(filtered.texture);
         disposables.push(filtered, target);
@@ -57,7 +81,7 @@ export function bakeProbes(THREE, { renderer, scene, positions, size = 64,
 
     pmrem.dispose();
     renderer.setRenderTarget(prevTarget);
-    return { maps, disposables };
+    return { maps, disposables, energy };
 }
 
 /**

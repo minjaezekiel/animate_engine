@@ -178,6 +178,16 @@ const runs = {
     off: await shoot(film('#ff1010', null)),
     red: await shoot(film('#ff1010', BOUNCE)),
     black: await shoot(film('#000000', BOUNCE)),
+    /**
+     * The failure mode, on purpose. Both planes face +Z, so a probe behind
+     * them at z = -3 sees their backs -- and a single-sided plane is
+     * invisible from behind. The bake runs, the probe is placed, the
+     * materials are assigned, every step reports success, and the film
+     * renders exactly as it would with the feature switched off.
+     *
+     * That is what cost an hour of Phase 72, and it is now a diagnostic.
+     */
+    blind: await shoot(film('#ff1010', { size: 64, at: [[0, 0, -3]] })),
 };
 const card = {
     off: await cardColour(runs.off.frames[0].png),
@@ -231,6 +241,28 @@ ok(lift(offL.r, redL.r) > lift(offL.b, redL.b) + 0.03,
    `and it is the wall's own albedo arriving, not a wash `
    + `(red ${(lift(offL.r, redL.r) * 100).toFixed(1)}% against `
    + `blue ${(lift(offL.b, redL.b) * 100).toFixed(1)}%)`);
+
+/**
+ * The probe's own measured radiance, which is the only thing that tells a
+ * working bake from one that caught an empty room.
+ */
+console.log('\nwhat each bake caught (mean linear radiance over all six faces):');
+for (const k of ['red', 'black', 'blind']) {
+    const v = runs[k].bounce?.verdicts ?? [];
+    console.log(`  ${k.padEnd(8)}${v.map((p) => `${p.mean.toExponential(2)}`
+        + `${p.dark ? ' DARK' : ''}`).join(', ') || '(none)'}`);
+}
+const lit = runs.red.bounce?.verdicts?.[0];
+const blind = runs.blind.bounce?.verdicts?.[0];
+ok(!!lit && !lit.dark, `a probe in the lit set reports carrying light `
+   + `(mean ${lit?.mean?.toExponential(2)})`);
+ok(!!blind && blind.dark, `a probe behind single-sided geometry reports DARK `
+   + `(mean ${blind?.mean?.toExponential(2)})`);
+ok((runs.blind.diagnostics ?? []).some((d) => /caught no light/.test(d.message)),
+   'and it reaches the film diagnostics, so check:3d can fail on it');
+// It must not fire on a bake that worked, or it is noise.
+ok(!(runs.red.diagnostics ?? []).some((d) => /caught no light/.test(d.message)),
+   'and does not fire on a bake that worked');
 
 console.log('');
 if (fails.length) { for (const f of fails) console.error(`FAIL: ${f}`); process.exit(1); }

@@ -443,3 +443,45 @@ the written action's arrival time, not just that an action was written.
   film with a `breathe` cycle running. Sampling the live world matrix at solve
   time would fix it and would make compilation order-dependent; not worth it
   at two pixels. Noted in `IK2D.js` as a `ponytail:` ceiling.
+
+## Closed — a failed render-target read was indistinguishable from a black frame
+
+`renderer.readRenderTargetPixels` hands the buffer straight to
+`gl.readPixels` with the *texture's* own format and type. Three does not
+check that the buffer matches, and WebGL will not write into one that does
+not: it raises `INVALID_OPERATION` and leaves the array exactly as it was.
+There are **four** ways to get nothing back, and all four look identical from
+the call site:
+
+1. the buffer's kind does not match the texture's type — a `Float32Array`
+   against a `HalfFloatType` target needs `Uint16Array`;
+2. the format is not readable — a bare `console.error` and a `return`;
+3. the type is not readable — likewise;
+4. the rectangle is out of bounds — three skips the read with **no message at
+   all**.
+
+Plus one loud failure whose message names nothing useful: a cube render
+target read with no `activeCubeFaceIndex` leaves `framebuffer` as an array of
+six, and WebGL rejects it with *"parameter 2 is not of type
+'WebGLFramebuffer'"*.
+
+In every case the function returns `undefined` and the buffer is still zeros.
+**A failed read is indistinguishable from a black frame**, and a black frame
+is a plausible answer: a probe in the dark, a depth pass at the near plane, a
+matte of nothing. This repository was bitten twice — Phase 62 read depth
+bytes in the wrong order and got 0.010027 m for a cube at 11.000 m, and
+Phase 72's bounce bake read a working probe as pure black.
+
+**Fixed in Phase 73.** [src/render/readback.js](../../src/render/readback.js)
+chooses the buffer *from* the target, which makes (1) unreachable; refuses an
+unknown type, an out-of-bounds rectangle and a faceless cube read by name;
+and detects (2), (3) and any other silent path with **two sentinels** — the
+buffer is filled with a known value before the read and checked after it.
+Nothing but `readPixels` writes into that buffer, so if it still holds the
+sentinel the read did not happen. Two sentinels rather than one because a
+genuinely uniform frame could equal one of them, and no real image is
+uniformly 1 *and* uniformly 2.
+
+Both call sites now go through it: `captureAOV` and the bounce bake. 8 unit
+tests, against a stub renderer that does what three does when a read is
+rejected — nothing.

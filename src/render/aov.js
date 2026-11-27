@@ -1,3 +1,4 @@
+import { readTargetPixels } from './readback.js';
 import { AOV_KINDS, isAOV, objectColor } from '../core/render/aov.js';
 
 /**
@@ -121,8 +122,20 @@ export function captureAOV(THREE, {
     renderer.setRenderTarget(t);
     renderer.clear();
     renderer.render(scene, camera);
-    const raw = new Uint8Array(width * height * 4);
-    renderer.readRenderTargetPixels(t, 0, 0, width, height, raw);
+    /**
+     * Read through `readTargetPixels`, which picks the buffer FROM the target
+     * and throws if the read wrote nothing.
+     *
+     * `aovTarget` is `UnsignedByteType` and a hand-rolled `Uint8Array` was
+     * correct -- until somebody wants an HDR or high-precision pass and
+     * changes the target's type, at which point `gl.readPixels` refuses the
+     * mismatched buffer, writes nothing, and every pixel decodes as the near
+     * plane. Which is exactly the number this pass returned in Phase 62 when
+     * it read the depth bytes backwards: 0.010027 m for a cube at 11 m, a
+     * plausible depth map of nothing. The buffer is no longer a thing that
+     * can drift from the target.
+     */
+    const { pixels: raw } = readTargetPixels(THREE, renderer, t, { width, height });
     renderer.setRenderTarget(null);
 
     // GL reads bottom-up; an image is top-down. Flipping here rather than in

@@ -171,6 +171,23 @@ test('ghosts outside the film are dropped, not clamped', () => {
     assert.equal(frames.length, 2, `got ${JSON.stringify(frames.map((f) => f.time))}`);
 });
 
+test('a time ghost is clamped to the shot, not to the film', () => {
+    // The 2D plan model got this in 55db3e7; `frames()` is the sibling
+    // caller and still clamped to [0, duration], so a 3D ghost one frame
+    // after a cut showed a frame of the previous shot -- another camera on
+    // another set, which is exactly what onion skin must not show.
+    const onion = new OnionSkin({ before: 3, after: 3, spacing: 0.5 });
+    const film = onion.frames({ time: 2.1, duration: 10 });
+    const shot = onion.frames({ time: 2.1, duration: 10, within: [2, 4] });
+    assert.equal(film.length, 6);
+    assert.ok(film.some((f) => f.time < 2), 'the film-clamped ghosts never crossed the cut');
+    assert.deepEqual(shot.map((f) => Number(f.time.toFixed(2))), [3.6, 3.1, 2.6],
+        'kept a ghost from before the cut, or dropped one inside the shot');
+    // Dropped, not stacked on the boundary: three on one spot is one dark
+    // frame and reads as a bug rather than as the start of a shot.
+    assert.ok(shot.every((f) => f.time >= 2 && f.time < 4));
+});
+
 test('onion skin renders through the real renderer and restores alpha', () => {
     // The point of the design: the backend is never told that ghosting
     // exists, so what the animator sees is the same computation as the film.

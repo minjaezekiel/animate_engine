@@ -31,6 +31,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { buildComposer } from './src/render/post3d.js';
 import { captureAOV, aovTarget, aovToPNG } from './src/render/aov.js';
 import { OnionSkin } from './src/render/onionSkin.js';
+import { shotWindow } from './src/core/anim/onion.js';
 import { AOV_KINDS, objectManifest } from './src/core/render/aov.js';
 import { samplePostAt } from './src/core/script/post.js';
 import { matchVisemeMorphs } from './src/core/art/visemeMorphs.js';
@@ -845,11 +846,18 @@ window.render3d = async function render3d(film, opts = {}) {
             target.ctx.globalAlpha = 1;
             target.ctx.globalCompositeOperation = 'source-over';
             target.ctx.drawImage(backend.canvas(), 0, 0, width, height);
+            // Clamped to the SHOT. A 3D film cuts exactly as a drawn one
+            // does, and a ghost from the other side of a cut is a different
+            // camera on a different set: the 2D path was fixed for this and
+            // this path is the sibling caller that was not.
+            const shot = compiled.shots.find((s) => t >= s.start && t < s.end) ?? null;
             const drawn = onion.drawLit(target.ctx, {
                 time: t, duration: compiled.duration, width, height, scratch,
+                within: shotWindow(compiled.shots, t) ?? [0, compiled.duration],
                 render: (gt) => { warmTo(gt); sceneManager.render(); return renderer.domElement; },
             });
-            counts.push({ t, ghosts: drawn });
+            counts.push({ t, ghosts: drawn, shot: shot?.shotId ?? null,
+                          window: shot ? [shot.start, shot.end] : null });
             out.push({ t, png: target.canvas.toDataURL('image/png') });
         }
         poser.reset();

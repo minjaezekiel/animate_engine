@@ -94,16 +94,22 @@ export class OnionSkin {
      *
      * @returns {Array<{time: number, offset: number, alpha: number, side: 'before'|'after'}>}
      */
-    frames({ time, duration = Infinity, spacing = this.spacing }) {
+    frames({ time, duration = Infinity, spacing = this.spacing, within = null }) {
         if (!this.enabled) return [];
         const out = [];
+        // The window is the SHOT when the caller knows it, and only the whole
+        // film when it does not. A ghost across a cut is a frame of another
+        // scene -- different staging, different camera, nothing an animator
+        // can read an arc from -- and `[0, duration]` let exactly that
+        // through. `core/anim/shotWindow` turns compiled shots into this pair.
+        const [lo, hi] = within ?? [0, duration];
         for (const [side, n, sign] of [['before', this.before, -1], ['after', this.after, 1]]) {
             for (let k = n; k >= 1; k--) {
                 const at = time + sign * k * spacing;
                 // Clamped away rather than clamped to the ends: a ghost
-                // pinned at t=0 sits exactly on top of several others and
-                // reads as one dark frame, which looks like a bug.
-                if (at < 0 || at > duration) continue;
+                // pinned at a boundary sits exactly on top of several others
+                // and reads as one dark frame, which looks like a bug.
+                if (at < lo || at > hi) continue;
                 out.push({
                     time: at,
                     offset: sign * k * spacing,
@@ -136,8 +142,8 @@ export class OnionSkin {
      * @returns {number} how many ghosts were drawn
      */
     draw(ctx, { render, time, duration = Infinity, width = null, height = null,
-                scratch = null, plan = null }) {
-        const frames = plan ?? this.frames({ time, duration });
+                scratch = null, plan = null, within = null }) {
+        const frames = plan ?? this.frames({ time, duration, within });
         if (!frames.length) return 0;
         if (scratch) return this.#drawTinted(ctx, frames, { render, width, height, scratch });
 
@@ -252,8 +258,8 @@ export class OnionSkin {
      * @returns {number} how many ghosts were drawn
      */
     drawLit(ctx, { render, time, duration = Infinity, width, height, scratch,
-                   plan = null }) {
-        const frames = plan ?? this.frames({ time, duration });
+                   plan = null, within = null }) {
+        const frames = plan ?? this.frames({ time, duration, within });
         if (!frames.length) return 0;
         const sctx = scratch?.getContext('2d') ?? null;
         const savedAlpha = ctx.globalAlpha;

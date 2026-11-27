@@ -63,12 +63,21 @@ const film = {
         shots: [{ id: 'a', duration: 2,
                   camera: { from: { at: [0, 0, 12], look: [0, 0, 0] }, for: 0 },
                   actions: [{ target: 'box', do: 'move', to: [5, 0, 0],
+                              at: 0, for: 2, ease: 'linear' }] },
+                // A second shot, so there is a CUT at 2.0s to not ghost
+                // across. The box travels back, which puts shot a's drawings
+                // somewhere a reader can see they do not belong.
+                { id: 'b', duration: 2,
+                  camera: { from: { at: [0, 0, 12], look: [0, 0, 0] }, for: 0 },
+                  actions: [{ target: 'box', do: 'move', to: [-5, 0, 0],
                               at: 0, for: 2, ease: 'linear' }] }],
     }],
 };
 
 const SPACING = 0.3;
 const AT = 1.0;
+/** One frame after the cut: every ghost behind it is in the previous shot. */
+const CUT = 2 + 1 / 24;
 
 await acquireLock('the 3D onion probe');
 const br = await puppeteer.launch({
@@ -88,7 +97,7 @@ const run = (onion) => pg.evaluate((f, o, w, h) => window.render3d(f, {
     width: w, height: h, silent: true, onion: o,
 }), film, onion, W, H);
 
-const on = await run({ before: 2, after: 2, spacing: SPACING, at: [AT] });
+const on = await run({ before: 2, after: 2, spacing: SPACING, at: [AT, CUT] });
 const off = await run({ before: 0, after: 0, spacing: SPACING, at: [AT] });
 
 /**
@@ -123,6 +132,7 @@ const clustersOf = async (dataUrl) => pg.evaluate(async (url, w, h) => {
 }, dataUrl, W, H);
 
 const lit = await clustersOf(on.frames[0].png);
+const across = await clustersOf(on.frames[1].png);
 const plain = await clustersOf(off.frames[0].png);
 await guard.done();
 
@@ -158,6 +168,27 @@ if (lit.length === 5) {
     ok(Math.abs((lit[2].at - lit[1].at) - gap) <= 2,
        `the ghosts are evenly spaced, ${gap} px for ${SPACING}s of a linear move`);
 }
+
+/**
+ * The cut. `frames()` clamped to `[0, duration]` -- the FILM -- so one frame
+ * after a cut the two ghosts behind were 1.742 and 1.442, both of them
+ * drawings from the previous shot: another camera on another set, which is
+ * the one thing a reference view must not show. The 2D plan model was fixed
+ * for this; this path is the sibling caller that was not.
+ */
+const cut = on.onion[1];
+console.log(`\nat ${CUT.toFixed(4)}s, one frame after the cut at 2.00s:`);
+console.log(`  shot ${cut.shot}, window [${cut.window[0].toFixed(2)}, ${cut.window[1].toFixed(2)}]`);
+console.log(`  ${cut.ghosts} ghost(s) of the 4 asked for; `
+    + `${across.length} cluster(s) on the scanline`);
+for (const c of across) {
+    console.log(`  x ${String(c.at).padStart(4)}  luma ${String(c.luma).padStart(3)}  `
+        + `${c.r - c.b > 6 ? 'warm' : c.b - c.r > 6 ? 'cool' : 'neutral'}`);
+}
+ok(cut.shot === 'b' && cut.window[0] === 2, `the window is shot b's, not the film's`);
+ok(cut.ghosts === 2, `only the two ghosts ahead survive the cut (got ${cut.ghosts})`);
+ok(across.length === 3, `three clusters: the live frame and two ahead (got ${across.length})`);
+ok(across.every((c) => c.r - c.b <= 6), 'and none of them is warm, which is to say in the past');
 
 console.log('');
 if (fails.length) { for (const f of fails) console.error(`FAIL: ${f}`); process.exit(1); }

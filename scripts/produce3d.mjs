@@ -366,8 +366,13 @@ if (ONION) {
         console.log(`  ${f.replace(ROOT, '')}`);
     }
     for (const c of res.onion) {
+        // The shot is printed because it is the clamp: asking for 3 behind
+        // one frame after a cut correctly yields fewer, and a bare count
+        // would read as a fault rather than as the cut.
+        const where = c.window ? `, clamped to shot ${c.shot} `
+            + `[${c.window[0].toFixed(2)}, ${c.window[1].toFixed(2)}]` : '';
         console.log(`  ${c.t}s: ${c.ghosts} ghost(s) at ${spacing}s apart `
-            + `(${before} behind, ${after} ahead)`);
+            + `(${before} behind, ${after} ahead)${where}`);
     }
     if (res.sims) {
         console.log(`  note: this scene has ${res.sims} simulation(s), so every ghost `

@@ -1368,6 +1368,30 @@ opacity, clamped away from the ends. That is the part that is about onion
 skinning. How pixels combine is about the surface, and the two surfaces
 genuinely differ.
 
+### Clamped to the shot, not to the film
+
+`frames()` took a `duration` and dropped any ghost outside `[0, duration]`,
+which is the whole film. **A 3D film cuts exactly as a drawn one does**, and
+a ghost from the other side of a cut is a different camera on a different
+set — nothing an animator can read an arc from. One frame after a cut at
+2.00 s the two ghosts behind were 1.742 s and 1.442 s, both of them in the
+previous shot.
+
+`frames()` now takes a `within` window and `film3d.html` passes the shot's,
+from `shotWindow(compiled.shots, t)` — the same helper the 2D path uses, so
+there is one answer to "where does this shot start" rather than two.
+Measured one frame after the cut, asking for two ghosts each side:
+
+| | asked | drawn | clusters |
+|---|---|---|---|
+| clamped to the film | 4 | 4 | 5, two of them the previous shot |
+| **clamped to the shot** | 4 | **2** | **3**, all of them cool |
+
+Dropped rather than pinned to the boundary, for the reason the ends are:
+three ghosts on one spot composite to one dark frame and read as a bug.
+`produce3d` prints the shot and its window beside the count, so two ghosts
+where four were asked for reads as the cut it is.
+
 ### Warm behind, cool ahead
 
 Measured on a white card crossing a 640 px frame, sampled at 1.0 s with two

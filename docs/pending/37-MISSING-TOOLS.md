@@ -88,12 +88,22 @@ Each row: what it is, where it would live, and the honest cost.
 
 ### Timing and curves
 
-- **No curve editor, and no dope sheet.** Easing is chosen by name from a
-  table. For dialogue and mechanical motion that is often enough; for weight
-  it is not — an animator fixes overshoot by dragging a handle, and there is
-  nowhere to drag. `src/core/anim/easing.js` + a canvas panel; the tracks are
-  already data, so this is a **UI** job, not an engine one, which makes it one
-  of the cheapest large wins here.
+- ~~**No curve editor, and no dope sheet.**~~ **Done, Phase 65.** This entry
+  called it a **UI** job because the tracks are already data. True, and
+  incomplete: before there was anywhere to drag a handle there was also no
+  way to *answer* "what is keyed on this channel, and when" — for a human or
+  for an agent. So the sheet is a pure function of the timeline
+  ([`core/anim/dope.js`](../../src/core/anim/dope.js)), `scripts/dope.mjs`
+  prints it in a terminal with no browser at all, and
+  [`ui/DopeSheet.js`](../../src/ui/DopeSheet.js) draws the same data.
+  `ease: 'bezier'` with an `h` had been wired end to end since the first
+  timeline and **no film had ever used it** — here, unusually, the arithmetic
+  was fine; nobody used it because four numbers are not a shape you can
+  picture. *Measured:* dragging the outgoing handle to 0.95 puts a subject
+  **32 px behind** the default ease, and to 0.02 **160 px ahead**, through the
+  panel's own code path and the real renderer (`npm run test:dope`). Only the
+  authored half is draggable, because the compiled keys are output and
+  writing to them would be editing the result rather than the cause.
 - **No stepped / hold interpolation as a first-class mode.** Blocking a
   performance in steps before splining it is how 3D character work is
   actually done.
@@ -253,7 +263,7 @@ Ordered by value over cost, not by size.
 | 2 | **Music ducking** | ~30 lines; currently hand-tuned per film and silently wrong the moment a line moves. |
 | 3 | **Motion blur via subframe accumulation** | The clearest visual gap against reference 3D work; deterministic. |
 | ~~4~~ | ~~**Shared verb table**~~ — **done**, Phase 57 (§1 above) | Stopped the 2D/3D divergence at the source, and closed two gaps that were a call nobody had made. |
-| 5 | **Curve editor + dope sheet UI** | Large, but no engine change: the tracks are already data. |
+| ~~5~~ | ~~**Curve editor + dope sheet UI**~~ — **done**, Phase 65 | It was two things: a sheet that answers in numbers (`scripts/dope.mjs`, no browser) and a canvas panel that drags the authored ease. 32 px of measured difference from one handle. |
 | ~~6~~ | ~~**Rigid-body dynamics, baked to keys**~~ — **Tier 1 done**, Phase 60 ([44](44-RIGID-BODIES.md)) | Was the largest missing subsystem. The doc came first, as this row demanded, and it is the doc that caught the `cannon-es` question early. Stacking and joints remain. |
 | 7 | **Proxy render + resume + queue** | Iteration cost, not capability. |
 
@@ -273,8 +283,10 @@ What the items above need from the interface, in the order they would arrive:
    data (`shots[]` with `start`/`duration`, and the retimed dialogue), and
    nothing displays it. It is also where a transition would be *authored*,
    which is the argument for building it alongside item 1.
-2. **A curve editor** in the same panel, because a dope sheet without one
-   only moves time.
+2. ~~**A curve editor** in the same panel, because a dope sheet without one
+   only moves time.~~ **Done, Phase 65** — and the dope sheet came with it,
+   in both forms: a canvas panel and a text report for a caller with no
+   screen.
 3. **A voice picker** populated from `listVoices`, writing a *role* rather
    than a model id so a click cannot weld a film to one engine.
 4. **A render panel with a queue and a draft toggle**, replacing the shell

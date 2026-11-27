@@ -498,3 +498,93 @@ one", and all three now drive a sprite sheet unchanged.
 
 A sheet declared on the **part** beats the asset's own, so one atlas can serve
 six characters with one of them taking a different slice.
+
+## Timing: the dope sheet and the curve
+
+**Phase 65.** Easing is chosen by name from a table, which is enough for
+dialogue and mechanical motion and not enough for weight.
+[pending/37-MISSING-TOOLS.md](pending/37-MISSING-TOOLS.md) put it exactly:
+*"an animator fixes overshoot by dragging a handle, and there is nowhere to
+drag."*
+
+`ease: 'bezier'` with an `h` of four numbers has been wired end to end since
+the engine's first timeline and **no film had ever used it**. Unlike the
+other times this repository has found that shape, the arithmetic was fine —
+nobody used it because there was no way to see what four numbers would do.
+
+### Without a screen
+
+```
+FILM=demo/film.json node scripts/dope.mjs
+FILM=demo/film.json TARGET=harbour/mara/ FROM=0 TO=20 node scripts/dope.mjs
+FILM=demo/film.json ACTIONS=1 node scripts/dope.mjs
+```
+
+```
+                             0s/0f      4s/96f     8s/192f    12s/288f   16s/384f
+…our/mara/armL transform.rot o----------------o--+--------------------o--+
+…our/mara/armR transform.rot o----------------o--+--------------------o--+
+…our/mara/head transform.rot o----------------o--+--------------------o--+
+…ur/mara/torso transform.rot o----------------o--+--------------------o--+
+
+4 channel(s), 20 key(s).  marks: + linear, o smooth, * bezier, = hold
+```
+
+The **shape of the row is the information**: evenly spaced diamonds are a
+mechanical move, bunched ones are an ease, a run of `=` is a hold. `digest`
+answers "what is in the frame" in numbers; this is the same answer pointed at
+time, and it needs no browser because `compileFilm` is pure.
+
+Two rules it keeps. Nothing is drawn outside a channel's own key range,
+because a track *holds* its end values and a line across the whole film would
+claim it moves. And two keys landing in one column read as a count (`2`, `3`)
+rather than as one mark — "those keys are closer together than this view can
+show" is a different fact from "there is one key here", and an animator
+chasing a pop needs to know which. What is left out is counted, never dropped
+quietly.
+
+| filter | means |
+|---|---|
+| `TARGET=s/host` | that node exactly |
+| `TARGET=s/host/` | that node and everything under it |
+| `PATHS=transform.` | every transform channel |
+| `FROM` / `TO` | the window, in seconds; a channel with no key in it is left out |
+| `ACTIONS=1` | the authored half instead — what was *written*, on the film's clock |
+
+### With one
+
+The studio's **timing** panel is one canvas with two halves, and only one of
+them can be dragged:
+
+- the **authored actions**, from the film document, whose `ease` and `h` are
+  fields an agent reads and writes;
+- the **compiled channels** beside them, which are the *output* — one `move`
+  becomes several keys on two channels, and writing back to those would be
+  editing the result rather than the cause. Read-only, and shown precisely so
+  that what a verb produced stops being invisible.
+
+That split is the standing rule of this editor: **there is no editor-only
+state — the edit is the script.** Click an action, press `B` for bezier, drag
+a handle. The film gains `"ease": "bezier", "h": [0.95, 0, 0.58, 1]`, and
+nothing else anywhere holds a copy.
+
+Measured, through the panel's own code path and the real renderer: on a
+square crossing frame over two seconds, dragging the outgoing handle to 0.95
+puts the subject **32 px behind** the default ease at 0.5 s, and dragging it
+to 0.02 puts it **160 px ahead**. `npm run test:dope`.
+
+| preset | `h` | what it is for |
+|---|---|---|
+| `linear` | `[0, 0, 1, 1]` | |
+| `smooth` | `[0.42, 0, 0.58, 1]` | the default |
+| `ease-in` / `ease-out` | `[0.42, 0, 1, 1]` / `[0, 0, 0.58, 1]` | |
+| `snap` | `[0.9, 0, 1, 1]` | hold, then go |
+| `overshoot` | `[0.3, 0, 0.3, 1.5]` | past the target and back |
+| `anticipate` | `[0.6, -0.4, 0.3, 1]` | pull back before going |
+
+A handle's **x is clamped to [0, 1]** because a timing function must be a
+function of time — an x outside it folds the curve back on itself and the
+solver returns whichever root it lands on, which reads as a jump. **y is
+not**: leaving [0, 1] is overshoot, and overshoot is what an animator opened
+the editor for. The overshoot lives in the *curve*, not in the keys, so the
+subject still lands exactly on its authored target.

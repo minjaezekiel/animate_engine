@@ -141,7 +141,7 @@ Every "yes" names where it lives, so the claim can be checked.
 | Area lights | **no** | **Engine gap, next.** Soft shadows come from a light having size; PCF blur is a blur, not a penumbra. Tier 1.6 of [42-RENDER-QUALITY.md](42-RENDER-QUALITY.md) |
 | HDRI / environment lighting | **yes** | Phase 49, defaulted |
 | Shadows, softness | **yes** | PCF soft, fitted per scene in Phase 52 |
-| Volumetric lighting | **no** | Engine gap, low priority: a god-ray is a shader, and `glow` is the precedent |
+| Volumetric lighting | *partial* | **Extinction done, Phase 69** -- `meta.fog`, stated as a visibility distance. In-scattering (god rays, smoke, fire) is Tier 2 |
 | Global illumination | **no** | Tier 2 of 42 — the honest remainder of the gap to Blender |
 | Perspective camera, focal length, DOF, tracking, animation, switching, motion blur | **yes** | shots carry cameras; `dof` is keyable since Phase 44; motion blur Phase 47 |
 | Orthographic camera | **no** | Engine gap, trivial: one flag on the camera spec. Wanted by every technical/blueprint film |
@@ -250,7 +250,7 @@ small and unblock films that exist; the rest are subsystems.
 | 7 | ~~Scatter / instancing on points~~ | **done, Phase 59** | 600 grit instances on the AK-47's floor took the frame from **234 draw calls to 235**. Poisson-disc, seeded: closest pair **0.0742 m** against uniform random's 0.0095 m |
 | 8 | ~~Rigid-body dynamics, baked to keys~~ | **Tier 1 done, Phase 60** | Eight cases land in the AK-47 film and rest at y **-1.5846** against an analytic -1.5843. Stacking needs box-box and is Tier 2 |
 | 9 | ~~Render passes / AOVs~~ | **done, Phase 62** | `AOV=depth,normal,object`, decoded by pure arithmetic in `core/render/aov.js`. A cube at a known 11.000 m reads **10.999909 m**, against that frustum's own quantisation step of 7.2e-4 m. The depth pass opens WHITE and is correct; it is measured, not looked at |
-| 10 | **Volumetrics** (smoke, fire, god rays) | L | One solver, three products |
+| 10 | **Volumetrics** (smoke, fire, god rays) | L | **Tier 1 done, Phase 69**: extinction, as `meta.fog`. Five cards recover the declared density to **0.76%** with a **1.6%** spread across 5 m to 30 m, which is also the proof it is `FogExp2` and not Beer-Lambert. Found that fog mixed in DISPLAY space whenever no post pass was declared. In-scattering is Tier 2 |
 | 11 | **Global illumination** | L | Tier 2 of 42; the honest remainder of the gap to Blender |
 
 ---
@@ -521,10 +521,27 @@ known 11.000 m reads **10.999909 m**, an error of 9.1e-5 m against
 `depthQuantum`'s 7.2e-4 m -- one eighth of a quantisation step. Single times
 rather than sequences, marked `ponytail:` with the upgrade named.
 
-**10. Volumetrics.** One grid solver (a kernel) feeding a 3D texture and a
-ray-marched shader; smoke, fire and god rays are three configurations of it.
-Expensive, and it should not start until 8 is done, because they share the
-"solve offline, consume per frame" machinery.
+**10. Volumetrics.** Two halves, and only one of them is expensive.
+
+**Extinction** -- light leaving the ray -- is already in every lit material's
+fragment shader and costs nothing. It shipped as `meta.fog` in Phase 69, with
+the authoring (`visibility`, a distance, not a density), the arithmetic, and
+the diagnostics for fog that cannot be seen. *Proof, as specified:* five
+cards at known axial depths recover the declared density 0.039558 as
+**0.039857**, with a **1.6%** spread from 5 m to 30 m -- and the spread is
+the claim, because a density that drifts with depth means the model and the
+renderer disagree about the shape of the curve. It also found that THREE
+includes `fog_fragment` after `tonemapping_fragment`, so fog mixed in
+**display space** on the direct-to-canvas path and in linear light through a
+composer: the same declared fog meant two images depending on whether an
+unrelated `bloom` was declared.
+
+**In-scattering** -- light arriving from the medium itself -- is the rest.
+God rays are the cheap one and want no solver at all: a ray-marched cone on a
+spot light, analytic single-scatter, with the shadow map as the upgrade.
+Smoke and fire want the grid solver (a kernel) feeding a 3D texture, and
+should not start until the "solve offline, consume per frame" machinery of 8
+is reused rather than rebuilt.
 
 **11. Global illumination.** Tier 2 of 42, unchanged: SH irradiance from the
 environment first (nearly free), baked irradiance probes second (the right
@@ -550,7 +567,9 @@ kind of items.
 | ~~then~~ | ~~**Rigid bodies**~~ (37 priority 6) | **Tier 1 done, Phase 60** — the doc came first, as both registers demanded |
 | ~~then~~ | ~~**Subdivision + displacement**~~ | **done, Phase 61** — and displacement needed no wiring, only two diagnostics |
 | ~~then~~ | ~~**Render passes / AOVs**~~ | **done, Phase 62** -- and it found that three's depth packing puts the coarsest bits in red, which read the other way is a plausible depth map of nothing |
-| later | volumetrics, global illumination | each is a phase of its own |
+| ~~then~~ | ~~**Volumetrics, Tier 1**~~ (extinction) | **done, Phase 69** -- and it found fog mixing in display space on the no-post path, which made one declared fog mean two images |
+| next | **Volumetrics, Tier 2** (in-scattering) | god rays first: a ray-marched cone on a spot light needs no solver. Smoke and fire need the grid |
+| later | global illumination | a phase of its own |
 
 **Not planned, and the reason stated once:** a mesh-editing viewport,
 sculpting, weight painting, a node editor, video editing, motion tracking and

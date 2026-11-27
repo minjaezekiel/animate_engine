@@ -1361,6 +1361,25 @@ export function buildScene3D(T, compiled, {
     const root = new T.Scene();
     root.background = new T.Color(meta.background);
     /**
+     * Fog, which is extinction and is therefore already in every lit
+     * material's fragment shader: the only cost is the two lines below.
+     *
+     * `FogExp2` squares both terms -- `1 - exp(-(density*z)^2)` -- so it is
+     * not Beer-Lambert and `density` is not an extinction coefficient. The
+     * conversion to and from a visibility DISTANCE, which is the thing an
+     * author actually knows, is in `core/render/fog.js`, and that module is
+     * what the pixel probe measures this against.
+     *
+     * Not applied to `root.background`: THREE paints the background behind
+     * everything at full strength, which is why `normalizeFog` defaults the
+     * fog colour to the background. See the note there.
+     */
+    if (meta.fog) {
+        root.fog = meta.fog.kind === 'linear'
+            ? new T.Fog(new T.Color(meta.fog.color), meta.fog.near, meta.fog.far)
+            : new T.FogExp2(new T.Color(meta.fog.color), meta.fog.density);
+    }
+    /**
      * An environment the film DECLARED lights everything, as asked. An
      * implicit one -- the built-in studio, applied because the film contains
      * a metal -- is attached per material instead, below. See the end of this

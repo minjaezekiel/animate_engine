@@ -37,6 +37,24 @@ export function ssaoDepthWindow(bias, radius, camera = null) {
 export function buildComposer({
     THREE, renderer, scene, camera, width, height,
     post = null, bloom = null, samples = 4,
+    /**
+     * Build the composer even when the chain is empty.
+     *
+     * One caller needs this and the reason is fog. THREE applies
+     * `fog_fragment` AFTER `tonemapping_fragment` and `colorspace_fragment`,
+     * and resolves `fogColor` into whichever space the fragment is being
+     * written in -- so fog mixes in DISPLAY space when a material writes
+     * straight to the canvas, and in LINEAR light when it writes to a render
+     * target, which is what a composer gives it. Measured on five cards:
+     * display-space mixing is what the no-composer path does, exactly, and
+     * it is not what fog is.
+     *
+     * Without this flag, declaring an unrelated `bloom` would change what
+     * `fog: { visibility: 50 }` means. One behaviour, at the cost of one
+     * full-screen blit, and `OutputPass` was already documented as always
+     * present. See `core/render/fog.js`.
+     */
+    force = false,
     EffectComposer, RenderPass, ShaderPass, OutputPass,
     UnrealBloomPass = null, SSAOPass = null, BokehPass = null, SMAAPass = null,
     GTAOPass = null,
@@ -46,7 +64,7 @@ export function buildComposer({
     // A chain that is only an identity grade is a full-resolution read and
     // write that changes nothing. Return null and let the caller render
     // straight to the canvas.
-    if (!chain.length || postIsIdentity(chain)) return null;
+    if (!force && (!chain.length || postIsIdentity(chain))) return null;
     if (!EffectComposer || !RenderPass || !OutputPass) {
         warn('post-processing needs EffectComposer, RenderPass and OutputPass', 'meta.post');
         return null;

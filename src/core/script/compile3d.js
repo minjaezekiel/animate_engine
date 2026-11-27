@@ -20,6 +20,7 @@ import { compileDrivers } from '../anim/driver.js';
 import { timelineChannels } from '../anim/Evaluator.js';
 import { normalizePost, normalizePostRamp, isPostKeyable, postChannel,
          POST_KEYABLE, POST_NODE } from './post.js';
+import { normalizeFog, fogReport, visibilityOf } from '../render/fog.js';
 import { normalizeOverlay } from '../art/overlay.js';
 import { normalizeDuck } from '../audio/ducking.js';
 import { normalizeMotionBlur } from '../motion/motionBlur.js';
@@ -308,6 +309,16 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
          * is normalised here and loaded by the page, which owns the network.
          */
         environment: normalizeEnvironment(film.meta?.environment),
+        /**
+         * Fog: the first volumetric, and the only half of one that is free.
+         *
+         * `fog: { visibility: 30 }` -- a DISTANCE, because density is not a
+         * number anyone can picture. See `core/render/fog.js` for both
+         * directions of that conversion and for why the colour defaults to
+         * the background.
+         */
+        fog: normalizeFog(film.meta?.fog, {
+            background: film.meta?.background ?? '#0b0b0d', warn }),
         bloom: film.meta?.bloom ?? null,
         step: film.meta?.step ?? 0,
         post: null,         // filled below, once `warn` can be used
@@ -342,6 +353,25 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
         clip: normalizeClip(film.meta?.clip, warn),
     };
     meta.post = normalizePost(film.meta?.post, { bloom: meta.bloom, warn });
+    /**
+     * Fog that cannot be seen, which is the defect class this repository
+     * keeps finding: a feature declared and silently unable to work.
+     *
+     * The far plane is 200 units. A visibility past it means no fragment in
+     * the frustum is fogged by as much as 2%, so the film renders exactly as
+     * it did and the author concludes fog is broken. The other end is worse:
+     * a visibility under a metre fogs the subject itself.
+     */
+    if (meta.fog) {
+        const vis = visibilityOf(meta.fog);
+        if (vis > 200) {
+            warn(`fog is thin enough to see ${vis.toFixed(0)} units through, past the `
+                + 'far plane at 200; nothing in frame will be fogged', 'meta.fog');
+        } else if (vis < 1) {
+            warn(`fog leaves 2% of the light by ${vis.toFixed(2)} units, which is `
+                + 'closer than most subjects; the frame will be flat fog colour', 'meta.fog');
+        }
+    }
     /**
      * Ducking the bed under the dialogue. Opt-in, because turning it on for
      * every existing film would change fifty-one finished mixes.

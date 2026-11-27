@@ -32,6 +32,7 @@ import { buildComposer } from './src/render/post3d.js';
 import { captureAOV, aovTarget, aovToPNG } from './src/render/aov.js';
 import { OnionSkin } from './src/render/onionSkin.js';
 import { shotWindow } from './src/core/anim/onion.js';
+import { fogReport } from './src/core/render/fog.js';
 import { AOV_KINDS, objectManifest } from './src/core/render/aov.js';
 import { samplePostAt } from './src/core/script/post.js';
 import { matchVisemeMorphs } from './src/core/art/visemeMorphs.js';
@@ -396,6 +397,10 @@ window.render3d = async function render3d(film, opts = {}) {
     const post = buildComposer({
         THREE, renderer, scene: built.root, camera: built.camera, width, height,
         post: compiled.meta.post, bloom: null,
+        // Fog needs the composer whether or not a pass was declared: in a
+        // direct-to-canvas render THREE mixes fog in display space, after
+        // tone mapping. See the `force` note in `post3d.js`.
+        force: !!compiled.meta.fog,
         EffectComposer, RenderPass, ShaderPass, OutputPass,
         UnrealBloomPass, SSAOPass, BokehPass, SMAAPass, GTAOPass,
         warn: (m, where) => report(`[post] ${m} @ ${where ?? '-'}`),
@@ -406,6 +411,12 @@ window.render3d = async function render3d(film, opts = {}) {
             + ` (${(f.texel * 1000).toFixed(1)} mm per texel), bias ${f.bias.toExponential(1)}`);
     }
     if (post) report(`post: ${post.passes.join(' -> ')} -> output`);
+    // A density with no distance beside it teaches an author nothing, so the
+    // log states where half the light is gone. See `core/render/fog.js`.
+    if (compiled.meta.fog) {
+        report(fogReport(compiled.meta.fog)
+            + (compiled.meta.post.length ? '' : ' -- composer forced, so the mix is linear'));
+    }
     {
         // One line per scatter, because the count is the claim: a scatter is
         // one InstancedMesh however many instances are in it, and the `draw:`

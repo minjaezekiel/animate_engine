@@ -58,6 +58,7 @@ export function captureAOV(THREE, {
         alpha: renderer.getClearAlpha(),
         override: scene.overrideMaterial,
         background: scene.background,
+        fog: scene.fog,
     };
     renderer.getClearColor(prev.clear);
     renderer.toneMapping = THREE.NoToneMapping;
@@ -65,6 +66,17 @@ export function captureAOV(THREE, {
     // A film's sky, environment or backdrop colour is a statement about
     // LIGHT. In a depth pass it would be a wall at the near plane.
     scene.background = null;
+    /**
+     * Fog off, for the same reason and with sharper teeth. A pass writes
+     * DATA, and fog is a statement about light -- but `MeshBasicMaterial`
+     * honours fog, so the object pass would blend every matte toward the fog
+     * colour by depth. The matte of a distant object would be a colour that
+     * is in no manifest, and `objectColor`'s whole promise is that the byte
+     * written is the byte the manifest names. Depth and normal materials
+     * ignore fog; the object pass does not, which is exactly the kind of
+     * silent breakage this repository keeps finding.
+     */
+    scene.fog = null;
 
     const swapped = [];
     const mats = new Map();
@@ -127,6 +139,7 @@ export function captureAOV(THREE, {
     scene.overrideMaterial?.dispose?.();
     scene.overrideMaterial = prev.override;
     scene.background = prev.background;
+    scene.fog = prev.fog;
     renderer.toneMapping = prev.tone;
     renderer.outputColorSpace = prev.space;
     renderer.setClearColor(prev.clear, prev.alpha);

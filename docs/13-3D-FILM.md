@@ -1323,7 +1323,115 @@ film's own geometry instead of eyeing a grey picture.
 
 ---
 
-## 13. Onion skinning
+## 13. Fog — the first volumetric, and the one that is free
+
+`meta.fog` declares a participating medium. It is the extinction half of
+volumetrics — light leaving the ray on its way to the camera — and it was the
+half the engine had none of, so a film could not say *"the far wall is 40 m
+away and hazy"* and every large set rendered with the contrast of a studio
+tabletop.
+
+```json
+"meta": { "fog": { "visibility": 50 } }
+"meta": { "fog": { "kind": "linear", "near": 5, "far": 35 } }
+```
+
+### Density is unguessable; visibility is not
+
+`density: 0.0396` is not a number anyone can picture, and the first thing an
+author does with it is render, squint and double it. What a cinematographer
+knows is **how far they can see**, so that is what this takes: `visibility` is
+a distance in world units, and "cannot see" means 2% of the light is left
+(`FOG_THRESHOLD`). Both directions live in
+[core/render/fog.js](../src/core/render/fog.js), because the renderer needs
+the density and the diagnostic needs the distance.
+
+The log states the distance rather than the number:
+
+```
+fog: exp, density 0.0396, #0b0b0d -- half the light gone by 21.05, 2% left at 50.00
+```
+
+`color` defaults to **the background**, and that default is most of the
+feature: `scene.background` is painted behind everything at full strength and
+is never fogged, so a dark backdrop under pale fog gets a hard ring where the
+geometry ends — which reads as a clipping bug rather than a colour choice.
+
+### `exp` is not Beer–Lambert, and the half distance is how you tell
+
+THREE's `FogExp2` squares both terms: transmittance is `exp(-(density·z)²)`.
+Reading it as Beer–Lambert puts the half distance out by 20% — at density 0.1
+it is 8.33 units, not 6.93 — which is a plausible fog of the wrong thickness
+and is undetectable without a number.
+
+### What the probe found: fog was mixing in the wrong colour space
+
+THREE includes `fog_fragment` **after** `tonemapping_fragment` and
+`colorspace_fragment`, and resolves `fogColor` into whichever space the
+fragment is being written in. So the space the fog mixes in depends on where
+the render is going, and the two paths this engine already has disagree:
+
+| render goes to | tone mapping in the material | fog mixes in |
+|---|---|---|
+| the canvas (no post declared) | ACES, then sRGB encode | **display space** |
+| a composer's render target | `NoToneMapping`, linear | **linear light**, `OutputPass` after |
+
+The same `fog: { visibility: 50 }` therefore meant two different images
+depending on whether the film happened to declare an unrelated `bloom`. The
+display-space mix is also the wrong one: it mixes after the highlights have
+been compressed, so fog cannot bring a blown highlight back down the way a
+real medium does.
+
+Measured on five mid-grey emissive cards at known axial depths, with the
+transmittance recovered from the pixels by inverting the sRGB encode and the
+ACES curve — both of which collapse to a scalar on a neutral grey, which is
+why the cards are grey and the fog is black:
+
+| mix | implied density at 5 m | at 30 m | spread |
+|---|---|---|---|
+| display space | 0.0569 | 0.0458 | **21.8%** |
+| **linear light** | 0.0402 | 0.0397 | **1.6%** |
+
+The declared density was 0.039558. **The drift is the tell**: a medium has one
+density, so a number that changes with depth means the model and the renderer
+disagree about the *shape* of the curve and not merely its scale. So the
+engine forces the composer on whenever a film declares fog — `force` in
+[post3d.js](../src/render/post3d.js) — which costs one full-screen blit and
+makes fog mean one thing. `OutputPass` was already documented as always
+present.
+
+### The depth is along the lens axis, not radial
+
+`vFogDepth` is `-mvPosition.z`: how far along the camera's forward axis a
+fragment is, not how far it is from the camera. Two cards 20 units along the
+axis and 20.02 / 21.93 units from the camera measured **0.5344 and 0.5344**;
+a radial fog would have put the second at 0.4711. Worth knowing before
+writing a probe that measures radial distance and concludes the fog is
+broken. It is also, strictly, what a real atmosphere does *not* do.
+
+### Off in the passes, deliberately
+
+`captureAOV` nulls `scene.fog` with the background it was already nulling.
+Depth and normal materials ignore fog, but `MeshBasicMaterial` honours it, so
+the object pass would blend every matte toward the fog colour by depth and the
+matte of a distant object would be a colour in no manifest — against
+`objectColor`'s whole promise that the byte written is the byte named.
+
+### Fog that cannot be seen is a diagnostic
+
+The far plane is 200 units. A visibility past it means no fragment in the
+frustum is fogged by as much as 2%, so the film renders exactly as it did and
+the author concludes fog is broken; under one unit, the subject itself is
+fog. Both say so at compile time, as does a `kind` typo — `kind:
+'exponential'` would otherwise fall through to linear and fade between the
+default near and far.
+
+**No film in this repository declares fog yet.** It is shipped because it is
+the foundation the rest of volumetrics stands on, and nothing else was going
+to be built without it; restyling a finished film to exercise it would be the
+wrong trade, and the pixel probe is the check instead.
+
+## 14. Onion skinning
 
 **Phase 66.** [pending/37-MISSING-TOOLS.md](pending/37-MISSING-TOOLS.md)
 listed `src/render/onionSkin.js` as *"2D only"*. It never was. Its whole

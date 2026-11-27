@@ -10,6 +10,9 @@ import { limitRotation, drivenValue } from '../../core/rig/constraints.js';
 import { makeCloth, stepCloth } from '../../core/sim/cloth.js';
 import { makeFluid, resetFluid, stepFluid, addSource, fluidToRGBA } from '../../core/sim/fluid.js';
 import { applyChannel, readChannel } from './PoseApplier.js';
+// Takes THREE as an argument like everything else here, so this module
+// still imports no renderer of its own.
+import { shaftMesh } from '../../render/shaft.js';
 
 /**
  * Instantiate a compiled 3D film as THREE objects.
@@ -1568,6 +1571,19 @@ export function buildScene3D(T, compiled, {
                 // 2048 rather than 1024 because this renderer is offline and
                 // one more megabyte of depth buffer costs nothing it has.
                 if (object.shadow) object.shadow.mapSize.set(2048, 2048);
+            }
+            /**
+             * A visible beam, as a child of the lamp so it follows it.
+             *
+             * The cone is only a rasteriser: the fragment shader solves for
+             * where its own view ray crosses the cone and integrates the
+             * closed form between those two points, so nothing is read off
+             * the surface. See `render/shaft.js`.
+             */
+            if (p.shaft) {
+                object.add(shaftMesh(T, { shaft: p.shaft, color: p.color,
+                                          at: p.at ?? [0, 0, 0],
+                                          target: p.target ?? [0, 0, 0] }));
             }
             if (p.target && object.target) {
                 object.target.position.set(...p.target);

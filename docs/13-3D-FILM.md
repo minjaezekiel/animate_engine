@@ -1431,7 +1431,124 @@ the foundation the rest of volumetrics stands on, and nothing else was going
 to be built without it; restyling a finished film to exercise it would be the
 wrong trade, and the pixel probe is the check instead.
 
-## 14. Onion skinning
+## 14. Light shafts — in-scattering, with no solver
+
+A `shaft` on a spot light makes its beam visible: the god ray through a
+window, the headlight in rain, the torch in smoke. Where [§13](#13-fog--the-first-volumetric-and-the-one-that-is-free)
+is light *leaving* the view ray, this is light *arriving* — the lamp
+scattering off the air towards the camera.
+
+```json
+"lights": [{
+  "id": "window", "type": "spot", "at": [0, 6, 2], "target": [0, 0, 0],
+  "angle": 22, "distance": 9, "intensity": 3,
+  "shaft": { "intensity": 2 }
+}]
+```
+
+`density` defaults to the film's own fog, because a shaft is the film's air
+being lit; `range` defaults to the light's `distance`; `soft` defaults to its
+`penumbra`. A shaft on a light with no cone, no length, or in a film with no
+air at all is a diagnostic rather than an absent mesh.
+
+### The closed form, not a march
+
+The parity register plans volumetrics as "one grid solver feeding a 3D
+texture and a ray-marched shader". Smoke and fire need that. **A shaft does
+not.** With a uniform medium inside a cone, the integral along a view ray has
+a closed form:
+
+```
+in-scatter = I · σs · p(θ) · ∫ dt/r(t)²   and   ∫ dt/r² = (1/h)·[ atan((t−t_c)/h) ]
+```
+
+where `t_c` is where the ray passes closest to the apex and `h` is how far
+away it passes. One `atan` per endpoint. A 64-step march would compute the
+same number more slowly, less accurately, and — the part that matters here —
+with nothing exact to be checked against.
+
+So the cone mesh is only a **rasteriser**. Nothing is read off its surface:
+the fragment has the eye, its own world position, and the cone's apex and
+axis, and from those it solves for where its view ray enters and leaves and
+integrates between them. The tessellation changes the silhouette's smoothness
+and nothing else.
+
+### Forward scattering is the phenomenon, not a refinement
+
+The phase function is Henyey–Greenstein with `g` defaulting to 0.6. That is
+why a shaft appears when you look *towards* the lamp and nearly vanishes seen
+from behind it — a ratio of **64×** between the two at the default. Isotropic
+scattering gets the brightness roughly right and the phenomenon completely
+wrong.
+
+### Measured against its own arithmetic
+
+`test/core/shaft.test.mjs` proves the arithmetic in JavaScript; `npm run
+test:shaft` proves the GLSL computes the same arithmetic, which is the only
+thing a transcription can get wrong. A lamp points across an empty black
+frame and the rendered scanline is compared pixel by pixel against
+`inscatter`:
+
+| | |
+|---|---|
+| pixels measured | 47, at byte 25 or over and within ×10 of the brightest |
+| mean rendered ÷ closed form | **0.9993** |
+| worst | **1.0159** |
+| spread across the measured falloff | **1.031**, over a ×9.9 brightness range |
+| behind the lamp | **0 lit pixels** |
+| outside the cone | **0 lit pixels** |
+
+Three mistakes would each render something plausible and wrong, and each has
+its own check:
+
+1. **The mirror sheet.** `dot(x−A,V)² = cos²·|x−A|²` describes a *double*
+   cone, so without a sign test every lamp has a second beam out of its back.
+2. **The cap.** A ray looking into the beam from in front enters through the
+   cap plane, not through the wall — skip it and there is a circular hole
+   exactly where the beam is brightest.
+3. **The apex clamp.** A ray aimed at a point light passes at `h = 0` and the
+   integral diverges. A real lamp has a filament, so clamping `h` to its
+   radius is the physical answer, not a fudge: without it the apex is one
+   blinding pixel that bloom then smears across the frame.
+
+### Two findings on the way
+
+**`modelMatrix` is injected into the vertex prefix only.** Naming it in a
+fragment shader is an undeclared identifier; three reports that as
+`VALIDATE_STATUS false` and the frame renders **without the mesh and without
+a page error** — the failure mode that looks exactly like the feature not
+being wired. The cone's apex and axis are carried across as varyings, which
+is free rather than approximate: both are the same value at every vertex, and
+a barycentric blend of three identical vectors is that vector.
+
+**A shaft needs the composer**, for the same reason fog does and for a
+different mechanism. A raw `ShaderMaterial` gets no `tonemapping_fragment`
+and no `colorspace_fragment`, so it writes linear radiance; rendering straight
+to the canvas, every built-in material around it writes display values, and an
+additive blend between the two spaces is meaningless. `meta.shafts` is counted
+at compile time so the page knows before it builds the chain.
+
+### What is deliberately not modelled
+
+`ponytail:` in order of what each would cost:
+
+1. **Shadows in the shaft** — the dust-in-a-window look, where a mullion
+   carves a dark stripe out of the beam. Needs the spot's shadow map sampled
+   per step, which means giving up the closed form for a march.
+2. **Occlusion by geometry mid-chord.** `side: FrontSide` with the depth test
+   on means a shaft is hidden by anything in front of its near surface, which
+   is right, and is not cut where geometry crosses it, which is not — a beam
+   ending on a floor brightens slightly through it. Needs the depth texture,
+   which would also fix a camera standing inside the cone seeing nothing.
+3. **Extinction along the chord**, which matters only in a medium thick
+   enough for the shaft to be dim anyway.
+
+A shaft is aimed once, at build time, from the lamp to its target.
+
+**No film declares a shaft yet**, for the reason [§13](#13-fog--the-first-volumetric-and-the-one-that-is-free)
+gives about fog.
+
+## 15. Onion skinning
 
 **Phase 66.** [pending/37-MISSING-TOOLS.md](pending/37-MISSING-TOOLS.md)
 listed `src/render/onionSkin.js` as *"2D only"*. It never was. Its whole

@@ -21,6 +21,7 @@ import { timelineChannels } from '../anim/Evaluator.js';
 import { normalizePost, normalizePostRamp, isPostKeyable, postChannel,
          POST_KEYABLE, POST_NODE } from './post.js';
 import { normalizeFog, fogReport, visibilityOf } from '../render/fog.js';
+import { normalizeShaft } from '../render/shaft.js';
 import { normalizeOverlay } from '../art/overlay.js';
 import { normalizeDuck } from '../audio/ducking.js';
 import { normalizeMotionBlur } from '../motion/motionBlur.js';
@@ -498,11 +499,34 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
                     && type !== 'area' && type !== 'ambient' && type !== 'hemisphere',
                 at: vec3(light.at ?? [0, 0, 0]),
                 target: light.target ? vec3(light.target) : null,
+                /**
+                 * A visible beam: in-scattering from the lamp's own cone.
+                 * Normalised here so a shaft that cannot work -- on a light
+                 * with no cone, with no length, or in a film with no air --
+                 * is a diagnostic rather than an absent mesh.
+                 */
+                shaft: normalizeShaft(light.shaft, {
+                    lightType: type, angle: light.angle ?? 60,
+                    distance: light.distance ?? 0, penumbra: light.penumbra ?? 0.2,
+                    fog: meta.fog, path: `lights[${i}].shaft`, warn,
+                }),
             },
         });
     }
 
     // ------------------------------------------------------------ the camera
+    /**
+     * How many lights carry a visible beam.
+     *
+     * Counted rather than inferred later, because the page needs it before it
+     * builds the post chain: a shaft is a raw `ShaderMaterial` writing LINEAR
+     * radiance, so it has to be composited and tone mapped by `OutputPass`
+     * rather than added to a canvas full of display values. Same reason fog
+     * forces the composer, and the same flag.
+     */
+    meta.shafts = [...scene.byId.values()]
+        .filter((n) => n.kind === 'light' && n.props?.shaft).length;
+
     const cameraId = '__camera';
     const lookId = '__look';
     scene.add({ id: cameraId, kind: 'camera', props: { fov: DEFAULTS.fov, at: [0, 0, 5] } });

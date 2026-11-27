@@ -33,6 +33,7 @@ import { captureAOV, aovTarget, aovToPNG } from './src/render/aov.js';
 import { OnionSkin } from './src/render/onionSkin.js';
 import { shotWindow } from './src/core/anim/onion.js';
 import { fogReport } from './src/core/render/fog.js';
+import { shaftReport } from './src/core/render/shaft.js';
 import { AOV_KINDS, objectManifest } from './src/core/render/aov.js';
 import { samplePostAt } from './src/core/script/post.js';
 import { matchVisemeMorphs } from './src/core/art/visemeMorphs.js';
@@ -400,7 +401,10 @@ window.render3d = async function render3d(film, opts = {}) {
         // Fog needs the composer whether or not a pass was declared: in a
         // direct-to-canvas render THREE mixes fog in display space, after
         // tone mapping. See the `force` note in `post3d.js`.
-        force: !!compiled.meta.fog,
+        // A shaft is a raw ShaderMaterial writing LINEAR radiance, so like
+        // fog it has to be tone mapped by OutputPass rather than added to a
+        // canvas full of display values.
+        force: !!compiled.meta.fog || compiled.meta.shafts > 0,
         EffectComposer, RenderPass, ShaderPass, OutputPass,
         UnrealBloomPass, SSAOPass, BokehPass, SMAAPass, GTAOPass,
         warn: (m, where) => report(`[post] ${m} @ ${where ?? '-'}`),
@@ -416,6 +420,9 @@ window.render3d = async function render3d(film, opts = {}) {
     if (compiled.meta.fog) {
         report(fogReport(compiled.meta.fog)
             + (compiled.meta.post.length ? '' : ' -- composer forced, so the mix is linear'));
+    }
+    for (const n of compiled.scene.byId.values()) {
+        if (n.kind === 'light' && n.props?.shaft) report(shaftReport(n.props.shaft, n.id));
     }
     {
         // One line per scatter, because the count is the claim: a scatter is

@@ -141,7 +141,7 @@ Every "yes" names where it lives, so the claim can be checked.
 | Area lights | **no** | **Engine gap, next.** Soft shadows come from a light having size; PCF blur is a blur, not a penumbra. Tier 1.6 of [42-RENDER-QUALITY.md](42-RENDER-QUALITY.md) |
 | HDRI / environment lighting | **yes** | Phase 49, defaulted |
 | Shadows, softness | **yes** | PCF soft, fitted per scene in Phase 52 |
-| Volumetric lighting | *partial* | **Extinction done, Phase 69** -- `meta.fog`, stated as a visibility distance. In-scattering (god rays, smoke, fire) is Tier 2 |
+| Volumetric lighting | **yes** | **Phase 69** `meta.fog` (extinction), **Phase 70** `shaft` on a spot light (in-scattering), closed form rather than a march. Smoke and fire are the grid solver and still open |
 | Global illumination | **no** | Tier 2 of 42 — the honest remainder of the gap to Blender |
 | Perspective camera, focal length, DOF, tracking, animation, switching, motion blur | **yes** | shots carry cameras; `dof` is keyable since Phase 44; motion blur Phase 47 |
 | Orthographic camera | **no** | Engine gap, trivial: one flag on the camera spec. Wanted by every technical/blueprint film |
@@ -158,7 +158,7 @@ Every "yes" names where it lives, so the claim can be checked.
 | Gravity | **yes** | |
 | Rigid bodies and constraints | **no** | **Engine gap, the largest.** Priority 6 of 37; needs its own doc before any code |
 | Soft bodies | **no** | Engine gap, after rigid |
-| Smoke, fire | **no** | Engine gap: both are the same volumetric solver, and neither is cheap |
+| Smoke, fire | **no** | Engine gap: both are the same grid solver, and neither is cheap. The shaft work took god rays off this line without one |
 | Hair | **no** | Engine gap, low priority |
 | Force fields | **no** | Engine gap, small: wind and turbulence as fields the particle solver reads |
 | Dynamic paint | **no** | Not planned |
@@ -250,7 +250,7 @@ small and unblock films that exist; the rest are subsystems.
 | 7 | ~~Scatter / instancing on points~~ | **done, Phase 59** | 600 grit instances on the AK-47's floor took the frame from **234 draw calls to 235**. Poisson-disc, seeded: closest pair **0.0742 m** against uniform random's 0.0095 m |
 | 8 | ~~Rigid-body dynamics, baked to keys~~ | **Tier 1 done, Phase 60** | Eight cases land in the AK-47 film and rest at y **-1.5846** against an analytic -1.5843. Stacking needs box-box and is Tier 2 |
 | 9 | ~~Render passes / AOVs~~ | **done, Phase 62** | `AOV=depth,normal,object`, decoded by pure arithmetic in `core/render/aov.js`. A cube at a known 11.000 m reads **10.999909 m**, against that frustum's own quantisation step of 7.2e-4 m. The depth pass opens WHITE and is correct; it is measured, not looked at |
-| 10 | **Volumetrics** (smoke, fire, god rays) | L | **Tier 1 done, Phase 69**: extinction, as `meta.fog`. Five cards recover the declared density to **0.76%** with a **1.6%** spread across 5 m to 30 m, which is also the proof it is `FogExp2` and not Beer-Lambert. Found that fog mixed in DISPLAY space whenever no post pass was declared. In-scattering is Tier 2 |
+| 10 | **Volumetrics** (smoke, fire, god rays) | L | **Tiers 1 and 2 done, Phases 69 and 70.** Extinction as `meta.fog`: five cards recover the declared density to **0.76%** with a **1.6%** spread across 5 m to 30 m, which is also the proof it is `FogExp2` and not Beer-Lambert, and it found fog mixing in DISPLAY space whenever no post pass was declared. In-scattering as `shaft` on a spot light, closed form: 47 measured pixels at a mean ratio of **0.9993** against the integral, spread **1.031**. Smoke and fire need the grid solver and are open |
 | 11 | **Global illumination** | L | Tier 2 of 42; the honest remainder of the gap to Blender |
 
 ---
@@ -536,12 +536,22 @@ includes `fog_fragment` after `tonemapping_fragment`, so fog mixed in
 composer: the same declared fog meant two images depending on whether an
 unrelated `bloom` was declared.
 
-**In-scattering** -- light arriving from the medium itself -- is the rest.
-God rays are the cheap one and want no solver at all: a ray-marched cone on a
-spot light, analytic single-scatter, with the shadow map as the upgrade.
-Smoke and fire want the grid solver (a kernel) feeding a 3D texture, and
-should not start until the "solve offline, consume per frame" machinery of 8
-is reused rather than rebuilt.
+**In-scattering** -- light arriving from the medium itself -- shipped for the
+cone case in Phase 70 as `shaft` on a spot light, and it wanted no solver and
+no march either. With a uniform medium inside a cone the integral along a
+view ray is closed form: `integral dt/r^2 = (1/h)*[atan((t-tc)/h)]`, one atan
+per endpoint, so the cone mesh is only a rasteriser and nothing is read off
+its surface. *Proof, as specified:* 47 pixels of a rendered scanline against
+`inscatter`, mean ratio **0.9993**, worst **1.0159**, spread **1.031** across
+a x9.9 brightness range, with zero lit pixels behind the lamp (the double
+cone's mirror sheet) and zero outside it. It also found that `modelMatrix` is
+injected into the VERTEX prefix only: naming it in a fragment shader fails to
+compile, and three reports that as `VALIDATE_STATUS false` while the frame
+renders without the mesh and without a page error.
+
+**Smoke and fire** are what is left, and they are the grid solver (a kernel)
+feeding a 3D texture. They should not start until the "solve offline, consume
+per frame" machinery of 8 is reused rather than rebuilt.
 
 **11. Global illumination.** Tier 2 of 42, unchanged: SH irradiance from the
 environment first (nearly free), baked irradiance probes second (the right
@@ -568,8 +578,9 @@ kind of items.
 | ~~then~~ | ~~**Subdivision + displacement**~~ | **done, Phase 61** — and displacement needed no wiring, only two diagnostics |
 | ~~then~~ | ~~**Render passes / AOVs**~~ | **done, Phase 62** -- and it found that three's depth packing puts the coarsest bits in red, which read the other way is a plausible depth map of nothing |
 | ~~then~~ | ~~**Volumetrics, Tier 1**~~ (extinction) | **done, Phase 69** -- and it found fog mixing in display space on the no-post path, which made one declared fog mean two images |
-| next | **Volumetrics, Tier 2** (in-scattering) | god rays first: a ray-marched cone on a spot light needs no solver. Smoke and fire need the grid |
-| later | global illumination | a phase of its own |
+| ~~then~~ | ~~**Volumetrics, Tier 2**~~ (in-scattering) | **done, Phase 70** -- and it needed no march either: the cone integral is closed form, so the mesh is only a rasteriser |
+| next | **Global illumination** | SH irradiance, then baked probes, then a path-traced `master` tier |
+| later | volumetrics Tier 3 (smoke, fire) | the grid solver, and the only item here that actually needs one |
 
 **Not planned, and the reason stated once:** a mesh-editing viewport,
 sculpting, weight painting, a node editor, video editing, motion tracking and

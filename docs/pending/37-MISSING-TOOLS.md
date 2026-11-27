@@ -115,6 +115,14 @@ Each row: what it is, where it would live, and the honest cost.
   original brief for Phase 39. Cheap approximation: accumulate 2–4 subframes
   per output frame in `OfflineRenderer` behind a `shutter` meta key. Costs
   exactly what it accumulates, is deterministic, and needs no new pass.
+- ~~**No onion skin on either film path.**~~ 3D in **Phase 66**, 2D in
+  **Phase 67** — the pose editor had it and neither film path did, so the
+  one view that shows an arc was available for a single pose and never for
+  a shot. The three surfaces need three compositing answers and share
+  `frames()`: ghosts under a transparent 2D editor canvas, added over an
+  opaque 3D render, and alpha-composited over a 2D film with everything
+  outside the cast switched off. `ONION=2,1,0.25` on `produce3d` and on
+  `grab2d`.
 - ~~**No onion skin in 3D.**~~ **Done, Phase 66** — and the premise was
   wrong: `onionSkin.js` was never 2D-only. Its contract is
   `draw(ctx, { render: (time) => something drawImage accepts })` and its

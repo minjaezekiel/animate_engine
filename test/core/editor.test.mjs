@@ -14,7 +14,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { History, set, remove, splice, getIn, setIn, keysOf, MISSING }
     from '../../src/core/history/History.js';
-import { OnionSkin, DEFAULT_TINT } from '../../src/render/onionSkin.js';
+import { OnionSkin, DEFAULT_TINT, ghostMask, castRoots }
+    from '../../src/render/onionSkin.js';
 import { Keymap, chordOf, normalizeChord, isTyping } from '../../src/editor/keymap.js';
 import { DockLayout, REGIONS } from '../../src/editor/dock.js';
 import { zipBytes, crc32 } from '../../src/io/zip.js';
@@ -199,6 +200,47 @@ test('onion skin renders through the real renderer and restores alpha', () => {
     assert.ok(ops.includes(`tint:${DEFAULT_TINT.after}@source-atop`), ops.join(' '));
 
     assert.equal(new OnionSkin({ enabled: false }).draw(ctx, { render: () => null, time: 1 }), 0);
+});
+
+/**
+ * The tint, at full strength.
+ *
+ * Tinting in place draws the ghost at its falloff opacity and then washes
+ * 55% of that over it, which reads on a mid-tone rig and does not on dark
+ * ink: the 2D film probe measured R-B of **6** on a black subject against
+ * the 3D path's 24 on a white one, and a stack of identically dark ghosts
+ * hides the direction of travel. Given an offscreen canvas, the ghost's ink
+ * becomes the tint colour instead and the whole thing carries the falloff
+ * -- a faint red line rather than a black line with a hint of red. The same
+ * probe then measured 59.
+ */
+test('a scratch canvas recolours the ghost instead of washing it', () => {
+    const ops = [];
+    const mk = (name) => ({
+        globalAlpha: 1, globalCompositeOperation: 'source-over', fillStyle: null,
+        clearRect() { ops.push(`${name}:clear`); },
+        drawImage() { ops.push(`${name}:draw@${this.globalAlpha.toFixed(3)}`); },
+        fillRect() { ops.push(`${name}:tint:${this.fillStyle}@${this.globalCompositeOperation}`
+            + `@${this.globalAlpha.toFixed(3)}`); },
+    });
+    const ctx = mk('out');
+    const sctx = mk('scratch');
+    const onion = new OnionSkin({ before: 1, after: 1, spacing: 0.2 });
+    const drawn = onion.draw(ctx, {
+        render: () => ({ width: 8, height: 8 }),
+        time: 1, duration: 5, width: 8, height: 8, scratch: { getContext: () => sctx },
+    });
+
+    assert.equal(drawn, 2);
+    // The ghost goes onto the scratch at FULL opacity and the tint covers
+    // its own coverage at full strength...
+    assert.ok(ops.includes('scratch:draw@1.000'), ops.join(' '));
+    assert.ok(ops.includes(`scratch:tint:${DEFAULT_TINT.before}@source-atop@1.000`), ops.join(' '));
+    assert.ok(ops.includes(`scratch:tint:${DEFAULT_TINT.after}@source-atop@1.000`), ops.join(' '));
+    // ...and only the finished, recoloured ghost carries the falloff.
+    assert.ok(ops.some((o) => o.startsWith('out:draw@0.280')), ops.join(' '));
+    assert.ok(!ops.some((o) => o.startsWith('out:tint')), 'nothing is tinted on the target');
+    assert.equal(ctx.globalAlpha, 1);
 });
 
 /**
@@ -439,4 +481,84 @@ test('PngSequenceSink numbers frames, keeps no pixels, and refuses up front', as
     await assert.rejects(
         () => new PngSequenceSink({ maxFrames: 10 }).configure({ totalFrames: 2880 }),
         /exceeds maxFrames/);
+});
+
+
+// =====================================================================
+// which nodes a 2D film ghosts
+// =====================================================================
+
+/**
+ * A scene shaped like a compiled film's: a group per scene, a background
+ * and some scenery beside the cast, and a rig under each cast root. The
+ * ids matter -- a cast root is `climb/mara` and its parent is the group
+ * `scene/climb`, two different namespaces, which is the whole trap.
+ */
+const sceneFixture = () => {
+    const node = (id, parentId, childIds = []) => [id, { id, parentId, childIds, props: {} }];
+    return { byId: new Map([
+        node('__root', null, ['scene/climb', '__camera']),
+        node('__camera', '__root'),
+        node('scene/climb', '__root', ['climb/bg', 'climb/set0_rail', 'climb/mara', 'climb/jonas']),
+        node('climb/bg', 'scene/climb'),
+        node('climb/set0_rail', 'scene/climb'),
+        node('climb/mara', 'scene/climb', ['climb/mara/torso', 'climb/mara/head']),
+        node('climb/mara/torso', 'climb/mara', ['climb/mara/armL']),
+        node('climb/mara/armL', 'climb/mara/torso'),
+        node('climb/mara/head', 'climb/mara'),
+        node('climb/jonas', 'scene/climb', ['climb/jonas/torso']),
+        node('climb/jonas/torso', 'climb/jonas'),
+    ]) };
+};
+
+test('a ghost keeps the cast subtree and drops the page around it', () => {
+    const { keep, hidden, total } = ghostMask(sceneFixture(), ['climb/mara']);
+    assert.ok(keep.has('climb/mara/armL'), 'a grandchild of the ghosted root is kept');
+    assert.ok(keep.has('climb/mara/head'));
+    const ids = hidden.map((n) => n.id).sort();
+    assert.deepEqual(ids, ['__camera', 'climb/bg', 'climb/jonas', 'climb/jonas/torso',
+                           'climb/set0_rail']);
+    assert.equal(total, 11);
+});
+
+/**
+ * The defect this function exists for. A cast root is `climb/mara` and its
+ * parent is `scene/climb`: the parent is NOT a string prefix of the child,
+ * so matching on ids alone hides the group the cast lives in and every
+ * ghost renders perfectly blank -- which looks exactly like onion skinning
+ * being switched off.
+ */
+test('and keeps the ANCESTORS, which are in a different namespace', () => {
+    const { keep } = ghostMask(sceneFixture(), ['climb/mara']);
+    assert.ok(keep.has('scene/climb'), 'the scene group the cast hangs from');
+    assert.ok(keep.has('__root'));
+    // A naive string-prefix rule would have hidden both.
+    assert.ok(!'climb/mara'.startsWith('scene/climb'));
+});
+
+test('ghosting several roots keeps all of them', () => {
+    const { hidden } = ghostMask(sceneFixture(), ['climb/mara', 'climb/jonas']);
+    assert.deepEqual(hidden.map((n) => n.id).sort(),
+                     ['__camera', 'climb/bg', 'climb/set0_rail']);
+});
+
+test('ghosting nothing hides everything, which the caller must notice', () => {
+    const { hidden, total } = ghostMask(sceneFixture(), []);
+    assert.equal(hidden.length, total);
+});
+
+test('an id that is not in the scene is skipped, not thrown', () => {
+    const { keep } = ghostMask(sceneFixture(), ['climb/nobody', 'climb/mara']);
+    assert.ok(keep.has('climb/mara'));
+    assert.deepEqual(ghostMask(null, ['x']).hidden, []);
+});
+
+test('the cast roots come from the film, as the compiler names them', () => {
+    assert.deepEqual(castRoots({ scenes: [
+        { id: 'climb', cast: [{ character: 'mara', as: 'mara' }, { character: 'j', as: 'jonas' }] },
+        { id: 'light', cast: [{ character: 'mara' }] },          // `as` defaults to the character
+        { cast: [{ character: 'x', as: 'x' }] },                 // and an unnamed scene to s3
+    ] }), ['climb/mara', 'climb/jonas', 'light/mara', 's3/x']);
+    assert.deepEqual(castRoots({}), []);
+    assert.deepEqual(castRoots({ scenes: [{ id: 'a' }] }), []);
 });

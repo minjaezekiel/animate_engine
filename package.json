@@ -30,7 +30,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:e2e": "node test/e2e/render-film.mjs",
     "test:av": "node test/e2e/render-av.mjs",
-    "test:all": "npm test && npm run audit:deps && npm run test:e2e && npm run test:av && npm run test:av:mp4 && npm run test:studio && npm run test:draw:e2e && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle && npm run test:transitions:e2e && npm run test:rack:e2e && npm run test:duck:e2e && npm run test:blur:e2e && npm run test:aov && npm run test:svg && npm run test:dope && npm run test:onion",
+    "test:all": "npm test && npm run audit:deps && npm run test:e2e && npm run test:av && npm run test:av:mp4 && npm run test:studio && npm run test:draw:e2e && npm run test:legacy && npm run test:roundtrip && npm run test:rig && npm run test:bundle && npm run test:transitions:e2e && npm run test:rack:e2e && npm run test:duck:e2e && npm run test:blur:e2e && npm run test:aov && npm run test:svg && npm run test:dope && npm run test:onion && npm run test:onion2d",
     "produce": "node scripts/produce.mjs",
     "icons": "node scripts/make-icons.mjs",
     "serve": "node scripts/serve.mjs",
@@ -127,7 +127,8 @@
     "svg": "node scripts/asset.mjs svg",
     "dope": "node scripts/dope.mjs",
     "test:dope": "node test/e2e/dope.mjs",
-    "test:onion": "node test/e2e/onion-3d.mjs"
+    "test:onion": "node test/e2e/onion-3d.mjs",
+    "test:onion2d": "node test/e2e/onion-2d.mjs"
   },
   "keywords": [
     "animation",

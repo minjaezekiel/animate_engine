@@ -588,3 +588,70 @@ solver returns whichever root it lands on, which reads as a jump. **y is
 not**: leaving [0, 1] is overshoot, and overshoot is what an animator opened
 the editor for. The overshoot lives in the *curve*, not in the keys, so the
 subject still lands exactly on its authored target.
+
+## Onion skinning a film
+
+**Phase 67.** The pose editor has had onion skinning since it was written,
+so the one view that shows an arc was available for a single pose and never
+for a shot.
+
+```
+ONION=2,2,0.5 AT=26.5 FILM=demo/film.json npm run grab2d
+ONION_ONLY=climb/mara ONION=3,0,0.2 AT=26.5 FILM=demo/film.json npm run grab2d
+```
+
+*before, after, spacing in seconds.* Spacing is seconds rather than frames
+because a ghost one frame away is nearly identical to the live one and tells
+an animator nothing.
+
+### Ghosting a film is not ghosting a pose
+
+Two things that are true of the editor's canvas and false of a film, each of
+which produced a frame that looked like the feature being switched off:
+
+**A film has a page.** The editor's canvas is empty behind the rig, so a
+ghost rendered over it is transparent where there is no ink. A film has a
+background rectangle at z −1000 and scenery that is often full-width, so
+every ghost arrives as a solid page and the stack is one flat wash. So
+everything outside the ghosted set is turned off for the ghost renders —
+and the default set is the **cast**, the drawings that move, which is what
+an animator is checking the arc of. `ONION_ONLY` names other nodes; `*` is
+the whole frame.
+
+**A cast root's parent is in a different namespace.** `climb/mara` hangs from
+the scene group `scene/climb`, which is *not* a string prefix of it. Matching
+on ids alone hid the group along with everything else and rendered four
+perfectly blank ghosts. `ghostMask` keeps each ghosted subtree **and its
+ancestors**, and is unit-tested on exactly that shape.
+
+### The tint has to recolour the ink, not wash over it
+
+The original tint drew each ghost at its falloff opacity and filled the
+colour `source-atop` at 55% of that. On a mid-tone rig it reads. On dark ink
+it does not — 15% of red over black is still black. Measured on a black
+subject: **R−B = 6**, against the 3D path's 24 on a white one, and a stack of
+identically dark ghosts hides the direction of travel, which is the one thing
+the tint exists to show.
+
+Given an offscreen canvas, the ghost is drawn at full opacity, its coverage
+is filled with the tint at full strength — so the ink *becomes* red or blue,
+which is what an animation desk shows — and only then is the whole thing
+composited at its falloff opacity. The same probe then measures **59**. The
+pose editor passes one too.
+
+### Measured on light paper
+
+The case the 3D path's additive compositing cannot serve — adding light to a
+pale page does nothing. A dark square crossing sage paper (luma 231), two
+ghosts each side 0.3 s apart:
+
+| cluster | centre | colour | |
+|---|---|---|---|
+| −0.6 s | 164 px | `rgb(239, 210, 201)` | warm, faintest |
+| −0.3 s | 242 px | `rgb(241, 190, 182)` | warm |
+| **live** | 320 px | `rgb(16, 16, 16)` | the ink |
+| +0.3 s | 398 px | `rgb(183, 205, 232)` | cool |
+| +0.6 s | 476 px | `rgb(207, 218, 228)` | cool, faintest |
+
+Every ghost is **darker than the page**, the past is 59 redder and the future
+49 bluer, and they are evenly spaced at 78 px. `npm run test:onion2d`.

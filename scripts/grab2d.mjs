@@ -24,6 +24,36 @@ const ROOT = process.env.ROOT ?? new URL('..', import.meta.url).pathname;
 const FILM = process.env.FILM ?? 'demo/film.json';
 const OUT = process.env.OUT ?? 'demo/out/2d';
 const AT = (process.env.AT ?? '0').split(',').map(Number);
+/**
+ * ONION=2,1,0.25 draws ghosted frames around each grabbed time.
+ *
+ *   ONION=2,1,0.25 AT=4.5 FILM=demo/film.json npm run grab2d
+ *
+ * before, after, spacing-in-seconds. The pose editor has had onion skinning
+ * since it was written; the FILM path never did, so the one view that shows
+ * an arc was available for a single pose and not for a shot. Spacing is
+ * seconds rather than frames for the reason `src/render/onionSkin.js` gives:
+ * a ghost one frame away is nearly identical to the live one.
+ */
+const ONION = process.env.ONION ? process.env.ONION.split(',').map(Number) : null;
+if (ONION && (ONION.length !== 3 || ONION.some((n) => !Number.isFinite(n)))) {
+    throw new Error('ONION takes three numbers: before,after,spacing (e.g. 2,1,0.25)');
+}
+/**
+ * Which nodes are ghosted. Defaults to the CAST.
+ *
+ *   ONION_ONLY=s1/mara,s1/jonas      two characters
+ *   ONION_ONLY=*                     the whole frame, scenery and all
+ *
+ * The default matters more than it looks. A 3D ghost is a subject against a
+ * background; a 2D film's scenery IS the frame -- a sky gradient and a sea
+ * are full-width rectangles -- so ghosting everything tints the whole page
+ * and shows nothing. An animator ghosts the drawing that moves. Scenery
+ * that genuinely moves (a parallax layer under a travelling camera) can be
+ * named here, and `*` is the escape hatch.
+ */
+const ONION_ONLY = process.env.ONION_ONLY
+    ? process.env.ONION_ONLY.split(',').map((x) => x.trim()).filter(Boolean) : null;
 // Default to the authored size. Overriding it is how you check that a render
 // at another resolution SCALES the film rather than cropping it -- the defect
 // that shipped a 1280x720 film as a 640x360 window onto its own middle.
@@ -83,7 +113,7 @@ async function onPage(page, url, fn) {
 }
 
 const film = JSON.parse(await readFile(join(ROOT, FILM), 'utf8'));
-const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async (f, times, size) => {
+const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async (f, times, size, onionSpec, only) => {
     window.jirex.setFilm(f);
     const prepared = await window.jirex.prepare({ skipVoices: true });
     // The studio's own log, which carries the asset and compile diagnostics.
@@ -125,24 +155,115 @@ const frames = await onPage(page, `${base}/film.html`, () => page.evaluate(async
     const backend = new Canvas2DBackend({ width: w, height: h });
     backend.mount(canvas, { width: w, height: h });
     const baseline = createPoseBaseline(prepared.scene, prepared.timeline);
-    const out = [];
-    for (const t of times) {
+
+    /** Pose the scene at `t` and draw one frame. */
+    const poseAndDraw = (t) => {
         resetPose(prepared.scene, baseline);
         applyPose(prepared.scene, samplePose(prepared.timeline, t));
         applySwapSets(prepared.scene);
-        backend.renderFrame(prepared.scene, prepared.cameraId);
-        out.push({ t, png: backend.canvas().toDataURL('image/png') });
+        return t;
+    };
+
+    /**
+     * What a ghost is allowed to draw.
+     *
+     * This is the whole difference between onion skinning a 2D film and
+     * onion skinning a pose. The editor's canvas is empty behind the rig, so
+     * a ghost rendered over it is transparent where there is no ink and
+     * composites correctly. A FILM is not: it has a background rectangle at
+     * z -1000 and scenery that is often full-width, so every ghost arrives
+     * as a solid page and the stack shows one flat wash.
+     *
+     * So everything outside the ghosted set is turned off for the ghost
+     * renders, which gives back the transparency a 2D canvas is supposed to
+     * have. The default set is the CAST -- the drawings that move, which is
+     * what an animator is checking the arc of.
+     *
+     * The alternative the 3D path takes -- compositing additively, where
+     * black contributes nothing -- is wrong here: half the films in this
+     * repository are ink on light paper, and adding light to a pale
+     * background does nothing at all.
+     */
+    const { OnionSkin, ghostMask, castRoots } =
+        await import('/src/render/onionSkin.js');
+    const ghosted = only ?? castRoots(f);
+    const mask = ghostMask(prepared.scene, ghosted);
+    const hidden = only?.includes('*') ? [] : mask.hidden;
+    if (onionSpec) {
+        notes.push(`onion: ghosting ${only?.includes('*') ? 'everything' : ghosted.join(', ')} `
+            + `(${mask.total - hidden.length} of ${mask.total} nodes drawn in a ghost)`);
+        if (!only && hidden.length === mask.total) {
+            notes.push('onion: WARNING nothing matched the cast; every ghost will be blank. '
+                + 'Name nodes with ONION_ONLY, or ONION_ONLY=* for the whole frame.');
+        }
     }
+
+    let onion = null;
+    let ghostLayer = null;
+    let onionScratch = null;
+    if (onionSpec) {
+        const [before, after, spacing] = onionSpec;
+        onion = new OnionSkin({ before, after, spacing });
+        ghostLayer = document.createElement('canvas');
+        ghostLayer.width = w; ghostLayer.height = h;
+        // Somewhere to recolour each ghost's ink before it is composited.
+        // Without it a black subject's ghosts are black with a 15% wash and
+        // past and future are indistinguishable; see `#drawTinted`.
+        onionScratch = document.createElement('canvas');
+        onionScratch.width = w; onionScratch.height = h;
+    }
+
+    const out = [];
+    let ghostCount = 0;
+    for (const t of times) {
+        if (onion) {
+            // The ghosts first, onto their own TRANSPARENT layer, so the
+            // tint lands through each ghost's own coverage rather than over
+            // the whole frame -- which is what `source-atop` needs and what
+            // an opaque target would silently break.
+            const gctx = ghostLayer.getContext('2d');
+            gctx.clearRect(0, 0, w, h);
+            ghostCount = onion.draw(gctx, {
+                time: t, duration: prepared.meta.duration, width: w, height: h,
+                scratch: onionScratch,
+                render: (gt) => {
+                    // Posed first, THEN hidden: `applyPose` rewrites keyed
+                    // channels from the timeline, so an alpha set before it
+                    // is overwritten on exactly the nodes that animate.
+                    poseAndDraw(gt);
+                    const was = hidden.map((n) => n.props.alpha ?? 1);
+                    for (const n of hidden) n.props.alpha = 0;
+                    backend.renderFrame(prepared.scene, prepared.cameraId);
+                    hidden.forEach((n, i) => { n.props.alpha = was[i]; });
+                    return backend.canvas();
+                },
+            });
+        }
+        poseAndDraw(t);
+        backend.renderFrame(prepared.scene, prepared.cameraId);
+        if (!onion) { out.push({ t, png: backend.canvas().toDataURL('image/png') }); continue; }
+        // The live frame is opaque, so the ghosts go OVER it. Their own
+        // opacity is already baked into the layer.
+        const composite = document.createElement('canvas');
+        composite.width = w; composite.height = h;
+        const cctx = composite.getContext('2d');
+        cctx.drawImage(backend.canvas(), 0, 0, w, h);
+        cctx.drawImage(ghostLayer, 0, 0, w, h);
+        out.push({ t, png: composite.toDataURL('image/png'), ghosts: ghostCount });
+    }
+    if (onion) notes.push(`onion: ${ghostCount} ghost(s) per frame, `
+        + `${onionSpec[0]} behind and ${onionSpec[1]} ahead at ${onionSpec[2]}s apart`);
     notes.push(`camera: ${prepared.cameraId ?? '(none)'}, `
         + `rendered ${backend.width}x${backend.height}, `
         + `authored ${prepared.meta.width}x${prepared.meta.height}`);
     return { frames: out, notes };
-}, film, AT, { width: WIDTH, height: HEIGHT }));
+}, film, AT, { width: WIDTH, height: HEIGHT }, ONION, ONION_ONLY));
 
 for (const line of frames.notes ?? []) console.log(' ', line);
 await mkdir(join(ROOT, OUT), { recursive: true });
 for (const fr of frames.frames) {
-    const f = join(ROOT, OUT, `t-${String(fr.t).replace('.', '_')}.png`);
+    const f = join(ROOT, OUT,
+                   `${ONION ? 'onion' : 't'}-${String(fr.t).replace('.', '_')}.png`);
     await writeFile(f, Buffer.from(fr.png.split(',')[1], 'base64'));
     console.log(' ', f.replace(ROOT, ''));
 }

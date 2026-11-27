@@ -205,6 +205,14 @@ const history = new History({
 });
 
 const onion = new OnionSkin({ before: 2, after: 1, spacing: 0.25 });
+/** One offscreen canvas for the ghost tint, resized only when the film is. */
+let _onionScratch = null;
+function onionScratch(width, height) {
+    if (!_onionScratch) _onionScratch = document.createElement('canvas');
+    if (_onionScratch.width !== width) _onionScratch.width = width;
+    if (_onionScratch.height !== height) _onionScratch.height = height;
+    return _onionScratch;
+}
 const PICK_RADIUS = 26;     // screen px; a joint is grabbed, not an outline
 
 // --------------------------------------------------------------- compiling
@@ -329,6 +337,11 @@ function draw() {
         duration: compiled.meta.duration ?? 0,
         width: compiled.meta.width,
         height: compiled.meta.height,
+        // Recolour each ghost's ink rather than washing it: 15% of red over
+        // a dark rig is still dark, and a stack of identical dark ghosts
+        // hides the direction of travel. Measured on the film path at
+        // R-B = 6 without this and 59 with it.
+        scratch: onionScratch(compiled.meta.width, compiled.meta.height),
         render: (time) => {
             poseAt(time);
             backend.renderFrame(compiled.scene, compiled.cameraId);

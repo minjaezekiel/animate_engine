@@ -118,11 +118,17 @@ export class OnionSkin {
      * @param {number} [job.duration]
      * @param {number} [job.width]
      * @param {number} [job.height]
+     * @param {HTMLCanvasElement} [job.scratch]
+     *   An offscreen canvas. With one, each ghost's ink is recoloured to
+     *   the tint before compositing, which is the only way a dark subject
+     *   reads as past or future. See `#drawTinted`.
      * @returns {number} how many ghosts were drawn
      */
-    draw(ctx, { render, time, duration = Infinity, width = null, height = null }) {
+    draw(ctx, { render, time, duration = Infinity, width = null, height = null,
+                scratch = null }) {
         const frames = this.frames({ time, duration });
         if (!frames.length) return 0;
+        if (scratch) return this.#drawTinted(ctx, frames, { render, width, height, scratch });
 
         const saved = ctx.globalAlpha;
         // Counted as DRAWN, not as asked for: a `render` that returns
@@ -153,6 +159,55 @@ export class OnionSkin {
             }
         }
         ctx.globalAlpha = saved;
+        return drawn;
+    }
+
+    /**
+     * Ghosts whose INK is the tint colour, rather than ink with a wash over it.
+     *
+     * The route above tints in place on the target: it draws the ghost at
+     * its falloff opacity and then fills the tint `source-atop` at 55% of
+     * that opacity. On a mid-tone rig that reads. On **dark ink it does
+     * not** -- 15% of red over black is still black, and the 2D film probe
+     * measured exactly that: R-B of **6** on a black subject, against the
+     * 3D path's 24 on a white one. A stack of ghosts that are all the same
+     * dark grey hides the direction of travel, which is the one thing the
+     * tint exists to show.
+     *
+     * Given somewhere offscreen to work, the ghost is instead drawn at full
+     * opacity, its coverage is filled with the tint at full strength -- so
+     * the ink BECOMES red or blue, which is what an animation desk actually
+     * shows -- and only then is the whole thing composited at the ghost's
+     * own falloff opacity. A faint red line, not a black line with a hint
+     * of red.
+     *
+     * The in-place route stays for a caller with no offscreen canvas. It is
+     * the weaker picture, and now it is the weaker picture on purpose.
+     */
+    #drawTinted(ctx, frames, { render, width, height, scratch }) {
+        const sctx = scratch.getContext('2d');
+        const savedAlpha = ctx.globalAlpha;
+        let drawn = 0;
+        for (const frame of frames) {
+            const image = render(frame.time);
+            if (!image) continue;
+            drawn++;
+            const w = width ?? image.width;
+            const h = height ?? image.height;
+            sctx.globalCompositeOperation = 'source-over';
+            sctx.globalAlpha = 1;
+            sctx.clearRect(0, 0, w, h);
+            sctx.drawImage(image, 0, 0, w, h);
+            if (this.tint) {
+                sctx.globalCompositeOperation = 'source-atop';
+                sctx.fillStyle = this.tint[frame.side];
+                sctx.fillRect(0, 0, w, h);
+                sctx.globalCompositeOperation = 'source-over';
+            }
+            ctx.globalAlpha = frame.alpha;
+            ctx.drawImage(scratch, 0, 0, w, h);
+        }
+        ctx.globalAlpha = savedAlpha;
         return drawn;
     }
 
@@ -217,4 +272,66 @@ export class OnionSkin {
         ctx.globalCompositeOperation = savedOp;
         return drawn;
     }
+}
+
+/**
+ * Which nodes a ghost may draw, given the ones being ghosted.
+ *
+ * # Why a 2D FILM needs this and a pose does not
+ *
+ * The pose editor's canvas is empty behind the rig, so a ghost rendered
+ * over it is transparent where there is no ink and composites correctly.
+ * A film is not: it has a background rectangle at z -1000 and scenery that
+ * is often full-width, so every ghost arrives as a solid page and a stack
+ * of them is one flat wash. An animator ghosts *the drawing that moves*.
+ *
+ * So everything outside the ghosted set is turned off for the ghost
+ * renders, which gives back the transparency a 2D canvas is supposed to
+ * have. The 3D path's answer -- compositing additively, where black
+ * contributes nothing -- is wrong here: half the films in this repository
+ * are ink on light paper, and adding light to a pale background does
+ * nothing at all.
+ *
+ * # Ancestors are not optional, and not obvious
+ *
+ * A cast root is `climb/mara` and its parent is the scene group
+ * `scene/climb` -- two different namespaces, so the parent is **not a
+ * string prefix of the child**. The first version of this matched on ids
+ * alone, hid the scene group along with everything else, and rendered four
+ * perfectly blank ghosts: the one failure mode that looks exactly like
+ * onion skinning being switched off.
+ *
+ * Pure, and takes the scene rather than a renderer, so the rule can be
+ * tested without a canvas.
+ *
+ * @param {{byId: Map}} scene
+ * @param {string[]} ids   node ids whose subtrees are ghosted
+ * @returns {{keep: Set<string>, hidden: object[], total: number}}
+ */
+export function ghostMask(scene, ids = []) {
+    const byId = scene?.byId ?? new Map();
+    const keep = new Set();
+    const addSubtree = (id) => {
+        const n = byId.get(id);
+        if (!n || keep.has(id)) return;
+        keep.add(id);
+        for (const c of n.childIds ?? []) addSubtree(c);
+    };
+    for (const g of ids) {
+        addSubtree(g);
+        for (let p = byId.get(g)?.parentId; p; p = byId.get(p)?.parentId) keep.add(p);
+    }
+    const all = [...byId.values()].filter((n) => n.id && n.props);
+    return { keep, hidden: all.filter((n) => !keep.has(n.id)), total: all.length };
+}
+
+/**
+ * The cast roots of a film, which is what gets ghosted unless told otherwise.
+ *
+ * Reads the FILM and not the compiled scene, because `as` is the name the
+ * author wrote and `${sceneId}/${as}` is the id the compiler makes from it.
+ */
+export function castRoots(film) {
+    return (film?.scenes ?? []).flatMap((sc, i) => (sc.cast ?? [])
+        .map((c) => `${sc.id ?? `s${i + 1}`}/${c.as ?? c.character}`));
 }

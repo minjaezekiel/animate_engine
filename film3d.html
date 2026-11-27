@@ -34,6 +34,8 @@ import { OnionSkin } from './src/render/onionSkin.js';
 import { shotWindow } from './src/core/anim/onion.js';
 import { fogReport } from './src/core/render/fog.js';
 import { shaftReport } from './src/core/render/shaft.js';
+import { boundsCentre, assignProbes, bounceReport } from './src/core/render/bounce.js';
+import { bakeProbes, probeTargets, applyProbes } from './src/render/bounce.js';
 import { AOV_KINDS, objectManifest } from './src/core/render/aov.js';
 import { samplePostAt } from './src/core/script/post.js';
 import { matchVisemeMorphs } from './src/core/art/visemeMorphs.js';
@@ -360,6 +362,7 @@ window.render3d = async function render3d(film, opts = {}) {
                                    { paintTexture, normalFromHeight, images });
     if (textures.size) report(`textures: ${[...textures.keys()].join(', ')}`);
 
+    let bounceProbes = null;
     const built = buildScene3D(THREE, compiled, {
         width, height, mergeGeometries, models, environment, textures,
         geometries: { RoundedBoxGeometry },
@@ -371,6 +374,38 @@ window.render3d = async function render3d(film, opts = {}) {
     // right, which `buildScene3D` already derived from this width and height.
     if (built.camera.isPerspectiveCamera) built.camera.aspect = width / height;
     built.camera.updateProjectionMatrix();
+
+    /**
+     * Bounce light, baked here because it needs the renderer and the finished
+     * scene graph and `buildScene3D` has neither by contract.
+     *
+     * Baked ONCE, before the first frame, from the set as directly lit -- so
+     * what a probe carries is light that has bounced once. Doing it after the
+     * implicit studio has been attached to the metals is deliberate: a metal
+     * with nothing to reflect bakes as a black hole in the probe, which is
+     * the one thing a bounce pass must not put into the room.
+     */
+    if (compiled.meta.bounce) {
+        const b = compiled.meta.bounce;
+        built.root.updateMatrixWorld(true);
+        const targets = probeTargets(THREE, built.root);
+        const positions = b.at ?? [boundsCentre((() => {
+            const box = new THREE.Box3().setFromObject(built.root);
+            return box.isEmpty() ? { min: [0, 0, 0], max: [0, 0, 0] }
+                : { min: box.min.toArray(), max: box.max.toArray() };
+        })())];
+        const t0 = performance.now();
+        const { maps, disposables } = bakeProbes(THREE, {
+            renderer, scene: built.root, positions,
+            size: b.size, near: b.near, far: b.far,
+        });
+        const assigned = assignProbes(targets, positions);
+        const touched = applyProbes(targets, assigned, maps,
+                                    { intensity: b.intensity, metals: b.metals });
+        bounceProbes = { positions, assigned, maps, disposables, touched };
+        report(`${bounceReport(b, positions, assigned)}, ${touched} material(s), `
+            + `baked in ${(performance.now() - t0).toFixed(0)} ms`);
+    }
 
     /**
      * Clipping planes, global rather than per-material.

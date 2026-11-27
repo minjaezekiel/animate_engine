@@ -231,11 +231,23 @@ This is where an **offline renderer should not pretend to be a real-time
 one**. We already render headless, frame by frame, with no interactivity
 budget. Options, in increasing cost and fidelity:
 
-- **Irradiance from the environment only** (spherical harmonics). Nearly free,
-  already implied by 1.1, and it is most of what "ambient" should have been.
-- **Baked irradiance probes** over the set, sampled per object. Minutes once
+- ~~**Irradiance from the environment only** (spherical harmonics). Nearly
+  free, already implied by 1.1, and it is most of what "ambient" should have
+  been.~~ **Already shipped, in Phase 49, and better than this plan.** A
+  prefiltered PMREM is a more accurate answer to the same question than an SH9
+  projection of it, and it carries indirect specular too. Rebuilding it as
+  spherical harmonics would be a downgrade with a longer changelog.
+- ~~**Baked irradiance probes** over the set, sampled per object. Minutes once
   per film, then free per frame. The right answer for a static set with moving
-  characters, which describes almost every film here.
+  characters, which describes almost every film here.~~ **Shipped, Phase 72**,
+  as `meta.bounce`. A cube render per probe prefiltered to a PMREM and assigned
+  per object -- a cube map rather than SH9 because three's materials sum light
+  probes GLOBALLY, so a per-object SH probe would mean patching every
+  material's shader, while `material.envMap` is per material and already
+  works. One bounce, baked once, free per frame: **38 ms** for one probe at
+  64^2. *Proof:* a white card beside a red wall lifts its red radiance
+  **44.8%** against **1.7%** blue, with a black-wall control at **1.7% on
+  every channel** and R/B **1.0000**.
 - **A path-traced tier** (`three-gpu-pathtracer` or equivalent) for a `master`
   quality level. Minutes per frame, not milliseconds -- but this engine
   renders offline and already has a take cache, a render lock and a resumable

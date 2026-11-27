@@ -1548,7 +1548,109 @@ A shaft is aimed once, at build time, from the lamp to its target.
 **No film declares a shaft yet**, for the reason [§13](#13-fog--the-first-volumetric-and-the-one-that-is-free)
 gives about fog.
 
-## 15. Onion skinning
+## 15. Bounce light — the set lighting itself
+
+`meta.bounce` bakes probes from the film's own set and gives each object the
+one nearest it, so a red wall makes a white floor red.
+
+```json
+"meta": { "bounce": true }
+"meta": { "bounce": { "at": [[0, 1.5, 0], [6, 1.5, -3]], "size": 128, "intensity": 1 } }
+```
+
+Opt-in, for the reason the implicit studio environment is attached to metals
+only: lighting dielectrics with a generic grey room took the AK-47's backdrop
+from 0.44 saturation to 0.17, and a probe is not a generic grey room but it
+still changes every frame of any film that turns it on.
+
+### Half of this shipped in Phase 49, and shipped better than planned
+
+[42-RENDER-QUALITY.md](pending/42-RENDER-QUALITY.md) Tier 2 lists three routes
+to global illumination in increasing cost, and the first — *"irradiance from
+the environment only (spherical harmonics), nearly free"* — **was already
+done**. A prefiltered PMREM is a more accurate answer to the same question
+than an SH9 projection of it, and it carries indirect specular as well as
+indirect diffuse. Rebuilding it as spherical harmonics would have been a
+downgrade with a longer changelog.
+
+What an environment cannot do, at any order of harmonics, is the thing GI is
+*for*. An environment is a statement about what is infinitely far away.
+Bounce is a statement about what is in the room, and the room is what the film
+built.
+
+### Why a cube map and not spherical harmonics
+
+SH9 is the textbook answer and three ships `LightProbe` for it, but three's
+built-in materials sum light probes **globally** — there is no per-object
+probe without patching every material's shader. A prefiltered cube map goes in
+`material.envMap`, which is per material, already works, and is the exact
+mechanism Phase 49 uses. The shortest route that works is also the
+better-looking one, which does happen sometimes.
+
+### One bounce, and that is the stated number
+
+A probe is baked from the set as *directly* lit, so what it carries is light
+that has bounced once. Two bounces would mean baking again with the first set
+applied. `ponytail:` the upgrade is a loop with a stated iteration count, and
+it belongs in the bake.
+
+Baking happens **after** the implicit studio has been attached to the metals,
+which is deliberate: a metal with nothing to reflect bakes as a black hole in
+the probe, and a black hole is the one thing a bounce pass must not put into
+the room.
+
+### Measured as the thing GI is for
+
+A white card beside a wall, rendered three times — no bounce, bounce with a
+red wall, bounce with a black wall. The third is what makes the second a
+measurement: a probe that merely tinted the frame, or that picked up the
+backdrop instead of the wall, would redden the card in run two *and* in run
+three.
+
+| run | byte r | byte b | linear r | linear b | R/B |
+|---|---|---|---|---|---|
+| no bounce | 80 | 80 | 0.08997 | 0.08997 | **1.0000** |
+| red wall | 104 | 81 | 0.13028 | 0.09148 | **1.4241** |
+| black wall | 81 | 81 | 0.09148 | 0.09148 | **1.0000** |
+
+Radiance lift against no bounce at all: with the red wall **r +44.8%**,
+g +1.7%, b +1.7%; with the black wall **+1.7% on every channel**. That 1.7%
+is the card seeing itself and is correct — the red is the wall's albedo
+arriving.
+
+Measured in linear light, not in bytes. The key **rakes the wall** rather than
+facing the card, and that is the point: 42-RENDER-QUALITY states the defect as
+*"the reference's shadows are filled by light that bounced off a wall; ours
+are filled by a constant ambient term, which flattens everything it touches"*.
+What bounce replaces is the **fill**, not the key. Lit square-on by a strong
+frontal key the same scene measures a true and useless **3.2%**, because
+direct light swamps it.
+
+### One probe by default, on purpose
+
+One probe is the set's light averaged over the set, which is already a better
+answer than a studio room nobody declared — and it needs no grid, no spacing
+and no occupancy test. **A probe placed automatically inside a solid would
+carry that solid's interior colour**, and the lazy way never to do that is not
+to place probes automatically. A film that needs more says where they go, and
+the render log names the furthest object from its probe, which is the number
+that says whether one was enough.
+
+### Found on the way
+
+**`rot` is in degrees.** The probe scene was written with `[0, 0.9, 0]`
+meaning 0.9 radians; it is 0.9°, so the wall stayed square-on, the probe sat
+behind it, and a single-sided plane is invisible from behind — the probe came
+back perfectly grey and the bounce measured exactly zero three times over.
+
+**`readRenderTargetPixels` needs a buffer matching the target's type.** A
+`Float32Array` against a `HalfFloatType` cube target returns silent zeros, so
+a working bake reads as a black probe. That one cost an hour of looking in the
+wrong place and is why the diagnostic now uses `UnsignedByteType`.
+
+**No film declares bounce yet**, for the reason §13 gives about fog.
+
+## 16. Onion skinning
 
 **Phase 66.** [pending/37-MISSING-TOOLS.md](pending/37-MISSING-TOOLS.md)
 listed `src/render/onionSkin.js` as *"2D only"*. It never was. Its whole

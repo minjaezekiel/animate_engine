@@ -142,7 +142,7 @@ Every "yes" names where it lives, so the claim can be checked.
 | HDRI / environment lighting | **yes** | Phase 49, defaulted |
 | Shadows, softness | **yes** | PCF soft, fitted per scene in Phase 52 |
 | Volumetric lighting | **yes** | **Phase 69** `meta.fog` (extinction), **Phase 70** `shaft` on a spot light (in-scattering), closed form rather than a march. Smoke and fire are the grid solver and still open |
-| Global illumination | **no** | Tier 2 of 42 — the honest remainder of the gap to Blender |
+| Global illumination | *partial* | **Phase 72** `meta.bounce`: probes baked from the set, one bounce, assigned per object. A path-traced `master` tier is the honest remainder |
 | Perspective camera, focal length, DOF, tracking, animation, switching, motion blur | **yes** | shots carry cameras; `dof` is keyable since Phase 44; motion blur Phase 47 |
 | Orthographic camera | **no** | Engine gap, trivial: one flag on the camera spec. Wanted by every technical/blueprint film |
 | Multiple cameras | *partial* | one camera node, re-aimed per shot. A second named camera is not expressible |
@@ -251,7 +251,7 @@ small and unblock films that exist; the rest are subsystems.
 | 8 | ~~Rigid-body dynamics, baked to keys~~ | **Tier 1 done, Phase 60** | Eight cases land in the AK-47 film and rest at y **-1.5846** against an analytic -1.5843. Stacking needs box-box and is Tier 2 |
 | 9 | ~~Render passes / AOVs~~ | **done, Phase 62** | `AOV=depth,normal,object`, decoded by pure arithmetic in `core/render/aov.js`. A cube at a known 11.000 m reads **10.999909 m**, against that frustum's own quantisation step of 7.2e-4 m. The depth pass opens WHITE and is correct; it is measured, not looked at |
 | 10 | **Volumetrics** (smoke, fire, god rays) | L | **Tiers 1 and 2 done, Phases 69 and 70.** Extinction as `meta.fog`: five cards recover the declared density to **0.76%** with a **1.6%** spread across 5 m to 30 m, which is also the proof it is `FogExp2` and not Beer-Lambert, and it found fog mixing in DISPLAY space whenever no post pass was declared. In-scattering as `shaft` on a spot light, closed form: 47 measured pixels at a mean ratio of **0.9993** against the integral, spread **1.031**. Smoke and fire need the grid solver and are open |
-| 11 | **Global illumination** | L | Tier 2 of 42; the honest remainder of the gap to Blender |
+| 11 | **Global illumination** | L | **Done to one bounce, Phase 72**: `meta.bounce` bakes probes from the set, so a red wall makes a white card red -- **+44.8%** red radiance against **+1.7%** blue, with a black-wall control flat at 1.7% on every channel. Route 1 of 42's Tier 2 turned out to have shipped in Phase 49 and better than planned. A path-traced `master` tier is what is left |
 
 ---
 
@@ -553,11 +553,25 @@ renders without the mesh and without a page error.
 feeding a 3D texture. They should not start until the "solve offline, consume
 per frame" machinery of 8 is reused rather than rebuilt.
 
-**11. Global illumination.** Tier 2 of 42, unchanged: SH irradiance from the
-environment first (nearly free), baked irradiance probes second (the right
-answer for a static set with moving characters), a path-traced `master` tier
-last. Nothing here is a real-time technique, and this renderer should stop
-pretending it is one.
+**11. Global illumination.** Two of the three routes are done.
+
+SH irradiance from the environment **had already shipped in Phase 49**, and
+better than this plan specified: a prefiltered PMREM answers the same question
+more accurately than an SH9 projection and carries indirect specular as well.
+
+Baked probes shipped in Phase 72 as `meta.bounce`, and as cube maps rather
+than SH9 for a reason worth recording: three's built-in materials sum light
+probes GLOBALLY, so a per-object SH probe means patching every material's
+shader, while `material.envMap` is per material and is the mechanism Phase 49
+already uses. One bounce, baked once at **38 ms** per 64^2 probe, free per
+frame. *Proof, as specified:* a white card beside a red wall lifts its red
+radiance **44.8%** against **1.7%** on blue, with a black-wall control at
+**1.7% on every channel** -- the control being what makes the first number a
+measurement rather than a tint.
+
+What is left is the **path-traced `master` tier**, which is the honest
+remainder of the gap to Blender. Nothing in it is a real-time technique and
+this renderer should not pretend it is one.
 
 ---
 
@@ -579,8 +593,9 @@ kind of items.
 | ~~then~~ | ~~**Render passes / AOVs**~~ | **done, Phase 62** -- and it found that three's depth packing puts the coarsest bits in red, which read the other way is a plausible depth map of nothing |
 | ~~then~~ | ~~**Volumetrics, Tier 1**~~ (extinction) | **done, Phase 69** -- and it found fog mixing in display space on the no-post path, which made one declared fog mean two images |
 | ~~then~~ | ~~**Volumetrics, Tier 2**~~ (in-scattering) | **done, Phase 70** -- and it needed no march either: the cone integral is closed form, so the mesh is only a rasteriser |
-| next | **Global illumination** | SH irradiance, then baked probes, then a path-traced `master` tier |
-| later | volumetrics Tier 3 (smoke, fire) | the grid solver, and the only item here that actually needs one |
+| ~~then~~ | ~~**Global illumination**~~ | **done to one bounce, Phase 72** -- and route 1 of three turned out to have shipped in Phase 49, better than the plan asked for |
+| next | volumetrics Tier 3 (smoke, fire) | the grid solver, and the only item here that actually needs one |
+| later | a path-traced `master` tier | the honest remainder of the gap to Blender |
 
 **Not planned, and the reason stated once:** a mesh-editing viewport,
 sculpting, weight painting, a node editor, video editing, motion tracking and

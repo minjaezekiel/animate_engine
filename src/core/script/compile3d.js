@@ -22,6 +22,7 @@ import { normalizePost, normalizePostRamp, isPostKeyable, postChannel,
          POST_KEYABLE, POST_NODE } from './post.js';
 import { normalizeFog, fogReport, visibilityOf } from '../render/fog.js';
 import { normalizeShaft } from '../render/shaft.js';
+import { normalizeBounce } from '../render/bounce.js';
 import { normalizeOverlay } from '../art/overlay.js';
 import { normalizeDuck } from '../audio/ducking.js';
 import { normalizeMotionBlur } from '../motion/motionBlur.js';
@@ -320,6 +321,14 @@ export function compileFilm3D(film = {}, { assets = {}, models = {} } = {}) {
          */
         fog: normalizeFog(film.meta?.fog, {
             background: film.meta?.background ?? '#0b0b0d', warn }),
+        /**
+         * Bounce light: probes baked from the set, so the set lights itself.
+         *
+         * Opt-in, for the reason the implicit studio environment is attached
+         * to metals only -- it changes every frame of any film that turns it
+         * on. See `core/render/bounce.js`.
+         */
+        bounce: normalizeBounce(film.meta?.bounce, { warn }),
         bloom: film.meta?.bloom ?? null,
         step: film.meta?.step ?? 0,
         post: null,         // filled below, once `warn` can be used
